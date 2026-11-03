@@ -4,6 +4,7 @@
 #include <dw/pstat.h>
 #include <dw/tamer.h>
 #include <dw/tournament.h>
+#include <dw/mod_rules.h>
 #include <dw/trigger.h>
 #include <dw/types.h>
 #include <dw/ui.h>
@@ -40,6 +41,8 @@ ModMedal MOD_MEDALS[MOD_MEDAL_MAX] = {
 	MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL,
 };
 
+int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+
 void updateTournamentRegistration(void)
 {
 	uint8_t i;
@@ -49,7 +52,8 @@ void updateTournamentRegistration(void)
 	DigimonId partnerType; /* MOD: was u8 */
 
 	flag = 0;
-	if (isTriggerSet(TRIGGER_TOURNAMENT_REGISTERED)) {
+	/* MOD (rules as data): the reminder times and sections come from MOD_TOURNAMENT (-1: no reminders) */
+	if (MOD_TOURNAMENT[MOD_TR_REMIND_FROM] >= 0 && isTriggerSet(TRIGGER_TOURNAMENT_REGISTERED)) {
 		minutes = minutesOfDay();
 		partnerType = PARTNER_ENTITY.digimonEntity.entity.type;
 		value = readPStat(PSTAT_TOURNAMENT_DIGIMON);
@@ -68,11 +72,11 @@ void updateTournamentRegistration(void)
 			flag = 1;
 		}
 
-		if (minutes < 0x2D0) {
+		if (minutes < MOD_TOURNAMENT[MOD_TR_REMIND_FROM]) {
 			return;
 		}
 
-		if (minutes >= 0x565) {
+		if (MOD_TOURNAMENT[MOD_TR_MISSED_FROM] >= 0 && minutes >= MOD_TOURNAMENT[MOD_TR_MISSED_FROM]) {
 			flag = 1;
 		}
 
@@ -95,12 +99,12 @@ void updateTournamentRegistration(void)
 		}
 
 		if (flag) {
-			callScriptSection(0, 0x4DA, 1);
+			callScriptSection(0, MOD_TOURNAMENT[MOD_TR_MISSED_SECTION], 1);
 			unsetTrigger(TRIGGER_TOURNAMENT_REGISTERED);
 			return;
 		}
 
-		if (minutes < 0x4B0) {
+		if (minutes < MOD_TOURNAMENT[MOD_TR_EVENING_FROM]) {
 			if (!isTriggerSet(TRIGGER_38)) {
 				return;
 			}
@@ -114,7 +118,7 @@ void updateTournamentRegistration(void)
 			unsetTrigger(TRIGGER_39);
 		}
 
-		callScriptSection(0, 0x4D9, 1);
+		callScriptSection(0, MOD_TOURNAMENT[MOD_TR_REMIND_SECTION], 1);
 	}
 
 	updateMapLightState();
