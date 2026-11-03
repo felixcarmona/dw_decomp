@@ -1,5 +1,6 @@
 #include <libgs.h>
 
+#include <dw/mod_options.h>
 #include <dw/btl.h> /* MOD (care menu): ACTIVE_ORDERING_TABLE for the X badge */
 #include <dw/bubble.h>
 #include <dw/params.h>
@@ -743,7 +744,7 @@ static void renderBadge(int32_t x, int32_t y, int32_t depth, int32_t k, int32_t 
 	setPolyFT4(p);
 	setSemiTrans(p, 1);
 	p->tpage = GetTPage(0, 1, 320, 128);
-	p->clut = GetClut(96, 500);
+	p->clut = modButtonClut(); /* MOD (options): GetClut(96, 500), the ○ in red */
 	setRGB0(p, 0x80, 0x80, 0x80);
 	setUVWH(p, (MOD_RING_CLOCK / 4) % 3 * 16 + 0x4c, 0xb7, RING_BADGE_W, RING_BADGE_H);
 	setXYWH(p, x - w / 2, y - h / 2, w, h);
