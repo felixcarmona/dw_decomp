@@ -74,6 +74,7 @@ MAIN_C_SRC := \
 	src/main/utils2.c \
 	src/main/mod_lab.c \
 	src/main/mod_species.c \
+	src/main/mod_screen.c \
 	src/main/tfs_stream.c \
 	src/main/npc_anim_trim.c \
 	src/main/npc_anim_keep.c \
