@@ -394,6 +394,21 @@ int32_t getDigimonVballId(int32_t type)
 	return rec->vballId;
 }
 
+extern uint8_t SPECIES_BATTLE_MUSIC[NUM_ORIGINAL_DIGIMON];
+
+int32_t getSpeciesBattleMusic(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return SPECIES_BATTLE_MUSIC[type];
+	}
+	if ((rec = getSpeciesRecord(type)) == NULL) {
+		return 1;
+	}
+	return rec->battleMusic;
+}
+
 int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *size)
 {
 	SpeciesRecord *rec;
