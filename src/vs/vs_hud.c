@@ -11,6 +11,7 @@
 #include <dw/input.h>
 #include <dw/math.h>
 #include <dw/memmap.h>
+#include <dw/mod_present.h>
 #include <dw/sound.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -144,6 +145,9 @@ uint8_t MAIN_D_801352DA[2];
 uint8_t *VS_DRAW_MODEL_BUFFER;
 int16_t VS_WIN_LOSS_DRAW_TIMER;
 uint8_t VS_WINNER_ID;
+/* MOD (fps): the start text object (0x1a6) exists; its pieces are rolled back
+ * around the extra render passes (vs_main.c) */
+int8_t VS_START_TEXT_ACTIVE;
 
 static void *vs_hud_sbss_order[] = {
 	&VS_WINNER_ID,
@@ -583,7 +587,13 @@ void VS_renderTargetCursor(uint8_t id)
 	}
 
 	if (COMBAT_DATA_PTR->player.remainingChargeupTime[id] == 0) {
-		VS_removeTargetCursor(id);
+		/* MOD (fps): the other render passes of this tick still draw it */
+		if (MOD_RENDER_MULTIPASS) {
+			removeObjectAfterRender(0x19a, id);
+			COMBAT_DATA_PTR->player.remainingChargeupTime[id] = -1;
+		} else {
+			VS_removeTargetCursor(id);
+		}
 	}
 }
 
@@ -751,6 +761,7 @@ void VS_initializeBattleStartText(void)
 	}
 
 	addObject(0x1a6, 0, NULL, VS_renderBattleStartText);
+	VS_START_TEXT_ACTIVE = 1;
 }
 
 void VS_renderBattleStartText(void)
@@ -900,12 +911,14 @@ void VS_renderBattleStartText(void)
 void VS_removeBattleStartText(void)
 {
 	removeObject(0x1a6, 0);
+	VS_START_TEXT_ACTIVE = 0;
 }
 
 void VS_initializeBattleStartTextBurst(void)
 {
 	VS_BATTLE_TEXT_FINISHED = 0;
 	addObject(0x1a6, 0, NULL, VS_renderBattleStartTextBurst);
+	VS_START_TEXT_ACTIVE = 1;
 }
 
 void VS_renderBattleStartTextBurst(void)
@@ -1027,6 +1040,7 @@ void VS_renderBattleStartTextBurst(void)
 void VS_removeBattleStartTextBurst(void)
 {
 	removeObject(0x1a6, 0);
+	VS_START_TEXT_ACTIVE = 0;
 }
 
 int32_t VS_isBattleStartTextFinished(void)
