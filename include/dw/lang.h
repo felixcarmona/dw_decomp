@@ -12,7 +12,8 @@
 #define MOD_LANG_DE	4
 #define MOD_LANG_IT	5
 #define MOD_LANG_JA	6
-#define MOD_LANGS	7
+#define MOD_LANG_CA	7
+#define MOD_LANGS	8
 
 #include <lang_build.h>
 

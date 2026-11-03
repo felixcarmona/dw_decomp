@@ -34,10 +34,10 @@ def main():
     rows = []
     for spec in a.lang.split():
         parts = spec.split(':')
-        if not 3 <= len(parts) <= 8:
-            sys.exit(f'gen_lang_files: expected NAME:ES:EN[:PT:FR:DE:IT:JA], got {spec}')
+        if not 3 <= len(parts) <= 9:
+            sys.exit(f'gen_lang_files: expected NAME:ES:EN[:PT:FR:DE:IT:JA:CA], got {spec}')
         key = parts[0]
-        copies = parts[1:] + ['-'] * (8 - len(parts))
+        copies = parts[1:] + ['-'] * (9 - len(parts))
         if len(hashes.get(fnv1a(key), ())) > 1:
             sys.exit(f'gen_lang_files: {key} shares its hash with {sorted(hashes[fnv1a(key)] - {key})}')
         idx = []

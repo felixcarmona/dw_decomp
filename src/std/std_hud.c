@@ -180,7 +180,7 @@ MATRIX STD_BATTLE_START_TEXT_MATRIX = {
 /* MOD (language): the BATTLE banner's blocks; Spanish ¡LUCHA! (154 blocks, the last one repeated:
  * tools/localize/textures/misc/battle-banner-es.json) */
 int16_t STD_BATTLE_START_TEXT_POSITIONS[155][2] = {
-#if MOD_LANG_BUILD == MOD_LANG_FR
+#if (MOD_LANG_BUILD == MOD_LANG_FR || MOD_LANG_BUILD == MOD_LANG_CA)
 	{ -136, -48 },
 	{ -128, -48 },
 	{ -120, -48 },
