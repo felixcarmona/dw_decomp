@@ -5603,11 +5603,34 @@ void createMeramonShake(void)
 	addObject(0xfb8, 0, tickMeramonShake, 0);
 }
 
-void tickMeramonShake(int32_t arg0)
+extern int32_t MOD_TICK_PRIM_MERAMON;
+
+void addMeramonShakePrim(void)
 {
 	POLY_FT4 *prim;
-	int8_t offset;
 	GsOT_TAG *org;
+
+	prim = (POLY_FT4 *)GsGetWorkBase();
+
+	SetPolyFT4(prim);
+	SetSemiTrans(prim, 1);
+	prim->tpage = getTPage(1, 2, 832, 256);
+	prim->clut = GetClut(0, 0x1e7);
+	setUVDataPolyFT4(prim, 64, 128, 63, 63);
+	setPosDataPolyFT4(prim, MERAMON_SHAKE_POS_X, MERAMON_SHAKE_POS_Y,
+			  MERAMON_SHAKE_WIDTH, MERAMON_SHAKE_HEIGHT);
+	setRGB0(prim, MERAMON_SHAKE_RED, MERAMON_SHAKE_GREEN, MERAMON_SHAKE_BLUE);
+	org = ACTIVE_ORDERING_TABLE->org;
+	AddPrim(&org[9], prim);
+	prim++;
+
+	GsSetWorkBase((PACKET *)prim);
+
+}
+
+void tickMeramonShake(int32_t arg0)
+{
+	int8_t offset;
 
 	if (MERAMON_SHAKE_FRAME_COUNT < 0x1f) {
 		offset = 1;
@@ -5640,21 +5663,8 @@ void tickMeramonShake(int32_t arg0)
 
 	DRAWING_OFFSET_X += offset;
 
-	prim = (POLY_FT4 *)GsGetWorkBase();
-
-	SetPolyFT4(prim);
-	SetSemiTrans(prim, 1);
-	prim->tpage = getTPage(1, 2, 832, 256);
-	prim->clut = GetClut(0, 0x1e7);
-	setUVDataPolyFT4(prim, 64, 128, 63, 63);
-	setPosDataPolyFT4(prim, MERAMON_SHAKE_POS_X, MERAMON_SHAKE_POS_Y,
-			  MERAMON_SHAKE_WIDTH, MERAMON_SHAKE_HEIGHT);
-	setRGB0(prim, MERAMON_SHAKE_RED, MERAMON_SHAKE_GREEN, MERAMON_SHAKE_BLUE);
-	org = ACTIVE_ORDERING_TABLE->org;
-	AddPrim(&org[9], prim);
-	prim++;
-
-	GsSetWorkBase((PACKET *)prim);
+	addMeramonShakePrim();
+	MOD_TICK_PRIM_MERAMON = 1; /* MOD (fps): added again on extra passes */
 
 	MERAMON_SHAKE_FRAME_COUNT++;
 
