@@ -67,6 +67,8 @@ RGB8 TEXT_COLORS[17] = {
 char NUMBER_FORMATS[32] = "%01d\0%02d\0%03d\0%04d\0%05d\0%06d";
 // clang-format on
 
+extern int32_t MOD_LAB_ACTIVE;
+
 void pauseFrame(void)
 {
 	/* MOD (fps): rendered by the shared tick / present helper (main.c); the
@@ -78,7 +80,8 @@ void pauseFrame(void)
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
-	tickObjects();
+	/* The lab edits live care/evolution values: only render until it closes. */
+	if (!MOD_LAB_ACTIVE) tickObjects();
 	modPresent(MOD_PRESENT_BATTLE | MOD_PRESENT_PAUSE, NULL);
 }
 
