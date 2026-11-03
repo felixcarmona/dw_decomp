@@ -153,6 +153,10 @@ int32_t drawTextboxStrings(boxId, flag)
 	int16_t px;
 	int16_t row;
 	uint8_t *buf;
+#if FONT_SWITCH
+	int32_t cellsRow; /* MOD (language) */
+	int8_t fixed;
+#endif
 
 	box = &TEXTBOX_DATA.box[boxId];
 	if (box->writeCount == box->renderCount) {
@@ -182,9 +186,26 @@ int32_t drawTextboxStrings(boxId, flag)
 #else
 #if FONT_SWITCH
 		/* MOD (font): the row a screen copies in pieces (TEXTBOX_ROW_PIECES) */
-		DRAW2_PIECES = FONT_PROPORTIONAL && boxId + 1 == TEXTBOX_PIECES_BOX && box->writeRow == TEXTBOX_PIECES_ROW ? TEXTBOX_PIECES : NULL;
-#endif
+		/* MOD (language): the row on either page (a box that flips writes its back page's rows after its front's) */
+		cellsRow = boxId + 1 == TEXTBOX_PIECES_BOX &&
+		           (box->vramRows != 0 ? box->writeRow % box->vramRows : box->writeRow) == TEXTBOX_PIECES_ROW;
+		DRAW2_PIECES = FONT_PROPORTIONAL && cellsRow ? TEXTBOX_PIECES : NULL;
+		/* MOD (language): with the original font that row is drawn in the original's cells, never in the name
+		 * keyboard's 12-pixel ones (its labels, NAMING_LABEL_PIECES) */
+		cellsRow = cellsRow && !FONT_PROPORTIONAL;
+		if (cellsRow) {
+			fixed = DRAW_STRING2_IS_FIXED_WIDTH;
+			DRAW_STRING2_IS_FIXED_WIDTH = 0;
+			FONT_CELLS = 1;
+		}
 		done = drawString2(buf, px, row, flag);
+		if (cellsRow) {
+			DRAW_STRING2_IS_FIXED_WIDTH = fixed;
+			FONT_CELLS = (TEXTBOX_CELLS >> boxId) & 1;
+		}
+#else
+		done = drawString2(buf, px, row, flag);
+#endif
 #endif
 		box->writeRow++;
 		if (done != 0) {
@@ -747,6 +768,8 @@ static int32_t drawString2Pieces(uint8_t *str, int16_t x, int16_t y)
 {
 	uint16_t glyphs[DRAW2_PIECES_MAX];
 	uint8_t cells[DRAW2_PIECES_MAX];
+	uint8_t colors[DRAW2_PIECES_MAX]; /* MOD (language): a row's colour codes (the name keyboard's labels) */
+	int32_t color;
 	int32_t n;
 	int32_t space;
 	int32_t ret;
@@ -755,6 +778,7 @@ static int32_t drawString2Pieces(uint8_t *str, int16_t x, int16_t y)
 
 	n = 0;
 	space = 0xc;
+	color = -1;
 	for (;;) {
 		ch = *str++;
 		if (ch == 0 || ch == 0xd) {
@@ -762,7 +786,8 @@ static int32_t drawString2Pieces(uint8_t *str, int16_t x, int16_t y)
 			break;
 		}
 		if (ch == 1) {
-			setTextColor(*str++);
+			color = *str++;
+			setTextColor(color);
 			continue;
 		}
 		if (ch < 0x20) {
@@ -777,6 +802,7 @@ static int32_t drawString2Pieces(uint8_t *str, int16_t x, int16_t y)
 			continue;
 		}
 		glyphs[n] = glyph;
+		colors[n] = color;
 		if (glyph == 0x4081) {
 			cells[n] = space;
 		} else {
@@ -784,7 +810,9 @@ static int32_t drawString2Pieces(uint8_t *str, int16_t x, int16_t y)
 		}
 		n++;
 	}
+	PIECE_COLORS = color >= 0 ? colors : NULL;
 	drawGlyphPieces(glyphs, cells, n, x, y, DRAW2_PIECES);
+	PIECE_COLORS = NULL;
 	return ret;
 }
 #endif
