@@ -73,7 +73,7 @@ static char *appendStr(char *dst, char *src)
  * inside the box, one row every 0x12 px, the native selection bar behind the
  * selected option. Each row has its own 0xC-high line in the VRAM text area. */
 #define ROW_PITCH	0x12
-#define BOX_W		0xC8
+#define BOX_W		0xD0
 #define ROW_TITLE	0
 #define ROW_STATS	1
 #define ROW_OPTIONS	2
@@ -103,7 +103,7 @@ static void modLabDrawText(void)
 
 	p = appendStr(line, "Bits ");
 	p = appendStr(p, formatInteger(MONEY, num, 6));
-	p = appendStr(p, "    HP ");
+	p = appendStr(p, "   HP ");
 	p = appendStr(p, formatInteger(stats->current.currentHP, num, 4));
 	p = appendStr(p, " of ");
 	appendStr(p, formatInteger(stats->base.hp, num, 4));
