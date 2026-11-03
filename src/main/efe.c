@@ -9,6 +9,7 @@
 #include <dw/entity.h>
 #include <dw/mod_present.h>
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/math.h>
 #include <dw/params.h>
 #include <dw/types.h>
@@ -1282,4 +1283,55 @@ void renderParticleFlash(ParticleFlashData *params)
 	}
 
 	GsSetWorkBase((PACKET *)prim);
+}
+
+/*
+ * MOD (cherrymon): every technique effect starts by looking up the attacker's
+ * type in a table of the technique's EFE chunk (checkTechCompatibility: bone
+ * and offset the effect leaves from) and is dropped when the type is not
+ * there. Cherrymon is in none of them, so it borrows Piximon's row (the other
+ * Earth Ultimate: it has a row for the eight Earth techniques and Bit Bomb)
+ * moved onto its own body:
+ *   - bone 0 (a point in front of the Digimon, in the entity's frame):
+ *     1.6 times farther, Cherrymon being 550 high and Piximon 330;
+ *   - bone 11 (Piximon's spear hand: Green Trap, the thrown Bit Bomb):
+ *     the palm of Cherrymon's front hand, also bone 11, which its throwing
+ *     animations swing;
+ *   - anything else (Piximon's head: the powders, Bug, Insect Plague):
+ *     Cherrymon's mouth, in front of trunk bone 2.
+ * Returns NULL for other types (the effect is dropped as before). The result
+ * lives in a small ring because the effect keeps the pointer while it runs.
+ */
+EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
+{
+	static EfeBoneOffset ring[8];
+	static int32_t next;
+	EfeTechBoneOffset *entry;
+	EfeBoneOffset *out;
+
+	if (type != DIGIMON_CHERRYMON) {
+		return NULL;
+	}
+	for (entry = table; entry->type >= 0 && entry->type != DIGIMON_PIXIMON;
+	     entry = (EfeTechBoneOffset *)((int32_t)entry + 0xa)) {
+	}
+	out = &ring[next];
+	next = (next + 1) & 7;
+	if (entry->type == DIGIMON_PIXIMON && entry->offset.boneId == 0) {
+		out->boneId = 0;
+		out->positionX = entry->offset.positionX * 8 / 5;
+		out->positionY = entry->offset.positionY * 8 / 5;
+		out->positionZ = entry->offset.positionZ * 8 / 5;
+	} else if (entry->type == DIGIMON_PIXIMON && entry->offset.boneId == 11) {
+		out->boneId = 11;
+		out->positionX = 25;
+		out->positionY = 55;
+		out->positionZ = 0;
+	} else {
+		out->boneId = 2;
+		out->positionX = 0;
+		out->positionY = 0;
+		out->positionZ = -110;
+	}
+	return out;
 }

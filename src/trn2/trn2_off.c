@@ -55,6 +55,8 @@ int8_t TRN2_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66)
 	{ 0x2e, 0xa }, { 0x2e, 0xa }, { 0x2e, 0xa },
 	/* MOD (master-tyrannomon): Tyrannomon's (8) */
 	[DIGIMON_MASTER_TYRANNOMON] = { 0x2e, 0xa },
+	/* MOD (cherrymon): its first technique, like Vegiemon (25) */
+	[DIGIMON_CHERRYMON] = { 0x2e, 0xa },
 };
 // clang-format on
 
