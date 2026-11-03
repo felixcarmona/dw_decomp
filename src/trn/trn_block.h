@@ -51,6 +51,7 @@ static int8_t TB_count;
 static int8_t TB_done;
 static int8_t TB_reason;
 static int8_t TB_box1Seen;
+static int8_t TB_box2Before; /* box 2 was open when the block began */
 static int16_t TB_pre[6];
 static int16_t TB_sum[6];
 static char TB_doneText[64];
@@ -105,6 +106,7 @@ void TB(modBlockBegin)(void)
 	TB_count = (MOD_TRAIN_BLOCK && TB_SLOT == 0) ? 5 : 1;
 	TB_done = 0;
 	TB_reason = MOD_TB_GO;
+	TB_box2Before = UI_BOX_DATA[2].state != 0;
 	TB(MOD_QUIET) = TB_count > 1;
 	if (TB_count > 1) {
 		TB(saveBaseStats)();
@@ -139,7 +141,13 @@ int32_t TB(modBlockNext)(void)
 	}
 	TB(applyBaseStats)();
 	TB_done++;
-	TB_reason = modTrainStopReason(TB_START_MIN, TB_RULES[MOD_TR_TIRED_AT]);
+	/* the gym's box (a technique, new orders) opened by this session: a box 2 open before the block (the Bonus
+	   Try's reels, a block's own box closing) is not one */
+	if (!TB_box2Before && UI_BOX_DATA[2].state != 0) {
+		TB_reason = MOD_TB_LEARNED;
+	} else {
+		TB_reason = modTrainStopReason(TB_START_MIN, TB_RULES[MOD_TR_TIRED_AT]);
+	}
 	if (TB_reason == MOD_TB_GO && TB_done < TB_count) {
 		TB(saveTrainingStartTime)(); /* the next session's hour */
 		return 1;
