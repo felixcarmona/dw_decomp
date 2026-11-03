@@ -1828,6 +1828,8 @@ grace:
 }
 
 void modBattleLoadFinish(void); /* MOD (quick battle start), btl.c */
+void BTL_tickQuickStartText(void); /* MOD (quick battle start), battle_setup.c */
+void BTL_endQuickStartText(void);
 
 int32_t BTL_battleMain(void)
 {
@@ -1857,10 +1859,12 @@ int32_t BTL_battleMain(void)
 		BTL_tickFighterStates();
 		BTL_tickPartnerWaypointTrail();
 		BTL_battleTickFrame();
+		BTL_tickQuickStartText(); /* MOD (quick battle start), battle_setup.c */
 		handlePause();
 		BATTLE_FRAME_COUNT++;
 	}
 
+	BTL_endQuickStartText();
 	modBattleLoadFinish(); /* MOD (quick battle start), btl.c: what is still loading lands before the clean-up */
 	removePauseBox();
 	BTL_deinitializeCombat();
