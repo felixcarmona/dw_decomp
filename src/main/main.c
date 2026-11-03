@@ -3886,8 +3886,20 @@ void recalculatePPandArena(void)
 }
 #endif
 
+/* MOD (perf): how long each game frame keeps the CPU+GPU busy, in horizontal
+ * lines (NTSC: ~263 per vertical refresh). The game waits VSync(3), i.e. a
+ * budget of ~789 lines per frame at 20 fps; 60 fps would need <= 263. */
+int32_t MOD_PERF_LAST;
+int32_t MOD_PERF_MAX;
+int32_t MOD_PERF_SUM;
+int32_t MOD_PERF_FRAMES;
+static int32_t modPerfV0;
+static int32_t modPerfH0;
+
 void gameLoop(void)
 {
+	modPerfV0 = VSync(-1);
+	modPerfH0 = VSync(1);
 	pollInputGame();
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
@@ -3911,6 +3923,12 @@ void gameLoop(void)
 	renderObjects();
 	applyDrawOffset(ACTIVE_FRAMEBUFFER);
 	DrawSync(0);
+	MOD_PERF_LAST = (VSync(-1) - modPerfV0) * 263 + VSync(1) - modPerfH0;
+	if (MOD_PERF_LAST > MOD_PERF_MAX) {
+		MOD_PERF_MAX = MOD_PERF_LAST;
+	}
+	MOD_PERF_SUM += MOD_PERF_LAST;
+	MOD_PERF_FRAMES++;
 	VSync(3);
 	GsSwapDispBuff();
 	GsSortClear(0, 0, 0, &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
