@@ -4,7 +4,9 @@
 #include <dw/types.h>
 
 /* MOD (fishing as data): the tension gauge, the hooked fish, the bites, the bait theft and the fish population, MOD_FISH[] (16-bit slots,
- * -1 = the rule does not exist), written by tools/balance.py from content/tables/fishing-rules.json. A slot left out reads as 0 */
+ * -1 = the rule does not exist), written by tools/balance.py from content/tables/fishing-rules.json. A slot left out reads as 0.
+ * Fishing runs one logic tick per 50 ms at any frame rate, so a count of "frames" is ticks: the JSON gives MOD_FS_SNAP_MULT, MOD_FS_HOLD_FRAMES
+ * and MOD_FS_THEFT_EVERY in real milliseconds and balance.py writes them as ticks */
 enum {
 	MOD_FS_LIMIT_SMALL = 0,
 	MOD_FS_LIMIT_BIG,
