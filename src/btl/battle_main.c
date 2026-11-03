@@ -14,6 +14,7 @@
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/mod_present.h>
+#include <dw/mod_qol.h>
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/script.h>
@@ -2658,7 +2659,7 @@ void BTL_battleTickFrame(void)
 	BTL_modSpeedBeforeTick(); /* MOD (battle speed) */
 	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
-	BTL_modSpeedInput();
+	modSpeedInput(); /* MOD (battle speed, mod_qol.c) */
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
