@@ -365,6 +365,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_FPS:
       ja: "FRAME RATE"
       en_us: "FRAME RATE"
+    MOD_OPT_STR_20:
+      ja: "20 FPS"
+      en_us: "20 FPS"
     MOD_OPT_STR_30:
       ja: "30 FPS"
       en_us: "30 FPS"
