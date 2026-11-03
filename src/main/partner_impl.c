@@ -39,7 +39,7 @@ extern uint8_t HAS_USED_EVOITEM;
 IS_SICK_TEXT
 
 char MAIN_D_801225AC[16] = "\\ETCNA\\UNTI.TMD";
-RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
+RaiseData RAISE_DATA[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
 	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 670, 200, -2270 },
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -277,7 +277,7 @@ SleepPattern SLEEP_PATTERN[8] = {
 	{0, 0, 0, 0, 8, 3},
 };
 
-int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
+int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	10, 10, 10, 10, 15, 10, 10, 15, 10, 15, 10, 15, 10, 10, 10, 10, 10,
 	10, 15, 10, 10, 15, 10, 15, 10, 25, 10, 10, 10, 10, 10, 10, 10, 10,
 	15, 15, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15,
@@ -544,7 +544,7 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 	setSleepTimes(&PARTNER_PARA, type);
 
 	PARTNER_PARA.missedSleepHours = 0;
-	PARTNER_PARA.poopLevel = RAISE_DATA[type].poopTimer;
+	PARTNER_PARA.poopLevel = RAISE_ROW(type).poopTimer;
 	PARTNER_PARA.poopingTimer = -1;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 	PARTNER_PARA.virusBar = 0;
@@ -555,9 +555,9 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 	PARTNER_PARA.unused3 = 50;
 	setFoodTimer(type);
 
-	PARTNER_PARA.energyLevel = RAISE_DATA[type].energyThreshold;
+	PARTNER_PARA.energyLevel = RAISE_ROW(type).energyThreshold;
 	PARTNER_PARA.remainingLifetime = 360;
-	PARTNER_PARA.weight = RAISE_DATA[type].defaultWeight;
+	PARTNER_PARA.weight = RAISE_ROW(type).defaultWeight;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 	PARTNER_PARA.trainBoostFlag = PARTNER_PARA.trainBoostValue =
 		PARTNER_PARA.trainBoostTimer = 0;
@@ -664,7 +664,7 @@ void initializeEvolvedPartner(int32_t type, int32_t posX, int32_t posY,
 
 void resetPartnerPara(PartnerPara *para, int32_t type)
 {
-	PARTNER_PARA.poopLevel = RAISE_DATA[type].poopTimer;
+	PARTNER_PARA.poopLevel = RAISE_ROW(type).poopTimer;
 	PARTNER_PARA.unused2 = 0;
 	PARTNER_PARA.unused1 = 0;
 	PARTNER_PARA.poopingTimer = -1;
@@ -682,7 +682,7 @@ void resetPartnerPara(PartnerPara *para, int32_t type)
 
 	PARTNER_PARA.starvationTimer = -1;
 	PARTNER_PARA.emptyStomachTimer = 0;
-	PARTNER_PARA.weight = RAISE_DATA[type].defaultWeight;
+	PARTNER_PARA.weight = RAISE_ROW(type).defaultWeight;
 	PARTNER_PARA.careMistakes = 0;
 	PARTNER_PARA.battles = 0;
 }
@@ -707,25 +707,25 @@ void setSleepTimes(PartnerPara *para, int32_t type)
 		para->sleepyMinute = 0;
 		para->wakeupHour =
 			(para->sleepyHour +
-			 SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHours);
+			 SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHours);
 		para->wakeupMinute = para->sleepyMinute;
 		para->wakeupHour %= 24;
 		para->hoursAwakeDefault = awakeTimeBase + roll;
 		para->hoursAsleepDefault =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHours;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHours;
 	} else {
 		para->sleepyHour =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHour;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHour;
 		para->sleepyMinute =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyMinute;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyMinute;
 		para->wakeupHour =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupHour;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupHour;
 		para->wakeupMinute =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupMinute;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupMinute;
 		para->hoursAwakeDefault =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].awakeHours;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].awakeHours;
 		para->hoursAsleepDefault =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHours;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHours;
 	}
 
 	PARTNER_PARA.timeAwakeToday = PARTNER_PARA.hoursAwakeDefault * 6;
@@ -757,47 +757,47 @@ void setFoodTimer(int16_t type)
 	} else {
 #if VERSION_IS(JP)
 		for (i = 0; i < 8; i++) {
-			if (HOUR < RAISE_DATA[type].hungerTimes[i]) {
+			if (HOUR < RAISE_ROW(type).hungerTimes[i]) {
 				PARTNER_PARA.nextHungerHour =
-					RAISE_DATA[type].hungerTimes[i];
+					RAISE_ROW(type).hungerTimes[i];
 				break;
 			}
-			if ((RAISE_DATA[type].hungerTimes[i + 1] == -1) ||
+			if ((RAISE_ROW(type).hungerTimes[i + 1] == -1) ||
 			    (i == 7))
 				PARTNER_PARA.nextHungerHour =
-					RAISE_DATA[type].hungerTimes[0];
+					RAISE_ROW(type).hungerTimes[0];
 		}
 #else
 		for (i = 0; i < 8; i++) {
 			if (HOUR <= PARTNER_PARA.nextHungerHour) {
 				if (PARTNER_PARA.nextHungerHour <
-				    RAISE_DATA[type].hungerTimes[i]) {
+				    RAISE_ROW(type).hungerTimes[i]) {
 					PARTNER_PARA.nextHungerHour =
-						RAISE_DATA[type].hungerTimes[i];
+						RAISE_ROW(type).hungerTimes[i];
 					goto calculateTimer;
 				}
-			} else if (HOUR < RAISE_DATA[type].hungerTimes[i]) {
+			} else if (HOUR < RAISE_ROW(type).hungerTimes[i]) {
 				PARTNER_PARA.nextHungerHour =
-					RAISE_DATA[type].hungerTimes[i];
+					RAISE_ROW(type).hungerTimes[i];
 				goto calculateTimer;
 			}
 
-			if (RAISE_DATA[type].hungerTimes[i + 1] == -1 ||
+			if (RAISE_ROW(type).hungerTimes[i + 1] == -1 ||
 			    i == 7) {
 				int32_t j;
 
 				for (j = 0; j < 8; j++) {
-					if (HOUR < RAISE_DATA[type].hungerTimes[j]) {
+					if (HOUR < RAISE_ROW(type).hungerTimes[j]) {
 						PARTNER_PARA.nextHungerHour =
-							RAISE_DATA[type]
+							RAISE_ROW(type)
 								.hungerTimes[j];
 						goto calculateTimer;
 					}
 
-					if (RAISE_DATA[type].hungerTimes[j + 1] == -1 ||
+					if (RAISE_ROW(type).hungerTimes[j + 1] == -1 ||
 					    j == 7) {
 						PARTNER_PARA.nextHungerHour =
-							RAISE_DATA[type]
+							RAISE_ROW(type)
 								.hungerTimes[0];
 						goto calculateTimer;
 					}
@@ -870,7 +870,7 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 	EVOLUTION_TARGET = -1;
 	PARTNER_PARA.careMistakes = 0;
 	PARTNER_PARA.battles = 0;
-	PARTNER_PARA.weight = RAISE_DATA[type].defaultWeight;
+	PARTNER_PARA.weight = RAISE_ROW(type).defaultWeight;
 
 	TAMER_ENTITY.raisedCount++;
 	if (TAMER_ENTITY.raisedCount >= 100)
@@ -964,9 +964,9 @@ void tickConditionBoundaries(void)
 	}
 
 	if (PARTNER_PARA.energyLevel >
-	    RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap) {
+	    RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap) {
 		PARTNER_PARA.energyLevel =
-			RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap;
+			RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap;
 	}
 
 	if (PARTNER_PARA.energyLevel < 0) {
@@ -1072,13 +1072,13 @@ void tickSleepMechanics(void)
 			PARTNER_PARA.wakeupMinute = 0;
 		} else {
 			PARTNER_PARA.sleepyHour =
-				SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHour;
+				SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHour;
 			PARTNER_PARA.sleepyMinute =
-				SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyMinute;
+				SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyMinute;
 			PARTNER_PARA.wakeupHour =
-				SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupHour;
+				SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupHour;
 			PARTNER_PARA.wakeupMinute =
-				SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupMinute;
+				SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupMinute;
 		}
 
 		PARTNER_PARA.timeAwakeToday =
@@ -1262,13 +1262,13 @@ void handleSleeping(void)
 		PARTNER_PARA.wakeupMinute = 0;
 	} else {
 		PARTNER_PARA.sleepyHour =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyHour;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyHour;
 		PARTNER_PARA.sleepyMinute =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].sleepyMinute;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].sleepyMinute;
 		PARTNER_PARA.wakeupHour =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupHour;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupHour;
 		PARTNER_PARA.wakeupMinute =
-			SLEEP_PATTERN[RAISE_DATA[type].sleepCycle].wakeupMinute;
+			SLEEP_PATTERN[RAISE_ROW(type).sleepCycle].wakeupMinute;
 	}
 
 	setFoodTimer((int16_t)type);
@@ -1288,7 +1288,7 @@ void handleSleeping(void)
 		createPoopPile(tileX, tileY);
 		PARTNER_PARA.condition &= ~8;
 		PARTNER_PARA.poopLevel =
-			RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+			RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type)
 				.poopTimer;
 		PARTNER_PARA.poopingTimer = -1;
 	}
@@ -1356,7 +1356,7 @@ int32_t createPoopPile(int16_t tileX, int16_t tileY)
 				WORLD_POOP[i].x = tileX;
 				WORLD_POOP[i].y = tileY;
 				WORLD_POOP[i].size =
-					RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopSize;
+					RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopSize;
 				break;
 			}
 		}
@@ -1367,7 +1367,7 @@ int32_t createPoopPile(int16_t tileX, int16_t tileY)
 		WORLD_POOP[CURRENT_POOP_ID].x = tileX;
 		WORLD_POOP[CURRENT_POOP_ID].y = tileY;
 		WORLD_POOP[CURRENT_POOP_ID].size =
-			RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopSize;
+			RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopSize;
 		CURRENT_POOP_ID++;
 	}
 	if (count >= 16) {
@@ -1377,7 +1377,7 @@ int32_t createPoopPile(int16_t tileX, int16_t tileY)
 				WORLD_POOP[i].x = tileX;
 				WORLD_POOP[i].y = tileY;
 				WORLD_POOP[i].size =
-					RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopSize;
+					RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopSize;
 				CURRENT_POOP_ID++;
 				break;
 			}
@@ -1454,7 +1454,7 @@ void sleepRegen(void)
 		PARTNER_PARA.tiredness = 0;
 
 	PARTNER_PARA.weight -=
-		(int16_t)(RAISE_DATA[ENTITY_TABLE[1]->type].defaultWeight / 10);
+		(int16_t)(RAISE_ROW(ENTITY_TABLE[1]->type).defaultWeight / 10);
 	if (PARTNER_PARA.weight <= 0)
 		PARTNER_PARA.weight = 1;
 }
@@ -1554,7 +1554,7 @@ int32_t partnerWillRefuseItem(void)
 		}
 	}
 	if (((isHungry = condition & 4) == 0) &&
-	    (item == RAISE_DATA[type].favoriteFood) && (chance < 2))
+	    (item == RAISE_ROW(type).favoriteFood) && (chance < 2))
 		PARTNER_PARA.refusedFavFood = 2;
 
 	if (PARTNER_PARA.refusedFavFood != 0) {
@@ -1581,7 +1581,7 @@ void tickHungerMechanics(void)
 
 	if (((CURRENT_FRAME % 1200) == 0) &&
 	    (CURRENT_FRAME != LAST_HANDLED_FRAME)) {
-		PARTNER_PARA.energyLevel -= RAISE_DATA[type].energyUsage;
+		PARTNER_PARA.energyLevel -= RAISE_ROW(type).energyUsage;
 		if (PARTNER_PARA.energyLevel < 0)
 			PARTNER_PARA.energyLevel = 0;
 	}
@@ -1598,7 +1598,7 @@ void tickHungerMechanics(void)
 		PARTNER_PARA.starvationTimer = 0;
 		PARTNER_PARA.condition &= ~4;
 		if (PARTNER_PARA.energyLevel <
-		    RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold)
+		    RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold)
 			PARTNER_PARA.careMistakes++;
 	}
 
@@ -1617,7 +1617,7 @@ void tickHungerMechanics(void)
 	    (CURRENT_FRAME != LAST_HANDLED_FRAME))
 		PARTNER_PARA.foodLevel -= 3;
 
-	if (RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold <=
+	if (RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold <=
 	    PARTNER_PARA.energyLevel)
 		setTrigger(0x280);
 }
@@ -1696,7 +1696,7 @@ void partnerHandleFoodFeed(int32_t itemType)
 		}
 #endif
 
-		if (!(RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold >
+		if (!(RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold >
 		      PARTNER_PARA.energyLevel)) {
 			PARTNER_PARA.happiness += 5;
 			PARTNER_PARA.discipline += 1;
@@ -1706,9 +1706,9 @@ void partnerHandleFoodFeed(int32_t itemType)
 		}
 
 		if ((TAMER_ITEM.worldItem.type ==
-		     RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].favoriteFood) ||
+		     RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).favoriteFood) ||
 		    !(PARTNER_PARA.energyLevel <
-		      RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold)) {
+		      RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold)) {
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 			PARTNER_ANIMATION = 0xb;
 #endif
@@ -1806,11 +1806,11 @@ void handleToilet(void)
 	PARTNER_PARA.happiness += 2;
 	PARTNER_PARA.discipline += 2;
 #if !VERSION_IS(US)
-	PARTNER_PARA.poopLevel = RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer;
+	PARTNER_PARA.poopLevel = RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer;
 #else
 	PARTNER_PARA.poopLevel =
-		(RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer +
-		 RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer);
+		(RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer +
+		 RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer);
 #endif
 	PARTNER_PARA.condition &= ~8;
 	handlePoopWeightLoss(ENTITY_TABLE[1]->type);
@@ -1822,7 +1822,7 @@ void handlePoopWeightLoss(int32_t type)
 
 	r = randomLimit(4);
 
-	PARTNER_PARA.weight -= (r + RAISE_DATA[type].poopSize) / 4;
+	PARTNER_PARA.weight -= (r + RAISE_ROW(type).poopSize) / 4;
 	if (PARTNER_PARA.weight < 1) {
 		PARTNER_PARA.weight = 1;
 	}
@@ -1835,11 +1835,11 @@ void handleWildPoop(void)
 	PARTNER_PARA.happiness -= 10;
 	PARTNER_PARA.discipline -= 5;
 #if !VERSION_IS(US)
-	PARTNER_PARA.poopLevel = RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer;
+	PARTNER_PARA.poopLevel = RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer;
 #else
 	PARTNER_PARA.poopLevel =
-		(RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer +
-		 RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].poopTimer);
+		(RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer +
+		 RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).poopTimer);
 #endif
 
 	handlePoopWeightLoss(ENTITY_TABLE[1]->type);
@@ -2041,13 +2041,13 @@ void skipHours(int16_t hours)
 		PARTNER_PARA.starvationTimer -= (int16_t)(hours * 120);
 		if ((PARTNER_PARA.starvationTimer <= 0) &&
 		    (PARTNER_PARA.energyLevel <
-		     RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold))
+		     RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold))
 			PARTNER_PARA.careMistakes++;
 	} else {
 		PARTNER_PARA.foodLevel -= (int16_t)(hours * 60);
 	}
 	PARTNER_PARA.energyLevel -=
-		RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyUsage;
+		RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if ((PARTNER_PARA.condition & 8) != 0)
 		PARTNER_PARA.poopingTimer -= 1200;
 	else
@@ -2090,13 +2090,13 @@ void skipHours(int32_t hours)
 		PARTNER_PARA.starvationTimer -= (int16_t)(rawHours * 120);
 		if ((PARTNER_PARA.starvationTimer <= 0) &&
 		    (PARTNER_PARA.energyLevel <
-		     RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold))
+		     RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold))
 			PARTNER_PARA.careMistakes++;
 	} else {
 		PARTNER_PARA.foodLevel -= (int16_t)(rawHours * 60);
 	}
 	PARTNER_PARA.energyLevel -=
-		RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyUsage;
+		RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if ((PARTNER_PARA.condition & 8) != 0)
 		PARTNER_PARA.poopingTimer -= 1200;
 	else

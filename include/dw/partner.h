@@ -29,7 +29,24 @@ typedef struct {
 	int8_t size;
 } PoopPile;
 
-extern RaiseData RAISE_DATA[NUM_DIGIMON];
+/*
+ * MOD (scale): the per-partner rows of the 180 original species are resident
+ * (RAISE_DATA, EVOLUTION_*, ITEM_TAKE_DISTANCE, DIGIMON_VLALL_SOUND_ID, TRN/TRN2
+ * animation rows); the row of a species >= NUM_ORIGINAL_DIGIMON is in its
+ * DIGI.DAT record (mod_species.c, species.h), read through the record cache.
+ * RAISE_ROW(type) is the row as an lvalue, valid until the next species lookup.
+ */
+extern RaiseData RAISE_DATA[NUM_ORIGINAL_DIGIMON];
+RaiseData *getSpeciesRaise(int32_t type);
+int32_t getItemTakeDistance(int32_t type);
+static inline RaiseData *raiseRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &RAISE_DATA[type];
+	}
+	return getSpeciesRaise(type);
+}
+#define RAISE_ROW(type) (*raiseRow(type))
 extern PoopPile WORLD_POOP[];
 
 void partnerTick(int32_t instanceId);
