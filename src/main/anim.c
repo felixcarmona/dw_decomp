@@ -199,6 +199,9 @@ void tickMomentum(Entity *entity, MomentumData *momentumBase)
 	}
 }
 
+extern int32_t MOD_NPC_STUB_HITS;
+extern int32_t MOD_NPC_STUB_LAST;
+
 void startAnimation(entity, animId)
 	Entity *entity;
 	uint8_t animId;
@@ -220,6 +223,12 @@ void startAnimation(entity, animId)
 
 	modInterpAnimStarted(entity); /* MOD (fps): a pose jump */
 	instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
+	if ((*instrPtr & 0x7fff) == 1) {
+		/* MOD (memreclaim): an NPC slot trimmed away (npc_anim_trim.c);
+		 * no original animation is 1 frame long */
+		MOD_NPC_STUB_HITS++;
+		MOD_NPC_STUB_LAST = (entity->type << 8) | animId;
+	}
 	anim = &entity->anim;
 	boneCount = DIGI_PARA(entity->type).boneCount;
 	posData = entity->posData;
