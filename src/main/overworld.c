@@ -140,8 +140,6 @@ void NPCEntityTick(int32_t instanceId);
 void NPCEntityTickOverworld(int32_t instanceId, MapDigimonEntity *mapDigimon);
 void scriptUnloadEntity(uint8_t scriptId);
 void setLoopCountToOne(uint32_t scriptId);
-void loadNPCModel(uint8_t digimonId);
-void unloadDigimonModel(uint8_t digimonType);
 void setPartnerIdling(void);
 int32_t tickRemoveMist(void);
 void setActiveAnim(uint8_t scriptId, int8_t animId);
@@ -170,7 +168,6 @@ void clearMapDigimon(void);
 void resetEntityOrigin(uint8_t scriptId);
 void loadMapDigimon(int16_t *data, int16_t mapId);
 void initializeLoadedNPCModels(void);
-int32_t scriptSetDigimon(uint8_t type, uint8_t slot, uint8_t autotalk);
 int32_t tickMoveObjectTo(uint8_t objectIndex, uint8_t moveIndex,
                          int8_t steps, int16_t targetX, int16_t targetY);
 void setMovementEnabled(int32_t id, int32_t enabled);
@@ -1053,12 +1050,12 @@ void loadMapDigimon(int16_t *data, int16_t mapId)
 	}
 }
 
-void loadNPCModel(uint8_t digimonId)
+void loadNPCModel(DigimonId digimonId) /* MOD: was u8 */
 {
 	thunkLoadMMD(digimonId, 0);
 }
 
-int32_t scriptSetDigimon(uint8_t type, uint8_t slot, uint8_t autotalk)
+int32_t scriptSetDigimon(DigimonId type, uint8_t slot, uint8_t autotalk) /* MOD: type was u8 */
 {
 	if (type != MAP_DIGIMON_TABLE[slot].typeId) {
 		return 0;
@@ -1116,7 +1113,7 @@ void scriptUnloadEntity(uint8_t scriptId)
 	removeEntity(entity->type, scriptId);
 }
 
-void unloadDigimonModel(uint8_t digimonType)
+void unloadDigimonModel(DigimonId digimonType) /* MOD: was u8 */
 {
 	thunkUnloadModel(digimonType, 0);
 }
