@@ -29,7 +29,7 @@ char *modFontFile(char *path, char *originalFont)
 	if (MOD_FONT == MOD_FONT_NEW) {
 		return path;
 	}
-	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
+	for (entry = FILE_OFFSET_TABLE; entry->sizeCode != 0; ++entry) {
 		if (fileEntryIs(entry, originalFont)) {
 			return entry->sector != 0 ? originalFont : path;
 		}
@@ -48,7 +48,7 @@ int32_t fileEntryIs(FileEntry *entry, char *name)
     } else {
         for (i = 0; name[i]; i++) hash = (hash ^ (uint8_t)name[i]) * 0x01000193;
     }
-    return hash == entry->nameHash;
+    return (hash & 0xFFFFFF) == entry->nameHash;
 }
 
 int32_t lookupFileTable(FileLookup *lookup, char *path)
@@ -64,15 +64,15 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	}
 	filename = modStoryFile(modLangFile(filename)); /* MOD (language, story): the language's copy, then its story's */
 
-	for (; entry->size != 0; ++entry) {
+	for (; entry->sizeCode != 0; ++entry) {
 		if (fileEntryIs(entry, filename)) {
-			lookup->size = entry->size;
+			lookup->size = fileEntrySize(entry);
 			CdIntToPos(entry->sector, &lookup->pos);
 			break;
 		}
 	}
 
-	if (entry->size) {
+	if (entry->sizeCode) {
 		return 1;
 	} else {
 		empty_800a31f0(path);

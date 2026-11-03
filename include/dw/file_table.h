@@ -6,18 +6,25 @@
 extern int16_t ATAN_LOOKUP_TABLE[];
 extern int16_t SIN_LOOKUP_TABLE[];
 
-/*
- * MOD (file table): the name is in the entry (8.3 names of the disc, 12 letters at most; one of 12 has no NUL), not a
- * pointer to a string: 20 bytes an entry, not 12 and a string aligned to 4 (16 at most). The mod's discs add hundreds
- * of names (new screens, language and story copies) to the executable's resident data. Compare with fileEntryIs.
- */
+/* Packed DWFH v2: exact 19-bit LBA, lossless 21-bit size code,
+ * and a collision-checked 24-bit FNV key. Sizes below 1 MiB are literal;
+ * larger archives use 64-byte units (up to 64 MiB). The disc writer rejects
+ * unrepresentable sectors/sizes; packed access is byte-aligned on R3000. */
 #define FILE_NAME_MAX 12
+#define FILE_SIZE_CODE(n) ((n) < 0x100000 ? (n) : 0x100000 | ((n) >> 6))
 
-typedef struct {
-    int32_t sector;
-    int32_t size;
-    uint32_t nameHash; /* FNV-1a of the filename; the builder rejects collisions. */
+typedef struct __attribute__((packed)) {
+    uint32_t sector : 19;
+    uint32_t sizeCode : 21;
+    uint32_t nameHash : 24;
 } FileEntry;
+_Static_assert(sizeof(FileEntry) == 8, "packed file entry must occupy eight bytes");
+
+static inline uint32_t fileEntrySize(const FileEntry *entry)
+{
+    uint32_t n = entry->sizeCode;
+    return n & 0x100000 ? (n & 0xFFFFF) << 6 : n;
+}
 
 extern FileEntry FILE_OFFSET_TABLE[];
 /* MOD (file table): 1 when the entry is the file `name` */
