@@ -118,8 +118,8 @@ uint8_t *intToStringSJIS(uint8_t *buf, int32_t value, uint8_t digits, int32_t fl
 					if (flag != 0) {
 						goto skip;
 					}
-#if VERSION_IS(US) && FONT_PROPORTIONAL
-					c = FONT_FIGURE_SPACE; /* MOD (font): as wide as a digit */
+#if FONT_SWITCH
+					c = FONT_PROPORTIONAL ? FONT_FIGURE_SPACE : 0x8140; /* MOD (font): as wide as a digit */
 #else
 					c = 0x8140;
 #endif

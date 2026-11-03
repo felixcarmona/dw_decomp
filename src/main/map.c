@@ -5735,7 +5735,7 @@ int32_t scriptTickChangeMap(int16_t mapId, int16_t exitId, int32_t showName)
 	return 0;
 }
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 /*
  * MOD (font): the US map names are centred with spaces made for the original's letters ("      Native Forest     ")
  * and the caption's rectangle is computed from strlen. With a font placed to the pixel the spaces and letters are
@@ -5767,13 +5767,13 @@ void addMapNameObject(mapId)
 	int16_t mapId;
 // clang-format on
 {
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	char buf[MAP_CAPTION_MAX];
 #endif
 
 	clearTextArea();
-#if VERSION_IS(US) && FONT_PROPORTIONAL
-	drawString(mapCaption(mapId, buf), 0, 0);
+#if FONT_SWITCH
+	drawString(FONT_PROPORTIONAL ? mapCaption(mapId, buf) : getScreenCaption(mapId), 0, 0);
 #else
 	drawString(getScreenCaption(mapId), 0, 0);
 #endif
@@ -5880,13 +5880,15 @@ void renderMapName(mapId)
 // clang-format on
 {
 	int32_t length;
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	char buf[MAP_CAPTION_MAX];
 
 	/* the name's ink and a column of shadow, centred on the screen (x 0) */
-	length = measureStringMode(mapCaption(mapId, buf), FIT_VANILLA) + 2;
-	renderString(0, -length / 2, -6, length, 12, 0, 0, 0, 0);
-	return;
+	if (FONT_PROPORTIONAL) {
+		length = measureStringMode(mapCaption(mapId, buf), FIT_VANILLA) + 2;
+		renderString(0, -length / 2, -6, length, 12, 0, 0, 0, 0);
+		return;
+	}
 #endif
 	length = strlen(getScreenCaption(mapId));
 #if !VERSION_IS(US)

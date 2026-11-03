@@ -22,17 +22,23 @@
 
 #if !VERSION_IS(US)
 #define NUM_RENDER_SLOTS	21
-#elif FONT_PROPORTIONAL
-/* MOD (font): a 16-pixel cell (4 VRAM halfwords, 8 bytes a row) of 11 rows; 40 slots stay within the original's
- * 3600 bytes, and drawGlyph waits for the GPU when the ring wraps (a slot is rewritten only once it has been read) */
-#define NUM_RENDER_SLOTS	40
 #else
 #define NUM_RENDER_SLOTS	50
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
-#define RENDER_SLOT_SIZE	88
-#else
 #define RENDER_SLOT_SIZE	72
+#if FONT_SWITCH
+/*
+ * MOD (font): font b's ring: a 16-pixel cell (4 VRAM halfwords, 8 bytes a row) of 11 rows, 34 slots, and drawGlyph waits
+ * for the GPU when the ring wraps (a slot is rewritten only once it has been read). The original font (NEW FONT off)
+ * uses the same buffer: 30 of its slots of 72 bytes, waiting too when its ring wraps, and after them the strip its
+ * long names are composed in (FIT_STRIP). 1 400 bytes less than the original's 3 600 and a strip of its own.
+ */
+#define PIXEL_RENDER_SLOTS	34
+#define PIXEL_RENDER_SLOT_SIZE	88
+#define CELL_RENDER_SLOTS	30
+#define GLYPH_AREA_SIZE		(PIXEL_RENDER_SLOTS * PIXEL_RENDER_SLOT_SIZE)
+#else
+#define GLYPH_AREA_SIZE		(NUM_RENDER_SLOTS * RENDER_SLOT_SIZE)
 #endif
 
 #define NUM_FONT_CLUT_ENTRIES	16
@@ -1188,9 +1194,17 @@ uint16_t CHAR_TO_GLYPH_TABLE[NUM_GLYPHS] = {
 };
 // clang-format on
 
-#if !FONT_PROPORTIONAL
+#if FONT_SWITCH
+#include "font_b.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=b (tools/fontgen.py, tools/font/b.txt) */
+/* MOD (font): the original font's glyphs, for NEW FONT off */
+#define CELL_GLYPH_DATA ORIGINAL_GLYPH_DATA
+#define CELL_EXTRA_GLYPH_DATA ORIGINAL_EXTRA_GLYPH_DATA
+#else
+#define CELL_GLYPH_DATA GLYPH_DATA
+#define CELL_EXTRA_GLYPH_DATA EXTRA_GLYPH_DATA
+#endif
 // clang-format off
-GlyphData GLYPH_DATA[NUM_GLYPHS] = {
+GlyphData CELL_GLYPH_DATA[NUM_GLYPHS] = {
 	{ { 0xf3ff, 0xedff, 0xddff, 0xdeff, 0xbeff, 0x80ff, 0x7f7f, 0x7f7f, 0x7f7f, 0x7f7f, 0xffff, }, 12 },
 	{ { 0x01ff, 0x7eff, 0x7eff, 0x01ff, 0x7eff, 0x7f7f, 0x7f7f, 0x7f7f, 0x7f7f, 0x00ff, 0xffff, }, 12 },
 	{ { 0xe0ff, 0x9f7f, 0x7f7f, 0x7fff, 0x7fff, 0x7fff, 0x7fff, 0x7f7f, 0x9f7f, 0xe0ff, 0xffff, }, 12 },
@@ -1272,11 +1286,6 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 	{ { 0xffff, 0xf7ff, 0xebff, 0xebff, 0xddff, 0xddff, 0xbeff, 0xbeff, 0x7f7f, 0x007f, 0xffff, }, 12 },
 };
 // clang-format on
-#elif defined(FONT_A)
-#include "font_a.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=a (tools/fontgen.py) */
-#else
-#include "font_b.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=b (tools/fontgen.py, tools/font/b.txt) */
-#endif
 
 /*
  * MOD: extra glyphs (accents, ñ, ç, ¿¡, ·, «», and the punctuation ( ) & % / …
@@ -1287,7 +1296,11 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
  */
 #define EXTRA_GLYPH_LEAD	0xf0
 #define EXTRA_GLYPH_FIRST	0x40
-#if !FONT_PROPORTIONAL
+#if FONT_SWITCH
+#define EXTRA_GLYPH_DATA ORIGINAL_EXTRA_GLYPH_DATA /* font_extra.h's table, beside font b's */
+#include "font_extra.h"
+#undef EXTRA_GLYPH_DATA
+#else
 #include "font_extra.h"
 #endif
 #endif
@@ -1303,7 +1316,11 @@ uint8_t COLORCODE_LOWBITS = 0x01;
 uint8_t COLORCODE_HIGHBITS = 0x10;
 
 int32_t GLYPH_DRAWING_AREA_INDEX;
-uint8_t GLYPH_DRAWING_AREAS[NUM_RENDER_SLOTS * RENDER_SLOT_SIZE];
+#if FONT_SWITCH
+uint8_t GLYPH_DRAWING_AREAS[GLYPH_AREA_SIZE] __attribute__((aligned(4))); /* FIT_STRIP: LoadImage reads words */
+#else
+uint8_t GLYPH_DRAWING_AREAS[GLYPH_AREA_SIZE];
+#endif
 
 void initializeFontCLUT(void)
 {
@@ -1330,7 +1347,7 @@ void clearTextArea(void)
  * (dw/mod_fps.h) */
 extern int32_t MOD_RENDER_PASS;
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 /* MOD (font): the cell of the last glyph uploaded (drawGlyph): its text-area x (a multiple of 4), y, ring slot */
 static int16_t GLYPH_CARRY_X;
 static int16_t GLYPH_CARRY_Y = -1;
@@ -1353,7 +1370,7 @@ void clearTextSubArea(RECT *rect)
 	rect->y = rect->y + TEXT_VRAM_Y;
 	rect->w >>= 2;
 	ClearImage(rect, 0, 0, 0);
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	GLYPH_CARRY_Y = -1; /* the previous glyph's cell may be cleared: never copy its pixels back */
 #ifdef FONT_KERN
 	KERN_PREV_Y = -1;
@@ -1380,8 +1397,8 @@ static int32_t glyphColor(uint16_t codepoint)
 }
 #endif
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
-/* the rows of a glyph (GLYPH_HEIGHT, then its width) */
+#if FONT_SWITCH
+/* the rows of a glyph of font b (GLYPH_HEIGHT, then its width) */
 static uint16_t *glyphRows(uint16_t codepoint)
 {
 	uint16_t code;
@@ -1595,10 +1612,7 @@ void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces)
  * the previous cell is the only one that can share them; a clear (clearTextSubArea) forgets it. The glyph's width is
  * its advance in pixels (its ink and a blank column, tools/fontgen.py).
  */
-int32_t drawGlyph(codepoint, x, y)
-	uint16_t codepoint;
-	uint16_t x;
-	uint16_t y;
+static int32_t drawGlyphPixel(uint16_t codepoint, uint16_t x, uint16_t y)
 {
 	RECT rect;
 	uint16_t *p;
@@ -1643,11 +1657,11 @@ int32_t drawGlyph(codepoint, x, y)
 	}
 
 	GLYPH_DRAWING_AREA_INDEX++;
-	if (GLYPH_DRAWING_AREA_INDEX >= NUM_RENDER_SLOTS) {
+	if (GLYPH_DRAWING_AREA_INDEX >= PIXEL_RENDER_SLOTS) {
 		GLYPH_DRAWING_AREA_INDEX = 0;
 		DrawSync(0); /* every slot's upload has read it */
 	}
-	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
+	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * PIXEL_RENDER_SLOT_SIZE;
 
 	cx = x & ~3;
 	shift = x & 3;
@@ -1675,7 +1689,7 @@ int32_t drawGlyph(codepoint, x, y)
 		carry += 8;
 	}
 
-	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
+	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * PIXEL_RENDER_SLOT_SIZE;
 	setRECT(&rect, (cx / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, 4, GLYPH_HEIGHT);
 	LoadImage(&rect, (u_long *)drawRow);
 	GLYPH_CARRY_X = cx;
@@ -1683,9 +1697,51 @@ int32_t drawGlyph(codepoint, x, y)
 	GLYPH_CARRY_SLOT = drawRow;
 	return adv;
 }
-#else /* the original drawGlyph */
+
+/*
+ * MOD (font): the font changes (OPTIONS' NEW FONT, a loaded save's options): the next glyph starts a ring and a row of
+ * its own (the two fonts lay out the same buffer in slots of their own sizes)
+ */
+int8_t MOD_FONT_ORIGINAL;
+
+void modSetFont(int32_t original)
+{
+	original = original != 0;
+	if (original == MOD_FONT_ORIGINAL) {
+		return;
+	}
+	DrawSync(0);
+	MOD_FONT_ORIGINAL = original;
+	GLYPH_DRAWING_AREA_INDEX = 0;
+	GLYPH_CARRY_Y = -1;
+#ifdef FONT_KERN
+	KERN_PREV_Y = -1;
+#endif
+	modFontScriptsChanged();
+}
+
+static int32_t drawGlyphCells(uint16_t codepoint, uint16_t x, uint16_t y);
+
+/* MOD (font): a glyph in the font OPTIONS chose (font b's placed to the pixel, or the original's cells); its advance */
+// clang-format off
+int32_t drawGlyph(codepoint, x, y)
+	uint16_t codepoint;
+	uint16_t x;
+	uint16_t y;
+// clang-format on
+{
+	if (FONT_PROPORTIONAL) {
+		return drawGlyphPixel(codepoint, x, y);
+	}
+	return drawGlyphCells(codepoint, x, y);
+}
+#endif /* FONT_SWITCH */
+
+/* the original drawGlyph (MOD (font): drawGlyphCells when the build has both fonts) */
 #if !VERSION_IS(US)
 void drawGlyph(uint16_t codepoint, uint16_t x, uint16_t y)
+#elif FONT_SWITCH
+static int32_t drawGlyphCells(uint16_t codepoint, uint16_t x, uint16_t y)
 #else
 // clang-format off
 int32_t drawGlyph(codepoint, x, y)
@@ -1704,6 +1760,9 @@ int32_t drawGlyph(codepoint, x, y)
 	uint16_t rowData;
 	uint8_t tmp;
 	uint8_t *drawRow;
+#if VERSION_IS(US)
+	uint8_t textColor; /* MOD (options): the text's colour, set again after the glyph (`col` is the loop's) */
+#endif
 
 	if ((x < 0) || (x >= TEXT_DRAW_LIMIT)) {
 #if !VERSION_IS(US)
@@ -1738,7 +1797,7 @@ int32_t drawGlyph(codepoint, x, y)
 		n--;
 	}
 	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-		p = (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+		p = (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData;
 	} else
 #endif
 	{
@@ -1750,15 +1809,23 @@ int32_t drawGlyph(codepoint, x, y)
 			}
 		}
 
-		p = GLYPH_DATA[n].pixelData;
+		p = CELL_GLYPH_DATA[n].pixelData;
 	}
+#if FONT_SWITCH
+	GLYPH_DRAWING_AREA_INDEX++;
+	if (GLYPH_DRAWING_AREA_INDEX >= CELL_RENDER_SLOTS) {
+		GLYPH_DRAWING_AREA_INDEX = 0;
+		DrawSync(0); /* MOD (font): every slot's upload has read it */
+	}
+#else
 	GLYPH_DRAWING_AREA_INDEX = (GLYPH_DRAWING_AREA_INDEX + 1) % NUM_RENDER_SLOTS;
+#endif
 	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
 #if VERSION_IS(US)
 	tmp = COLORCODE_LOWBITS; /* MOD (options): the glyph's colour (glyphColor), the text's again after it */
 	COLORCODE_LOWBITS = glyphColor(codepoint);
 	COLORCODE_HIGHBITS = COLORCODE_LOWBITS << 4;
-	col = tmp;
+	textColor = tmp;
 #endif
 
 	for (i = 0; i < GLYPH_HEIGHT; i++) {
@@ -1832,8 +1899,8 @@ int32_t drawGlyph(codepoint, x, y)
 		*drawRow++ = tmp;
 	}
 #if VERSION_IS(US)
-	COLORCODE_LOWBITS = col; /* MOD (options) */
-	COLORCODE_HIGHBITS = col << 4;
+	COLORCODE_LOWBITS = textColor; /* MOD (options) */
+	COLORCODE_HIGHBITS = textColor << 4;
 #endif
 
 	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, GLYPH_WIDTH / 4, GLYPH_HEIGHT);
@@ -1844,7 +1911,6 @@ int32_t drawGlyph(codepoint, x, y)
 #endif
 }
 
-#endif /* FONT_PROPORTIONAL */
 
 #if !VERSION_IS(US)
 void drawString(str, x, y)
@@ -1912,13 +1978,14 @@ void drawString(str, x, y)
  * The tight and condensed lines are composed into FIT_STRIP and uploaded at once (docs/mods/font.md "Long names").
  * A screen measures in any render pass; the drawing happens only in the first, like drawString's.
  */
-#if defined(FONT_B)
+#if FONT_SWITCH
 /*
  * MOD (font): with font b every species and item name fits its field as the font draws it (MetalGreymonVaccine is
  * 109 pixels, the longest item name 93), so a name is always drawn by drawString: no tight or condensed lines, no
- * composition strip, no condensed table (tools/localize/executable/bank.py and the species checks refuse a longer name).
+ * composition strip, no condensed table (tools/localize/executable/bank.py and the species checks refuse a longer name). The
+ * original font (NEW FONT off) keeps them (below).
  */
-int32_t measureStringMode(char *str, int32_t mode)
+static int32_t measureStringModePixel(char *str, int32_t mode)
 {
 	uint16_t codepoint;
 	uint16_t prev;
@@ -1951,26 +2018,43 @@ int32_t measureStringMode(char *str, int32_t mode)
 	return w > 0 ? w - 1 : 0; /* the last glyph's blank column is not ink */
 }
 
+static int32_t measureStringModeCells(char *str, int32_t mode);
+static int32_t fitStringModeCells(char *str, int32_t maxW);
+static int32_t drawStringModeCells(char *str, int32_t x, int32_t y, int32_t mode);
+static int32_t textFitCodeCells(char *str, int32_t maxW);
+
+int32_t measureStringMode(char *str, int32_t mode)
+{
+	return FONT_PROPORTIONAL ? measureStringModePixel(str, mode) : measureStringModeCells(str, mode);
+}
+
 int32_t fitStringMode(char *str, int32_t maxW)
 {
-	(void)str;
-	(void)maxW;
-	return FIT_VANILLA;
+	return FONT_PROPORTIONAL ? FIT_VANILLA : fitStringModeCells(str, maxW);
 }
 
 int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 {
-	drawString(str, x, y);
-	return measureStringMode(str, mode);
+	if (FONT_PROPORTIONAL) {
+		drawString(str, x, y);
+		return measureStringModePixel(str, mode);
+	}
+	return drawStringModeCells(str, x, y, mode);
 }
 
 int32_t textFitCode(char *str, int32_t maxW)
 {
-	(void)str;
-	(void)maxW;
-	return 1;
+	return FONT_PROPORTIONAL ? 1 : textFitCodeCells(str, maxW);
 }
+
+/* the original font's long names (NEW FONT off): the functions above in its cells */
+#define CELLS(name) name##Cells
+#define CELLS_FN static
 #else
+#define CELLS(name) name
+#define CELLS_FN
+#endif
+
 #include "font_condensed.h"
 
 #define FIT_GAP		1	/* blank columns between two letters (tools/fontgen.py FIT_GAP) */
@@ -1980,7 +2064,14 @@ int32_t textFitCode(char *str, int32_t maxW)
  * tight within a field of at most 136 (MetalGreymonVaccine: 131, at most 136 with x & 3); 616 bytes of bss back for
  * the item lists' code */
 #define FIT_STRIP_W	144
+#if FONT_SWITCH
+/* MOD (font): after the original font's ring (CELL_RENDER_SLOTS), which uses it only with NEW FONT off */
+#define FIT_STRIP (GLYPH_DRAWING_AREAS + CELL_RENDER_SLOTS * RENDER_SLOT_SIZE)
+_Static_assert(CELL_RENDER_SLOTS * RENDER_SLOT_SIZE + (FIT_STRIP_W / 2) * GLYPH_HEIGHT <= GLYPH_AREA_SIZE,
+	       "the strip ends within the glyph buffer");
+#else
 static uint8_t FIT_STRIP[(FIT_STRIP_W / 2) * GLYPH_HEIGHT] __attribute__((aligned(4))); /* LoadImage reads words */
+#endif
 
 /* the glyph of the next character of a drawString text (its GLYPH_HEIGHT rows, then the advance); *str moves on */
 static uint16_t *nextGlyph(char **str, int32_t mode)
@@ -2019,12 +2110,12 @@ static uint16_t *nextGlyph(char **str, int32_t mode)
 		n--;
 	}
 	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-		return (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+		return (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData;
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
 	}
-	return GLYPH_DATA[n].pixelData;
+	return CELL_GLYPH_DATA[n].pixelData;
 }
 
 /* the glyph's inked columns: returns the one after the last (0: no ink), *left the first */
@@ -2051,7 +2142,7 @@ static int32_t glyphInk(uint16_t *p, int32_t *left)
 }
 
 /* the width of a text's ink drawn in a mode, from x 0 (FIT_VANILLA: where drawString's last ink ends) */
-int32_t measureStringMode(char *str, int32_t mode)
+CELLS_FN int32_t CELLS(measureStringMode)(char *str, int32_t mode)
 {
 	uint16_t *p;
 	int32_t pen;
@@ -2068,11 +2159,7 @@ int32_t measureStringMode(char *str, int32_t mode)
 			if (right != 0) {
 				w = pen + right;
 			}
-#if FONT_PROPORTIONAL
-			pen += p[GLYPH_HEIGHT] & 0xff;
-#else
 			pen += p[GLYPH_HEIGHT];
-#endif
 		} else if (right == 0) {
 			pen += FIT_SPACE;
 		} else {
@@ -2084,12 +2171,12 @@ int32_t measureStringMode(char *str, int32_t mode)
 }
 
 /* the first mode that draws the text within maxW pixels (FIT_CONDENSED when none does) */
-int32_t fitStringMode(char *str, int32_t maxW)
+CELLS_FN int32_t CELLS(fitStringMode)(char *str, int32_t maxW)
 {
 	int32_t mode;
 
 	for (mode = FIT_VANILLA; mode < FIT_CONDENSED; mode++) {
-		if (measureStringMode(str, mode) <= maxW) {
+		if (CELLS(measureStringMode)(str, mode) <= maxW) {
 			break;
 		}
 	}
@@ -2097,7 +2184,7 @@ int32_t fitStringMode(char *str, int32_t maxW)
 }
 
 /* drawString in a mode; returns the ink width (measureStringMode) */
-int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
+CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t mode)
 {
 	RECT rect;
 	uint16_t *p;
@@ -2113,7 +2200,7 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 	int32_t i;
 	int32_t c;
 
-	w = measureStringMode(str, mode);
+	w = CELLS(measureStringMode)(str, mode);
 	if (mode == FIT_VANILLA) {
 		drawString(str, x, y);
 		return w;
@@ -2161,15 +2248,14 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 
 /* MOD (item names): the drawString2 code that draws a name within maxW pixels: 1 (a colour code, the name as the font
  * draws it) when it fits so, else TEXT_FIT_TIGHT or TEXT_FIT_CONDENSED (font.h) */
-int32_t textFitCode(char *str, int32_t maxW)
+CELLS_FN int32_t CELLS(textFitCode)(char *str, int32_t maxW)
 {
 	int32_t mode;
 
-	mode = fitStringMode(str, maxW);
+	mode = CELLS(fitStringMode)(str, maxW);
 	if (mode == FIT_VANILLA) {
 		return 1;
 	}
 	return TEXT_FIT_TIGHT - FIT_TIGHT + mode;
 }
-#endif /* FONT_B */
 #endif
