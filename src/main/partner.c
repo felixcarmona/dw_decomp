@@ -1175,10 +1175,18 @@ int16_t animId;
 void callDigimonRoutine(routine)
 uint8_t routine;
 {
+	int32_t i;
+
 	switch (routine) {
 	case 0:
 		partnerSetState(6);
 		SOME_SCRIPT_SYNC_BIT = 0;
+		break;
+	case 11: /* MOD: Sukamon sweeps the whole island's poop */
+		for (i = 0; i < 100; i++) {
+			WORLD_POOP[i].map = -1;
+			WORLD_POOP[i].size = 0;
+		}
 		break;
 	case 1:
 		KAR_start();
