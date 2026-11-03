@@ -279,34 +279,54 @@ int32_t modFileOnDisc(char *name)
 
 /*
  * MOD (language): a file's copy in the language, and a map background's (.TFS, and the .MAP whose sprites cover a sign)
- * with its signs translated (the Spanish copy
- * also has them in Spanish; MAP SIGNS ORIGINAL reads the disc's .TFS), from the table tools/build-full.sh writes
- * (LANG_FILES: the name, its Spanish copy, its copy with English signs); the file itself when the disc has no such copy
+ * with its signs translated (the Spanish copy also has them in Spanish; MAP SIGNS ORIGINAL reads the disc's .TFS), from
+ * the table tools/build-full.sh writes (LANG_FILES: the name, its Spanish copy, its copy with English signs); the file
+ * itself when the disc has no such copy. A row is the name's FNV-1a hash and the copies' places among the new files
+ * (tools/gen_lang_files.py, which refuses a hash two names of the disc share): the names are FILE_OFFSET_TABLE's.
  */
-static char *LANG_FILE_TABLE[][3] = {
+typedef struct {
+	uint32_t hash;
+	uint16_t copy[2]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
+} LangFileRow;
+
+static LangFileRow LANG_FILE_TABLE[] = {
 #include <lang_files.h>
-	{ NULL, NULL, NULL },
+	{ 0, { 0xFFFF, 0xFFFF } },
 };
+
+static uint32_t modNameHash(char *name)
+{
+	uint32_t h = 0x811C9DC5;
+
+	while (*name != '\0') {
+		h = (h ^ (uint8_t)*name++) * 0x01000193;
+	}
+	return h;
+}
 
 char *modLangFile(char *name)
 {
-	int32_t i;
+	uint32_t i;
+	uint32_t hash;
 	int32_t tfs;
-	char *copy;
+	int32_t copy;
+	char *file;
 
-	for (i = 0; LANG_FILE_TABLE[i][0] != NULL; i++) {
-		if (strcmp(name, LANG_FILE_TABLE[i][0])) {
+	hash = modNameHash(name);
+	for (i = 0; i < sizeof(LANG_FILE_TABLE) / sizeof(LangFileRow) - 1; i++) {
+		if (LANG_FILE_TABLE[i].hash != hash) {
 			continue;
 		}
 		tfs = strlen(name) > 4 && (!strcmp(name + strlen(name) - 4, ".TFS") || !strcmp(name + strlen(name) - 4, ".MAP")); /* a background or its sprites */
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		copy = LANG_FILE_TABLE[i][MOD_LANG == MOD_LANG_ES ? 1 : 2];
-		if (copy == NULL || (!tfs && MOD_LANG != MOD_LANG_ES) || !modFileOnDisc(copy)) {
+		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : 1];
+		if (copy == 0xFFFF || (!tfs && MOD_LANG != MOD_LANG_ES)) {
 			return name;
 		}
-		return copy;
+		file = FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].filename;
+		return modFileOnDisc(file) ? file : name;
 	}
 	return name;
 }

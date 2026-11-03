@@ -13,5 +13,6 @@ typedef struct {
 } FileEntry;
 
 extern FileEntry FILE_OFFSET_TABLE[];
+extern const int16_t FILE_TABLE_NEW_FIRST; /* MOD (language): the first of the new files (NEW_FILES) */
 
 #endif
