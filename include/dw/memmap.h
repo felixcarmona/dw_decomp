@@ -95,5 +95,19 @@
 #define TAMER_MMD_MAX		0xE000	/* BOYS.MMD 0xDECC (GCC: one array, mod 0002) */
 #define MAP_SCRIPT_MAX		0x4000	/* a DG.SCN entry; the largest is 0x3800 */
 #define SCRIPT_OFFSET_TABLE_SIZE 0x2000	/* start of DG.SCN (offset table), read at boot */
+/*
+ * The SEQ block of the current music font (every track of it), copied from
+ * the FAALL chunk (sound.c). Original 0x5800 (font 0xB uses 0x55F8); the
+ * extra 0x2800 bytes come out of the malloc3 heap (MIN_HEAP assert below).
+ */
+#define SEQ_BUFFER_SIZE		0x8000
+
+/*
+ * SPU RAM (512 KB, sound.c): what the sound banks may use. Below it the
+ * libspu capture buffers and silence block, above it the STUDIO_B reverb
+ * work area (0x4840 bytes).
+ */
+#define SPU_BANKS_START		0x1010
+#define SPU_REVERB_START	0x7B7C0
 
 #endif
