@@ -559,8 +559,8 @@ int32_t MOD_STATUS_BUBBLES = 1;
 /*
  * MOD (status-bubbles): the ACTIVE conditions as a fixed row of equal bubbles
  * over the partner, in a fixed order (hungry, poopy, sleepy, tired, sick,
- * injured): up to three in one row, from four on in two rows (the first half
- * on top). Only the bottom row has tails. Nothing rotates: a bubble keeps its
+ * injured): one or two in one row, from three on in two rows (the first half
+ * on top). Only a bubble on its own has a tail. Nothing rotates: a bubble keeps its
  * place while its condition lasts; when one appears it grows in its place,
  * when one goes it shrinks, and the others slide to their new places. The
  * layout is a function of (anchor, active conditions), never of the bubbles'
@@ -578,7 +578,8 @@ int32_t MOD_STATUS_BUBBLES = 1;
 #define RING_SIZE	205	/* every bubble, circle and icon: 0.8 of the original's (256) */
 #define RING_COL	22	/* texels between the centres of a row (a 0.8 circle is 21 wide) */
 #define RING_ROW	18	/* texels from the bottom row up to the top one */
-#define RING_NONE	0x10000	/* slot codes: no bubble, else (x + 128) << 8 | (y + 128), texels */
+#define RING_NONE	0x10000	/* slot codes: no bubble, else (x + 128) << 8 | (y + 128), texels, */
+#define RING_TAIL	0x20000	/* | this when the bubble has its tail */
 
 /* conditions in a fixed order: hungry, poopy, sleepy, tired, sick, injured */
 static const uint8_t RING_BIT[6] = { 0x04, 0x08, 0x01, 0x02, 0x40, 0x20 };
@@ -615,7 +616,7 @@ static void ringSlotPos(int32_t slot, int32_t *x, int32_t *y, int32_t *tail)
 	}
 	*x = (((slot >> 8) & 0xFF) - 128) * 16;
 	*y = ((slot & 0xFF) - 128) * 16;
-	*tail = *y == 0 ? 256 : 0;
+	*tail = (slot & RING_TAIL) ? 256 : 0;
 }
 
 /* ease in and out: 3p^2 - 2p^3, p and the result in 0..4096 */
@@ -731,7 +732,7 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 		}
 	}
 	/* the bottom row first, then the bigger: drawn first is on top (same
-	 * depth), so the tails and the bottom row cover the top row's edge */
+	 * depth), so the bottom row covers the top row's edge */
 	while (drawn < 6) {
 		int32_t b = -1;
 
@@ -859,8 +860,8 @@ void tickConditionRingObject(int32_t instanceId)
 		n += act[j];
 	}
 
-	/* up to three in one row; from four on the first half goes on top */
-	top = n > 3 ? (n + 1) / 2 : 0;
+	/* one or two in one row; from three on the first half goes on top */
+	top = n > 2 ? (n + 1) / 2 : 0;
 	for (j = 0; j < 6; ++j) {
 		to[j] = RING_NONE;
 		if (act[j]) {
@@ -870,7 +871,7 @@ void tickConditionRingObject(int32_t instanceId)
 			int32_t y = rank < top ? -RING_ROW : 0;
 
 			++rank;
-			to[j] = ((x + 128) << 8) | (y + 128);
+			to[j] = ((x + 128) << 8) | (y + 128) | (n == 1 ? RING_TAIL : 0);
 		}
 		if (to[j] != MOD_RING_FROM[j]) {
 			change = 1;
