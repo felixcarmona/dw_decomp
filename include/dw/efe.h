@@ -347,7 +347,7 @@ extern EfeBoneOffset *EFE_BONE_OFFSET;
 
 /* MOD (cherrymon): origin of a technique effect for a type the EFE table lacks (efe.c) */
 EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table);
-/* MOD (partners-npc-a): the same for the types in MOD_TECH_DONORS (efe.c) */
+/* MOD (integration): the one donor table behind getModTechBoneOffset (efe.c) */
 EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table);
 extern int32_t *EFE_CALL_STACK;
 extern int16_t *EFE_SCRIPT_PTR;
