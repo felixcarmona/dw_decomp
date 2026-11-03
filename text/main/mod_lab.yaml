@@ -11,8 +11,8 @@ MOD_LAB:
       ja: "Add 10000 bits"
       en_us: "Add 10000 bits"
     LAB_STR_HEAL:
-      ja: "Heal partner"
-      en_us: "Heal partner"
+      ja: "Heal Digimon"
+      en_us: "Heal Digimon"
     LAB_STR_GIFT:
       ja: "One-time gift"
       en_us: "One-time gift"
@@ -47,8 +47,8 @@ MOD_LAB:
       ja: "Bits +10000"
       en_us: "Bits +10000"
     LAB_STR_MSG_HEALED:
-      ja: "Partner healed"
-      en_us: "Partner healed"
+      ja: "Digimon healed"
+      en_us: "Digimon healed"
     LAB_STR_MSG_GIFT_TAKEN:
       ja: "Gift already taken"
       en_us: "Gift already taken"
@@ -283,3 +283,24 @@ MOD_LAB:
     LAB_STR_SIMPLE_CANCEL:
       ja: "Cancel"
       en_us: "Cancel"
+    LAB_STR_SAVE_GAME:
+      ja: "Save game"
+      en_us: "Save game"
+    LAB_STR_LOAD_GAME:
+      ja: "Load game"
+      en_us: "Load game"
+    LAB_STR_MAIN_MENU:
+      ja: "Return to main menu"
+      en_us: "Return to main menu"
+    LAB_STR_ASK_SAVE:
+      ja: "Save the current game?"
+      en_us: "Save the current game?"
+    LAB_STR_ASK_TITLE:
+      ja: "Return to the main menu?"
+      en_us: "Return to the main menu?"
+    LAB_STR_UNSAVED:
+      ja: "Unsaved changes will be lost."
+      en_us: "Unsaved changes will be lost."
+    LAB_STR_ASK_LOAD:
+      ja: "Load this game?"
+      en_us: "Load this game?"
