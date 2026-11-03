@@ -1368,7 +1368,8 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	para->careMistakes = 0;
 	para->battles = 0;
 	level = DIGI_PARA(newId).level;
-	if (level == 5 && HAS_USED_EVOITEM == 0) {
+	/* MOD (partners-npc-a): only on reaching Ultimate, not Etemon -> MetalEtemon */
+	if (level == 5 && oldLevel != 5 && HAS_USED_EVOITEM == 0) {
 		para->remainingLifetime += 96;
 	}
 	special = DIGI_PARA(newId).special[0];
