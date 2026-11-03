@@ -37,7 +37,7 @@ all: $(EXE)
 
 generate: $(LINKER_SCRIPTS)
 
-$(BUILD_DIR)/config/%.ld: $(CONFIG_DIR)/%.ld
+$(BUILD_DIR)/config/%.ld: $(CONFIG_DIR)/%.ld include/dw/memmap.h $(GEN_DIR)/partner_mmd_max.h
 	@mkdir -p $(dir $@)
 	$(CPP) -P -x c $(INC) -DBUILD_DIR=$(BUILD_DIR) -o $@ $<
 

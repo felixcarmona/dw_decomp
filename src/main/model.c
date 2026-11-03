@@ -13,6 +13,7 @@
 #include <dw/file_queue.h>
 #include <dw/file_table.h>
 #include <dw/ids.h>
+#include <dw/memmap.h>
 #include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -3517,6 +3518,9 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	concatStrings(path, MAIN_D_8011D484, name);
 	concatStrings(path, path, MAIN_D_801340E4);
 	path[9] = digiType / 30 + '0';
+	if (modelType == 3 && getDigimonModelFileSize(digiType, path) > PARTNER_MMD_MAX) {
+		return 0; /* MOD (scale): never past PARTNER_MODEL_BUFFER (isPartnerModelFit) */
+	}
 	readDigimonModel(digiType, path, m->mmdPtr);
 	m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 	m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
@@ -3712,6 +3716,18 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 		buffer += 4 - (buffer & 3);
 	}
 	getDigimonModelRef(digimonType, &file, &sector, &size);
+	if (entityType == 3 && !isPartnerModelFit(digimonType)) {
+		/*
+		 * MOD (scale): a model bigger than PARTNER_MODEL_BUFFER is not read
+		 * (applyMMD does not copy it): the load completes at once and the
+		 * partner keeps its old model, instead of overwriting what follows
+		 * the buffer.
+		 */
+		modelData->modelPtr = (uint8_t *)buffer;
+		modelData->modelSize = PARTNER_MMD_MAX + 1;
+		*readComplete = 1;
+		return buffer;
+	}
 	if (file != NULL) {
 		addFileReadRequestSection(file, (uint8_t *)buffer, sector, (size + 0x7FF) >> 11, readComplete, 0, 0);
 	} else if (name != getDigimonModelName(digimonType)) {
@@ -3802,6 +3818,9 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 	++m->useCount;
 	if (m->useCount != 1) {
 		return m;
+	}
+	if (entityType == 3 && modelData->modelSize > PARTNER_MMD_MAX) {
+		return 0; /* MOD (scale): see loadMMDAsync */
 	}
 	GsGetTimInfo((unsigned long *)modelData->imagePtr + 1, &img);
 	img.px = ((m->pixelPage % 16) << 6) + m->pixelOffsetX;
