@@ -30,13 +30,18 @@ char *modFontFile(char *path, char *originalFont)
 		return path;
 	}
 	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
-		if (!strcmp(originalFont, entry->filename)) {
+		if (fileEntryIs(entry, originalFont)) {
 			return entry->sector != 0 ? originalFont : path;
 		}
 	}
 	return path;
 }
 #endif
+
+int32_t fileEntryIs(FileEntry *entry, char *name)
+{
+	return !strncmp(entry->filename, name, FILE_NAME_MAX) && strlen(name) <= FILE_NAME_MAX;
+}
 
 int32_t lookupFileTable(FileLookup *lookup, char *path)
 {
@@ -52,7 +57,7 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	filename = modStoryFile(modLangFile(filename)); /* MOD (language, story): the language's copy, then its story's */
 
 	for (; entry->size != 0; ++entry) {
-		if (!strcmp(filename, entry->filename)) {
+		if (fileEntryIs(entry, filename)) {
 			lookup->size = entry->size;
 			CdIntToPos(entry->sector, &lookup->pos);
 			break;
