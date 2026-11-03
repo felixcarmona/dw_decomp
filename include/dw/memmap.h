@@ -80,11 +80,13 @@
  * registrations live in it between card operations. An extension is only used from a card read to
  * loadSaveCopy and from prepareSaveFile to the end of the write, inside one tick of the card menu
  * (the title's or the save machine's in the world), when this part of the world scratch is free:
- * the title's TIMs end at 0x8002F000, the world keeps only the TFS ring below WORLD_SCRATCH_START;
- * it is above the evolution model area (EVO_MMD_ADDR, to 0x80048800) and DOOA_SHARD, below the
- * battle prefix (0x80052AE0).
+ * the title's TIMs end at 0x8002F000, the world keeps only the TFS ring below WORLD_SCRATCH_START.
+ * It is above every sound bank staged at GENERAL_BUFFER (the largest: an ESALL chunk of 124 sectors,
+ * to 0x8004E000; SB.VHB to 0x8004D000), the evolution model area (EVO_MMD_ADDR, to 0x80048800) and
+ * DOOA_SHARD, and below the battle prefix (0x80052AE0). (A battle's EFE heap covers it: no card
+ * operation runs in a battle.)
  */
-#define SAVE_EXT_ADDR		0x8004C000
+#define SAVE_EXT_ADDR		0x8004E000
 #define SAVE_EXT_MAX		0x4000
 #define TEXTURE_BUFFER_ADDR	0x80088800	/* temporary TIM, card image, script arrays */
 #define TEXTURE_BUFFER_SIZE	0x7800
