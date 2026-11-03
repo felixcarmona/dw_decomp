@@ -1015,7 +1015,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0035,
 		0x0037,
 		0x00d6,
-		0x000c,
+		0x000a, /* the frame 12 high, in the gaps of rows 12 apart (0x0c put its bottom on the next row's letters) */
 	},
 };
 
