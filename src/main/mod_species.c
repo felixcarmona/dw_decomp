@@ -14,6 +14,7 @@
 
 #include "common.h"
 
+extern int8_t GAME_STATE;
 extern int16_t EVOLUTION_TARGET;
 extern ModelComponent NPC_MODELS[5];
 extern int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON];
@@ -790,4 +791,20 @@ int32_t modAnimatedTextureWidth(int32_t type)
 		}
 	}
 	return 0;
+}
+
+/* Keep script/map identities stable while field NPCs use the disc originals.
+ * Battle/tournament requests retain their type; partner loading bypasses it. */
+int32_t npcSpeciesType(int32_t type, int32_t reverse)
+{
+    static const int16_t twins[][2] = {
+        {119, 462}, {120, 463}, {121, 464}, {122, 465},
+        {123, 466}, {124, 467}, {126, 468}
+    };
+    int32_t i;
+    if (!reverse && GAME_STATE != 0) return type;
+    for (i = 0; i < 7; i++) {
+        if (twins[i][reverse != 0] == type) return twins[i][reverse == 0];
+    }
+    return type;
 }
