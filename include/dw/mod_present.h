@@ -33,6 +33,13 @@ typedef struct {
 void modTickStart(int32_t flags);
 void modPresent(int32_t flags, ModRollbackSet *extra);
 
+/* MOD (battle speed, main.c): the R2 switch; set before modTickStart when the coming tick may run fast (it clears
+ * it); the tick that is running is fast; 0 on a fast pair's second tick */
+extern int8_t MOD_BATTLE_FAST;
+extern int8_t MOD_BATTLE_FAST_TICK;
+extern int8_t MOD_TICK_FAST;
+extern int8_t MOD_REAL_TICK;
+
 extern int32_t MOD_RENDER_PASS;
 extern int32_t MOD_RENDER_MULTIPASS;
 /* rand() for render code: the real one on the first pass of a tick */
