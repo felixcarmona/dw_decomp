@@ -344,6 +344,18 @@ EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON
 		0x0003, 0x001e, 0xffff, 0xffff, 0x0000, 0x0031, 0x11,
 		0x00,
 	},
+	/*
+	 * MOD (master-tyrannomon): from Tyrannomon (its only path). Heavier
+	 * than MetalGreymon (65) and Megadramon (55), the other two targets of
+	 * Tyrannomon, and with no Speed/MP requirement: HP 5000, Off 450,
+	 * Def 450, Brains 300, at most 5 care mistakes (flag 0x10), weight
+	 * 75..85; bonus: discipline 90 or 50 battles.
+	 */
+	[DIGIMON_MASTER_TYRANNOMON] = {
+		0xffff, 0x01f4, 0xffff, 0x01c2, 0x01c2, 0xffff, 0x012c,
+		0x0005, 0x0050, 0x005a, 0xffff, 0x0032, 0xffff, 0x10,
+		0x00,
+	},
 };
 
 EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
@@ -413,6 +425,9 @@ EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIG
 	{ 0x08ca, 0x08ca, 0x0177, 0x00e1, 0x012c, 0x012c, 0x003f },
 	{ 0x2328, 0x2328, 0x0384, 0x02ee, 0x0384, 0x02ee, 0x0040 },
 	{ 0x1770, 0x1d4c, 0x0384, 0x02bc, 0x0384, 0x02ee, 0x0041 },
+	/* MOD (master-tyrannomon): an Ultimate between MetalGreymon and Gigadramon */
+	[DIGIMON_MASTER_TYRANNOMON] = { 0x1770, 0x0fa0, 0x028a, 0x028a, 0x0190, 0x01f4,
+					DIGIMON_MASTER_TYRANNOMON },
 };
 
 EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
@@ -446,7 +461,8 @@ EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	},
 	{
 		{   -1, 0x03, 0x11, 0x1f,   -1 },
-		{   -1,   -1, 0x0c, 0x36,   -1,   -1 },
+		/* MOD (master-tyrannomon): + MasterTyrannomon, centred like Ninjamon's three */
+		{   -1, 0x0c, 0x36, DIGIMON_MASTER_TYRANNOMON,   -1,   -1 },
 	},
 	{
 		{   -1,   -1, 0x03,   -1,   -1 },
