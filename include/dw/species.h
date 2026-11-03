@@ -221,12 +221,12 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
  * MOD (chart): the evolution chart's block, written by tools/species.py (chart_tabs, chart_block). Its first sector
  * holds the number of species of each tab (CHART_TABS: Fresh and In-Training, Rookie, Champion, Ultimate, Mega) and
  * their ids, tab after tab, in the chart's order; the sectors after it the icons in the same order,
- * SPECIES_CHART_ICONS_PER_SECTOR to a sector: a 16-colour CLUT and the 16x16 4 bpp idle frame (blank for the species
+ * SPECIES_CHART_ICONS_PER_SECTOR to a sector: a 16-colour CLUT and the two 16x16 4 bpp idle frames (blank for the species
  * of the chart sheet, which keep their hand-drawn icon).
  */
 #define SPECIES_CHART_TABS		5
-#define SPECIES_CHART_ICON_SIZE		0xA0
-#define SPECIES_CHART_ICONS_PER_SECTOR	12
+#define SPECIES_CHART_ICON_SIZE		0x120
+#define SPECIES_CHART_ICONS_PER_SECTOR	7
 /* the sector `k` of the chart block (0: the counts and ids, 1.. the icons) read into the species sector buffer, which
  * the next read of DIGI.DAT reuses; NULL when the file has no chart block */
 /* City sector pointer at header byte 0x38; zero in archives without City. */
