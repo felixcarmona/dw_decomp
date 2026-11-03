@@ -21,6 +21,7 @@
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
+#include <dw/mod_rules.h>
 
 extern int32_t HAS_BUTTERFLY;
 extern int32_t BUTTERFLY_ID;
@@ -661,7 +662,7 @@ void partnerTickDying(void)
 		value = DOOA_tick((PartnerEntity*)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + DOOA_WORK_OFFSET, 1);
 		if (value == -1) {
 			setFishingEnabled();
-			PARTNER_PARA.remainingLifetime = 360;
+			PARTNER_PARA.remainingLifetime = modNewGame(MOD_NG_BIRTH_LIFETIME);
 			PARTNER_PARA.sicknessTimer = 0;
 			PARTNER_PARA.injuryTimer = 0;
 			STORED_TAMER_POS =
@@ -798,7 +799,7 @@ void partnerTickDying2(void)
 			loadMapSounds(getMapSoundId(CURRENT_SCREEN));
 			readMapTFS(CURRENT_SCREEN);
 			setFishingEnabled();
-			PARTNER_PARA.remainingLifetime = 360;
+			PARTNER_PARA.remainingLifetime = modNewGame(MOD_NG_BIRTH_LIFETIME);
 			PARTNER_PARA.evoTimer = 0;
 			PARTNER_PARA.sicknessTimer = 0;
 			PARTNER_PARA.injuryTimer = 0;
