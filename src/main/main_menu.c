@@ -286,6 +286,8 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 #define MOD_OPT_BYTES	13 /* SAVE_TAG_OPTIONS; header stores the first 12 and packs CHEATS into its count byte */
 #define MOD_OPT_HEADER_BYTES 12
 #define MOD_OPT_HEADER_CHEATS 0x80
+#define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
+#define MOD_OPT_SHORTCUTS_BIT 2
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
 #define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
 #define MOD_OPT_ROW_DIFF	6 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
@@ -4705,12 +4707,14 @@ static void modOptionBytes(uint8_t *d)
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
 	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
 	d[11] = MOD_OPT_QUICK_BATTLE;
-	d[12] = MOD_OPT_CHEATS;
+	d[12] = (MOD_OPT_CHEATS ? MOD_OPT_CHEATS_BIT : 0) | (MOD_OPT_SHORTCUTS ? MOD_OPT_SHORTCUTS_BIT : 0);
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
 static void modApplyOptions(const uint8_t *d, int32_t len)
 {
+	/* not a row of OPTIONS: a save always decides it. Old saves and the card header: OFF */
+	MOD_OPT_SHORTCUTS = len >= 13 && (d[12] & MOD_OPT_SHORTCUTS_BIT) != 0;
 	if (MOD_OPT_TOUCHED) {
 		return;
 	}
@@ -4752,7 +4756,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 12) { /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = d[11] != 0;
 	}
-	MOD_OPT_CHEATS = len >= 13 && d[12] != 0; /* old saves: OFF */
+	MOD_OPT_CHEATS = len >= 13 && (d[12] & MOD_OPT_CHEATS_BIT) != 0; /* old saves: OFF */
 }
 
 /*
