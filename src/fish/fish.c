@@ -7,6 +7,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_fish.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/clock.h>
@@ -2020,7 +2021,7 @@ void FISH_beginTension(void)
 
 	FISH_resetTension();
 	t->display = 1;
-	t->limit = (FISHING_DATA_PTR->rod.swimmerType == 1) ? 0x1388 : 0x2710;
+	t->limit = (FISHING_DATA_PTR->rod.swimmerType == 1) ? BF(LIMIT_SMALL) : BF(LIMIT_BIG); /* MOD (fishing as data) */
 }
 
 int32_t FISH_updateTension(void)
@@ -2036,19 +2037,19 @@ int32_t FISH_updateTension(void)
 	switch (n) {
 	case 0:
 		t->level = t->level +
-		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, 0x32, 0x12c, -0xa6, -0xa6);
+		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, BF(SIZE_MIN), BF(SIZE_MAX), -BF(SLACK), -BF(SLACK));
 		break;
 	case 1:
 		t->level = t->level +
-		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, 0x32, 0x12c, 0x29, 0x53);
+		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, BF(SIZE_MIN), BF(SIZE_MAX), BF(HOLD_LO), BF(HOLD_HI));
 		break;
 	case 2:
 		t->level = t->level +
-		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, 0x32, 0x12c, 0x47, 0x7d);
+		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, BF(SIZE_MIN), BF(SIZE_MAX), BF(PULL_LO), BF(PULL_HI));
 		break;
 	case 3:
 		t->level = t->level +
-		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, 0x32, 0x12c, 0xa6, 0x1f4);
+		           FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, BF(SIZE_MIN), BF(SIZE_MAX), BF(BOTH_LO), BF(BOTH_HI));
 		break;
 	}
 
@@ -2077,8 +2078,8 @@ int32_t FISH_updateTension(void)
 	}
 
 	if (t->level == t->limit) {
-		snapSteps = 4 - FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, 0x32, 0x12c, 1, 3);
-		if (++t->framesAtLimit == (snapSteps * 5)) {
+		snapSteps = BF(SNAP_BASE) - FISH_remapClamped(FISHING_DATA_PTR->hooked.fish.size, BF(SIZE_MIN), BF(SIZE_MAX), BF(SNAP_NEAR), BF(SNAP_FAR));
+		if (++t->framesAtLimit == (snapSteps * BF(SNAP_MULT))) {
 			return 1;
 		}
 	} else {
@@ -2611,7 +2612,7 @@ void FISH_spawnSeadramon(Fish *f)
 
 	f->kind = 6;
 	f->size = customRandom(FISH_KIND_INFO[f->kind].lo, FISH_KIND_INFO[f->kind].hi);
-	f->lifetime = customRandom(0x258, 0x4b0);
+	f->lifetime = customRandom(BF(LIFE_MIN), BF(LIFE_MAX));
 	f->state = 0;
 	f->framesOnState = 0;
 	f->transparency = 0;
@@ -2687,7 +2688,7 @@ void FISH_spawnFish(Fish *f, int32_t kind)
 
 	f->kind = kind;
 	f->size = customRandom(FISH_KIND_INFO[f->kind].lo, FISH_KIND_INFO[f->kind].hi);
-	f->lifetime = customRandom(0x258, 0x4b0);
+	f->lifetime = customRandom(BF(LIFE_MIN), BF(LIFE_MAX));
 	f->state = 0;
 	f->framesOnState = 0;
 	f->transparency = 0;
@@ -2928,7 +2929,7 @@ void FISH_tickFishPopulation(void)
 	if (pool->escapeTimer > 0) {
 		pool->escapeTimer--;
 	} else {
-		if ((uint32_t)pool->count < 0x20) {
+		if ((uint32_t)pool->count < (uint32_t)BF(POOL_MAX)) {
 			for (i = 0; i < 6U; i++) {
 				counts[i] = 0;
 			}
@@ -3050,17 +3051,17 @@ Fish *FISH_findFishToBite(Fish *pool, VECTOR *loc, int32_t depth)
 			continue;
 		}
 		dist = getDistance(f->pos.vx - loc->vx, 0, f->pos.vz - loc->vz);
-		if (dist >= 0xc9) {
+		if (dist >= BF(BITE_RADIUS)) {
 			continue;
 		}
 		if (f->kind == 6) {
-			if (((VSync(-1) / 3) % 8) != 0) {
+			if (((VSync(-1) / 3) % BFS(SEA_POLL)) != 0) {
 				continue;
 			} else {
 			}
-			chance = 0x14;
+			chance = BF(SEA_CHANCE);
 		} else {
-			if (((VSync(-1) / 3) % 20) != 0) {
+			if (((VSync(-1) / 3) % BFS(BITE_POLL)) != 0) {
 				continue;
 			}
 			if ((f->state != 0xa) && (f->state != 0x14)) {
@@ -3076,7 +3077,7 @@ Fish *FISH_findFishToBite(Fish *pool, VECTOR *loc, int32_t depth)
 			}
 		}
 		FISH_spawnMarker((chance == 0) ? 0x30 : 0x2f, &f->pos);
-		if (chance < customRandom(1, 0x64)) {
+		if (chance < customRandom(1, BFS(BITE_ROLL))) {
 			continue;
 		}
 		return f;
@@ -3125,16 +3126,16 @@ void FISH_hookFish(Fish *f)
 	h->animMode = 0;
 	h->strikeTimer = 0;
 
-	if (h->fish.size < 0x96) {
-		h->nibbleTime = customRandom(0x14, 0x28);
-		h->catchingTime = 0x1e;
+	if (h->fish.size < BF(BIG_SIZE)) {
+		h->nibbleTime = customRandom(BF(NIB_S_MIN), BF(NIB_S_MAX));
+		h->catchingTime = BF(CATCH_S);
 	} else {
-		h->nibbleTime = customRandom(0x28, 0x3c);
-		h->catchingTime = 0x3c;
+		h->nibbleTime = customRandom(BF(NIB_B_MIN), BF(NIB_B_MAX));
+		h->catchingTime = BF(CATCH_B);
 	}
 
-	h->powerLeft = h->fish.size + 0x96;
-	h->powerMax = h->powerLeft + 0x64;
+	h->powerLeft = h->fish.size + BF(POWER_ADD);
+	h->powerMax = h->powerLeft + BF(POWER_MAX_ADD);
 	h->escaped = 0;
 }
 
@@ -3170,7 +3171,7 @@ void FISH_tickHookedFish(int32_t mode)
 		switch (h->fish.state) {
 		case 0xa:
 			if (h->fish.framesOnState != h->nibbleTime) {
-				if (h->fish.size < 0x96) {
+				if (h->fish.size < BF(BIG_SIZE)) {
 					if (customRandom(1, 0x14) == 1) {
 						if ((h->nibbleTime - h->fish.framesOnState) >= 0x14) {
 							FISH_bobberCommand(&FISHING_DATA_PTR->swimmer, 2);
@@ -3284,7 +3285,7 @@ grabbed:
 
 			step.vx = 0;
 			step.vy = 0;
-			step.vz = h->fish.timeThisMove / ((h->powerLeft <= (h->powerMax / 10)) ? 0xf : 8);
+			step.vz = BFD(h->fish.timeThisMove, (h->powerLeft <= BFDV(h->powerMax, TIRED_DIV)) ? MOD_FS_STEP_TIRED : MOD_FS_STEP_FRESH);
 			rotateVector(&h->fish.rotation, &step, &probe);
 			addVector(&probe, &FISHING_DATA_PTR->swimmer.pos);
 			h->fish.pos = FISHING_DATA_PTR->swimmer.pos = probe;
@@ -3293,13 +3294,13 @@ grabbed:
 				goto powerCheck;
 			}
 
-			if (FISHING_DATA_PTR->rod.pressedFrames >= 0x3d) {
+			if (FISHING_DATA_PTR->rod.pressedFrames >= BF(HOLD_FRAMES)) {
 				if ((FISHING_DATA_PTR->rod.pressedFrames % 3) == 0) {
 					goto powerCheck;
 				}
 			}
 
-			if (customRandom(1, 0x14) >= 3) {
+			if (customRandom(1, BF(SLACK_ROLL)) >= BF(SLACK_BELOW)) {
 				goto stayStruggling;
 			}
 
@@ -3319,8 +3320,8 @@ nextMove:
 			              TAMER_ENTITY.entity.posData->location.vx - h->fish.pos.vx, 0,
 			              TAMER_ENTITY.entity.posData->location.vz - h->fish.pos.vz);
 			h->fish.rotation.vy += customRandom(-0x384, 0x384) + 0x800;
-			h->fish.timeThisMove = customRandom(0x14, 0x32);
-			h->nibbleTime = customRandom(9, 0x13);
+			h->fish.timeThisMove = customRandom(BF(MOVE_MIN), BF(MOVE_MAX));
+			h->nibbleTime = customRandom(BF(PAUSE_MIN), BF(PAUSE_MAX));
 			h->fish.state = 0x32;
 			h->fish.framesOnState = -1;
 			break;
@@ -3976,8 +3977,8 @@ state9:
 
 nibbleCheck:
 	if (rod->itemTaken != 0) {
-		if ((rod->framesOnState >= 0x1f) && ((rod->framesOnState % 20) == 0) &&
-		    (customRandom(1, 0x2710) < 0x3e9)) {
+		if ((rod->framesOnState >= BF(THEFT_FROM)) && ((rod->framesOnState % BFS(THEFT_EVERY)) == 0) &&
+		    (customRandom(1, BFS(THEFT_ROLL)) < BF(THEFT_BELOW))) {
 			r = customRandom(0, 0x63);
 			for (n = 0; n < 6U; n++) {
 				if (r <= FISH_BAIT_CHANCES[n].threshold) {
