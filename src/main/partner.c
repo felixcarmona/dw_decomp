@@ -900,7 +900,8 @@ void partnerTickWalking(void)
 			}
 		}
 		else if (anim->loopCount == 0 ||
-		         (partnerReviewedWalkCycleEnd(anim) && (PARTNER_PARA.condition & 0x63))) {
+		         (anim->animId == 2 && partnerReviewedWalkCycleEnd(anim) &&
+		          (PARTNER_PARA.condition & 0x63))) {
 			setPartnerSlowWalking();
 		}
 
