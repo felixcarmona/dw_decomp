@@ -92,9 +92,10 @@ extern char std_START[];
 extern char trn_START[];
 extern char trn2_START[];
 extern char vs_START[];
+extern char menu_START[];
 
 // clang-format off
-void *REL_BIN_OFFSETS[16] = {
+void *REL_BIN_OFFSETS[17] = {
 	btl_START,
 	std_START,
 	fish_START,
@@ -111,6 +112,7 @@ void *REL_BIN_OFFSETS[16] = {
 	murd_START,
 	endi_START,
 	eab_START,
+	menu_START,
 };
 
 char MAIN_D_8012B9AC[12] = "BTL_REL.BIN";
@@ -145,7 +147,9 @@ char MAIN_D_8012BA70[] = "ENDI_REL.BIN";
 
 char MAIN_D_8012BA80[12] = "EAB_REL.BIN";
 
-char *REL_BIN_FILES[16] = {
+char MOD_MENU_REL_NAME[] = "MENU_REL.BIN";
+
+char *REL_BIN_FILES[17] = {
 	MAIN_D_8012B9AC,
 	MAIN_D_8012B9B8,
 	MAIN_D_8012B9C4,
@@ -162,6 +166,7 @@ char *REL_BIN_FILES[16] = {
 	MAIN_D_8012BA60,
 	MAIN_D_8012BA70,
 	MAIN_D_8012BA80,
+	MOD_MENU_REL_NAME,
 };
 
 PAUSE_TEXT
