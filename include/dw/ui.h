@@ -59,6 +59,7 @@ extern UIBoxData UI_BOX_DATA[6];
 extern TextBoxTable TEXTBOX_DATA;
 
 void initializeUIBoxData(void);
+void renderUIBoxPlain(RECT *rect, int32_t color, int32_t layer);
 void createStaticUIBox(int32_t id, uint8_t color, uint8_t features, RECT *pos,
 		       TickFunction tickFunc, RenderFunction renderFunc);
 void removeStaticUIBox(int16_t id);
