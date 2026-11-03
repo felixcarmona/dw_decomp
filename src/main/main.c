@@ -4216,8 +4216,14 @@ int32_t MOD_TICK_PRIM_MERAMON;   /* tickMeramonShake */
 void modReplayMainMenu(void);
 void addMeramonShakePrim(void);
 
+extern int32_t MOD_RENDER_CADENCE;
+void KAR_replayTickPrims(void); /* overlay, resident while curling arms the cadence */
+
 static void modReplayTickPrims(void)
 {
+	if (MOD_RENDER_CADENCE) {
+		KAR_replayTickPrims();
+	}
 	if (MOD_TICK_PRIM_MAIN_MENU) {
 		modReplayMainMenu();
 	}
