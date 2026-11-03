@@ -211,6 +211,7 @@ void partnerTickOverworld(int32_t instanceId)
 	} else {
 		switch (PARTNER_STATE) {
 		case 1:
+			refreshColdCache(); /* MOD (cold animations) */
 			partnerTickNormal();
 			break;
 		case 3:
