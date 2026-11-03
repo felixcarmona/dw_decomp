@@ -369,13 +369,13 @@ int32_t modFileOnDisc(char *name)
  */
 typedef struct {
 	uint32_t hash;
-	uint16_t copy[MOD_LANGS];
-	uint16_t original[MOD_LANGS]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
+	uint16_t copy;
+	uint16_t original; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
 } LangFileRow;
 
 static LangFileRow LANG_FILE_TABLE[] = {
 #include <lang_files.h>
-	{ 0, { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF } },
+	{ 0, 0xFFFF, 0xFFFF },
 };
 
 static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entry's has no NUL at 12 letters) */
@@ -396,7 +396,7 @@ char *modLangFile(char *name)
 	uint32_t hash;
 	int32_t tfs;
 	int32_t copy;
-	int32_t column, digit;
+	int32_t digit;
 	uint32_t key;
 
 	hash = modNameHash(name);
@@ -408,8 +408,7 @@ char *modLangFile(char *name)
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		column = MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_EN ? 1 : MOD_LANG;
-		copy = !MOD_OPT_STORY && LANG_FILE_TABLE[i].original[column] != 0xFFFF ? LANG_FILE_TABLE[i].original[column] : LANG_FILE_TABLE[i].copy[column];
+		copy = !MOD_OPT_STORY && LANG_FILE_TABLE[i].original != 0xFFFF ? LANG_FILE_TABLE[i].original : LANG_FILE_TABLE[i].copy;
 		if (copy == 0xFFFF || (!tfs && MOD_LANG == MOD_LANG_EN)) {
 			return name;
 		}
