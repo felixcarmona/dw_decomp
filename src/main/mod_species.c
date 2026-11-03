@@ -336,3 +336,42 @@ int8_t *getTrainingAnimRow(int8_t (*table)[2], int32_t type, int32_t which)
 	}
 	return which == 0 ? rec->trainingAnims : rec->training2Anims;
 }
+
+/* MOD (dcb-import): effect origins (include/dw/species.h, SpeciesEffectOrigin) */
+extern SVECTOR CONDITION_FX_OFFSETS[177];
+int32_t getOriginalType(int32_t type);
+
+int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed)
+{
+	SpeciesRecord *rec;
+	SpeciesEffectOrigin *o;
+	int32_t i;
+
+	rec = getSpeciesRecord(type);
+	if (rec == NULL) {
+		return borrowed;
+	}
+	for (i = 0; i < rec->numEffectOrigins && i < SPECIES_EFFECT_ORIGINS; i++) {
+		o = &rec->effectOrigins[i];
+		if (o->from[0] != borrowed[0]) {
+			continue;
+		}
+		if (o->from[1] == SPECIES_ANY_OFFSET ||
+		    (o->from[1] == borrowed[1] && o->from[2] == borrowed[2] && o->from[3] == borrowed[3])) {
+			/* lives in the record cache slot, which is kept while the model is in use */
+			return o->to;
+		}
+	}
+	return borrowed;
+}
+
+SVECTOR *getConditionFxOffset(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	if (rec != NULL && (rec->flags & SPECIES_FLAG_COND_FX)) {
+		return (SVECTOR *)rec->conditionFx;
+	}
+	return &CONDITION_FX_OFFSETS[getOriginalType(type)];
+}
