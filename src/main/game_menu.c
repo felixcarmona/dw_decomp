@@ -870,6 +870,16 @@ char *CARD_CHART_LABELS[5] = {
 	MAIN_D_80123B20,
 };
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+/* MOD (font): the crops of the player screen's label rows ("NameLevel  Raised", "Bits  Time", "Items  Medals"):
+ * drawStringPieces lays each piece out in the font's spacing (dw/mod_font.h) */
+static const uint16_t PLAYER_LABEL_PIECES[3][6] = {
+	{ 0, 0x24, 0x78, 0xcc, PIECES_END },
+	{ 0, 0x48, 0x60, 0xa8, 0xb4, PIECES_END },
+	{ 0, 0x54, 0x9c, PIECES_END },
+};
+#endif
+
 char *MEDAL_NAMES[15] = {
 	STR_MEDAL_NAME_GRADE_CUP,
 	STR_MEDAL_NAME_VERSION_CUP,
@@ -1185,7 +1195,7 @@ void tickTriangleMenu(void)
 			TRIANGLE_MENU_STATE = -1;
 		}
 		clearTextSubArea(&rect);
-		DRAW_STRING_CELLS(STR_YEAR_DAY, 0, 0xe8);
+		DRAW_STRING_PIECES(STR_YEAR_DAY, 0, 0xe8, 0, 0x24);
 		break;
 	case 1:
 		closeUIBoxIfOpen(0);
@@ -1204,7 +1214,7 @@ void tickTriangleMenu(void)
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickDigimonMenu, renderDigimonMenu);
 			clearTextArea();
-			DRAW_STRING_CELLS(STATUS_VIEW_LABELS[0], 0, 0);
+			DRAW_STRING_PIECES(STATUS_VIEW_LABELS[0], 0, 0, 0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE);
 			MENU_STATE = 0;
 			MENU_SUB_STATE = 0;
 			TRIANGLE_MENU_STATE = -1;
@@ -1225,7 +1235,7 @@ void tickTriangleMenu(void)
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickPlayerMenu, renderPlayerMenu);
 			clearTextArea();
-			DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[0], 0, 0);
+			DRAW_STRING_PIECES(PLAYER_VIEW_LABELS[0], 0, 0, 0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xc0 | PIECE_CENTRE);
 			MENU_STATE = 0;
 			MENU_SUB_STATE = 0;
 			TRIANGLE_MENU_STATE = -1;
@@ -2896,7 +2906,16 @@ int32_t drawMoveViewHelpStrings(void)
 	/* The original indexed STATUS_VIEW_LABELS[MENU_SUB_STATE + 9], past its 8 entries: the
 	 * help lines are TECH_VIEW_LABELS[1..8], which follow it in the original's data. GCC
 	 * places TECH_VIEW_LABELS elsewhere, so the help read garbage pointers and hung. */
-	DRAW_STRING_CELLS(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18);
+	/* MOD (font): only the first help line is cut (around the button icon); the others are copied whole */
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	if (MENU_SUB_STATE == 0) {
+		DRAW_STRING_PIECES(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18, 0, 0x71);
+	} else {
+		DRAW_STRING_PIECES(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18, 0);
+	}
+#else
+	drawString(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18);
+#endif
 	MENU_SUB_STATE++;
 
 	if (MENU_SUB_STATE == 8) {
@@ -3667,8 +3686,8 @@ int32_t drawDigimonStatsStrings(void)
 	case 0:
 		clearTextSubArea(&rect);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
-		DRAW_STRING_CELLS(MAIN_D_80124C0C[2], 0, 0x24);
-		DRAW_STRING_CELLS(MAIN_D_80124C0C[3], 0x24, 0x24);
+		DRAW_STRING_PIECES(MAIN_D_80124C0C[2], 0, 0x24, 0);
+		DRAW_STRING_PIECES(MAIN_D_80124C0C[3], 0x24, 0x24, 0);
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
@@ -3683,11 +3702,11 @@ int32_t drawDigimonStatsStrings(void)
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[1], 0, 0x30);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[1], 0, 0x30, 0, 0x18, 0x48, 0x78, 0x9c, 0xb4, 0xcc);
 		MENU_SUB_STATE = 3;
 		break;
 	case 3:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[2], 0, 0x18);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[2], 0, 0x18, 0, 0x30, 0x60, 0x90, 0xc0);
 
 		return 1;
 	}
@@ -3883,7 +3902,7 @@ int32_t drawDigimonMovesText(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[3], 0, 0x48);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[3], 0, 0x48, 0, 0x3c, 0x60);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[1] != 0xff) {
 			EQUIPPED_MOVES[1] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[1]);
@@ -3897,7 +3916,7 @@ int32_t drawDigimonMovesText(void)
 #endif
 		break;
 	case 2:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[6], 0x84, 0x6c);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[6], 0x84, 0x6c, 0, 0x1c, 0x38, 0x57);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[2] != 0xff) {
 			EQUIPPED_MOVES[2] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[2]);
@@ -3918,19 +3937,19 @@ int32_t drawDigimonMovesText(void)
 		} else {
 			EQUIPPED_MOVES[3] = 0xff;
 		}
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[4], 0, 0x6c);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[4], 0, 0x6c, 0, 0x30);
 		MENU_SUB_STATE = 4;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 		DrawSync(0);
 #endif
 		break;
 	case 4:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[5], 0, 0x54);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[5], 0, 0x54, 0, 0xc);
 		MENU_SUB_STATE = 5;
 		break;
 	case 5:
-		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[7], 0, 0x60);
-		DRAW_STRING_CELLS(TECH_VIEW_LABELS[0], 0, 0x78);
+		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[7], 0, 0x60, 0, 0xc, 0x90);
+		DRAW_STRING_PIECES(TECH_VIEW_LABELS[0], 0, 0x78, 0, 0x24, 0x48, 0x6c);
 		MOVE_SELECT_BOX_X = 0x73;
 		MOVE_SELECT_BOX_Y = 0x6f;
 		return 1;
@@ -3960,8 +3979,13 @@ int32_t drawPlayerInfoStrings(void)
 #endif
 	case 2:
 	case 3:
-		DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0,
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+		drawStringPieces(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0, (MENU_SUB_STATE - 1) * 0xc + 0xc,
+		                 PLAYER_LABEL_PIECES[MENU_SUB_STATE - 1]);
+#else
+		drawString(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0,
 		           (MENU_SUB_STATE - 1) * 0xc + 0xc);
+#endif
 		MENU_SUB_STATE++;
 		break;
 	case 4:
@@ -3991,15 +4015,15 @@ int32_t drawEvoChartStrings(int32_t arg)
 	case 0:
 		clearTextSubArea(&rect1);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
-		DRAW_STRING_CELLS(CARD_CHART_LABELS[1], 0, 0xc);
+		DRAW_STRING_PIECES(CARD_CHART_LABELS[1], 0, 0xc, 0, 0xc, 0x48, 0x54);
 		CHART_SELECTED_COLUMN = CHART_SELECTED_ROW = 0;
 		MENU_SUB_STATE = 1;
 		/* fall through */
 	case 1:
-		DRAW_STRING_CELLS(CARD_CHART_LABELS[2], 0, 0x18);
+		DRAW_STRING_PIECES(CARD_CHART_LABELS[2], 0, 0x18, 0 | PIECE_CENTRE, 0x24 | PIECE_CENTRE, 0x52 | PIECE_CENTRE, 0xcc);
 #if VERSION_IS(US)
-		DRAW_STRING_CELLS(CARD_CHART_LABELS[3], 0, 0x24);
-		DRAW_STRING_CELLS(CARD_CHART_LABELS[4], 0, 0x3c);
+		DRAW_STRING_PIECES(CARD_CHART_LABELS[3], 0, 0x24, 0 | PIECE_CENTRE, 0x2f | PIECE_CENTRE);
+		DRAW_STRING_PIECES(CARD_CHART_LABELS[4], 0, 0x3c, 0 | PIECE_CENTRE);
 		drawString(EVO_CHART_MEGA_LABEL, 0, EVO_CHART_MEGA_ROW); /* MOD (mega) */
 #endif
 		return 1;
@@ -4029,7 +4053,7 @@ int32_t drawMedalViewStrings(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[1], 0, 0xc);
+		DRAW_STRING_PIECES(PLAYER_VIEW_LABELS[1], 0, 0xc, 0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xc0);
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
@@ -4065,7 +4089,7 @@ int32_t drawCardViewStrings(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_CELLS(CARD_CHART_LABELS[0], 0, 0xC);
+		DRAW_STRING_PIECES(CARD_CHART_LABELS[0], 0, 0xC, 0 | PIECE_CENTRE, 0x48, 0x54, 0x90, 0x9c, 0xd8);
 		SELECTED_CARD = 0;
 		return 1;
 	}
