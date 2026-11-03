@@ -10,7 +10,7 @@
 #include <dw/script.h>
 #include <dw/mod_options.h> /* MOD (quick battle start) */
 
-extern int8_t BATTLE_TOGGLE_LIFEBAR;
+extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int16_t DEATH_COUNTDOWN;
 extern int32_t IS_TAMERLESS_BATTLE;
 extern int8_t TAMER_START_TILE_X;
@@ -63,7 +63,7 @@ void BTL_initializeCombat(void)
 	FLEE_DISABLED[1] = 0;
 	BTL_FINISHER_TIMER = 0;
 	DEATH_COUNTDOWN = FLEE_TIMER = 0;
-	BATTLE_TOGGLE_LIFEBAR = 0;
+	/* Enemy-bar visibility survives battle setup. */
 	BATTLE_FRAME_COUNT = 1;
 	COMBAT_DATA_PTR->player.unk7 = 0;
 	COMBAT_DATA_PTR->player.changeTarget = 0;
