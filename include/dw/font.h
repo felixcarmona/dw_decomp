@@ -24,6 +24,20 @@ void drawString(/* char *str, uint16_t x, uint16_t y */);
 int32_t measureStringMode(char *str, int32_t mode);
 int32_t fitStringMode(char *str, int32_t maxW);
 int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode);
+/*
+ * MOD (item names): drawString2 codes of the mod for the item lists that are script-text lines (shop, keeper, amount
+ * box, Mojyamon's trades). Scripts never pass these bytes to drawString2 (showTextbox expands 0x10-0x15).
+ *   TEXT_FIT_TIGHT / TEXT_FIT_CONDENSED, colour (0xFF keeps it): the name that follows, up to the next code, drawn
+ *     with drawStringMode; textFitCode gives 1 (the plain colour code) for a name that fits as the font draws it
+ *   TEXT_COLUMN, x: clears to column x and moves the pen there
+ */
+#define TEXT_FIT_TIGHT		0x10
+#define TEXT_FIT_CONDENSED	0x11
+#define TEXT_COLUMN		0x12
+int32_t textFitCode(char *str, int32_t maxW);
+/* MOD (item names): the item name field of the inventory, the fishing bait list, the shop's amount box, the keeper and
+ * Mojyamon's trades: 96 pixels (the shop's lists: 93) */
+#define ITEM_FIELD_W		0x60
 #endif
 
 #endif

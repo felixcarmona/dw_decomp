@@ -265,8 +265,15 @@ void drawInventoryTextLine(int16_t startSlot)
 	for (i = 0; i < 2; i++) {
 		if (INVENTORY.types.array[startSlot + i] != ITEM_NONE) {
 			INVENTORY.names.array[startSlot + i] = startSlot + i;
+#if VERSION_IS(US)
+			/* MOD (item names): a name past its 96-pixel column drawn tighter (font.c drawStringMode) */
+			drawStringMode(ITEM_NAME(INVENTORY.types.array[startSlot + i]),
+			               ((startSlot + i) & 1) * 0x60, ((startSlot + i) / 2) * 0xc,
+			               fitStringMode(ITEM_NAME(INVENTORY.types.array[startSlot + i]), ITEM_FIELD_W));
+#else
 			drawString(ITEM_NAME(INVENTORY.types.array[startSlot + i]),
 			           ((startSlot + i) & 1) * 0x60, ((startSlot + i) / 2) * 0xc);
+#endif
 		}
 	}
 	DrawSync(0);
