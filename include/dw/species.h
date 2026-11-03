@@ -85,6 +85,14 @@ typedef struct {
  */
 #define SPECIES_HEADER_RECORD_ORIGINALS	0x20
 #define SPECIES_RECORD_ORIGINALS_BYTES	((NUM_ORIGINAL_DIGIMON + 7) / 8)
+/*
+ * MOD (options): a bitmap of the species the original game raises (the species files' "vanilla") at SPECIES_HEADER_VANILLA
+ * of the header sector, one bit per id; OPTIONS' NEW DIGIMON off keeps the partner to them. A file without one (all 0)
+ * has no new species to keep out: every species counts as vanilla then.
+ */
+#define SPECIES_HEADER_VANILLA	0x780
+#define SPECIES_VANILLA_BYTES	(NUM_DIGIMON / 8)
+int32_t isVanillaSpecies(int32_t type);
 /* 1 if the original type is carried by its DIGI.DAT record (always 0 for ids >= NUM_ORIGINAL_DIGIMON) */
 int32_t isRecordOriginal(int32_t type);
 
