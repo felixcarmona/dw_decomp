@@ -2191,8 +2191,8 @@ void handleEvoItems(int16_t item)
 			EVOLUTION_TARGET = 0x41;
 		}
 	} else {
-		level = DIGIMON_DATA[EVOLUTION_ITEM_TARGET[item - 0x47]].level - 1;
-		if (level != DIGIMON_DATA[ENTITY_TABLE[1]->type].level) {
+		level = DIGI_PARA(EVOLUTION_ITEM_TARGET[item - 0x47]).level - 1;
+		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
 			return;
 		}
 		EVOLUTION_TARGET = EVOLUTION_ITEM_TARGET[item - 0x47];
