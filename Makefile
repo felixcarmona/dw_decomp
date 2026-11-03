@@ -92,6 +92,18 @@ $(shell mkdir -p $(GEN_DIR); printf '#define NUM_NEW_FILES %s\n' '$(words $(NEW_
 	|| mv $(GEN_DIR)/file_table_count.h.tmp $(GEN_DIR)/file_table_count.h)
 $(shell python3 tools/gen_lang_files.py $(GEN_DIR)/lang_files.h --lang '$(LANG_FILES)' --new '$(NEW_FILES)' --table src/main/file_table_us.c >&2)
 
+# MOD (version): the release's version the title screen and the title menu show in a corner ("v0.1.0"; the project's
+# tools/version.py, given by its tools/build-full.sh). Digits, letters and . + - only, at most 31 characters; empty by
+# default: nothing is drawn. The text fills a fixed 32-byte array (main.c MOD_VERSION_TEXT): another version changes
+# those bytes only.
+MOD_VERSION ?=
+ifneq ($(shell printf '%s' '$(MOD_VERSION)' | grep -Ecv '^[0-9A-Za-z.+-]{0,31}$$'),0)
+$(error MOD_VERSION=$(MOD_VERSION): digits, letters and . + - only, at most 31 characters)
+endif
+$(shell mkdir -p $(GEN_DIR); printf '#define MOD_VERSION_STRING "%s"\n' '$(MOD_VERSION)' > $(GEN_DIR)/version_text.h.tmp; \
+	cmp -s $(GEN_DIR)/version_text.h.tmp $(GEN_DIR)/version_text.h && rm $(GEN_DIR)/version_text.h.tmp \
+	|| mv $(GEN_DIR)/version_text.h.tmp $(GEN_DIR)/version_text.h)
+
 PYTHON := python3
 
 .DEFAULT_GOAL := all
