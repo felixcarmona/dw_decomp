@@ -55,6 +55,11 @@
 #include <dw/species.h>
 #include <dw/types.h>
 #include <dw/ui.h>
+#include <dw/anim.h>
+#include <dw/model.h>
+#include <dw/mod_font.h>
+#include <dw/partner.h>
+#include <dw/world_object.h>
 
 #define MOD_LAB_TRIGGER	799	/* free and saved trigger (docs/mods/scripts.md, 717-799) */
 #define MOD_LAB_BOX	5	/* same box the pause uses */
@@ -428,4 +433,185 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 	setRECT(&pos, 0, MOD_LAB_TEXT_Y, 0x100, ROW_COUNT * 0xC);
 	clearTextSubArea(&pos);
 	modLabFrames(8);
+}
+
+/*
+ * MOD (roster switch, temporary test tool): on the map, SELECT + L1 or L2 turns the partner into the next species of
+ * the roster and SELECT + R1 or R2 into the previous one, at once (no evolution scene), and a caption at the top of
+ * the screen shows its name and level for a few seconds. The roster is every partner species in id order: the
+ * original partners (1..65), the NPC partners of the lab menu and the partner species of DIGI.DAT; a model too big
+ * for the partner buffer is skipped. The partner is reloaded as Continue loads it (loadMMD, its sounds), keeps its
+ * stats and care, and gets the species' first three techniques and its finisher as battle moves.
+ * Hooked from tamerTickWalkingState() (tamer.c).
+ */
+#define PAD_L2		0x1
+#define PAD_R2		0x2
+#define ROSTER_CAPTION_ID	0x1f9a	/* world object id: above the species ids (world_object.h) */
+#define ROSTER_CAPTION_TICKS	60	/* logic ticks the caption stays (20 a second) */
+#define ROSTER_TEXT_Y		MOD_LAB_TEXT_Y	/* the lab menu's first text row: free while the game runs */
+
+void learnMove(int32_t move);
+int32_t isFileReadQueueBusy(void);
+
+extern Entity *ENTITY_TABLE[];
+
+static char modRosterText[48];
+static int32_t modRosterTimer;
+
+static int32_t modRosterIsPartner(int32_t type)
+{
+	int32_t i;
+	int32_t listed;
+
+	listed = type >= 1 && type < NUM_PARTNER_DIGIMON;
+	for (i = 0; !listed && i < MOD_LAB_EVO_FIXED; i++) {
+		listed = MOD_LAB_EVO_TARGETS[i] == type;
+	}
+	for (i = 0; !listed && i < getSpeciesPartnerCount(); i++) {
+		listed = getSpeciesPartnerId(i) == type;
+	}
+	return listed && isValidDigimonType(type) && isPartnerModelFit(type);
+}
+
+/* the species `step` (1 or -1) away from the partner's in the roster; the partner's own when there is no other */
+static int32_t modRosterStep(int32_t step)
+{
+	int32_t type;
+	int32_t i;
+
+	type = PARTNER_ENTITY.digimonEntity.entity.type;
+	for (i = 1; i < NUM_DIGIMON; i++) {
+		type = ((type + step) % NUM_DIGIMON + NUM_DIGIMON) % NUM_DIGIMON;
+		if (modRosterIsPartner(type)) {
+			return type;
+		}
+	}
+	return PARTNER_ENTITY.digimonEntity.entity.type;
+}
+
+/* battle moves: the first three techniques of the species and its finisher, learned (as tools/playtest/species_proof.py) */
+static void modRosterSetMoves(int32_t type)
+{
+	uint8_t *moves;
+	int32_t slot;
+	int32_t i;
+
+	moves = DIGI_PARA(type).moves;
+	for (i = 0; i < 4; i++) {
+		PARTNER_ENTITY.digimonEntity.stats.base.moves[i] = 0xff;
+	}
+	for (slot = 0, i = 0; i < 16; i++) {
+		if (moves[i] == 0xff) {
+			continue;
+		}
+		if (moves[i] >= 58 && moves[i] <= 112) {
+			if (PARTNER_ENTITY.digimonEntity.stats.base.moves[3] == 0xff) {
+				PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = i + 0x2e;
+				learnMove(moves[i]);
+			}
+		} else if (slot < 3) {
+			PARTNER_ENTITY.digimonEntity.stats.base.moves[slot++] = i + 0x2e;
+			learnMove(moves[i]);
+		}
+	}
+}
+
+static void modRosterRenderCaption(int32_t instanceId)
+{
+	int32_t width;
+
+#if FONT_PROPORTIONAL
+	width = measureStringMode(modRosterText, FIT_VANILLA) + 2;
+#else
+	for (width = 4; modRosterText[(width - 4) / 8] != '\0'; width += 8) {
+	}
+#endif
+	renderString(0, -width / 2, -100, width, 12, 0, ROSTER_TEXT_Y, 0, 0);
+}
+
+static void modRosterTickCaption(int32_t instanceId)
+{
+	RECT area;
+
+	if (--modRosterTimer <= 0) {
+		removeObject(ROSTER_CAPTION_ID, 0);
+		setRECT(&area, 0, ROSTER_TEXT_Y, 0x100, 0xC);
+		clearTextSubArea(&area);
+	}
+}
+
+static void modRosterShowCaption(int32_t type)
+{
+	static char *LEVEL_TEXT[] = {
+		"", LAB_STR_LEVEL_FRESH, LAB_STR_LEVEL_IN_TRAINING, LAB_STR_LEVEL_ROOKIE,
+		LAB_STR_LEVEL_CHAMPION, LAB_STR_LEVEL_ULTIMATE, LAB_STR_LEVEL_MEGA,
+	};
+	RECT area;
+	char *p;
+	int32_t level;
+
+	level = DIGI_PARA(type).level;
+	p = appendStr(modRosterText, DIGIMON_NAME(type));
+	appendStr(p, level >= LEVEL_FRESH && level <= LEVEL_MEGA ? LEVEL_TEXT[level] : "");
+	setRECT(&area, 0, ROSTER_TEXT_Y, 0x100, 0xC);
+	clearTextSubArea(&area);
+	drawString(modRosterText, 0, ROSTER_TEXT_Y);
+	removeObject(ROSTER_CAPTION_ID, 0); /* a caption still up, or lost with the world objects (a battle, a map change) */
+	addObject(ROSTER_CAPTION_ID, 0, modRosterTickCaption, modRosterRenderCaption);
+	modRosterTimer = ROSTER_CAPTION_TICKS;
+}
+
+/* the partner becomes `type` where it stands (initializePartner's loading, the evolution's handover) */
+static void modRosterSwitch(int32_t type)
+{
+	Entity *entity;
+	int32_t x, y, z;
+	int32_t rx, ry, rz;
+
+	entity = &PARTNER_ENTITY.digimonEntity.entity;
+	x = entity->posData->location.vx;
+	y = entity->posData->location.vy;
+	z = entity->posData->location.vz;
+	rx = entity->posData->rotation.vx;
+	ry = entity->posData->rotation.vy;
+	rz = entity->posData->rotation.vz;
+	removeEntity(entity->type, 1);
+	ENTITY_TABLE[1] = NULL;
+	thunkLoadMMD(type, 3);
+	ENTITY_TABLE[1] = (Entity *)&PARTNER_ENTITY;
+	initializeDigimonObject(type, 1, partnerTick);
+	setEntityPosition(1, x, y, z);
+	setEntityRotation(1, rx, ry, rz);
+	setupEntityMatrix(1);
+	startAnimation(ENTITY_TABLE[1], 0);
+	PARTNER_ENTITY.digimonEntity.stats.current.vabId = 4;
+	loadPartnerSounds(type);
+	PARTNER_ENTITY.digimonEntity.entity.isOnMap = 1;
+	PARTNER_ENTITY.digimonEntity.entity.isOnScreen = 1;
+	modRosterSetMoves(type);
+}
+
+/* returns 1 when it switched the partner (the tamer's tick ends there) */
+int32_t modRosterTick(void)
+{
+	uint32_t pressed;
+	int32_t step;
+	int32_t type;
+
+	pressed = POLLED_INPUT & ~POLLED_INPUT_PREVIOUS;
+	if (!(POLLED_INPUT & PAD_SELECT) || !(pressed & (PAD_L1 | PAD_L2 | PAD_R1 | PAD_R2))) {
+		return 0;
+	}
+	if (IS_SCRIPT_PAUSED != 1 || partnerGetState() != 1 || EVOLUTION_TARGET != -1 || isFileReadQueueBusy()) {
+		playSound(0, 4); /* not now: the press was heard */
+		return 0;
+	}
+	step = (pressed & (PAD_L1 | PAD_L2)) ? 1 : -1;
+	type = modRosterStep(step);
+	if (type != PARTNER_ENTITY.digimonEntity.entity.type) {
+		modRosterSwitch(type);
+	}
+	playSound(0, 2);
+	modRosterShowCaption(type);
+	return 1;
 }
