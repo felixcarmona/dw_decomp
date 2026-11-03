@@ -32,6 +32,10 @@ uint16_t modButtonClut(void);
 void modSetButtons(int32_t layout);
 /* 1 when the partner may become `type` (NEW DIGIMON on, or a species the original raises: isVanillaSpecies) */
 int32_t modSpeciesAllowed(int32_t type);
+/* NEW DIGIMON off turned the loaded partner from MOD_SWAP_FROM into MOD_SWAP_TO (0: no); back on, a partner still of
+ * MOD_SWAP_TO is turned back (main_menu.c, SAVE_TAG_VANILLA_SWAP) */
+extern int16_t MOD_SWAP_FROM;
+extern int16_t MOD_SWAP_TO;
 /* FRAME RATE: the rate the game is shown at, 30 or 60 (20 in an FPS=20 build, which has no choice) */
 int32_t modFrameRate(void);
 void modSetFrameRate(int32_t fps);
