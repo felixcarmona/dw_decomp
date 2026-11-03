@@ -4,6 +4,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/efe.h>
@@ -1456,26 +1457,38 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	}
 }
 
+/* MOD (caps) */
+static int16_t EVL_capValue(int32_t value, int32_t cap)
+{
+	if (value > cap) {
+		return cap;
+	}
+	return value;
+}
+
 void EVL_scaleBaseStats(Stats *stats, int16_t pct, int16_t unused)
 {
+	/* MOD (caps): every product is clamped in 32 bits before it is stored
+	 * (×2.5 of 30000 does not fit an int16_t); EVL_clampBaseStats below
+	 * clamped the stored values, so nothing changes below the old limits */
 	if (HAS_USED_EVOITEM != 0) {
 		return;
 	}
 
 	if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27) {
-		stats->base.hp = stats->base.hp * pct / 10;
-		stats->base.mp = stats->base.mp * pct / 10;
-		stats->base.off = stats->base.off * pct / 10;
-		stats->base.def = stats->base.def * pct / 10;
-		stats->base.speed = stats->base.speed * pct / 10;
-		stats->base.brain = stats->base.brain * pct / 10;
+		stats->base.hp = EVL_capValue(stats->base.hp * pct / 10, HPMP_CAP);
+		stats->base.mp = EVL_capValue(stats->base.mp * pct / 10, HPMP_CAP);
+		stats->base.off = EVL_capValue(stats->base.off * pct / 10, STAT_CAP);
+		stats->base.def = EVL_capValue(stats->base.def * pct / 10, STAT_CAP);
+		stats->base.speed = EVL_capValue(stats->base.speed * pct / 10, STAT_CAP);
+		stats->base.brain = EVL_capValue(stats->base.brain * pct / 10, STAT_CAP);
 	} else {
-		stats->base.hp = PARTNER_PARA.sukaBackupHP + ((stats->base.hp - (PARTNER_PARA.sukaBackupHP / 2)) / 2);
-		stats->base.mp = PARTNER_PARA.sukaBackupMP + ((stats->base.mp - (PARTNER_PARA.sukaBackupMP / 2)) / 2);
-		stats->base.off = PARTNER_PARA.sukaBackupOff + ((stats->base.off - (PARTNER_PARA.sukaBackupOff / 2)) / 2);
-		stats->base.def = PARTNER_PARA.sukaBackupDef + ((stats->base.def - (PARTNER_PARA.sukaBackupDef / 2)) / 2);
-		stats->base.speed = PARTNER_PARA.sukaBackupSpeed + ((stats->base.speed - (PARTNER_PARA.sukaBackupSpeed / 2)) / 2);
-		stats->base.brain = PARTNER_PARA.sukaBackupBrain + ((stats->base.brain - (PARTNER_PARA.sukaBackupBrain / 2)) / 2);
+		stats->base.hp = EVL_capValue(PARTNER_PARA.sukaBackupHP + ((stats->base.hp - (PARTNER_PARA.sukaBackupHP / 2)) / 2), HPMP_CAP);
+		stats->base.mp = EVL_capValue(PARTNER_PARA.sukaBackupMP + ((stats->base.mp - (PARTNER_PARA.sukaBackupMP / 2)) / 2), HPMP_CAP);
+		stats->base.off = EVL_capValue(PARTNER_PARA.sukaBackupOff + ((stats->base.off - (PARTNER_PARA.sukaBackupOff / 2)) / 2), STAT_CAP);
+		stats->base.def = EVL_capValue(PARTNER_PARA.sukaBackupDef + ((stats->base.def - (PARTNER_PARA.sukaBackupDef / 2)) / 2), STAT_CAP);
+		stats->base.speed = EVL_capValue(PARTNER_PARA.sukaBackupSpeed + ((stats->base.speed - (PARTNER_PARA.sukaBackupSpeed / 2)) / 2), STAT_CAP);
+		stats->base.brain = EVL_capValue(PARTNER_PARA.sukaBackupBrain + ((stats->base.brain - (PARTNER_PARA.sukaBackupBrain / 2)) / 2), STAT_CAP);
 		PARTNER_PARA.virusBar = 0;
 	}
 
@@ -1493,28 +1506,29 @@ void EVL_clampBaseStats(void)
 {
 	BaseStats *stats;
 
+	/* MOD (caps): the new limits (were 9999 / 999) */
 	stats = &PARTNER_ENTITY.digimonEntity.stats.base;
-	if (stats->hp >= 10000) {
-		stats->hp = 9999;
+	if (stats->hp > HPMP_CAP) {
+		stats->hp = HPMP_CAP;
 	}
 
-	if (stats->mp >= 10000) {
-		stats->mp = 9999;
+	if (stats->mp > HPMP_CAP) {
+		stats->mp = HPMP_CAP;
 	}
 
-	if (stats->off >= 1000) {
-		stats->off = 999;
+	if (stats->off > STAT_CAP) {
+		stats->off = STAT_CAP;
 	}
 
-	if (stats->def >= 1000) {
-		stats->def = 999;
+	if (stats->def > STAT_CAP) {
+		stats->def = STAT_CAP;
 	}
 
-	if (stats->speed >= 1000) {
-		stats->speed = 999;
+	if (stats->speed > STAT_CAP) {
+		stats->speed = STAT_CAP;
 	}
 
-	if (stats->brain >= 1000) {
-		stats->brain = 999;
+	if (stats->brain > STAT_CAP) {
+		stats->brain = STAT_CAP;
 	}
 }

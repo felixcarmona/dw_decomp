@@ -3,6 +3,7 @@
 #include <inline_n.h>
 #include <libetc.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/btl.h>
 #include <dw/combat.h>
 #include <dw/item.h>
@@ -83,6 +84,13 @@ void pauseFrame(void)
 
 void damageTick(FighterData* fighter, Stats* stats)
 {
+	/* MOD (caps): a step for damage past the old 9999 limit, so that a
+	 * 30000 hit drains at the pace of a 9999 one */
+	if (fighter->hpDamageBuffer > OLD_HPMP_CAP) {
+		stats->current.currentHP -= 9000;
+		fighter->hpDamageBuffer -= 9000;
+	}
+
 	if (fighter->hpDamageBuffer > 999) {
 		stats->current.currentHP -= 900;
 		fighter->hpDamageBuffer -= 900;
@@ -224,6 +232,10 @@ void renderNumber(int32_t color, int16_t x, int16_t y, int32_t n,
 	int32_t count;
 	int32_t buf[6];
 
+	/* MOD (caps): a value wider than the box grows it to the left (the
+	 * right edge stays); the original drew only the first n digits */
+	x -= CAPS_SHIFT(n, value, DIGIT_WIDTH);
+	n = CAPS_DIGITS(n, value);
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
 	convertValueToDigits(n, value, &count, buf);

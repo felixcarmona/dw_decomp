@@ -20,6 +20,7 @@
 #include <dw/tamer.h>
 #include <dw/types.h>
 #include <dw/version.h>
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/world_object.h>
 #include <text/main/item.h>
 
@@ -2289,12 +2290,12 @@ void handleChips(int16_t chipId)
 		handlePortaPotty();
 		return;
 	}
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.hp, hp, 9999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.mp, mp, 9999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.off, off, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.def, def, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.speed, speed, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.brain, brain, 999);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.hp, hp, HPMP_CAP); /* MOD (caps): was 9999 */
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.mp, mp, HPMP_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.off, off, STAT_CAP); /* MOD (caps): was 999 */
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.def, def, STAT_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.speed, speed, STAT_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.brain, brain, STAT_CAP);
 	modifyLifetime(lifetime);
 	if ((0x1c < chipId) && (chipId < 0x20)) {
 		addTamerLevel(10, -1);
@@ -2325,6 +2326,8 @@ void handleRestore(int16_t type)
 		}
 
 		amount = 0x270f;
+		/* MOD (caps): all of a bar longer than 9999 */
+		amount = CAPS_FULL_HEAL(amount, PARTNER_ENTITY.digimonEntity.stats.base.hp);
 		break;
 	}
 
@@ -2354,10 +2357,13 @@ void handleDoubleFloppy(int32_t itemId)
 
 void handleMPHealingItem(uint8_t idx)
 {
+	/* MOD (caps): the 9999 one heals all of a longer bar */
+	int32_t amount = CAPS_FULL_HEAL(HEALING_VALUES[idx - 4], PARTNER_ENTITY.digimonEntity.stats.base.mp);
+
 	if (PARTNER_ENTITY.digimonEntity.stats.current.currentHP != 0) {
-		addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentMP, HEALING_VALUES[idx - 4], PARTNER_ENTITY.digimonEntity.stats.base.mp);
+		addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentMP, amount, PARTNER_ENTITY.digimonEntity.stats.base.mp);
 		if (GAME_STATE == 1) {
-			addEntityText(ENTITY_TABLE[1], 0, 0xb, HEALING_VALUES[idx - 4], 2);
+			addEntityText(ENTITY_TABLE[1], 0, 0xb, amount, 2);
 		}
 		addHealingParticleEffect(ENTITY_TABLE[1], HEAL_EFFECT_VARIANT[idx - 4]);
 	}
@@ -2365,10 +2371,13 @@ void handleMPHealingItem(uint8_t idx)
 
 void handleHPHealingItem(uint8_t idx)
 {
+	/* MOD (caps): the 9999 one heals all of a longer bar */
+	int32_t amount = CAPS_FULL_HEAL(HEALING_VALUES[idx], PARTNER_ENTITY.digimonEntity.stats.base.hp);
+
 	if (PARTNER_ENTITY.digimonEntity.stats.current.currentHP != 0) {
-		addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentHP, HEALING_VALUES[idx], PARTNER_ENTITY.digimonEntity.stats.base.hp);
+		addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentHP, amount, PARTNER_ENTITY.digimonEntity.stats.base.hp);
 		if (GAME_STATE == 1) {
-			addEntityText(ENTITY_TABLE[1], 0, 0xb, HEALING_VALUES[idx], 1);
+			addEntityText(ENTITY_TABLE[1], 0, 0xb, amount, 1);
 		}
 		addHealingParticleEffect(ENTITY_TABLE[1], HEAL_EFFECT_VARIANT[idx]);
 	}
@@ -2903,24 +2912,31 @@ void handleFood(int16_t itemId)
 	setTrainingBoost(trainFlag, trainValue, trainDuration);
 	handleItemSickness(sicknessChance);
 	PARTNER_PARA.remainingLifetime += lifetime;
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.hp, addedHP, 9999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.mp, addedMP, 9999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentHP, healedHP,
+	/* MOD (caps): new limits; the 9999 heals fill a longer bar */
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.hp, addedHP, HPMP_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.mp, addedMP, HPMP_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentHP,
+	             CAPS_FULL_HEAL(healedHP, PARTNER_ENTITY.digimonEntity.stats.base.hp),
 	             PARTNER_ENTITY.digimonEntity.stats.base.hp);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentMP, healedMP,
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentMP,
+	             CAPS_FULL_HEAL(healedMP, PARTNER_ENTITY.digimonEntity.stats.base.mp),
 	             PARTNER_ENTITY.digimonEntity.stats.base.mp);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.off, addedOffense, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.def, addedDefense, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.speed, addedSpeed, 999);
-	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.brain, addedBrain, 999);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.off, addedOffense, STAT_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.def, addedDefense, STAT_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.speed, addedSpeed, STAT_CAP);
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.brain, addedBrain, STAT_CAP);
 }
 
 void addWithLimit(int16_t *value, int16_t amount, int16_t limit)
 {
-	*value += amount;
-	if (*value > limit) {
-		*value = limit;
+	/* MOD (caps): the sum in 32 bits, so that it cannot wrap past 32767
+	 * before the limit is checked (it never did with 9999 / 999) */
+	int32_t sum = *value + amount;
+
+	if (sum > limit) {
+		sum = limit;
 	}
+	*value = sum;
 }
 
 int32_t handleMedicineHealing(int16_t injuryChance, int16_t sicknessChance)

@@ -1,6 +1,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/entity.h>
 #include <dw/font.h>
 #include <dw/input.h>
@@ -207,18 +208,15 @@ void TRN_tickPostTrainingStatsBox(void)
 
 	for (i = 0; i < 6; i++) {
 		if (STATS_GAINS[i] != 0) {
-			INITIAL_COMBAT_STATS[0][i] += STATS_GAINS[i];
+			/* MOD (caps): summed in 32 bits, the new limits (were
+			 * 9999 / 999) */
+			{
+				int32_t sum = INITIAL_COMBAT_STATS[0][i] + STATS_GAINS[i];
 
-			if (STATS_GAINS[i] > 0) {
-				if (i < 2) {
-					if (INITIAL_COMBAT_STATS[0][i] >= 10000) {
-						INITIAL_COMBAT_STATS[0][i] = 9999;
-					}
-				} else {
-					if (INITIAL_COMBAT_STATS[0][i] >= 1000) {
-						INITIAL_COMBAT_STATS[0][i] = 999;
-					}
+				if ((STATS_GAINS[i] > 0) && (sum > CAP_OF_STAT_INDEX(i))) {
+					sum = CAP_OF_STAT_INDEX(i);
 				}
+				INITIAL_COMBAT_STATS[0][i] = sum;
 			}
 			STATS_GAINS[i] = 0;
 		}
@@ -245,14 +243,9 @@ void TRN_renderPostTrainingStatsBox(int16_t depth)
 			STATS_GAINS[i] -= 1;
 			INITIAL_COMBAT_STATS[0][i] += 1;
 
-			if (i < 2) {
-				if (INITIAL_COMBAT_STATS[0][i] >= 10000) {
-					INITIAL_COMBAT_STATS[0][i] = 9999;
-				}
-			} else {
-				if (INITIAL_COMBAT_STATS[0][i] >= 1000) {
-					INITIAL_COMBAT_STATS[0][i] = 999;
-				}
+			/* MOD (caps): the new limits (were 9999 / 999) */
+			if (INITIAL_COMBAT_STATS[0][i] > CAP_OF_STAT_INDEX(i)) {
+				INITIAL_COMBAT_STATS[0][i] = CAP_OF_STAT_INDEX(i);
 			}
 			first = 0;
 		}
@@ -265,7 +258,8 @@ void TRN_renderPostTrainingStatsBox(int16_t depth)
 			AddPrim((ACTIVE_ORDERING_TABLE->org + 6) - depth, prim++);
 			GsSetWorkBase((PACKET *)prim);
 		}
-		renderNumber(5, box->x + 142, (box->y + 9) + (i * 13), 3, STATS_GAINS[i], 6 - depth);
+		/* MOD (caps): a wider gain grows to the right, into the free part of the box */
+		renderNumber(5, box->x + 142, (box->y + 9) + (i * 13), CAPS_DIGITS(3, STATS_GAINS[i]), STATS_GAINS[i], 6 - depth);
 	}
 
 	for (i = 0; i < 6; i++) {
@@ -287,10 +281,11 @@ void TRN_renderPostTrainingStatsBox(int16_t depth)
 		y = (box->y + 20) + (i * 13);
 		rect.y = y - 2;
 
+		/* MOD (caps): full at the old limit (the bar has no room past it) */
 		if (i < 2) {
-			rect.w = (INITIAL_COMBAT_STATS[0][i] * 50) / 9999;
+			rect.w = (CAPS_MIN(INITIAL_COMBAT_STATS[0][i], 9999) * 50) / 9999;
 		} else {
-			rect.w = (INITIAL_COMBAT_STATS[0][i] * 50) / 999;
+			rect.w = (CAPS_MIN(INITIAL_COMBAT_STATS[0][i], 999) * 50) / 999;
 		}
 		switch (MAIN_D_80135398[i]) {
 		case 0:

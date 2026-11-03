@@ -1136,7 +1136,16 @@ void scriptInstruction28to3F(op)
 	case SCRIPT_OP_ADD_STAT:
 		pollOneUByteOneUShort(&byteArg1, &value);
 		statPtr = getStatsPointer(byteArg1);
-		*statPtr += value;
+		/* MOD (caps): the sum in 32 bits, so that a stat near the new
+		 * limits cannot wrap past 32767 before it is clamped */
+		{
+			int32_t sum = *statPtr + value;
+
+			if ((*statPtr >= 0) && (sum > 0x7fff)) {
+				sum = 0x7fff;
+			}
+			*statPtr = sum;
+		}
 		*statPtr = enforceStatsLimits(byteArg1, *statPtr);
 		scriptUpdateEnergyBoundaries(byteArg1, *statPtr);
 		if (byteArg1 == SCRIPT_STAT_TAMER_LEVEL) {
