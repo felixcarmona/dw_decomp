@@ -348,6 +348,14 @@ extern int16_t MOD_EVO_FORMULA[MOD_EVO_FORMULA_SIZE];
 int32_t evoAmt(int32_t slot);
 int32_t evoFlag(int32_t slot);
 int32_t evoPassPoints(void);
+/* MOD (chart): the four scored requirements of an evolution, as evoRequirementsMet's bits (evolution.c) */
+#define EVO_MET_CARE	1
+#define EVO_MET_WEIGHT	2
+#define EVO_MET_STATS	4
+#define EVO_MET_BONUS	8
+int32_t evoRequirementsMet(int32_t current, int16_t target, int8_t isMaxCM, int8_t isMaxBattles);
+int32_t evoRequirementPoints(int32_t met);
+int32_t evoPartnerTopStat(void);
 
 /* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
 #define MOD_EVO_ITEM_MAX	4
