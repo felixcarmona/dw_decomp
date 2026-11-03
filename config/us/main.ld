@@ -154,8 +154,6 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sjis.c.o(.text.*);
         . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_select.c.o(.text.*);
-        . = ALIGN(., 4);
         BUILD_DIR/src/main/script_common.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/script_textbox.c.o(.text.*);
@@ -385,7 +383,6 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sjis.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_select.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/script_common.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
@@ -1055,7 +1052,7 @@ ASSERT(OVL_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the origina
 ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
 /*
  * MOD (code out of the executable, docs/mods/memory.md): BTL and VS carry code the executable used to hold (battle_ui.c;
- * vs_combat.c, vs_intro.c), appended at their ends. A battle-mode overlay may reach as high as STD, the tournament
+ * vs_combat.c, vs_intro.c, vs_select.c), appended at their ends. A battle-mode overlay may reach as high as STD, the tournament
  * overlay that runs the same battle engine (EFE heap, effects, sound) and the original's largest. MOV carries libpress
  * and libcd's streaming: it must stay below TRN's slot (TEXTURE_BUFFER, the frame OTs of main.c).
  */
