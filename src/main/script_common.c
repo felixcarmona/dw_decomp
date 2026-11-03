@@ -861,23 +861,32 @@ void tickItemMenu(void)
 	}
 }
 
+/* MOD (amounts): how many of the item under the cursor, at most what the merit buys and its stack holds */
 int32_t readSelectedItemMerit(void)
 {
 	ItemMenuBox *box;
 	int32_t idx;
-	uint8_t amount;
+	int32_t most;
+	int32_t room;
 
 	box = getItemMenuFromType();
 	idx = (box->topRow + box->cursor) * 2;
 	SHOP_ITEM_TYPE = box->buf[idx];
 
-	if (SHOP_ITEM_TYPE != 0xff) {
-		amount = box->buf[idx + 1];
-		if (amount != 0) {
-			SHOP_VARIABLE = ITEM_PARA[SHOP_ITEM_TYPE].meritValue;
-			SCRIPT_STATE_2 = 0xb;
-			SCRIPT_TEXTBOX_MODE = 0;
-			playSound(0, 3);
+	if (SHOP_ITEM_TYPE != 0xff && box->buf[idx + 1] != 0) {
+		SHOP_ITEM_PRICE = ITEM_PARA[SHOP_ITEM_TYPE].meritValue;
+		most = MERIT / SHOP_ITEM_PRICE;
+		room = econCap(MOD_ECON_STACK_CAP, 255) - getItemCount(SHOP_ITEM_TYPE);
+		if (most > room) {
+			most = room;
+		}
+		if (most > 99) {
+			most = 99;
+		}
+		if (most > 0) {
+			MAX_SHOP_AMOUNT = most;
+			openAmountBox(4);
+
 			return 1;
 		}
 	}
