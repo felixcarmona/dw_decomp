@@ -74,6 +74,7 @@ static char *appendStr(char *dst, char *src)
  * selected option. Each row has its own 0xC-high line in the VRAM text area. */
 #define ROW_PITCH	0x12
 #define BOX_W		0xD0
+#define BOX_SHIFT_X	0x16	/* 22 px right of centre: the HUD clock (top left) reaches x = 77 */
 #define ROW_TITLE	0
 #define ROW_STATS	1
 #define ROW_OPTIONS	2
@@ -198,7 +199,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 	modLabCursor = 0;
 	modLabMessage = NULL;
 	modLabDrawText();
-	setRECT(&pos, -BOX_W / 2, -0x44, BOX_W, 8 + (ROW_MESSAGE + 1) * ROW_PITCH + 2);
+	setRECT(&pos, -BOX_W / 2 + BOX_SHIFT_X, -0x44, BOX_W, 8 + (ROW_MESSAGE + 1) * ROW_PITCH + 2);
 	createStaticUIBox(MOD_LAB_BOX, 1, 0, &pos, NULL, modLabRender);
 	playSound(0, 3);
 	modLabFrames(12);
