@@ -49,7 +49,7 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	} else {
 		++filename;
 	}
-	filename = modLangFile(filename); /* MOD (language) */
+	filename = modStoryFile(modLangFile(filename)); /* MOD (language, story): the language's copy, then its story's */
 
 	for (; entry->size != 0; ++entry) {
 		if (!strcmp(filename, entry->filename)) {
