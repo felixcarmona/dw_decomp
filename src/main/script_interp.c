@@ -8,6 +8,7 @@
 #include <dw/fade.h>
 #include <dw/file.h>
 #include <dw/font.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/map_object.h>
@@ -29,7 +30,6 @@
 
 extern int8_t MAIN_STATE;
 extern int16_t SCRIPT_MAP_CHANGE_STATE;
-extern uint8_t PREVIOUS_SCREEN;
 extern uint8_t PREVIOUS_EXIT;
 extern uint8_t CURRENT_EXIT;
 extern int8_t TALKED_TO_ENTITY;

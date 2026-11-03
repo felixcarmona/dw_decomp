@@ -10,6 +10,7 @@
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/math.h>
+#include <dw/memmap.h>
 #include <dw/sound.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -17,7 +18,7 @@
 
 #include "common.h"
 
-#define VS_TMD_BUFFER	((uint8_t *)0x80038000)
+#define VS_TMD_BUFFER	((uint8_t *)ARENA_TMD_ADDR)
 
 extern int16_t BTL_FINISHER_CHARGEUP_POS[2];
 extern int8_t GAME_STATE;
