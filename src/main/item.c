@@ -2535,7 +2535,7 @@ void renderDroppedItemShadow(WorldItem *item)
 	GsSetWorkBase((PACKET *)prim);
 }
 
-uint8_t getItemCount(uint8_t type)
+uint8_t getItemCount(ItemId type) /* MOD: was u8 */
 {
 	int32_t i;
 
@@ -2548,7 +2548,7 @@ uint8_t getItemCount(uint8_t type)
 	return 0;
 }
 
-int32_t giveItem(uint8_t item, uint8_t amount)
+int32_t giveItem(ItemId item, uint8_t amount) /* MOD: was u8 */
 {
 	int16_t used[30];
 	int32_t i;
@@ -2569,7 +2569,7 @@ int32_t giveItem(uint8_t item, uint8_t amount)
 			}
 			return 0;
 			/* unreachable */
-			INVENTORY.types.array[i] = 0xff;
+			INVENTORY.types.array[i] = ITEM_NONE;
 			INVENTORY.amounts.array[i] = 0;
 			INVENTORY.names.array[i] = 0xff;
 		}
@@ -2577,7 +2577,7 @@ int32_t giveItem(uint8_t item, uint8_t amount)
 
 	if (result == 0) {
 		for (i = 0; i < INVENTORY.size; i++) {
-			if (INVENTORY.types.array[i] == 0xff) {
+			if (INVENTORY.types.array[i] == ITEM_NONE) {
 				INVENTORY.types.array[i] = item;
 				INVENTORY.amounts.array[i] = amount;
 				for (j = 0; j < INVENTORY.size; j++) {
@@ -2602,12 +2602,12 @@ int32_t giveItem(uint8_t item, uint8_t amount)
 	return result;
 }
 
-void removeItem(uint8_t type, uint8_t amount)
+void removeItem(ItemId type, uint8_t amount) /* MOD: was u8 */
 {
 	int32_t i;
 	uint8_t *count;
 
-	if (type == 0xff) {
+	if (type == ITEM_NONE) {
 		return;
 	}
 
@@ -2618,7 +2618,7 @@ void removeItem(uint8_t type, uint8_t amount)
 				*count -= amount;
 			} else {
 				*count = 0;
-				INVENTORY.types.array[i] = 0xff;
+				INVENTORY.types.array[i] = ITEM_NONE;
 				INVENTORY.names.array[i] = 0xff;
 			}
 		}
@@ -2645,7 +2645,7 @@ void initializeInventory(void)
 	int32_t i;
 
 	for (i = 0; i < 30; ++i) {
-		INVENTORY.types.array[i] = 0xff;
+		INVENTORY.types.array[i] = ITEM_NONE;
 		INVENTORY.amounts.array[i] = 0;
 		INVENTORY.names.array[i] = 0xff;
 	}
@@ -2655,7 +2655,7 @@ void initializeInventory(void)
 	types = INITIAL_INVENTORY_TYPES;
 
 	for (i = 0; i < 30; ++i) {
-		INVENTORY.types.array[i] = types.array[i];
+		INVENTORY.types.array[i] = itemFromLegacy(types.array[i]);
 		INVENTORY.amounts.array[i] = amounts.array[i];
 		INVENTORY.names.array[i] = i;
 	}
