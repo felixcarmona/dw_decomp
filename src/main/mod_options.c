@@ -12,14 +12,25 @@
  * button (SYSTEM_W.TIM, three 16x12 frames pressing it, drawn by renderUIBox and the care menu's badge) is made a ○
  * from the disc's own frames: the cross is painted over with the button's face and a ring drawn where it was, in the
  * red of the PlayStation's ○ (its own CLUT, modButtonClut).
+ *
+ * DIGITAL CLOCK. The hour as HH:MM on a plate under the clock (patch 0166, renderDigitalClock in clock.c), on or off.
+ *
+ * NEW STATUS BARS. The field's happiness and discipline bars as patches 0162-0164 draw them (one fill, red below the
+ * midpoint, green from it, on a grey track), or off, as the original drew them (renderStatusBars, partner_impl.c).
+ *
+ * FRAME RATE. 60 or 30 fps (MOD_FPS_MODE, dw/mod_fps.h); the game logic runs at 20 Hz in both. A build made with FPS=20
+ * keeps 20 and the option shows it without a choice.
  */
 #include <dw/mod_options.h>
+#include <dw/mod_fps.h>
 
 #include "common.h"
 
 extern uint8_t COLORCODE_LOWBITS; /* font.c: the text's colour */
 
 int32_t MOD_OPT_BUTTONS = MOD_BUTTONS_US;
+int32_t MOD_OPT_CLOCK = 1;
+int32_t MOD_OPT_BARS = 1;
 int32_t MOD_OPT_TOUCHED = 0;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */
@@ -204,4 +215,16 @@ void modSetButtons(int32_t layout)
 {
 	MOD_OPT_BUTTONS = layout == MOD_BUTTONS_JP ? MOD_BUTTONS_JP : MOD_BUTTONS_US;
 	uploadFrames();
+}
+
+int32_t modFrameRate(void)
+{
+	return MOD_FPS_MODE == 2 ? 60 : MOD_FPS_MODE == 1 ? 30 : 20;
+}
+
+void modSetFrameRate(int32_t fps)
+{
+#if FPS != 20
+	MOD_FPS_MODE_RUN = fps == 30 ? 1 : 2;
+#endif
 }
