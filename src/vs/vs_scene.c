@@ -4,6 +4,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_font.h>
 #include <dw/clock.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
@@ -1516,7 +1517,7 @@ void VS_playVersusIntroSequence(void)
 	clearTextArea();
 	drawString(VS_STR_WIN, 0, 0);
 	drawString(VS_STR_LOSE, 0, 0xc);
-	drawString(MAIN_D_80124C54, 0, 0xf0);
+	DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 	fadeFromBlack(3);
 	i = 3;
 	if (VS_CURRENT_BATTLE == VS_BATTLE_SETUP.battleCount - 1) {

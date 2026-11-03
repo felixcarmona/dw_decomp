@@ -38,6 +38,10 @@ int32_t textFitCode(char *str, int32_t maxW);
 /* MOD (item names): the item name field of the inventory, the fishing bait list, the shop's amount box, the keeper and
  * Mojyamon's trades: 96 pixels (the shop's lists: 93) */
 #define ITEM_FIELD_W		0x60
+/* MOD (font): only in a build whose font is placed to the pixel (dw/mod_font.h): a glyph's advance in pixels; set while
+ * text is laid out in the original's cells (font.c FONT_CELLS) */
+int32_t glyphWidth(uint16_t codepoint);
+extern int8_t FONT_CELLS;
 #endif
 
 #endif
