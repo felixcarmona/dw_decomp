@@ -4,6 +4,7 @@
 #include <libgs.h>
 
 #include <dw/btl.h>
+#include <dw/mod_present.h>
 #include <dw/script.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
@@ -141,6 +142,13 @@ void BTL_renderCommandShout(void)
 	GsSortSprite(&sprite, ACTIVE_ORDERING_TABLE, 7);
 
 	if (BTL_COMMAND_SHOUT.frame >= 20) {
-		BTL_removeCommandShout();
+		/* MOD (fps): the other render passes of this tick still draw it
+		 * (BTL_COMMAND_SHOUT is rolled back for them, battle_main.c) */
+		if (MOD_RENDER_MULTIPASS) {
+			removeObjectAfterRender(0x199, 0);
+			BTL_COMMAND_SHOUT.frame = -1;
+		} else {
+			BTL_removeCommandShout();
+		}
 	}
 }
