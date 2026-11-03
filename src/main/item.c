@@ -34,7 +34,7 @@ void deleteDroppedItem(int16_t itemId);
 void setUVDataPolyFT4(POLY_FT4 *p, int32_t u, int32_t v, int32_t w, int32_t h);
 void setPosDataPolyFT4(POLY_FT4 *prim, int32_t posX, int32_t posY, int32_t width,
                        int32_t height);
-void setItemTexture(POLY_FT4 *prim, int32_t type);
+void setItemTexture(POLY_FT4 *prim, ItemId type);
 void decreasePoopLevel(void);
 void modifyLifetime(int16_t delta);
 void reduceTiredness(int16_t amount);
@@ -2383,13 +2383,13 @@ void initializeDroppedItems(void)
 {
 	int32_t i;
 
-	TAMER_ITEM.worldItem.type = 0xff;
+	TAMER_ITEM.worldItem.type = ITEM_NONE;
 	for (i = 0; i < 11; i++) {
-		DROPPED_ITEMS[i].worldItem.type = 0xff;
+		DROPPED_ITEMS[i].worldItem.type = ITEM_NONE;
 	}
 }
 
-void spawnDroppedItems(Entity *e, uint8_t type)
+void spawnDroppedItems(Entity *e, ItemId type) /* MOD: was u8 */
 {
 	int32_t i;
 	DroppedItem *it;
@@ -2398,7 +2398,7 @@ void spawnDroppedItems(Entity *e, uint8_t type)
 	loc = &e->posData->location;
 	for (i = 0; i < 0xb; i++) {
 		it = &DROPPED_ITEMS[i];
-		if (it->worldItem.type == 0xff) {
+		if (it->worldItem.type == ITEM_NONE) {
 			it->worldItem.type = type;
 			break;
 		}
@@ -2423,12 +2423,12 @@ void renderDroppedItem(int32_t instanceId)
 
 GARBAGE(spawnItem, 24);
 
-void spawnItem(uint8_t itemId, int16_t tileX, int16_t tileY)
+void spawnItem(ItemId itemId, int16_t tileX, int16_t tileY) /* MOD: was u8 */
 {
 	int32_t i;
 
 	for (i = 0; i < 0xb; i++) {
-		if (DROPPED_ITEMS[i].worldItem.type == 0xff) {
+		if (DROPPED_ITEMS[i].worldItem.type == ITEM_NONE) {
 			DROPPED_ITEMS[i].worldItem.type = itemId;
 			DROPPED_ITEMS[i].tileX = tileX;
 			DROPPED_ITEMS[i].tileY = tileY;
@@ -2447,7 +2447,7 @@ void spawnItem(uint8_t itemId, int16_t tileX, int16_t tileY)
 void deleteDroppedItem(int16_t itemId)
 {
 	removeObject(0x195, itemId);
-	DROPPED_ITEMS[itemId].worldItem.type = 0xff;
+	DROPPED_ITEMS[itemId].worldItem.type = ITEM_NONE;
 }
 
 void clearDroppedItems(void)
@@ -2455,7 +2455,7 @@ void clearDroppedItems(void)
 	int32_t i;
 
 	for (i = 0; i < 11; i++) {
-		if (DROPPED_ITEMS[i].worldItem.type != 0xff) {
+		if (DROPPED_ITEMS[i].worldItem.type != ITEM_NONE) {
 			deleteDroppedItem(i);
 		}
 	}
@@ -2627,7 +2627,7 @@ void removeItem(ItemId type, uint8_t amount) /* MOD: was u8 */
 
 int32_t pickupItem(int16_t itemId)
 {
-	uint8_t type;
+	ItemId type; /* MOD: was u8 */
 	int32_t got;
 
 	type = DROPPED_ITEMS[itemId].worldItem.type;
@@ -2665,9 +2665,9 @@ void initializeInventory(void)
 
 void removeTamerItem(void)
 {
-	if (TAMER_ITEM.worldItem.type != 0xff) {
+	if (TAMER_ITEM.worldItem.type != ITEM_NONE) {
 		removeObject(0x194, 0);
-		TAMER_ITEM.worldItem.type = 0xff;
+		TAMER_ITEM.worldItem.type = ITEM_NONE;
 	}
 }
 
