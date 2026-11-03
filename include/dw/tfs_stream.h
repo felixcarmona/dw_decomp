@@ -29,6 +29,8 @@ typedef struct {
 	int32_t refused;		/* tile wanted outside the world while the ring was invalid: not reopened (the load area is a battle's) */
 } TfsStreamStats;
 
+/* Existing VRAM cell identities; overlays may skip redundant uploads. */
+extern int8_t TFS_CELL[12];
 extern int8_t MOD_TFS_TILE_SEQ[35];
 extern TfsStreamStats MOD_TFS_STATS;
 /*
