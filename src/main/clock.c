@@ -1,3 +1,4 @@
+#include <libgpu.h>
 #include <libgs.h>
 
 #include <dw/clock.h>
@@ -274,6 +275,71 @@ int32_t modTimeOfDay(int32_t hour)
 	return 2;
 }
 
+/* MOD (digital clock): the hour as HH:MM in 3x5 digits on a small plate under the clock; each row of a digit is
+   3 bits (bit 2 the left column), drawn as flat runs */
+static const uint8_t CLOCK_DIGITS[10][5] = {
+	{ 7, 5, 5, 5, 7 }, { 2, 6, 2, 2, 7 }, { 7, 1, 7, 4, 7 }, { 7, 1, 3, 1, 7 }, { 5, 5, 7, 1, 1 },
+	{ 7, 4, 7, 1, 7 }, { 7, 4, 7, 5, 7 }, { 7, 1, 1, 1, 1 }, { 7, 5, 7, 5, 7 }, { 7, 5, 7, 1, 7 },
+};
+
+static void addClockRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z)
+{
+	POLY_F4 *p;
+
+	p = (POLY_F4 *)GsGetWorkBase();
+	SetPolyF4(p);
+	setRGB0(p, r, g, b);
+	setXYWH(p, x, y, w, h);
+	AddPrim(ACTIVE_ORDERING_TABLE->org + z, p++);
+	GsSetWorkBase((PACKET *)p);
+}
+
+static void addClockDigit(int32_t x, int32_t y, int32_t digit)
+{
+	int32_t row;
+	int32_t bits;
+
+	for (row = 0; row < 5; row++) {
+		bits = CLOCK_DIGITS[digit][row];
+		if (bits == 7)
+			addClockRect(x, y + row, 3, 1, 0xF0, 0xF0, 0xF0, 8);
+		else if (bits == 6)
+			addClockRect(x, y + row, 2, 1, 0xF0, 0xF0, 0xF0, 8);
+		else if (bits == 3)
+			addClockRect(x + 1, y + row, 2, 1, 0xF0, 0xF0, 0xF0, 8);
+		else {
+			if (bits & 4)
+				addClockRect(x, y + row, 1, 1, 0xF0, 0xF0, 0xF0, 8);
+			if (bits & 2)
+				addClockRect(x + 1, y + row, 1, 1, 0xF0, 0xF0, 0xF0, 8);
+			if (bits & 1)
+				addClockRect(x + 2, y + row, 1, 1, 0xF0, 0xF0, 0xF0, 8);
+		}
+	}
+}
+
+/* the plate is 23 x 9 pixels, centred under the clock's face (x + 24), its top 2 pixels below it; a later prim at the
+   same depth is drawn under an earlier one, so the edge, the dark inside and the digits go 11, 10, 9, 8 */
+static void renderDigitalClock(int32_t x, int32_t y)
+{
+	int32_t hour = HOUR;
+	int32_t minute = MINUTE;
+
+	if (hour < 0 || hour > 23)
+		hour = 0;
+	if (minute < 0 || minute > 59)
+		minute = 0;
+	addClockRect(x, y, 23, 9, 0x62, 0xB4, 0xF6, 11);
+	addClockRect(x + 1, y + 1, 21, 7, 0x18, 0x18, 0x18, 10);
+	addClockRect(x + 2, y + 2, 19, 5, 0x20, 0x20, 0x20, 9);
+	addClockDigit(x + 3, y + 2, hour / 10);
+	addClockDigit(x + 7, y + 2, hour % 10);
+	addClockRect(x + 11, y + 3, 1, 1, 0xF0, 0xF0, 0xF0, 8);
+	addClockRect(x + 11, y + 5, 1, 1, 0xF0, 0xF0, 0xF0, 8);
+	addClockDigit(x + 13, y + 2, minute / 10);
+	addClockDigit(x + 17, y + 2, minute % 10);
+}
+
 void renderGameClock(int32_t instanceId)
 {
 	uint8_t isNight;
@@ -308,6 +374,8 @@ void renderGameClock(int32_t instanceId)
 			  HOUR_POINT_Y[HOUR] - 88,
 			  6, 6, 203, 216,
 			  GetTPage(0, 0, 896, 448), GetClut(256, 497), 9, 0);
+
+	renderDigitalClock(CLOCK_OFFSET_X + 13, -46);
 
 	renderStatusBars(IS_GAMETIME_RUNNING);
 }
