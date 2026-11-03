@@ -1533,52 +1533,188 @@ void drawString(str, x, y)
 }
 
 /*
- * MOD (long names): the width in pixels drawString gives a text, without drawing it (the glyph's advance follows
- * its GLYPH_HEIGHT rows, as drawGlyph returns it). A screen can measure in any render pass; drawString draws
- * only in the first.
+ * MOD (long names): a species name of up to 19 characters drawn whole in a field made for some 14. drawGlyph places
+ * glyphs on the 4-pixel grid of the text area (x / 4) with the font's own spacing (12 for a capital, 8 for most
+ * lowercase letters); a name too wide for its field is drawn tighter instead, never by dropping columns:
+ *   FIT_VANILLA    drawString itself (every name that fits: the original pixels);
+ *   FIT_TIGHT      the same glyphs placed by their ink, FIT_GAP blank columns between two letters;
+ *   FIT_CONDENSED  the same, with a 5-column lowercase (font_condensed.h, tools/font/condensed.txt).
+ * The tight and condensed lines are composed into FIT_STRIP and uploaded at once (docs/mods/font.md "Long names").
+ * A screen measures in any render pass; the drawing happens only in the first, like drawString's.
  */
-int32_t measureString(char *str)
+#include "font_condensed.h"
+
+#define FIT_GAP		1	/* blank columns between two letters (tools/fontgen.py FIT_GAP) */
+#define FIT_SPACE	3	/* what a glyph without ink (a space) adds (FIT_SPACE) */
+
+static uint8_t FIT_STRIP[(TEXT_AREA_SIZE / 2) * GLYPH_HEIGHT] __attribute__((aligned(4))); /* LoadImage reads words */
+
+/* the glyph of the next character of a drawString text (its GLYPH_HEIGHT rows, then the advance); *str moves on */
+static uint16_t *nextGlyph(char **str, int32_t mode)
 {
 	uint16_t codepoint;
 	uint16_t code;
 	uint16_t lo;
 	uint16_t hi;
-	uint16_t *p;
+	char *s;
 	int32_t n;
-	int32_t w;
 
+	s = *str;
+	if (isAsciiEncoded(s) != 0) {
+		if (*s == '.') {
+			codepoint = 0x8142;
+		} else if (*s == '\'') {
+			codepoint = 0x8175;
+		} else {
+			codepoint = convertAsciiToJis(*s);
+		}
+		codepoint = swapShortBytes(codepoint);
+		s++;
+	} else {
+		lo = (uint8_t)*s++;
+		hi = (uint8_t)*s++;
+		codepoint = swapShortBytes((lo << 8) | hi);
+	}
+	*str = s;
+	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+	if (mode == FIT_CONDENSED && code >= 0x8281 && code <= 0x829a && CONDENSED_GLYPH_DATA[code - 0x8281].width != 0) {
+		return (uint16_t *)CONDENSED_GLYPH_DATA[code - 0x8281].pixelData;
+	}
+	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	if ((code & 0xff) > 0x7f) {
+		n--;
+	}
+	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		return (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+	}
+	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
+	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
+	}
+	return GLYPH_DATA[n].pixelData;
+}
+
+/* the glyph's inked columns: returns the one after the last (0: no ink), *left the first */
+static int32_t glyphInk(uint16_t *p, int32_t *left)
+{
+	uint32_t ink;
+	int32_t i;
+	int32_t r;
+
+	ink = 0;
+	for (i = 0; i < GLYPH_HEIGHT; i++) {
+		ink |= ~p[i]; /* 0 = ink */
+	}
+	ink &= 0xfff0;
+	if (ink == 0) {
+		return 0;
+	}
+	for (i = 0; (ink & (0x8000 >> i)) == 0; i++) {
+	}
+	for (r = GLYPH_WIDTH - 1; (ink & (0x8000 >> r)) == 0; r--) {
+	}
+	*left = i;
+	return r + 1;
+}
+
+/* the width of a text's ink drawn in a mode, from x 0 (FIT_VANILLA: where drawString's last ink ends) */
+int32_t measureStringMode(char *str, int32_t mode)
+{
+	uint16_t *p;
+	int32_t pen;
+	int32_t w;
+	int32_t left;
+	int32_t right;
+
+	pen = 0;
 	w = 0;
 	while (*str != '\0') {
-		if (isAsciiEncoded(str) != 0) {
-			if (*str == '.') {
-				codepoint = 0x8142;
-			} else if (*str == '\'') {
-				codepoint = 0x8175;
-			} else {
-				codepoint = convertAsciiToJis(*str);
+		p = nextGlyph(&str, mode);
+		right = glyphInk(p, &left);
+		if (mode == FIT_VANILLA) {
+			if (right != 0) {
+				w = pen + right;
 			}
-			codepoint = swapShortBytes(codepoint);
-			str++;
+			pen += p[GLYPH_HEIGHT];
+		} else if (right == 0) {
+			pen += FIT_SPACE;
 		} else {
-			lo = (uint8_t)*str++;
-			hi = (uint8_t)*str++;
-			codepoint = swapShortBytes((lo << 8) | hi);
+			w = pen - left + right;
+			pen = w + FIT_GAP;
 		}
-		code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
-		n = (code & 0xff) - EXTRA_GLYPH_FIRST;
-		if ((code & 0xff) > 0x7f) {
-			n--;
-		}
-		if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-			p = (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
-		} else {
-			CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
-			for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
-			}
-			p = GLYPH_DATA[n].pixelData;
-		}
-		w += p[GLYPH_HEIGHT];
 	}
+	return w;
+}
+
+/* the first mode that draws the text within maxW pixels (FIT_CONDENSED when none does) */
+int32_t fitStringMode(char *str, int32_t maxW)
+{
+	int32_t mode;
+
+	for (mode = FIT_VANILLA; mode < FIT_CONDENSED; mode++) {
+		if (measureStringMode(str, mode) <= maxW) {
+			break;
+		}
+	}
+	return mode;
+}
+
+/* drawString in a mode; returns the ink width (measureStringMode) */
+int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
+{
+	RECT rect;
+	uint16_t *p;
+	uint8_t *row;
+	uint32_t bits;
+	int32_t w;
+	int32_t stride;
+	int32_t pen;
+	int32_t gx;
+	int32_t px;
+	int32_t left;
+	int32_t right;
+	int32_t i;
+	int32_t c;
+
+	w = measureStringMode(str, mode);
+	if (mode == FIT_VANILLA) {
+		drawString(str, x, y);
+		return w;
+	}
+	if (MOD_RENDER_PASS != 0 || x < 0 || x >= TEXT_DRAW_LIMIT || y < 0 || y >= TEXT_DRAW_LIMIT) {
+		return w;
+	}
+	/* the strip starts on the grid cell of x and covers the ink, in whole cells, within the text area */
+	stride = ((x & 3) + w + 3) & ~3;
+	if ((x & ~3) + stride > TEXT_AREA_SIZE) {
+		stride = TEXT_AREA_SIZE - (x & ~3);
+	}
+	DrawSync(0); /* the previous strip's upload has read FIT_STRIP */
+	for (i = 0; i < (stride / 2) * GLYPH_HEIGHT; i++) {
+		FIT_STRIP[i] = 0;
+	}
+	pen = x & 3;
+	while (*str != '\0') {
+		p = nextGlyph(&str, mode);
+		right = glyphInk(p, &left);
+		if (right == 0) {
+			pen += FIT_SPACE;
+			continue;
+		}
+		gx = pen - left;
+		for (i = 0; i < GLYPH_HEIGHT; i++) {
+			bits = ~p[i];
+			row = FIT_STRIP + i * (stride / 2);
+			for (c = left; c < right; c++) {
+				px = gx + c;
+				if ((bits & (0x8000 >> c)) != 0 && px < stride) {
+					row[px / 2] |= (px & 1) ? COLORCODE_HIGHBITS : COLORCODE_LOWBITS;
+				}
+			}
+		}
+		pen = gx + right + FIT_GAP;
+	}
+	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, stride / 4, GLYPH_HEIGHT);
+	LoadImage(&rect, (u_long *)FIT_STRIP);
 	return w;
 }
 #endif
