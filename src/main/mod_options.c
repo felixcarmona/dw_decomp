@@ -369,7 +369,8 @@ int32_t modFileOnDisc(char *name)
  */
 typedef struct {
 	uint32_t hash;
-	uint16_t copy[MOD_LANGS]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
+	uint16_t copy[MOD_LANGS];
+	uint16_t original[MOD_LANGS]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
 } LangFileRow;
 
 static LangFileRow LANG_FILE_TABLE[] = {
@@ -395,6 +396,8 @@ char *modLangFile(char *name)
 	uint32_t hash;
 	int32_t tfs;
 	int32_t copy;
+	int32_t column, digit;
+	uint32_t key;
 
 	hash = modNameHash(name);
 	for (i = 0; i < sizeof(LANG_FILE_TABLE) / sizeof(LangFileRow) - 1; i++) {
@@ -405,11 +408,15 @@ char *modLangFile(char *name)
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_EN ? 1 : MOD_LANG];
+		column = MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_EN ? 1 : MOD_LANG;
+		copy = !MOD_OPT_STORY && LANG_FILE_TABLE[i].original[column] != 0xFFFF ? LANG_FILE_TABLE[i].original[column] : LANG_FILE_TABLE[i].copy[column];
 		if (copy == 0xFFFF || (!tfs && MOD_LANG == MOD_LANG_EN)) {
 			return name;
 		}
-		memcpy(MOD_LANG_NAME, FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].filename, FILE_NAME_MAX);
+        key = FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].nameHash;
+        MOD_LANG_NAME[0] = '@';
+        for (digit = 0; digit < 8; digit++) MOD_LANG_NAME[digit+1] = "0123456789ABCDEF"[(key >> (28-digit*4)) & 15];
+        MOD_LANG_NAME[9] = 0;
 		return FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].sector != 0 ? MOD_LANG_NAME : name;
 	}
 	return name;
@@ -426,7 +433,7 @@ static char MOD_STORY_NAME[16];
 
 char *modStoryFile(char *name)
 {
-	if (MOD_OPT_STORY || name[0] == '\0' || strlen(name) >= sizeof(MOD_STORY_NAME)) {
+	if (MOD_OPT_STORY || name[0] == '@' || name[0] == '\0' || strlen(name) >= sizeof(MOD_STORY_NAME)) {
 		return name;
 	}
 	strcpy(MOD_STORY_NAME, name);
@@ -443,11 +450,15 @@ int32_t modStoryChoice(void)
 static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN", "LANGFR.BIN", "LANGDE.BIN", "LANGIT.BIN", "LANGJA.BIN", "LANGCA.BIN" };
 int32_t modLanguageAt(int32_t index)
 {
+    static uint32_t available;
     int32_t lang;
-    for (lang = 0; lang < MOD_LANGS; lang++) {
-        if (lang == MOD_LANG || modFileOnDisc(LANG_PATCH_FILE[lang])) {
-            if (index-- == 0) return lang;
+    if (available == 0) {
+        for (lang = 0; lang < MOD_LANGS; lang++) {
+            if (lang == MOD_LANG || modFileOnDisc(LANG_PATCH_FILE[lang])) available |= 1u << lang;
         }
+    }
+    for (lang = 0; lang < MOD_LANGS; lang++) {
+        if ((available & (1u << lang)) && index-- == 0) return lang;
     }
     return -1;
 }

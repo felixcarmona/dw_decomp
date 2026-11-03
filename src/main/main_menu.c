@@ -6174,7 +6174,7 @@ static void modRenderLanguagePicker(void)
 	POLY_FT4 *text;
 	MenuHighlight selected = {0};
 	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 20;
-	int32_t i, x, y, end;
+	int32_t i, x, y, end, lang;
 	uint32_t colour;
 	text = (POLY_FT4 *)GsGetWorkBase();
 	renderText(text++, 68, 22, 0, 0, 216, 12, 0);
@@ -6184,10 +6184,11 @@ static void modRenderLanguagePicker(void)
 	renderText(text++, 132, 210, 0, 188, 80, 12, 0);
 	GsSetWorkBase((PACKET *)text);
 	for (i = 0; i < modLanguageCount(); i++) {
+		lang = modLanguageAt(i);
 		for (y = 0; y < 16; y++) {
 			for (x = 0; x < 24; x = end) {
-				colour = modFlagPixel(modLanguageAt(i), x, y);
-				for (end = x + 1; end < 24 && modFlagPixel(modLanguageAt(i), end, y) == colour; end++);
+				colour = modFlagPixel(lang, x, y);
+				for (end = x + 1; end < 24 && modFlagPixel(lang, end, y) == colour; end++);
 				modFlagRect(76+x, 44+i*20+y, end-x, 1, colour);
 			}
 		}
