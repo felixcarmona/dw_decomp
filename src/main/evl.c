@@ -38,7 +38,8 @@ void tickEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
-	if (MOD_EVO_SKIP == 1 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
+	/* not in its first ticks: the START that closed a pause (the lab menu evolves under it) is not a skip */
+	if (MOD_EVO_SKIP == 1 && (data->state != 0 || data->timer >= 10) && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
 		MOD_EVO_SKIP = 2;
 	}
 
