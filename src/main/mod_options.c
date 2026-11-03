@@ -70,6 +70,7 @@ int32_t MOD_LANG = MOD_LANG_BASE;
 int32_t MOD_OPT_SIGNS = 1;
 int32_t MOD_OPT_STORY = 1;
 int32_t MOD_OPT_DIFFICULTY = MOD_DIFF_NORMAL;
+int32_t MOD_OPT_QUICK_BATTLE = 1;
 int32_t MOD_STORY_ARRIVE = 0;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */

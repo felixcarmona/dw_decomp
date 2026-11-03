@@ -316,3 +316,72 @@ void waitForSoundBufferLoading(int32_t vabId)
 
 	uploadSoundBuffer(vabId);
 }
+
+/* MOD (quick battle start): playMusic without the wait. The music font is read through the queue like the other
+ * banks (staged at GENERAL_BUFFER, opened into bank 2 by loadSoundCompleteCallback) and the sequence starts when it
+ * is in, from the copy of the font still at GENERAL_BUFFER; until then nothing plays (the font being replaced is the
+ * one the old sequence was playing). */
+extern int16_t CURRENT_SEQ_FONT;
+extern int16_t CURRENT_SEQ_TRACK;
+extern uint8_t SEQ_BUFFER[];
+void seqOpen(void);
+void seqPlay(void);
+void seqStop(void);
+void seqClose(void);
+
+static int16_t modMusicFont;
+static int16_t modMusicTrack;
+static uint8_t modMusicLoading;
+
+static int32_t modMusicComplete(void *param)
+{
+	uint32_t *buf;
+
+	if (loadSoundCompleteCallback(param) != 0) {
+		return 1;
+	}
+	buf = (uint32_t *)GENERAL_BUFFER;
+	if ((SOUND_BUFFERS[2].vabId < 0) || (buf[3] - buf[2] > SEQ_BUFFER_SIZE)) {
+		return 0; /* as loadMusicFont: a font that does not load plays nothing */
+	}
+	memcpy(SEQ_BUFFER, (uint8_t *)buf + ((buf[2] >> 2) << 2), buf[3] - buf[2]);
+	CURRENT_SEQ_FONT = modMusicFont;
+	CURRENT_SEQ_TRACK = modMusicTrack;
+	seqOpen();
+	seqPlay();
+	return 0;
+}
+
+static int32_t modMusicFinish(void *param)
+{
+	LOAD_SOUND_COMPLETE_STATE = 0;
+	setFileReadCallback2(modMusicComplete, param);
+	return 0;
+}
+
+void modPlayMusicAsync(int32_t font, int32_t track)
+{
+	int32_t sector;
+	int32_t sectors;
+
+	if ((font == CURRENT_SEQ_FONT) && (track == CURRENT_SEQ_TRACK)) {
+		return;
+	}
+	seqStop();
+	seqClose();
+	if (font == CURRENT_SEQ_FONT) {
+		CURRENT_SEQ_TRACK = track;
+		seqOpen();
+		seqPlay();
+		return;
+	}
+	CURRENT_SEQ_FONT = -1;
+	if (!getSoundChunk(SOUND_FILE_FAALL, font - 1, &sector, &sectors)) {
+		return;
+	}
+	modMusicFont = font;
+	modMusicTrack = track;
+	SOUND_BUFFERS[2].buffer = GENERAL_BUFFER;
+	addFileReadRequestSection("FAALL.VHB", GENERAL_BUFFER, sector, sectors, &modMusicLoading,
+				  modMusicFinish, (void *)2);
+}
