@@ -474,6 +474,18 @@ EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON
 		0x000a, 0x0028, 0xffff, 0xffff, 0x0032, 0x0028, 0x00,
 		0x00,
 	},
+	/*
+	 * MOD (machinedramon): from Megadramon or Gigadramon, the only
+	 * Ultimates that evolve again (getModUltimateEvolutionTarget). The
+	 * final boss: HP 7000, MP 6000, Off 600, Def 600, Speed 400, Brains
+	 * 400, at most 3 care mistakes (flag 0x10), weight 65..75; bonus:
+	 * discipline 95 or 100 battles.
+	 */
+	[DIGIMON_MACHINEDRAMON] = {
+		0xffff, 0x02bc, 0x0258, 0x0258, 0x0258, 0x0190, 0x0190,
+		0x0003, 0x0046, 0x005f, 0xffff, 0x0064, 0xffff, 0x10,
+		0x00,
+	},
 };
 
 EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
@@ -568,6 +580,16 @@ EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIG
 	[DIGIMON_SHOGUNGEKOMON] = { 0x1b58, 0x0dac, 0x01f4, 0x0258, 0x012c, 0x01f4, DIGIMON_SHOGUNGEKOMON },
 	[DIGIMON_MYOTISMON] = { 0x1770, 0x1770, 0x0226, 0x01c2, 0x0258, 0x0258, DIGIMON_MYOTISMON },
 	[DIGIMON_WARUMONZAEMON] = { 0x1388, 0x0fa0, 0x0258, 0x01c2, 0x01c2, 0x0190, DIGIMON_WARUMONZAEMON },
+	/* MOD (machinedramon): stronger than any Ultimate: HP 8000, MP 7000, Off 800,
+	 * Def 750, Speed 600, Brains 650 */
+	[DIGIMON_MACHINEDRAMON] = { 0x1f40, 0x1b58, 0x0320, 0x02ee, 0x0258, 0x028a,
+				    DIGIMON_MACHINEDRAMON },
+	/* MOD (jijimon): a wise old Ultimate, reached only from the lab menu: HP 4000,
+	 * MP 6000, Off 450, Def 500, Speed 300, Brains 800 */
+	[DIGIMON_JIJIMON] = { 0x0fa0, 0x1770, 0x01c2, 0x01f4, 0x012c, 0x0320, DIGIMON_JIJIMON },
+	/* MOD (analogman): a brilliant, frail Ultimate, reached only from the lab menu:
+	 * HP 3500, MP 7000, Off 400, Def 350, Speed 450, Brains 900 */
+	[DIGIMON_ANALOGMAN] = { 0x0dac, 0x1b58, 0x0190, 0x015e, 0x01c2, 0x0384, DIGIMON_ANALOGMAN },
 };
 
 EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
@@ -1244,4 +1266,26 @@ void reincarnatePartner(unused, stats, partner, digimonId)
   initializeReincarnatedPartner(id, 0, 0, 0, 0, 0, 0);
   PARTNER_ENTITY.lives = 3;
   setDigimonRaised(id);
+}
+
+/*
+ * MOD (machinedramon): the Ultimate evolution check. In the original an
+ * Ultimate never evolves (tickConditions only checks levels 1-4). Megadramon
+ * and Gigadramon, from 48 hours after their own evolution, evolve into
+ * Machinedramon when its requirements (EVOLUTION_REQS) score 3 points, like
+ * a Champion's targets. Returns -1 otherwise (and for every other type).
+ */
+int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
+{
+	EvoRequirements *reqs;
+
+	if (currentDigimon != DIGIMON_MEGADRAMON && currentDigimon != DIGIMON_GIGADRAMON) {
+		return -1;
+	}
+	reqs = &EVOLUTION_REQS[DIGIMON_MACHINEDRAMON];
+	if (calculateRequirementScore(currentDigimon, DIGIMON_MACHINEDRAMON, (reqs->flags & 0x10) >> 4,
+	                              reqs->flags & 1, -1) >= 3) {
+		return DIGIMON_MACHINEDRAMON;
+	}
+	return -1;
 }
