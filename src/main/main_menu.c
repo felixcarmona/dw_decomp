@@ -1776,7 +1776,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_80139DF4, 0, 0x3c);
 		DrawSync(0);
-		drawString(MAIN_D_80139E14, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80139E14, 0, 0xf0);
 		break;
 	case 7:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -1802,7 +1802,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_80131328, 0, 0x18);
 		DrawSync(0);
-		drawString(MAIN_D_80139E14, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80139E14, 0, 0xf0);
 		break;
 	case 8:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -1826,7 +1826,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(SLOT_ACTION_QUESTIONS[MAIN_MENU_ACTION], 0x18, 0x30);
 		DrawSync(0);
-		drawString(MAIN_D_80139E14, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80139E14, 0, 0xf0);
 		if (MAIN_MENU_ACTION == 2) {
 			MENU_HIGHLIGHTS[view].pos = 1;
 		}
@@ -1877,7 +1877,7 @@ void drawMainMenuStrings(int32_t menu)
 			drawString(MEMORY_CARD_ERROR_MESSAGES[MEMORY_CARD_ERROR], 0, 0x30);
 			DrawSync(0);
 		}
-		drawString(MAIN_D_80139E14, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80139E14, 0, 0xf0);
 		break;
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
@@ -1888,7 +1888,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_8013141C, 0, 0x24);
 		DrawSync(0);
-		drawString(MAIN_D_80139F6C, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80139F6C, 0, 0xf0);
 		if (VS_PLAYER_INDEX == 1) {
 			drawString(MAIN_D_80134674, 0x30, 0xc);
 			drawString(MAIN_D_80134674, 0x84, 0xc);
@@ -2040,7 +2040,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801312E4, 0, 0x30);
 		DrawSync(0);
-		drawString(STR_YES_NO, 0, 0xF0);
+		DRAW_STRING_CELLS(STR_YES_NO, 0, 0xF0);
 		break;
 	case 7:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -2071,7 +2071,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_80131328, 0, 0x18);
 		DrawSync(0);
-		drawString(STR_YES_NO_SPACED, 0, 0xF0);
+		DRAW_STRING_CELLS(STR_YES_NO_SPACED, 0, 0xF0);
 		break;
 	case 8:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -2101,7 +2101,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(SLOT_ACTION_QUESTIONS[MAIN_MENU_ACTION], 0x18, 0x30);
 		DrawSync(0);
-		drawString(STR_YES_NO_SPACED, 0, 0xF0);
+		DRAW_STRING_CELLS(STR_YES_NO_SPACED, 0, 0xF0);
 		if (MAIN_MENU_ACTION == 2) {
 			MENU_HIGHLIGHTS[view].pos = 1;
 		}
@@ -2152,7 +2152,7 @@ void drawMainMenuStrings(int32_t menu)
 			drawString(MEMORY_CARD_ERROR_MESSAGES[MEMORY_CARD_ERROR], 0, 0x30);
 			DrawSync(0);
 		}
-		drawString(STR_YES_NO, 0, 0xF0);
+		DRAW_STRING_CELLS(STR_YES_NO, 0, 0xF0);
 		break;
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
@@ -2163,7 +2163,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_8013141C, 0, 0x24);
 		DrawSync(0);
-		drawString(STR_YES_NO, 0, 0xF0);
+		DRAW_STRING_CELLS(STR_YES_NO, 0, 0xF0);
 		if (VS_PLAYER_INDEX == 1) {
 			drawString(STR_2, 0x76, 0x24);
 			drawString(STR_2, 0xB4, 0x24);
