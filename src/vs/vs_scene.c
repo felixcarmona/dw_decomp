@@ -14,6 +14,7 @@
 #include <dw/params.h>
 #include <dw/sound.h>
 #include <dw/types.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/vs.h>
 #include <dw/world_object.h>
@@ -319,7 +320,20 @@ VsTextPiece VS_VERSUS_TEXT_PIECES[21] = {
 		0x0a,
 		0x06,
 	},
+	/* MOD (language): VS MODE; the Spanish MODO VS (TAISEN2.TIM) is 2 px wider, 1 px further left */
 	{
+#if MOD_LANG_BUILD == MOD_LANG_ES
+		0x004f,
+		0x000e,
+		0x0070,
+		0x0009,
+		0x01,
+		0x30,
+		0x00,
+		0x4f,
+		0x0e,
+		0x05,
+#else
 		0x004d,
 		0x000e,
 		0x0071,
@@ -330,6 +344,7 @@ VsTextPiece VS_VERSUS_TEXT_PIECES[21] = {
 		0x4d,
 		0x0e,
 		0x05,
+#endif
 	},
 	{
 		0x0004,

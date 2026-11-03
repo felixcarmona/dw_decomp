@@ -29,6 +29,7 @@
 #include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/ui.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <text/main/game_menu.h>
 
@@ -415,7 +416,7 @@ RECT EVO_CHART_NAME_AREA = { 0, 48, 200, 12 }; /* MOD (long names): was 120 wide
  * chart's other level names (row 0x3C holds "Ultimate"; 0x48 is free) */
 #define EVO_CHART_MEGA_ROW	0x48
 #define EVO_CHART_MEGA_WIDTH	0x22
-static char EVO_CHART_MEGA_LABEL[] = "Mega";
+static char EVO_CHART_MEGA_LABEL[] = CHART_STR_MEGA; /* MOD (language): keyed, text/main/game_menu.yaml */
 
 RECT MEDAL_VIEW_TEXT_AREA = { 0, 12, 256, 200 };
 
@@ -456,7 +457,19 @@ GameMenuSprite MENU_OPTIONS[8] = {
 	{ 0x14, 0x1f, 7, 0, 0xd, 0x14, 0x13, 0x50, 0x0 },
 };
 
+/* MOD (language): the Spanish build's labels are in FI_INFO.TIM's Spanish copy, where the disc has its unused status
+ * words (tools/localize/textures/fi-info/build.py prints these rows); DIGIMON keeps the disc's */
 GameMenuLabel GAME_MENU_TEXT_SPRITES[8] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00 },
+	{ 0x0010, 0x0060, 0x1c, 0x07, 0x80, 0x21 },
+	{ 0x0035, 0x0060, 0x1c, 0x07, 0x50, 0x1b },
+	{ 0x0057, 0x0060, 0x1c, 0x07, 0xa0, 0x21 },
+	{ 0x0013, 0x0088, 0x17, 0x07, 0x80, 0x28 },
+	{ 0x0039, 0x0086, 0x13, 0x09, 0xa0, 0x2f },
+	{ 0x005a, 0x0088, 0x17, 0x07, 0xa0, 0x28 },
+	{ 0x0012, 0x0038, 0x18, 0x07, 0x80, 0x2f },
+#else
 	{ 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00 },
 	{ 0x0013, 0x0060, 0x18, 0x07, 0x50, 0x14 },
 	{ 0x0035, 0x0060, 0x1c, 0x07, 0x50, 0x1b },
@@ -465,6 +478,7 @@ GameMenuLabel GAME_MENU_TEXT_SPRITES[8] = {
 	{ 0x0039, 0x0088, 0x14, 0x07, 0x6c, 0x1b },
 	{ 0x0060, 0x0088, 0x14, 0x07, 0x6c, 0x22 },
 	{ 0x0017, 0x0038, 0x10, 0x07, 0x50, 0x29 },
+#endif
 };
 
 Line GAME_MENU_LINES[3] = {
@@ -562,10 +576,17 @@ Line DIGIMON_MOVE_INFO_LINES_RIGHT[18] = {
 	{ 0x003e, 0x005f, 0x008d, 0x005f, 0x00, 0x00 },
 };
 
+/* MOD (language): POTENCIA, ALC., EFECTO in the Spanish SYSTEM_W.TIM (tools/localize/textures/systemw/NOTES.md) */
 IconRect MOVES_VIEW_TECHSET_TEXT[13] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0x000e, 0xffb4, 0x20, 0x07, 0x00, 0x29 },
+	{ 0x0062, 0xffb4, 0x0f, 0x07, 0x20, 0x29 },
+	{ 0x0075, 0xffb4, 0x19, 0x07, 0x4d, 0x29 },
+#else
 	{ 0x0016, 0xffb4, 0x17, 0x07, 0x5c, 0x22 },
 	{ 0x0062, 0xffb4, 0x13, 0x07, 0x4c, 0x29 },
 	{ 0x007a, 0xffb4, 0x10, 0x07, 0x00, 0x30 },
+#endif
 	{ 0x0044, 0xffb4, 0x0b, 0x07, 0x74, 0x22 },
 	{ 0x0035, 0xffc1, 0x04, 0x04, 0x78, 0x0c },
 	{ 0x0035, 0xffd0, 0x04, 0x04, 0x78, 0x0c },
@@ -672,7 +693,32 @@ StringRect STATS_VIEW_TEXT[9] = {
 };
 #endif
 
+/* MOD (language): the Spanish labels in SYSTEM_W.TIM's Spanish copy (tools/localize/textures/systemw/NOTES.md):
+ * NOMBRE, ESPECIE, PESO, EDAD, ESPECIAL, FELICIDAD, VELOCIDAD, INTELECTO */
 IconRect STATS_VIEW_ELEMENTS[21] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0xff74, 0xffaf, 0x35, 0x0b, 0x00, 0x4b },
+	{ 0xff74, 0xfff4, 0x35, 0x0b, 0x00, 0x56 },
+	{ 0xffee, 0xfff4, 0x35, 0x0b, 0x00, 0x61 },
+	{ 0xff71, 0xffbe, 0x1f, 0x0a, 0x80, 0x30 },
+	{ 0xff71, 0xffce, 0x1e, 0x0a, 0x9f, 0x30 },
+	{ 0xffc1, 0xffde, 0x14, 0x0a, 0xbd, 0x30 },
+	{ 0xff79, 0xffde, 0x14, 0x0a, 0xd1, 0x30 },
+	{ 0x0034, 0xffc2, 0x19, 0x08, 0x00, 0x38 },
+	{ 0x0009, 0xffc2, 0x1d, 0x08, 0x90, 0x48 },
+	{ 0x0055, 0xffc2, 0x19, 0x08, 0x32, 0x38 },
+	{ 0xff77, 0x004f, 0x09, 0x0b, 0xf0, 0x25 },
+	{ 0xffef, 0x0004, 0x0b, 0x0b, 0x93, 0x3a },
+	{ 0xffef, 0x0013, 0x0b, 0x0b, 0x9e, 0x3a },
+	{ 0xffef, 0x0022, 0x0b, 0x0b, 0xa9, 0x3a },
+	{ 0xffef, 0x0031, 0x0b, 0x0b, 0xb4, 0x3a },
+	{ 0xffef, 0x0040, 0x0b, 0x0b, 0xbf, 0x3a },
+	{ 0xffef, 0x004f, 0x0a, 0x0b, 0xca, 0x3a },
+	{ 0xff83, 0x0031, 0x24, 0x0c, 0xd4, 0x3a },
+	{ 0xfffb, 0x0040, 0x27, 0x0c, 0xd4, 0x46 },
+	{ 0xfffb, 0x004f, 0x25, 0x0c, 0xd4, 0x52 },
+	{ 0xff76, 0x004f, 0x09, 0x0b, 0x2c, 0x74 },
+#else
 	{ 0xff74, 0xffaf, 0x35, 0x0b, 0x00, 0x4b },
 	{ 0xff74, 0xfff4, 0x35, 0x0b, 0x00, 0x56 },
 	{ 0xffee, 0xfff4, 0x35, 0x0b, 0x00, 0x61 },
@@ -694,6 +740,49 @@ IconRect STATS_VIEW_ELEMENTS[21] = {
 	{ 0xfffc, 0x0040, 0x24, 0x0c, 0xd4, 0x46 },
 	{ 0xfffc, 0x004f, 0x24, 0x0c, 0xd4, 0x52 },
 	{ 0xff76, 0x004f, 0x09, 0x0b, 0x2c, 0x74 },
+#endif
+};
+
+/* MOD (language): the move-help screen's element names, one per row (posX: the left column's x, the right column is at
+ * 100; posY unused; texY with the 0x80 of the texture's v). The Spanish words are not all 20 wide (COMBATE, TIERRA,
+ * MUGRE): each has its own cell and the left column is right-aligned, 3 px before the grid */
+IconRect MOVES_VIEW_ELEMENT_NAMES[7] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0xffbf, 0x0000, 0x14, 0x0a, 0x00, 0x98 },
+	{ 0xffb5, 0x0000, 0x1e, 0x0a, 0x14, 0x98 },
+	{ 0xffc5, 0x0000, 0x0e, 0x0a, 0x32, 0x98 },
+	{ 0xffbd, 0x0000, 0x16, 0x0a, 0x40, 0x98 },
+	{ 0xffc1, 0x0000, 0x12, 0x0a, 0x56, 0x98 },
+	{ 0xffc1, 0x0000, 0x12, 0x0a, 0x68, 0x98 },
+	{ 0xffbd, 0x0000, 0x16, 0x0a, 0x3c, 0xe0 },
+#else
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x00, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x14, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x28, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x3c, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x50, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x64, 0x98 },
+	{ 0xffbd, 0x0000, 0x14, 0x0a, 0x78, 0x98 },
+#endif
+};
+
+/* MOD (language): the move panel's labels (TECH. DATA, POWER, MP, RANG, SPEC; posX is added to the panel's x, texY
+ * with the 0x80 of the texture's v); Spanish DATOS TEC. (9 rows for the accent, 2 px higher), POTENCIA, MP, ALCANCE,
+ * EFECTO */
+IconRect MOVES_SELECTED_LABELS[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0xff74, 0xfffc, 0x25, 0x09, 0x90, 0xe0 },
+	{ 0xff74, 0x001d, 0x20, 0x07, 0x00, 0xa9 },
+	{ 0xff74, 0x002e, 0x0b, 0x07, 0x74, 0xa2 },
+	{ 0xff74, 0x003f, 0x1e, 0x07, 0x2f, 0xa9 },
+	{ 0xff74, 0x0050, 0x19, 0x07, 0x4d, 0xa9 },
+#else
+	{ 0xff74, 0xfffe, 0x25, 0x07, 0x11, 0xb0 },
+	{ 0xff74, 0x001d, 0x17, 0x07, 0x5c, 0xa2 },
+	{ 0xff74, 0x002e, 0x0b, 0x07, 0x74, 0xa2 },
+	{ 0xff74, 0x003f, 0x13, 0x07, 0x4c, 0xa9 },
+	{ 0xff74, 0x0050, 0x10, 0x07, 0x00, 0xb0 },
+#endif
 };
 
 Line TAMER_VIEW_PLAYER_LINES[11] = {
@@ -739,9 +828,15 @@ StringRect TAMER_WINDOW_NAME_STRING[11] = {
 	{ 0x0050, 0x004d, 0x000c, 0x9c, 0x24 },
 };
 #else
+/* MOD (language): Spanish Nombre is wider than Name (taken further left) and Nivel starts further (PLAYER_LABEL_PIECES) */
 StringRect TAMER_WINDOW_NAME_STRING[11] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0xff76, 0xffaf, 0x0034, 0x00, 0x0c },
+	{ 0xffdb, 0xffca, 0x0040, 0x38, 0x0c },
+#else
 	{ 0xff84, 0xffaf, 0x0024, 0x00, 0x0c },
 	{ 0xffdb, 0xffca, 0x0054, 0x24, 0x0c },
+#endif
 	{ 0xffdb, 0xffef, 0x0054, 0x78, 0x0c },
 	{ 0xffdb, 0x0002, 0x0048, 0x00, 0x18 },
 	{ 0xffdb, 0x0016, 0x0048, 0x60, 0x18 },
@@ -877,13 +972,135 @@ char *CARD_CHART_LABELS[5] = {
 
 #if FONT_SWITCH
 /* MOD (font): the crops of the player screen's label rows ("NameLevel  Raised", "Bits  Time", "Items  Medals"):
- * drawStringPieces lays each piece out in the font's spacing (dw/mod_font.h) */
-static const uint16_t PLAYER_LABEL_PIECES[3][6] = {
+ * drawStringPieces lays each piece out in the font's spacing (dw/mod_font.h). MOD (language): Spanish "Nombre" is
+ * wider than Name's crop, so Nivel starts further (TAMER_WINDOW_NAME_STRING) */
+uint16_t PLAYER_LABEL_PIECES[3][6] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0, 0x38, 0x78, 0xcc, PIECES_END },
+#else
 	{ 0, 0x24, 0x78, 0xcc, PIECES_END },
+#endif
 	{ 0, 0x48, 0x60, 0xa8, 0xb4, PIECES_END },
 	{ 0, 0x54, 0x9c, PIECES_END },
 };
 #endif
+
+/*
+ * MOD (language): the label rows drawn once and cut at fixed pixels (text/ours/README.md "Left as built") whose words
+ * do not fit the US crops in Spanish: each language's crops (x on the screen, the piece's u and width in the text area)
+ * and pieces (DRAW_STRING_PIECES_AT). The text of each row is laid out for them (text/es/names.json: every word starts
+ * at its piece's offset in the original font's cells). The English values are the original's literals.
+ */
+typedef struct {
+	int16_t x;
+	uint8_t u;
+	uint8_t w;
+} LabelCrop;
+
+/* the Digimon screen's tabs ("Status  Tech"): Técnicas takes the whole tab */
+LabelCrop DIGIMON_TAB_CROPS[2] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x8a, 0x00, 0x3c },
+	{ -0x46, 0x3c, 0x40 },
+#else
+	{ -0x8a, 0x00, 0x3c },
+	{ -0x3f, 0x3c, 0x30 },
+#endif
+};
+
+/* the player screen's tabs ("Player  Chart  Med. Card Fish"): Cartas takes the whole tab, Fish (never shown) is left out */
+LabelCrop PLAYER_TAB_CROPS[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x89, 0x00, 0x3c },
+	{ -0x3e, 0x3c, 0x3c },
+	{ 0x0d, 0x78, 0x24 },
+	{ 0x38, 0x9c, 0x34 },
+#else
+	{ -0x89, 0x00, 0x3c },
+	{ -0x3e, 0x3c, 0x3c },
+	{ 0x0d, 0x78, 0x24 },
+	{ 0x40, 0x9c, 0x24 },
+#endif
+};
+
+uint16_t PLAYER_TAB_PIECES[6] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xd4 | PIECE_CENTRE, PIECES_END,
+#else
+	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xc0 | PIECE_CENTRE, PIECES_END,
+#endif
+};
+
+/* the technique screen's titles ("TechsetFinal  Techs"): Equipadas, Final, Técnicas */
+LabelCrop TECH_TITLE_CROPS[3] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x8e, 0x00, 0x48 },
+	{ -0x8e, 0x48, 0x24 },
+	{ -0x8e, 0x6c, 0x40 },
+#else
+	{ -0x8e, 0x00, 0x3c },
+	{ -0x8e, 0x3c, 0x24 },
+	{ -0x8e, 0x60, 0x3c },
+#endif
+};
+
+uint16_t TECH_TITLE_PIECES[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0, 0x48, 0x6c, PIECES_END,
+#else
+	0, 0x3c, 0x60, PIECES_END,
+#endif
+};
+
+/* the technique grid's "Tech" over "help" (the Digimon tab's word): Técnicas is wider, centred over ayuda */
+LabelCrop TECH_GRID_TITLE_CROP = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	-0x95, 0x3c, 0x40,
+#else
+	-0x87, 0x3c, 0x30,
+#endif
+};
+
+/* the technique grid's "help" label: ayuda is wider */
+LabelCrop TECH_HELP_CROP = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	-0x81, 0x00, 0x28,
+#else
+	-0x81, 0x00, 0x24,
+#endif
+};
+
+/* the technique panel's status effects ("poisconfstunflat", the row drawn at MOVE_STATUS_ROW_X; x unused): the Spanish
+ * words need the row to start further left (its last glyph must start before 244, drawGlyph's limit) */
+LabelCrop MOVE_STATUS_CROPS[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ 0, 0x40, 0x1c },
+	{ 0, 0x60, 0x2c },
+	{ 0, 0x8c, 0x30 },
+	{ 0, 0xbc, 0x28 },
+#else
+	{ 0, 0x84, 0x1a },
+	{ 0, 0xa0, 0x1c },
+	{ 0, 0xbc, 0x20 },
+	{ 0, 0xdb, 0x1e },
+#endif
+};
+
+int16_t MOVE_STATUS_ROW_X = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0x40,
+#else
+	0x84,
+#endif
+};
+
+uint16_t MOVE_STATUS_PIECES[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0, 0x20, 0x4c, 0x7c, PIECES_END,
+#else
+	0, 0x1c, 0x38, 0x57, PIECES_END,
+#endif
+};
 
 char *MEDAL_NAMES[15] = {
 	STR_MEDAL_NAME_GRADE_CUP,
@@ -1240,7 +1457,7 @@ void tickTriangleMenu(void)
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickPlayerMenu, renderPlayerMenu);
 			clearTextArea();
-			DRAW_STRING_PIECES(PLAYER_VIEW_LABELS[0], 0, 0, 0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xc0 | PIECE_CENTRE);
+			DRAW_STRING_PIECES_AT(PLAYER_VIEW_LABELS[0], 0, 0, PLAYER_TAB_PIECES); /* MOD (language) */
 			MENU_STATE = 0;
 			MENU_SUB_STATE = 0;
 			TRIANGLE_MENU_STATE = -1;
@@ -1656,6 +1873,7 @@ void tickDigimonMenu(void)
 void renderDigimonMenu(void)
 {
 	DigimonTabs tabs;
+	int32_t i;
 
 	tabs = DIGIMON_MENU_VIEWS;
 	switch (DIGIMON_MENU_STATE) {
@@ -1667,8 +1885,9 @@ void renderDigimonMenu(void)
 		break;
 	}
 	tabs.tab[DIGIMON_MENU_STATE] = 0;
-	renderString(tabs.tab[0], -0x8a, -0x65, 0x3c, 0xc, 0, 0, 5, 1);
-	renderString(tabs.tab[1], -0x3f, -0x65, 0x30, 0xc, 0x3c, 0, 5, 1);
+	for (i = 0; i < 2; i++) { /* MOD (language): DIGIMON_TAB_CROPS */
+		renderString(tabs.tab[i], DIGIMON_TAB_CROPS[i].x, -0x65, DIGIMON_TAB_CROPS[i].w, 0xc, DIGIMON_TAB_CROPS[i].u, 0, 5, 1);
+	}
 	renderMenuTab(-0x91, 0x4c, tabs.tab[0]);
 	renderMenuTab(-0x46, 0x40, tabs.tab[1]);
 }
@@ -1875,6 +2094,7 @@ void tickPlayerMenu(void)
 void renderPlayerMenu(void)
 {
 	PlayerTabs tabs;
+	int32_t i;
 
 	tabs = MAIN_D_801342A4;
 	switch (PLAYER_MENU_STATE) {
@@ -1892,10 +2112,9 @@ void renderPlayerMenu(void)
 		break;
 	}
 	tabs.tab[PLAYER_MENU_STATE] = 0;
-	renderString(tabs.tab[0], -0x89, -0x65, 0x3c, 0xc, 0, 0, 5, 1);
-	renderString(tabs.tab[1], -0x3e, -0x65, 0x3c, 0xc, 0x3c, 0, 5, 1);
-	renderString(tabs.tab[2], 0xd, -0x65, 0x24, 0xc, 0x78, 0, 5, 1);
-	renderString(tabs.tab[3], 0x40, -0x65, 0x24, 0xc, 0x9c, 0, 5, 1);
+	for (i = 0; i < 4; i++) { /* MOD (language): PLAYER_TAB_CROPS */
+		renderString(tabs.tab[i], PLAYER_TAB_CROPS[i].x, -0x65, PLAYER_TAB_CROPS[i].w, 0xc, PLAYER_TAB_CROPS[i].u, 0, 5, 1);
+	}
 	renderMenuTab(-0x91, 0x4c, tabs.tab[0]);
 	renderMenuTab(-0x46, 0x4c, tabs.tab[1]);
 	renderMenuTab(5, 0x34, tabs.tab[2]);
@@ -2302,7 +2521,7 @@ void renderDigimonMovesView(void)
 			                  icon->texX,
 			                  icon->texY + 0x80, 5, 0x7b06, 5, 0);
 		}
-		renderString(3, -0x8e, -0x57, 0x3c, 0xc, 0, 0x48, 5, 1);
+		renderString(3, TECH_TITLE_CROPS[0].x, -0x57, TECH_TITLE_CROPS[0].w, 0xc, TECH_TITLE_CROPS[0].u, 0x48, 5, 1); /* MOD (language) */
 		j = 0;
 		while (j < 3) {
 			if (EQUIPPED_MOVES[j] != 0xff) {
@@ -2335,7 +2554,7 @@ void renderDigimonMovesView(void)
 		}
 		break;
 	case 1:
-		renderString(3, -0x8e, -0xf, 0x24, 0xc, 0x3c, 0x48, 5, 1);
+		renderString(3, TECH_TITLE_CROPS[1].x, -0xf, TECH_TITLE_CROPS[1].w, 0xc, TECH_TITLE_CROPS[1].u, 0x48, 5, 1); /* MOD (language) */
 		for (i = 0; i < 3; i++) {
 			icon = &MOVES_VIEW_TECHSET_TEXT[i];
 			renderRectPolyFT4(icon->posX, -9,
@@ -2347,7 +2566,7 @@ void renderDigimonMovesView(void)
 		renderRectPolyFT4(0x75, 4, 4, 4, 0x78, 0x8c, 5, 0x7b06, 5, 0);
 		renderSeparatorLines(&MOVES_TECHSET_LINES[3], 3, 5);
 		if (EQUIPPED_MOVES[3] != 0xff) {
-			renderString(3, -0x8e, -0xf, 0x24, 0xc, 0x3c, 0x48, 5, 1);
+			renderString(3, TECH_TITLE_CROPS[1].x, -0xf, TECH_TITLE_CROPS[1].w, 0xc, TECH_TITLE_CROPS[1].u, 0x48, 5, 1);
 			renderString(0, -0x7c, 1, 0x84, 0xc, 0, 0x3c, 5, 1);
 			renderNumber(0, 0x10, 0, 3, MOVE_DATA[EQUIPPED_MOVES[3]].power, 5);
 			renderString(0, 0x65, 1, 0xc, 0xc,
@@ -2386,7 +2605,7 @@ void renderDigimonMovesView(void)
 		}
 		break;
 	case 6:
-		renderString(3, -0x8e, -0xf, 0x3c, 0xc, 0x60, 0x48, 5, 1);
+		renderString(3, TECH_TITLE_CROPS[2].x, -0xf, TECH_TITLE_CROPS[2].w, 0xc, TECH_TITLE_CROPS[2].u, 0x48, 5, 1); /* MOD (language) */
 		renderSeparatorLines(MOVES_VIEW_HELP_LINES, 0xc, 5);
 		for (i = 0; i < 4; i++) {
 			icon = &MOVES_VIEW_HELP_CORNERS[i];
@@ -2397,8 +2616,8 @@ void renderDigimonMovesView(void)
 			                  icon->texX,
 			                  icon->texY + 0x80, 5, 0x7b06, 5, 0);
 		}
-		renderString(0, -0x87, 0x20, 0x30, 0xc, 0x3c, 0, 5, 1);
-		renderString(0, -0x81, 0x2e, 0x24, 0xc, 0, 0x6c, 5, 1);
+		renderString(0, TECH_GRID_TITLE_CROP.x, 0x20, TECH_GRID_TITLE_CROP.w, 0xc, TECH_GRID_TITLE_CROP.u, 0, 5, 1); /* MOD (language) */
+		renderString(0, TECH_HELP_CROP.x, 0x2e, TECH_HELP_CROP.w, 0xc, TECH_HELP_CROP.u, 0x6c, 5, 1); /* MOD (language) */
 #if !VERSION_IS(US)
 		renderString(0x10, -0x80, 0x4c, 0xc, 0xc, 0x24, 0x6c, 5, 1);
 		renderString(0, -0x74, 0x4c, 0x18, 0xc, 0x30, 0x6c, 5, 1);
@@ -2408,8 +2627,9 @@ void renderDigimonMovesView(void)
 		renderRectPolyFT4(-0x74, 0x3c, 10, 10, 0x80, 0x8c, 5, 0x7b06, 5, 0);
 		j = 0;
 		while (j < 7) {
-			renderRectPolyFT4(-0x43, j * 0xf - 8, 0x14, 10, j * 0x14, 0x98, 5, 0x7b06, 5, 0);
-			renderRectPolyFT4(100, j * 0xf - 8, 0x14, 10, j * 0x14, 0x98, 5, 0x7b06, 5, 0);
+			icon = &MOVES_VIEW_ELEMENT_NAMES[j];
+			renderRectPolyFT4(icon->posX, j * 0xf - 8, icon->width, icon->height, icon->texX, icon->texY, 5, 0x7b06, 5, 0);
+			renderRectPolyFT4(100, j * 0xf - 8, icon->width, icon->height, icon->texX, icon->texY, 5, 0x7b06, 5, 0);
 			j++;
 		}
 		j = 0;
@@ -2585,6 +2805,7 @@ void renderPlayerInfoView(void)
 void renderDigimonMovesSelected(int16_t panel)
 {
 	RECT rect;
+	IconRect *label;
 	Move *move;
 	int32_t i;
 	uint8_t row;
@@ -2611,11 +2832,15 @@ void renderDigimonMovesSelected(int16_t panel)
 	}
 	renderBox((panel * 0x9d) - 0x8f, 3, 0x80, 0x13, 0x32, 0x32, 0x80, 0, 4);
 	renderBox((panel * 0xcb) - 0x8f, 0x18, 0x57, 0x45, 0x32, 0x32, 0x80, 0, 4);
-	renderRectPolyFT4((panel * 0x9d) - 0x8c, -2, 0x25, 7, 0x11, 0xb0, 5, 0x7b06, 3, 0);
-	renderRectPolyFT4((panel * 0xcb) - 0x8c, 0x1d, 0x17, 7, 0x5c, 0xa2, 5, 0x7b06, 3, 0);
-	renderRectPolyFT4((panel * 0xcb) - 0x8c, 0x2e, 0xb, 7, 0x74, 0xa2, 5, 0x7b06, 3, 0);
-	renderRectPolyFT4((panel * 0xcb) - 0x8c, 0x3f, 0x13, 7, 0x4c, 0xa9, 5, 0x7b06, 3, 0);
-	renderRectPolyFT4((panel * 0xcb) - 0x8c, 0x50, 0x10, 7, 0, 0xb0, 5, 0x7b06, 3, 0);
+	for (i = 0; i < 5; i++) {
+		label = &MOVES_SELECTED_LABELS[i];
+		renderRectPolyFT4(panel * (i == 0 ? 0x9d : 0xcb) + label->posX,
+		                  label->posY,
+		                  label->width,
+		                  label->height,
+		                  label->texX,
+		                  label->texY, 5, 0x7b06, 3, 0);
+	}
 
 	for (i = 0; i < 4; i++) {
 		renderRectPolyFT4((panel * 0xcb) - 0x71, i * 0x11 + 0x1b, 0xa, 0xa, 0x8a, 0x8c, 5, 0x7b06, 3, 0);
@@ -2658,19 +2883,10 @@ void renderDigimonMovesSelected(int16_t panel)
 			renderString(0, (panel * 0xcb) - 0x64, 0x4f, 0x18, 0xc, (status - 2) * 0x18 + 0x90, 0x6c, 3, 1);
 		}
 #else
-		switch (move->status) {
-		case 1:
-			renderString(0, (panel * 0xcb) - 0x64, 0x4f, 0x1a, 0xc, 0x84, 0x6c, 3, 1);
-			break;
-		case 2:
-			renderString(0, (panel * 0xcb) - 0x64, 0x4f, 0x1c, 0xc, 0xa0, 0x6c, 3, 1);
-			break;
-		case 3:
-			renderString(0, (panel * 0xcb) - 0x64, 0x4f, 0x20, 0xc, 0xbc, 0x6c, 3, 1);
-			break;
-		case 4:
-			renderString(0, (panel * 0xcb) - 0x64, 0x4f, 0x1e, 0xc, 0xdb, 0x6c, 3, 1);
-			break;
+		/* MOD (language): MOVE_STATUS_CROPS */
+		if (move->status >= 1 && move->status <= 4) {
+			renderString(0, (panel * 0xcb) - 0x64, 0x4f, MOVE_STATUS_CROPS[move->status - 1].w, 0xc,
+			             MOVE_STATUS_CROPS[move->status - 1].u, 0x6c, 3, 1);
 		}
 #endif
 	}
@@ -3153,7 +3369,8 @@ static int32_t chartDetailInput(void)
 #define CHART_COUNT_ROW		0x78
 #define CHART_KEYS_ROW		0x84
 
-static char *CHART_TAB_NAMES[SPECIES_CHART_TABS] = { "Baby", "Rookie", "Champion", "Ultimate", "Mega" };
+static char *CHART_TAB_NAMES[SPECIES_CHART_TABS] = { CHART_STR_BABY, CHART_STR_ROOKIE, CHART_STR_CHAMPION, CHART_STR_ULTIMATE,
+						      CHART_STR_MEGA };
 /* the band of each tab: light and dark edges (0xBBGGRR) and fill, the original's level colours (Mega: gold) */
 static int32_t CHART_TAB_EDGES[SPECIES_CHART_TABS][2] = {
 	{ 0xaaa0c8, 0x5a3c8c }, { 0xc88250, 0x5f370a }, { 0x6eaf5a, 0x285a00 }, { 0x6996d2, 0x1e4178 }, { 0x60d8f8, 0x105878 },
@@ -3710,7 +3927,8 @@ static int8_t CHART_TEXT_TAKEN;		/* the card wrote over the overview's rows */
 static int16_t CHART_CARD_VERDICT_W;
 static int8_t CHART_CARD_VERDICT_COLOR;
 static uint8_t CHART_LIT;		/* bit j: the "to" box j's evolution is met */
-static char *CHART_STAT_NAMES[6] = { "HP", "MP", "Off", "Def", "Spd", "Brn" };
+static char *CHART_STAT_NAMES[6] = { CHART_STR_STAT_HP,  CHART_STR_STAT_MP,  CHART_STR_STAT_OFF,
+				      CHART_STR_STAT_DEF, CHART_STR_STAT_SPD, CHART_STR_STAT_BRN };
 
 static int32_t chartIsPartnerTree(void)
 {
@@ -3880,21 +4098,21 @@ static void chartCardBuild(int32_t target)
 	CHART_CARD[0].color = 4;
 	CHART_CARD_MINE = chartIsPartnerTree();
 	if (chartIsAutomatic(&r)) {
-		chartCardLine("Automatic", CHART_NO_VALUE, 1, 1, 0, NULL);
+		chartCardLine(CHART_STR_AUTOMATIC, CHART_NO_VALUE, 1, 1, 0, NULL);
 		return;
 	}
 
 	/* care mistakes */
 	if (!isMaxCM && r.care <= 0) {
-		chartCardLine("Mistakes any", CHART_NO_VALUE, 1, 1, 0, NULL);
+		chartCardLine(CHART_STR_MISTAKES_ANY, CHART_NO_VALUE, 1, 1, 0, NULL);
 	} else {
-		chartRange(a, "Mistakes", isMaxCM ? 0 : r.care, r.care);
+		chartRange(a, CHART_STR_MISTAKES, isMaxCM ? 0 : r.care, r.care);
 		chartCardLine(a, PARTNER_PARA.careMistakes, met & EVO_MET_CARE, 1, 0, NULL);
 	}
 
 	/* weight */
 	tol = evoAmt(MOD_EVF_SCORE_WEIGHT_TOL);
-	chartRange(a, "Weight", r.weight - tol, r.weight + tol);
+	chartRange(a, CHART_STR_WEIGHT, r.weight - tol, r.weight + tol);
 	chartCardLine(a, PARTNER_PARA.weight, met & EVO_MET_WEIGHT, 1, 0, NULL);
 
 	/* stats: a Rookie's is the highest stat; the others, every stat asked for */
@@ -3905,7 +4123,7 @@ static void chartCardBuild(int32_t target)
 	req[4] = r.speed;
 	req[5] = r.brain;
 	if (DIGI_PARA(target).level == 3U) {
-		p = chartAppend(a, "Top");
+		p = chartAppend(a, CHART_STR_TOP);
 		for (k = 0; k < 6; k++) {
 			if (req[k] == 1) {
 				p = chartAppend(chartAppend(p, " "), CHART_STAT_NAMES[k]);
@@ -3917,7 +4135,7 @@ static void chartCardBuild(int32_t target)
 		div = evoAmt(MOD_EVF_SCORE_HPMP_DIV);
 		for (k = 0; k < 6 && req[k] < 0; k++) {
 		}
-		chartCardLine(k == 6 ? "Stats any" : "Stats", CHART_NO_VALUE, (met & EVO_MET_STATS) || k == 6, 1, 0, NULL);
+		chartCardLine(k == 6 ? CHART_STR_STATS_ANY : CHART_STR_STATS, CHART_NO_VALUE, (met & EVO_MET_STATS) || k == 6, 1, 0, NULL);
 		for (k = 0; k < 6; k++) {
 			if (req[k] < 0) {
 				continue;
@@ -3939,30 +4157,30 @@ static void chartCardBuild(int32_t target)
 	/* the bonus: one of them is enough; one that always holds (a Rookie's battles -2 or techniques 0) makes it "any" */
 	if ((r.battles != -1 && !isMaxBattles && r.battles <= 0) || (r.techs != -1 && r.techs <= 0) ||
 	    (r.discipline != -1 && r.discipline <= 0)) {
-		chartCardLine("Bonus any", CHART_NO_VALUE, 1, 1, 0, NULL);
+		chartCardLine(CHART_STR_BONUS_ANY, CHART_NO_VALUE, 1, 1, 0, NULL);
 	} else {
-		chartCardLine("Bonus, one of", CHART_NO_VALUE, met & EVO_MET_BONUS, 1, 0, NULL);
+		chartCardLine(CHART_STR_BONUS_ONE_OF, CHART_NO_VALUE, met & EVO_MET_BONUS, 1, 0, NULL);
 		if (r.digimon != -1) {
-			chartAppend(chartAppend(a, "From "), hasDigimonRaised((uint16_t)r.digimon) != 0 ? (char *)digimonPara(r.digimon) : "?????");
+			chartAppend(chartAppend(a, CHART_STR_FROM), hasDigimonRaised((uint16_t)r.digimon) != 0 ? (char *)digimonPara(r.digimon) : "?????");
 			chartCardLine(a, CHART_NO_VALUE, CHART_DETAIL_ID == r.digimon, 0, 6,
-			              CHART_DETAIL_ID == r.digimon ? "yes" : "no");
+			              CHART_DETAIL_ID == r.digimon ? CHART_STR_YES : CHART_STR_NO);
 		}
 		if (r.discipline != -1) {
-			chartRange(a, "Discipline", r.discipline, r.discipline);
+			chartRange(a, CHART_STR_DISCIPLINE, r.discipline, r.discipline);
 			chartCardLine(a, PARTNER_PARA.discipline, PARTNER_PARA.discipline >= r.discipline, 0, 6, NULL);
 		}
 		if (r.happiness != -1) {
-			chartRange(a, "Happiness", r.happiness, r.happiness);
+			chartRange(a, CHART_STR_HAPPINESS, r.happiness, r.happiness);
 			chartCardLine(a, PARTNER_PARA.happiness, PARTNER_PARA.happiness >= r.happiness, 0, 6, NULL);
 		}
 		if (r.battles != -1) {
-			chartRange(a, "Battles", isMaxBattles ? 0 : r.battles, r.battles);
+			chartRange(a, CHART_STR_BATTLES, isMaxBattles ? 0 : r.battles, r.battles);
 			chartCardLine(a, PARTNER_PARA.battles,
 			              isMaxBattles ? PARTNER_PARA.battles <= r.battles : PARTNER_PARA.battles >= r.battles, 0, 6,
 			              NULL);
 		}
 		if (r.techs != -1) {
-			chartRange(a, "Techs", r.techs, r.techs);
+			chartRange(a, CHART_STR_TECHS, r.techs, r.techs);
 			have = getNumMasteredMoves();
 			chartCardLine(a, have, have >= r.techs, 0, 6, NULL);
 		}
@@ -3973,9 +4191,9 @@ static void chartCardBuild(int32_t target)
 		k = ((met & EVO_MET_CARE) != 0) + ((met & EVO_MET_WEIGHT) != 0) + ((met & EVO_MET_STATS) != 0) +
 		    ((met & EVO_MET_BONUS) != 0);
 		p = chartDigits(a, k);
-		p = chartAppend(p, " of 4");
+		p = chartAppend(p, CHART_STR_OF_4);
 		if (evoRequirementPoints(met) >= evoPassPoints() && isPartnerModelFit(target)) {
-			chartAppend(p, "  ready");
+			chartAppend(p, CHART_STR_READY);
 			CHART_CARD_VERDICT_COLOR = 7;
 		} else {
 			CHART_CARD_VERDICT_COLOR = 6;
@@ -4746,7 +4964,7 @@ int32_t drawDigimonMovesText(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[3], 0, 0x48, 0, 0x3c, 0x60);
+		DRAW_STRING_PIECES_AT(STATUS_VIEW_LABELS[3], 0, 0x48, TECH_TITLE_PIECES); /* MOD (language) */
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[1] != 0xff) {
 			EQUIPPED_MOVES[1] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[1]);
@@ -4760,7 +4978,7 @@ int32_t drawDigimonMovesText(void)
 #endif
 		break;
 	case 2:
-		DRAW_STRING_PIECES(STATUS_VIEW_LABELS[6], 0x84, 0x6c, 0, 0x1c, 0x38, 0x57);
+		DRAW_STRING_PIECES_AT(STATUS_VIEW_LABELS[6], MOVE_STATUS_ROW_X, 0x6c, MOVE_STATUS_PIECES); /* MOD (language) */
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[2] != 0xff) {
 			EQUIPPED_MOVES[2] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[2]);

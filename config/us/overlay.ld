@@ -36,17 +36,17 @@ SECTIONS
 			BUILD_DIR/src/btl/battle_effect.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/btl/battle_main.c.o(.rodata.*);
+			BUILD_DIR/src/btl/battle_main.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/btl/battle_setup.c.o(.rodata.*);
+			BUILD_DIR/src/btl/battle_setup.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/btl/command_menu.c.o(.rodata.*);
+			BUILD_DIR/src/btl/command_menu.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/btl/command_shout.c.o(.rodata.*);
+			BUILD_DIR/src/btl/command_shout.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/btl/battle_hud.c.o(.rodata.*);
+			BUILD_DIR/src/btl/battle_hud.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/btl/battle_effect.c.o(.rodata.*);
+			BUILD_DIR/src/btl/battle_effect.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/btl/battle_setup.c.o(.data.*);
@@ -82,7 +82,7 @@ SECTIONS
 			 */
 			BUILD_DIR/src/main/battle_ui.c.o(.text.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/main/battle_ui.c.o(.rodata.*);
+			BUILD_DIR/src/main/battle_ui.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			/* Trailer */
@@ -104,7 +104,7 @@ SECTIONS
 			BUILD_DIR/src/dget/dget.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/dget/dget.c.o(.rodata.*);
+			BUILD_DIR/src/dget/dget.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/dget/dget.c.o(.data.*);
@@ -129,7 +129,7 @@ SECTIONS
 			BUILD_DIR/src/doo2/doo2.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/doo2/doo2.c.o(.rodata.*);
+			BUILD_DIR/src/doo2/doo2.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/doo2/doo2.c.o(.data.*);
@@ -155,7 +155,7 @@ SECTIONS
 			BUILD_DIR/src/dooa/dooa.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/dooa/dooa.c.o(.rodata.*);
+			BUILD_DIR/src/dooa/dooa.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/dooa/dooa.c.o(.data.*);
@@ -186,7 +186,7 @@ SECTIONS
 			BUILD_DIR/src/eab/eab.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/eab/eab.c.o(.rodata.*);
+			BUILD_DIR/src/eab/eab.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/eab/eab.c.o(.data.*);
@@ -215,7 +215,7 @@ SECTIONS
 			BUILD_DIR/src/endi/endi.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/endi/endi.c.o(.rodata.*);
+			BUILD_DIR/src/endi/endi.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/endi/endi.c.o(.data.*);
@@ -241,7 +241,7 @@ SECTIONS
 			BUILD_DIR/src/evl/evl.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/evl/evl.c.o(.rodata.*);
+			BUILD_DIR/src/evl/evl.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/evl/evl.c.o(.data.*);
@@ -271,8 +271,8 @@ SECTIONS
 			BUILD_DIR/src/fish/fish_model.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/fish/fish.c.o(.rodata.*);
-			BUILD_DIR/src/fish/fish_model.c.o(.rodata.*);
+			BUILD_DIR/src/fish/fish.c.o(.rodata .rodata.*);
+			BUILD_DIR/src/fish/fish_model.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/fish/fish.c.o(.data.*);
@@ -303,7 +303,7 @@ SECTIONS
 			BUILD_DIR/src/kar/kar.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/kar/kar.c.o(.rodata.*);
+			BUILD_DIR/src/kar/kar.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/kar/kar.c.o(.data.*);
@@ -328,7 +328,7 @@ SECTIONS
 			BUILD_DIR/src/mov/mov.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/mov/mov.c.o(.rodata.*);
+			BUILD_DIR/src/mov/mov.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/mov/mov.c.o(.data.*);
@@ -375,7 +375,7 @@ SECTIONS
 			BUILD_DIR/src/murd/murd.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/murd/murd.c.o(.rodata.*);
+			BUILD_DIR/src/murd/murd.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/murd/murd.c.o(.data.*);
@@ -417,13 +417,13 @@ SECTIONS
 			BUILD_DIR/src/std/std_effect.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/std/std_setup.c.o(.rodata.*);
+			BUILD_DIR/src/std/std_setup.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/std/std_main.c.o(.rodata.*);
+			BUILD_DIR/src/std/std_main.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/std/std_hud.c.o(.rodata.*);
+			BUILD_DIR/src/std/std_hud.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/std/std_effect.c.o(.rodata.*);
+			BUILD_DIR/src/std/std_effect.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/std/std_setup.c.o(.data.*);
@@ -481,23 +481,23 @@ SECTIONS
 			BUILD_DIR/src/trn2/trn2_slots.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/trn2/trn2_hp_map107.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_hp_map107.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_hp_map99.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_hp_map99.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_mp.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_mp.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_off.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_off.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_reward.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_reward.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_def_map108.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_def_map108.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_def_map99.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_def_map99.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_hud.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_hud.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn2/trn2_slots.c.o(.rodata.*);
+			BUILD_DIR/src/trn2/trn2_slots.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/trn2/trn2_hp_map99.c.o(.data.*);
@@ -569,23 +569,23 @@ SECTIONS
 			BUILD_DIR/src/trn/trn_slots.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/trn/trn_hp.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_hp.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_off.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_off.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_speed.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_speed.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_def.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_def.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_mp.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_mp.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_brain.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_brain.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_reward.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_reward.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_slots.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_slots.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/trn/trn_hud.c.o(.rodata.*);
+			BUILD_DIR/src/trn/trn_hud.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/trn/trn_reward.c.o(.data.*);
@@ -662,17 +662,17 @@ SECTIONS
 			BUILD_DIR/src/vs/vs_effect.c.o(.text.*);
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/vs/vs_scene.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_scene.c.o(.rodata .rodata.*);
 
 			. = ALIGN(., 4);
 
-			BUILD_DIR/src/vs/vs_camera.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_camera.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/vs/vs_main.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_main.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/vs/vs_hud.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_hud.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/vs/vs_effect.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_effect.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/vs/vs_scene.c.o(.data.*);
@@ -713,9 +713,9 @@ SECTIONS
 			. = ALIGN(., 4);
 			BUILD_DIR/src/vs/vs_combat.c.o(.text.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/vs/vs_intro.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_intro.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
-			BUILD_DIR/src/vs/vs_combat.c.o(.rodata.*);
+			BUILD_DIR/src/vs/vs_combat.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
 
 			/* Trailer */
