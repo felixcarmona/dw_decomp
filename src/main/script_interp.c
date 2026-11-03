@@ -290,10 +290,16 @@ uint8_t MAPHEAD_SCRIPT_BUFFER[0x61a8];
  * 0x6800 bytes. The original spills 0x658 bytes into SCRIPT_OFFSET_TABLE,
  * which comes next and is read right after. GCC puts GLYPH_DRAWING_AREAS
  * (font.c) after this buffer instead, so make it hold the whole read.
+ * MOD (MAPHEAD buffer): MAPHEAD_SCRIPT_MAX (32 KB), paid for by the 6 KB of
+ * SCRIPT_OFFSET_TABLE that only ever held the dead entry 0 (memmap.h).
  */
-uint8_t MAPHEAD_SCRIPT_BUFFER[0x6800];
+uint8_t MAPHEAD_SCRIPT_BUFFER[MAPHEAD_SCRIPT_MAX];
 #endif
+#if VERSION_IS(US) && !defined(__MWERKS__)
+uint8_t SCRIPT_OFFSET_TABLE[SCRIPT_OFFSET_TABLE_SIZE];
+#else
 uint8_t SCRIPT_OFFSET_TABLE[0x2000];
+#endif
 #if !VERSION_IS(US)
 uint8_t MAP_SCRIPT_BUFFER[0x2000];
 #else
@@ -2150,7 +2156,11 @@ void initializeScripts(void)
 	TEXTBOX_LINES_PTR = TEXTBOX_LINES_BUFFER;
 
 	readFile(MAIN_D_80130374, MAPHEAD_SCRIPT_PTR);
+#if VERSION_IS(US) && !defined(__MWERKS__)
+	readFileSection(MAIN_D_80130388, SCRIPT_OFFSET_PTR, 0, SCRIPT_OFFSET_TABLE_SIZE); /* MOD: the table's sector only */
+#else
 	readFileSection(MAIN_D_80130388, SCRIPT_OFFSET_PTR, 0, 0x2000);
+#endif
 	memset((void *)SCRIPT_STATE_PTR, 0, sizeof(*SCRIPT_STATE_PTR));
 
 	MERIT = 0;
