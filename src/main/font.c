@@ -1696,6 +1696,59 @@ void drawString(str, x, y)
  * The tight and condensed lines are composed into FIT_STRIP and uploaded at once (docs/mods/font.md "Long names").
  * A screen measures in any render pass; the drawing happens only in the first, like drawString's.
  */
+#if defined(FONT_B)
+/*
+ * MOD (font): with font b every species and item name fits its field as the font draws it (MetalGreymonVaccine is
+ * 109 pixels, the longest item name 93), so a name is always drawn by drawString: no tight or condensed lines, no
+ * composition strip, no condensed table (tools/localize/executable/bank.py and the species checks refuse a longer name).
+ */
+int32_t measureStringMode(char *str, int32_t mode)
+{
+	uint16_t codepoint;
+	int32_t w;
+
+	(void)mode;
+	w = 0;
+	while (*str != '\0') {
+		if (isAsciiEncoded(str) != 0) {
+			if (*str == '.') {
+				codepoint = 0x8142;
+			} else if (*str == '\'') {
+				codepoint = 0x8175;
+			} else {
+				codepoint = convertAsciiToJis(*str);
+			}
+			codepoint = swapShortBytes(codepoint);
+			str++;
+		} else {
+			codepoint = swapShortBytes(((uint8_t)str[0] << 8) | (uint8_t)str[1]);
+			str += 2;
+		}
+		w += glyphWidth(codepoint);
+	}
+	return w > 0 ? w - 1 : 0; /* the last glyph's blank column is not ink */
+}
+
+int32_t fitStringMode(char *str, int32_t maxW)
+{
+	(void)str;
+	(void)maxW;
+	return FIT_VANILLA;
+}
+
+int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
+{
+	drawString(str, x, y);
+	return measureStringMode(str, mode);
+}
+
+int32_t textFitCode(char *str, int32_t maxW)
+{
+	(void)str;
+	(void)maxW;
+	return 1;
+}
+#else
 #include "font_condensed.h"
 
 #define FIT_GAP		1	/* blank columns between two letters (tools/fontgen.py FIT_GAP) */
@@ -1895,4 +1948,5 @@ int32_t textFitCode(char *str, int32_t maxW)
 	}
 	return TEXT_FIT_TIGHT - FIT_TIGHT + mode;
 }
+#endif /* FONT_B */
 #endif
