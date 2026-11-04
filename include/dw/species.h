@@ -33,11 +33,11 @@
 
 #define SPECIES_FILE_NAME	"DIGI.DAT"
 #define SPECIES_MAGIC		"DIGI"
-#define SPECIES_VERSION		1
+#define SPECIES_VERSION		2
 #define SPECIES_RECORD_SIZE	0x200
 #define SPECIES_RECORDS_PER_SECTOR (0x800 / SPECIES_RECORD_SIZE)
 #define SPECIES_MAX_BONES	64
-#define SPECIES_CACHE_SLOTS	8
+#define SPECIES_CACHE_SLOTS	16
 
 /* SpeciesRecord.flags */
 #define SPECIES_FLAG_DEFINED	0x01	/* the id exists */
@@ -59,7 +59,32 @@ typedef struct {
 	uint16_t firstRecord;	/* id of the first record (0) */
 	uint32_t recordsSector;	/* sector of the first record */
 	uint32_t totalSectors;
+	uint32_t indexSector;	/* MOD (scale): SpeciesPartnerList, then SpeciesLinks in the next sector */
 } SpeciesHeader;
+
+/*
+ * MOD (scale): the two index sectors after the header. The first lists the
+ * species that can be partners (the lab menu walks it), the second the
+ * evolution links of new species with the original ones: the game cannot
+ * know them without reading every record, and the 62 resident
+ * EVOLUTION_PATHS rows are the only place the original species list their
+ * targets. A link is {original type, new type | SPECIES_LINK_FROM?}: the new
+ * type goes into a free "to" slot of the original (SPECIES_LINK_FROM: into a
+ * free "from" slot). New-to-new links are inside the records.
+ */
+#define SPECIES_LINK_FROM	0x8000
+#define SPECIES_MAX_PARTNERS	1022
+#define SPECIES_MAX_LINKS	510
+typedef struct {
+	uint16_t count;
+	uint16_t firstMega;		/* first partner species of level Mega, 0 if none */
+	uint16_t ids[SPECIES_MAX_PARTNERS];
+} SpeciesPartnerList;
+typedef struct {
+	uint16_t count;
+	uint16_t reserved;
+	uint16_t link[SPECIES_MAX_LINKS][2];
+} SpeciesLinks;
 
 /*
  * MOD (dcb-import): where this species' technique effects start. The EFE data
@@ -117,7 +142,25 @@ SPECIES_LAYOUT_CHECK(evoPaths, __builtin_offsetof(SpeciesRecord, evoPaths) == 0x
 SPECIES_LAYOUT_CHECK(item, __builtin_offsetof(SpeciesRecord, itemTakeDistance) == 0x130);
 SPECIES_LAYOUT_CHECK(condfx, __builtin_offsetof(SpeciesRecord, conditionFx) == 0x136);
 SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) == 0x140);
-SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x14);
+SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x18);
+SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
+SPECIES_LAYOUT_CHECK(links, sizeof(SpeciesLinks) <= 0x800);
+
+/*
+ * MOD (scale): the raised and recruited flags of species that have no trigger
+ * of their own (ids >= NUM_ORIGINAL_DIGIMON and the originals whose trigger is
+ * taken, ids.h HAS_RAISED_FLAG): one bit per type, saved in the v2 extension.
+ */
+extern uint8_t SPECIES_RAISED_BITS[NUM_DIGIMON / 8];
+extern uint8_t SPECIES_RECRUITED_BITS[NUM_DIGIMON / 8];
+void resetSpeciesFlags(void);
+int32_t isDigimonRecruited(int32_t type);
+void setDigimonRecruited(int32_t type);
+
+/* partner species of DIGI.DAT: how many, the n-th id, the first Mega (0: none) */
+int32_t getSpeciesPartnerCount(void);
+int32_t getSpeciesPartnerId(int32_t n);
+int32_t getFirstMegaSpecies(void);
 
 /* ids 0..SPECIES_COUNT-1 exist (NUM_ORIGINAL_DIGIMON without DIGI.DAT) */
 extern int32_t SPECIES_COUNT;
@@ -146,6 +189,8 @@ EvolutionPath *getEvolutionPath(int32_t type);
 /* MOD (dcb-import): the bone offset a technique effect of `type` starts
  * from: `borrowed` (the originalType's EFE entry) or this species' own one */
 int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed);
+/* the original species whose technique effect offsets, aura and condition icons a type borrows */
+int32_t getOriginalType(int32_t type);
 /* the condition icon offset (x, y, z, bone) of a type */
 SVECTOR *getConditionFxOffset(int32_t type);
 /* a training animation row (TRN/TRN2 tables live in the overlays) */
