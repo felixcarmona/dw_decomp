@@ -257,13 +257,14 @@ int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	5 /* MOD (options): and NEW FONT, in a build with both fonts */
+#define MOD_OPT_ROWS	5 /* MOD (options): and FONT, in a build with both fonts */
 #else
 #define MOD_OPT_ROWS	4
 #endif
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
 static int32_t modOptionValue(int32_t row);
+static int32_t modOptionCount(int32_t row);
 static void modSetOption(int32_t row, int32_t value);
 int32_t CURRENT_MENU;
 int32_t NEW_CARDS;
@@ -2583,6 +2584,8 @@ void tickMainMenu(void)
 	MenuCursor *cursor;
 	int32_t input;
 	int32_t value; /* MOD (options) */
+	int32_t values;
+	int32_t current;
 	int32_t status;
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 	int32_t i;
@@ -2641,12 +2644,14 @@ void tickMainMenu(void)
 		cursor = (MenuCursor *)&MENU_HIGHLIGHTS[22];
 		input = tickMenuInput(cursor, 1);
 		value = -1;
-		if (input == 0 && CHANGED_INPUT == 0x8000) { /* left: the left value */
-			value = 0;
-		} else if (input == 0 && CHANGED_INPUT == 0x2000) { /* right: the right one */
-			value = 1;
-		} else if (input == 1) { /* confirm: the other one */
-			value = modOptionValue(cursor->pos) != 1;
+		values = modOptionCount(cursor->pos);
+		current = modOptionValue(cursor->pos);
+		if (input == 0 && CHANGED_INPUT == 0x8000) { /* left: the value before */
+			value = current > 0 ? current - 1 : 0;
+		} else if (input == 0 && CHANGED_INPUT == 0x2000) { /* right: the one after */
+			value = current < 0 ? values - 1 : current < values - 1 ? current + 1 : current;
+		} else if (input == 1) { /* confirm: the next one, round */
+			value = (current + 1) % values;
 		}
 		if (value >= 0 && value != modOptionValue(cursor->pos)) {
 			if (input == 0) {
@@ -4650,7 +4655,11 @@ static void prepareSaveFile(int32_t fromRam)
 	options[1] = MOD_OPT_CLOCK;
 	options[2] = modFrameRate();
 	options[3] = MOD_OPT_BARS;
-	options[4] = FONT_PROPORTIONAL; /* NEW FONT */
+#if FONT_SWITCH
+	options[4] = MOD_FONT == MOD_FONT_NEW ? 1 : MOD_FONT == MOD_FONT_CLASSIC ? 2 : 0; /* FONT */
+#else
+	options[4] = 0;
+#endif
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
@@ -4891,7 +4900,7 @@ static void applyRecords(uint8_t *e)
 			}
 #if FONT_SWITCH
 			if (len >= 5 && !MOD_OPT_TOUCHED) {
-				modSetFont(d[4] == 0);
+				modSetFont(d[4] == 0 ? MOD_FONT_ORIGINAL : d[4] == 2 ? MOD_FONT_CLASSIC : MOD_FONT_NEW);
 			}
 #endif
 			break;
@@ -5345,34 +5354,39 @@ void renderInitialMenu(void)
 }
 
 /*
- * MOD (options): the box's rows, each a label and its two values side by side; the chosen value is drawn yellow and the
- * other one grey, so the row reads as a switch. Left picks the left value, right the right one, confirm the other one.
- * With the original font (NEW FONT off) the two do not fit the screen beside "JAPANESE CONTROLS" (200 + 2 x 61 pixels
- * for "20 FPS" / "60 FPS"): a row then shows its chosen value only, as the original game's own settings do.
+ * MOD (options): the box's rows, each a label and its values side by side (two, three for FONT); the chosen value is
+ * drawn yellow and the others grey, so the row reads as a switch. Left and right step through the values, confirm takes
+ * the next one (round). With the original font the values do not fit the screen beside "JAPANESE CONTROLS" (200 pixels,
+ * and 61 for "20 FPS"): a row then shows its chosen value only, as the original game's own settings do.
  */
-#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels */
-#define MOD_OPT_VALUE_X	0x60	/* the right value's column in the text area (the left one's is 0) */
-#define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between the two values */
+#define MOD_OPT_VALUES	3	/* the most values a row has */
+#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, a band per value */
+#define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
-static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
+static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
-	{ MOD_OPT_STR_FONT, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
 #endif
 };
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
- * width, a value's, and how many values a row shows (2, or 1 with the original font: below) */
+ * width, a value's, and how many values a row shows (all, or 1 with the original font: above) */
 static int16_t MOD_OPT_TEXT_X;
 static int16_t MOD_OPT_LABEL_W;
 static int16_t MOD_OPT_VALUE_W;
 static int16_t MOD_OPT_SHOWN;
 
-/* 0 the row's left value, 1 the right one, -1 neither (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
+static int32_t modOptionCount(int32_t row)
+{
+	return MOD_OPT_TEXT[row][3] != NULL ? 3 : 2;
+}
+
+/* the index of the row's chosen value, -1 none (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
 static int32_t modOptionValue(int32_t row)
 {
 	switch (row) {
@@ -5383,8 +5397,8 @@ static int32_t modOptionValue(int32_t row)
 	case 2:
 		return MOD_OPT_BARS != 0;
 #if FONT_SWITCH
-	case 4:
-		return FONT_PROPORTIONAL;
+	case 4: /* NEW, CLASSIC, ORIGINAL */
+		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
 #endif
 	}
 #if FPS == 20
@@ -5412,39 +5426,39 @@ static void modSetOption(int32_t row, int32_t value)
 		break;
 #if FONT_SWITCH
 	case 4:
-		modSetFont(value == 0);
+		modSetFont(value == 0 ? MOD_FONT_NEW : value == 1 ? MOD_FONT_CLASSIC : MOD_FONT_ORIGINAL);
 		break;
 #endif
 	}
 }
 
 /*
- * The labels in the text area's first rows, the values in the rows under them (the original font's "JAPANESE CONTROLS"
+ * The labels in the text area's first rows, the values in bands under them (the original font's "JAPANESE CONTROLS"
  * takes 200 of its 256 pixels), and the box laid out on the widest of each, centred on the screen.
  */
 static void drawOptionsText(void)
 {
 	MenuHighlight *bar;
 	int32_t r;
+	int32_t k;
 	int32_t w;
 
 	MOD_OPT_LABEL_W = 0;
 	MOD_OPT_VALUE_W = 0;
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
-		drawString(MOD_OPT_TEXT[r][0], 0, r * 0xC);
-		drawString(MOD_OPT_TEXT[r][1], 0, MOD_OPT_VALUE_Y + r * 0xC);
-		DrawSync(0);
-		drawString(MOD_OPT_TEXT[r][2], MOD_OPT_VALUE_X, MOD_OPT_VALUE_Y + r * 0xC);
-		DrawSync(0);
-		w = measureStringMode(MOD_OPT_TEXT[r][0], FIT_VANILLA) + 1; /* and the shadow */
-		MOD_OPT_LABEL_W = w > MOD_OPT_LABEL_W ? w : MOD_OPT_LABEL_W;
-		w = measureStringMode(MOD_OPT_TEXT[r][1], FIT_VANILLA) + 1;
-		MOD_OPT_VALUE_W = w > MOD_OPT_VALUE_W ? w : MOD_OPT_VALUE_W;
-		w = measureStringMode(MOD_OPT_TEXT[r][2], FIT_VANILLA) + 1;
-		MOD_OPT_VALUE_W = w > MOD_OPT_VALUE_W ? w : MOD_OPT_VALUE_W;
+		for (k = 0; k <= modOptionCount(r); k++) {
+			drawString(MOD_OPT_TEXT[r][k], 0, k == 0 ? r * 0xC : MOD_OPT_VALUE_Y * k + r * 0xC);
+			DrawSync(0);
+			w = measureStringMode(MOD_OPT_TEXT[r][k], FIT_VANILLA) + 1; /* and the shadow */
+			if (k == 0) {
+				MOD_OPT_LABEL_W = w > MOD_OPT_LABEL_W ? w : MOD_OPT_LABEL_W;
+			} else {
+				MOD_OPT_VALUE_W = w > MOD_OPT_VALUE_W ? w : MOD_OPT_VALUE_W;
+			}
+		}
 	}
-	MOD_OPT_SHOWN = 2;
-	w = MOD_OPT_LABEL_W + 2 * (MOD_OPT_GAP + MOD_OPT_VALUE_W);
+	MOD_OPT_SHOWN = FONT_SWITCH ? MOD_OPT_VALUES : 2;
+	w = MOD_OPT_LABEL_W + MOD_OPT_SHOWN * (MOD_OPT_GAP + MOD_OPT_VALUE_W);
 	if (w + 2 * MOD_OPT_MARGIN > 0x140 - 0x10) {
 		MOD_OPT_SHOWN = 1;
 		w = MOD_OPT_LABEL_W + MOD_OPT_GAP + MOD_OPT_VALUE_W;
@@ -5459,24 +5473,26 @@ static void renderOptionsMenu(void)
 {
 	POLY_FT4 *cur;
 	int32_t r;
+	int32_t k;
 	int32_t x;
 	int32_t y;
 	int32_t value;
 
 	cur = (POLY_FT4 *)GsGetWorkBase();
-	x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		y = 0x37 + r * 0xC;
 		value = modOptionValue(r);
 		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_LABEL_W, 0xC, 0);
-		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the left one, grey, when neither is) */
-			renderText(cur++, x, y, value == 1 ? MOD_OPT_VALUE_X : 0, MOD_OPT_VALUE_Y + r * 0xC, MOD_OPT_VALUE_W,
-				   0xC, value >= 0 ? 2 : 1);
+		x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
+		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the first one, grey, when none is) */
+			renderText(cur++, x, y, 0, MOD_OPT_VALUE_Y * (value > 0 ? value + 1 : 1) + r * 0xC, MOD_OPT_VALUE_W, 0xC,
+				   value >= 0 ? 2 : 1);
 			continue;
 		}
-		renderText(cur++, x, y, 0, MOD_OPT_VALUE_Y + r * 0xC, MOD_OPT_VALUE_W, 0xC, value == 0 ? 2 : 1);
-		renderText(cur++, x + MOD_OPT_VALUE_W + MOD_OPT_GAP, y, MOD_OPT_VALUE_X, MOD_OPT_VALUE_Y + r * 0xC,
-			   MOD_OPT_VALUE_W, 0xC, value == 1 ? 2 : 1);
+		for (k = 0; k < modOptionCount(r); k++) {
+			renderText(cur++, x, y, 0, MOD_OPT_VALUE_Y * (k + 1) + r * 0xC, MOD_OPT_VALUE_W, 0xC, value == k ? 2 : 1);
+			x += MOD_OPT_VALUE_W + MOD_OPT_GAP;
+		}
 	}
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(MOD_OPT_TEXT_X - MOD_OPT_MARGIN, 0x32,
