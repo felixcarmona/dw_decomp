@@ -95,7 +95,7 @@ extern int32_t FLEE_DISABLED[2];
 extern int32_t P2_AOE_TIMER;
 extern char *MOVE_NAMES[];
 extern int16_t STD_MATCH_RESULT;
-extern int8_t BATTLE_TOGGLE_LIFEBAR;
+extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int16_t INITIAL_COMBAT_STATS[][6];
 extern DigimonEntity *BATTLE_TARGETED_DIGIMON;
 extern DigimonEntity *BATTLE_ATTACKING_DIGIMON;
@@ -4020,7 +4020,7 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 	COMBAT_DATA_PTR->player.unk7 = 0;
 	COMBAT_DATA_PTR->player.changeTarget = 0;
 	NO_AI_FLAG = 0;
-	BATTLE_TOGGLE_LIFEBAR = 0;
+	/* Enemy-bar visibility survives battle setup. */
 	FLEE_DISABLED[0] = 1;
 	BATTLE_FRAME_COUNT = 1;
 	STD_TIMER_ACTIVE = 0;
