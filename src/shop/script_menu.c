@@ -1238,7 +1238,10 @@ void initializeNamingBuffer(uint8_t flags)
 
 int32_t newGameStateMachine(void)
 {
+	static uint8_t answers[7];
+	static uint8_t question;
 	int32_t i;
+	int32_t sel = 0;
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
@@ -1259,39 +1262,32 @@ int32_t newGameStateMachine(void)
 		break;
 #endif
 	case 2:
-		showNewGameDialogue(0x11, 3);
+		question = 0;
+		showNewGameDialogue(0x23, 0x23);
 		break;
-	case 3:
-		showNewGameSelection(0x12, 4);
+	case 0x23:
+		if (question == 7) {
+			writePStat(PSTAT_254, modQuizResult(answers));
+			modPartnerNameSetSpecies(modNewGameStarter());
+			showNewGameDialogue(0x39, 0x12);
+		} else {
+			showNewGameDialogue(0x24 + question * 3, 0x24);
+		}
 		break;
-	case 4:
-		showNewGameDialogue(0x13, 6);
+	case 0x24:
+		showNewGameDialogue(0x25 + question * 3, 0x25);
 		break;
-	case 5:
-		showNewGameDialogue(0x16, 10);
+	case 0x25:
+		showMapheadSelection(0x26 + question * 3, 0xfe, 3, &sel, 0x4d6);
+		SCRIPT_STATE_2 = 1;
+		SCRIPT_NEXT_STATE_2 = 0x26;
+		SCRIPT_TEXTBOX_MODE = 2;
 		break;
-	case 6:
-		showNewGameDialogue(0x14, 7);
-		break;
-	case 7:
-		showNewGameSelection(0x15, 8);
-		break;
-	case 8:
-		writePStat(PSTAT_254, 0);
-		SCRIPT_STATE_2 = 0x11;
-		break;
-	case 9:
-		writePStat(PSTAT_254, 1);
-		SCRIPT_STATE_2 = 0x11;
-		break;
-	case 10:
-		showNewGameDialogue(0x17, 0xb);
-		break;
-	case 0xb:
-		showNewGameSelection(0x18, 8);
-		break;
-	case 0x11:
-		showNewGameDialogue(0x19, 0x12);
+	case 0x26:
+	case 0x27:
+	case 0x28:
+		answers[question++] = SCRIPT_STATE_2 - 0x26;
+		SCRIPT_STATE_2 = 0x23;
 		break;
 	case 0x12:
 		showNewGameDialogue(0x1a, 0x13);
@@ -1319,7 +1315,7 @@ int32_t newGameStateMachine(void)
 			if ((NAMING_BOX_FLAG & 2) != 0) {
 				modPartnerNameSetSpecies(PARTNER_ENTITY.digimonEntity.entity.type);
 			} else {
-				modPartnerNameSetSpecies(modNewGame(readPStat(PSTAT_254) == 0 ? MOD_NG_STARTER0 : MOD_NG_STARTER1));
+				modPartnerNameSetSpecies(modNewGameStarter());
 			}
 		} else {
 			strcpy(PARTNER_ENTITY.name, NAMING_BUFFER);
@@ -1400,7 +1396,7 @@ int32_t newGameStateMachine(void)
 		break;
 	case 0x22:
 		NAMING_BOX_FLAG |= 1;
-		modPartnerNameSetSpecies(modNewGame(readPStat(PSTAT_254) == 0 ? MOD_NG_STARTER0 : MOD_NG_STARTER1));
+		modPartnerNameSetSpecies(modNewGameStarter());
 		SCRIPT_STATE_2 = 0x1e;
 		break;
 	}
