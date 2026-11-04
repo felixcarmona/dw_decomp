@@ -79,9 +79,9 @@ typedef struct {
 extern EvlSpark EVL_D_80068F84[];
 extern EvoSequenceData EVO_SEQUENCE_DATA;
 
-extern EvoStatsGains EVOLUTION_STATS_GAINS[];
+extern EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON];
 extern EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1];
-extern EvoRequirements EVOLUTION_REQS[NUM_EVOLVING_DIGIMON];
+extern EvoRequirements EVOLUTION_REQS[NUM_DIGIMON];
 
 extern int8_t MAIN_D_801349F4;
 

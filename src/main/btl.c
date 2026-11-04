@@ -308,9 +308,9 @@ int32_t handleBattleStart(id)
 		}
 
 		flag = 1;
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].type != 0xff) {
-			if (chance < (&FLEE_CHANCES[(DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].type - 1) * 3])
-			                     [DIGIMON_DATA[NPC_ENTITIES[i - 2].digimonEntity.entity.type].type - 1]) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).type != 0xff) {
+			if (chance < (&FLEE_CHANCES[(DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).type - 1) * 3])
+			                     [DIGI_PARA(NPC_ENTITIES[i - 2].digimonEntity.entity.type).type - 1]) {
 				COMBAT_DATA_PTR->player.entityIds[++count] = i;
 				flag = 0;
 			}
@@ -449,7 +449,7 @@ void loadBattleData(int32_t entityId, int32_t count)
 				if (entityGetTechFromAnim(&e->entity, e->stats.base.moves[j]) == 0xff) {
 					e->stats.base.moves[j] = 0xff;
 				} else {
-					move = DIGIMON_DATA[e->entity.type].moves[e->stats.base.moves[j] - 0x2e] + 0x100;
+					move = DIGI_PARA(e->entity.type).moves[e->stats.base.moves[j] - 0x2e] + 0x100;
 					moveList[n++] = move;
 				}
 			}
@@ -508,11 +508,11 @@ void renderFleeBubble(int32_t instanceId)
 	loc = &e->posData->location;
 	if (FLEE_BUBBLE_DATA[instanceId - 2].frame < 5) {
 		pos.vx = loc->vx;
-		pos.vy = -DIGIMON_DATA[e->type].height - 0xc8 - ((FLEE_BUBBLE_DATA[instanceId - 2].frame + 1) * 50 / 5);
+		pos.vy = -DIGI_PARA(e->type).height - 0xc8 - ((FLEE_BUBBLE_DATA[instanceId - 2].frame + 1) * 50 / 5);
 		pos.vz = loc->vz;
 	} else {
 		pos.vx = loc->vx;
-		pos.vy = -DIGIMON_DATA[e->type].height - 0xfa;
+		pos.vy = -DIGI_PARA(e->type).height - 0xfa;
 		pos.vz = loc->vz;
 	}
 

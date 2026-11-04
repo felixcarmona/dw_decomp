@@ -442,7 +442,7 @@ int32_t addConditionBubble(int32_t type, Entity *entity)
 
 	bubble = &CONDITION_BUBBLES[i];
 	bubble->frameCount = 0;
-	bubble->baseHeight = -DIGIMON_DATA[entity->type].height + 20;
+	bubble->baseHeight = -DIGI_PARA(entity->type).height + 20;
 	bubble->activeHeight = bubble->baseHeight;
 	bubble->entity = entity;
 	bubble->scale = 0;

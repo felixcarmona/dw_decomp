@@ -145,6 +145,54 @@ SAVE_LAYOUT_CHECK(inventorySize, sizeof(((SavegamePayload *)0)->inventory) == 0x
 SAVE_LAYOUT_CHECK(playerName, __builtin_offsetof(SavegamePayload, playerName) == 0x467);
 SAVE_LAYOUT_CHECK(currentScreen, __builtin_offsetof(SavegamePayload, currentScreen) == 0x49A);
 SAVE_LAYOUT_CHECK(checksum, __builtin_offsetof(SavegamePayload, checksum) == 0x4FC);
+SAVE_LAYOUT_CHECK(versionWord, __builtin_offsetof(SavegamePayload, unknown4E1) + 3 == 0x4E4);
+
+/*
+ * MOD (save v2, docs/mods/ids.md "Save format v2"): the file grows from one
+ * memory card block to two. The first 0x2000 bytes stay a complete v1 file
+ * (header and the two SavegamePayload copies, ids as their low byte), so the
+ * original executable and VS mode read it as before; after them come two
+ * extensions, one per copy, with the 16-bit ids and the wide registers.
+ *
+ * - The v1 payload carries a version word in the bytes its checksum skips:
+ *   0x4E4 "DW2\0", 0x4E8 the format version. v1 saves have zeros there.
+ *   A higher version than SAVE_FORMAT_VERSION is a "Data Error".
+ * - An extension is used only if its magic, its checksum and its copy of its
+ *   v1 payload's checksum all match. An older build that saved over a v2 file
+ *   rewrote the v1 part only, so the stale extension fails the last test and
+ *   the v1 data is migrated, as for a v1 save.
+ * - Saving a v1 (one-block) file makes it two blocks (delete and create) when
+ *   the card has a free block; otherwise it stays a v1 file.
+ * - A save holding content the original executable does not have (a partner
+ *   species >= NUM_ORIGINAL_DIGIMON, an item >= NUM_ITEMS, a screen >= 255)
+ *   stores its v1 checksum inverted: the original reports "Data Error"
+ *   instead of loading cut ids; this build accepts it through the extension.
+ *   Without room for the extension (a one-block file on a full card) it is
+ *   written as a plain v1 file instead, readable by both.
+ */
+#define SAVE_FORMAT_VERSION	2
+#define SAVE_V1_BYTES		0x2000
+#define SAVE_V2_BYTES		0x4000
+#define SAVE_EXT_SAVED_WREGS	16	/* w0..w15 are saved, w16..w63 are scratch */
+
+typedef struct {
+	char magic[4];			/* "DW2E" */
+	uint16_t version;		/* SAVE_FORMAT_VERSION */
+	uint16_t size;			/* sizeof(SaveExtension) */
+	int32_t v1Checksum;		/* the checksum of the v1 payload saved with it */
+	ScreenId currentScreen;		/* authoritative; the v1 bytes are the low byte */
+	ScreenId previousScreen;
+	ItemId inventoryTypes[30];	/* authoritative; ITEM_NONE = empty */
+	int32_t partnerType;		/* the same as the v1 field (already 32-bit) */
+	uint16_t wregs[SAVE_EXT_SAVED_WREGS];
+	DigimonId registeredTypes[40];	/* battle registration ids (u8 in RAM for now) */
+	ScreenId poopMaps[100];		/* WORLD_POOP screens (u8 in RAM for now) */
+	uint8_t reserved[0x1000 - 0x188 - 4];
+	int32_t checksum;		/* byte sum of everything before it */
+} SaveExtension;
+
+SAVE_LAYOUT_CHECK(extension, sizeof(SaveExtension) == 0x1000);
+SAVE_LAYOUT_CHECK(extensionTail, __builtin_offsetof(SaveExtension, reserved) == 0x188);
 
 typedef struct {
 	char id[2];
@@ -156,7 +204,11 @@ typedef struct {
 	uint16_t iconClut[16];
 	uint8_t iconFrames[3][0x80];
 	SavegamePayload saves[2];
+	SaveExtension ext[2]; /* MOD (save v2): file offsets 0x2000 and 0x3000 */
 } SaveFile;
+
+SAVE_LAYOUT_CHECK(file, sizeof(SaveFile) == SAVE_V2_BYTES);
+SAVE_LAYOUT_CHECK(fileV1, __builtin_offsetof(SaveFile, ext) == SAVE_V1_BYTES);
 
 uint32_t CONNECTED_CARDS;
 int32_t MAIN_MENU_ACTION;
@@ -283,6 +335,13 @@ char *_strncpy(char *dst, char *src, int32_t n);
 int32_t createSavegameChecksum(int32_t slot);
 void loadSavegame(SavegamePayload *savegame);
 void writeSavegame(SavegamePayload *savegame);
+/* MOD (save v2) */
+static int32_t SAVE_FILE_BYTES = SAVE_V1_BYTES;
+static int32_t getSaveFileBytes(void);
+static int32_t loadSaveCopy(int32_t copy);
+static int32_t isSaveCopyValid(int32_t copy);
+static void prepareSaveFile(int32_t fromRam);
+static int32_t writeSaveFile(void);
 int32_t countRegisteredDigimon(RegisteredDigimon *p);
 void renderMainMenu();
 void registerBattleData();
@@ -2216,7 +2275,7 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos)
 	int16_t move;
 
 	if (anim >= 0x2E && anim < 0x3E) {
-		move = DIGIMON_DATA[type].moves[anim - 0x2E];
+		move = DIGI_PARA(type).moves[anim - 0x2E];
 		if (move >= 0 && move < NUM_MOVE_NAMES) {
 			drawString(MOVE_NAMES[move], color, pos);
 		}
@@ -2528,7 +2587,13 @@ void tickMainMenu(void)
 	case 0x10:
 		if ((MAIN_MENU_TICKS >= 3) && MemCardSync(1, &command, &result)) {
 			SAVE_FILE_NAME[0xF] = HEX_DIGITS[MEMORY_CARD_SLOT];
-			status = MemCardCreateFile(MEMORY_CARD_ID, SAVE_FILE_NAME, 1);
+			/* MOD (save v2): two blocks; one (a v1 file) if the card has one left */
+			SAVE_FILE_BYTES = SAVE_V2_BYTES;
+			status = MemCardCreateFile(MEMORY_CARD_ID, SAVE_FILE_NAME, SAVE_V2_BYTES / SAVE_V1_BYTES);
+			if (status == 7) {
+				SAVE_FILE_BYTES = SAVE_V1_BYTES;
+				status = MemCardCreateFile(MEMORY_CARD_ID, SAVE_FILE_NAME, 1);
+			}
 			switch (status) {
 			case 0:
 				TARGET_MENU = 0x11;
@@ -2583,18 +2648,15 @@ void tickMainMenu(void)
 			 0x11);
 		memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 #endif
-		SAVE_FILE.saves[0].checksum = createSavegameChecksum(0);
-		SAVE_FILE.saves[1] =
-			SAVE_FILE.saves[0];
-		status = MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-					 (void *)&SAVE_FILE, 0, 0x2000);
+		prepareSaveFile(0); /* MOD (save v2): checksums, extension, mirror */
+		status = writeSaveFile();
 		if (status != 1) {
 			setMemoryCardReadError(0, 0);
 		}
 		MemCardSync(0, &command, &result);
 		if (result == 0) {
 			TARGET_MENU = 9;
-			loadSavegame(&SAVE_FILE.saves[0]);
+			loadSaveCopy(0);
 			MAIN_STATE = 0;
 		} else {
 			setMemoryCardReadError(status, 0);
@@ -2612,7 +2674,8 @@ void tickMainMenu(void)
 					MEMORY_CARD_ID = -1;
 					MEMORY_CARD_SLOT = -1;
 					initializeDefaultSavegame();
-					loadSavegame(&SAVE_FILE.saves[0]);
+					prepareSaveFile(0); /* MOD (save v2) */
+					loadSaveCopy(0);
 				} else {
 					TARGET_MENU = 0xA;
 				}
@@ -2714,24 +2777,22 @@ void tickMainMenu(void)
 		if (MAIN_MENU_TICKS >= 3) {
 			MemCardSync(0, &command, &result);
 			SAVE_FILE_NAME[0xF] = HEX_DIGITS[MEMORY_CARD_SLOT];
+			/* MOD (save v2): a two-block file is read whole */
+			SAVE_FILE_BYTES = getSaveFileBytes();
 			status = MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-					    (void *)&SAVE_FILE, 0, 0x2000);
+					    (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
 			if (status != 1) {
 				setMemoryCardReadError(0, 0);
 			}
 			MemCardSync(0, &command, &result);
 			if (result == 0) {
-				if (SAVE_FILE.saves[0].checksum ==
-				    createSavegameChecksum(0)) {
-					loadSavegame(&SAVE_FILE.saves[0]);
+				/* MOD (save v2): loadSaveCopy also takes the extension, or
+				 * refuses a newer format ("Data Error") */
+				if (isSaveCopyValid(0) && loadSaveCopy(0)) {
 					TARGET_MENU = 9;
 					break;
 				}
-				if (SAVE_FILE.saves[1].checksum ==
-				    createSavegameChecksum(1)) {
-					SAVE_FILE.saves[0] =
-						SAVE_FILE.saves[1];
-					loadSavegame(&SAVE_FILE.saves[0]);
+				if (isSaveCopyValid(1) && loadSaveCopy(1)) {
 					TARGET_MENU = 9;
 					break;
 				}
@@ -2903,6 +2964,8 @@ void tickMainMenu(void)
 			setMemoryCardReadError(0, 0x28);
 			break;
 		case 0:
+			/* MOD (save v2): one or two blocks */
+			SAVE_FILE_BYTES = MEMCARD_DIRENTRIES[0].size >= SAVE_V2_BYTES ? SAVE_V2_BYTES : SAVE_V1_BYTES;
 			if (count == 0) {
 				MEMORY_CARD_ERROR = 5;
 				TARGET_MENU = 0x30;
@@ -2955,11 +3018,8 @@ void tickMainMenu(void)
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 #endif
-			SAVE_FILE.saves[0].checksum = createSavegameChecksum(0);
-			SAVE_FILE.saves[1] =
-				SAVE_FILE.saves[0];
-			status = MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-						 (void *)&SAVE_FILE, 0, 0x2000);
+			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
+			status = writeSaveFile();
 			if (status != 1) {
 				setMemoryCardReadError(0, 0x28);
 			}
@@ -3110,19 +3170,19 @@ void tickMainMenu(void)
 		if (MAIN_MENU_TICKS >= 3) {
 			MemCardSync(0, &command, &result);
 			SAVE_FILE_NAME[0xF] = HEX_DIGITS[MEMORY_CARD_SLOT];
+			SAVE_FILE_BYTES = getSaveFileBytes(); /* MOD (save v2) */
 			status = MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-					    (void *)&SAVE_FILE, 0, 0x2000);
+					    (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
 			if (status != 1) {
 				setMemoryCardReadError(0, 0x32);
 			}
 			MemCardSync(0, &command, &result);
 			if (result == 0) {
-				if (SAVE_FILE.saves[0].checksum ==
-				    createSavegameChecksum(0)) {
+				/* MOD (save v2): a refusing v2 save needs its extension to be checked */
+				if (isSaveCopyValid(0)) {
 					memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
 					       SAVE_FILE.saves[0].battleRegistrationData, 0xA00);
-				} else if (SAVE_FILE.saves[1].checksum ==
-					   createSavegameChecksum(1)) {
+				} else if (isSaveCopyValid(1)) {
 					memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
 					       SAVE_FILE.saves[1].battleRegistrationData, 0xA00);
 				} else {
@@ -3258,6 +3318,8 @@ void tickMainMenu(void)
 			setMemoryCardReadError(0, SAVE_RETRY_RETURN_MENU);
 			break;
 		case 0:
+			/* MOD (save v2): one or two blocks */
+			SAVE_FILE_BYTES = MEMCARD_DIRENTRIES[0].size >= SAVE_V2_BYTES ? SAVE_V2_BYTES : SAVE_V1_BYTES;
 			if (count == 0) {
 				MEMORY_CARD_ERROR = 5;
 				TARGET_MENU = 0x42;
@@ -3310,11 +3372,8 @@ void tickMainMenu(void)
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 #endif
-			SAVE_FILE.saves[0].checksum = createSavegameChecksum(0);
-			SAVE_FILE.saves[1] =
-				SAVE_FILE.saves[0];
-			status = MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-						 (void *)&SAVE_FILE, 0, 0x2000);
+			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
+			status = writeSaveFile();
 			if (status != 1) {
 				setMemoryCardReadError(0, SAVE_RETRY_RETURN_MENU);
 			}
@@ -4108,6 +4167,210 @@ void writeSavegame(SavegamePayload *savegame)
 	}
 }
 
+/* MOD (save v2) ------------------------------------------------------------ */
+
+static int32_t getSaveVersion(SavegamePayload *savegame)
+{
+	uint8_t *w;
+
+	w = &savegame->unknown4E1[3];
+	if (w[0] == 'D' && w[1] == 'W' && w[2] == '2' && w[3] == '\0') {
+		return w[4];
+	}
+	return 1;
+}
+
+static int32_t createExtensionChecksum(SaveExtension *ext)
+{
+	return createByteSum((uint8_t *)ext, __builtin_offsetof(SaveExtension, checksum));
+}
+
+/* MOD (save v2): content the original executable cannot represent */
+static int32_t needsNewExecutable(SaveExtension *ext)
+{
+	int32_t i;
+
+	if ((uint32_t)ext->partnerType >= NUM_ORIGINAL_DIGIMON || ext->currentScreen >= NUM_SCREENS ||
+	    ext->previousScreen >= NUM_SCREENS) {
+		return 1;
+	}
+	for (i = 0; i < 30; i++) {
+		if (ext->inventoryTypes[i] >= NUM_ITEMS) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int32_t isExtensionValid(int32_t copy)
+{
+	SaveExtension *ext;
+
+	ext = &SAVE_FILE.ext[copy];
+	return SAVE_FILE_BYTES >= SAVE_V2_BYTES && ext->magic[0] == 'D' && ext->magic[1] == 'W' &&
+	       ext->magic[2] == '2' && ext->magic[3] == 'E' && ext->version == SAVE_FORMAT_VERSION &&
+	       ext->size == sizeof(SaveExtension) && ext->checksum == createExtensionChecksum(ext) &&
+	       ext->v1Checksum == SAVE_FILE.saves[copy].checksum;
+}
+
+/*
+ * The extension of copy 0 from the game state in RAM (fromRam) or, for the
+ * default save of a new game, from its v1 payload; the version word, both
+ * checksums and the mirror copy.
+ */
+static void prepareSaveFile(int32_t fromRam)
+{
+	SavegamePayload *savegame;
+	SaveExtension *ext;
+	uint8_t *p;
+	int32_t i;
+
+	savegame = &SAVE_FILE.saves[0];
+	ext = &SAVE_FILE.ext[0];
+	for (p = (uint8_t *)ext, i = 0; i < (int32_t)sizeof(SaveExtension); i++) {
+		*p++ = 0;
+	}
+	ext->magic[0] = 'D';
+	ext->magic[1] = 'W';
+	ext->magic[2] = '2';
+	ext->magic[3] = 'E';
+	ext->version = SAVE_FORMAT_VERSION;
+	ext->size = sizeof(SaveExtension);
+	if (fromRam) {
+		ext->currentScreen = CURRENT_SCREEN;
+		ext->previousScreen = PREVIOUS_SCREEN;
+		for (i = 0; i < 30; i++) {
+			ext->inventoryTypes[i] = INVENTORY.types.array[i];
+		}
+		for (i = 0; i < SAVE_EXT_SAVED_WREGS; i++) {
+			ext->wregs[i] = SCRIPT_STATE_PTR->wregs[i];
+		}
+	} else {
+		ext->currentScreen = savegame->currentScreen;
+		ext->previousScreen = savegame->previousScreen;
+		for (i = 0; i < 30; i++) {
+			ext->inventoryTypes[i] = itemFromLegacy(savegame->inventory.types.array[i]);
+		}
+	}
+	ext->partnerType = savegame->partnerType;
+	for (i = 0; i < 40; i++) {
+		ext->registeredTypes[i] = savegame->battleRegistrationData[i].digimonId;
+	}
+	for (i = 0; i < 100; i++) {
+		ext->poopMaps[i] = savegame->worldPoop[i].map == 0xFF ? -1 : savegame->worldPoop[i].map;
+	}
+	p = &savegame->unknown4E1[3];
+	p[0] = 'D';
+	p[1] = 'W';
+	p[2] = '2';
+	p[3] = '\0';
+	p[4] = SAVE_FORMAT_VERSION;
+	savegame->checksum = createSavegameChecksum(0);
+	if (needsNewExecutable(ext)) {
+		savegame->checksum = ~savegame->checksum; /* the original refuses it */
+	}
+	ext->v1Checksum = savegame->checksum;
+	ext->checksum = createExtensionChecksum(ext);
+	SAVE_FILE.saves[1] = SAVE_FILE.saves[0];
+	SAVE_FILE.ext[1] = SAVE_FILE.ext[0];
+	SAVE_FILE.blockNumber = SAVE_FILE_BYTES / SAVE_V1_BYTES;
+}
+
+/*
+ * Copy 0 or 1 is intact: its v1 checksum matches, or it is a v2 save that
+ * refuses the original executable (inverted checksum) with a valid extension.
+ */
+static int32_t isSaveCopyValid(int32_t copy)
+{
+	int32_t sum;
+
+	sum = createSavegameChecksum(copy);
+	if (SAVE_FILE.saves[copy].checksum == sum) {
+		return 1;
+	}
+	return SAVE_FILE.saves[copy].checksum == ~sum && getSaveVersion(&SAVE_FILE.saves[copy]) >= 2 &&
+	       isExtensionValid(copy);
+}
+
+/*
+ * Loads copy 0 or 1 (isSaveCopyValid): the v1 payload, then
+ * the extension when it is valid. 0 = a newer format this build cannot read.
+ */
+static int32_t loadSaveCopy(int32_t copy)
+{
+	SaveExtension *ext;
+	int32_t i;
+
+	if (getSaveVersion(&SAVE_FILE.saves[copy]) > SAVE_FORMAT_VERSION) {
+		return 0;
+	}
+	if (copy != 0) {
+		SAVE_FILE.saves[0] = SAVE_FILE.saves[1];
+		SAVE_FILE.ext[0] = SAVE_FILE.ext[1];
+	}
+	loadSavegame(&SAVE_FILE.saves[0]);
+	for (i = 0; i < SCRIPT_NUM_WREGS; i++) {
+		SCRIPT_STATE_PTR->wregs[i] = 0;
+	}
+	if (isExtensionValid(0)) {
+		ext = &SAVE_FILE.ext[0];
+		SAVED_STATE.currentScreen = ext->currentScreen;
+		SAVED_STATE.previousScreen = ext->previousScreen;
+		for (i = 0; i < 30; i++) {
+			INVENTORY.types.array[i] = ext->inventoryTypes[i];
+		}
+		for (i = 0; i < SAVE_EXT_SAVED_WREGS; i++) {
+			SCRIPT_STATE_PTR->wregs[i] = ext->wregs[i];
+		}
+	}
+	return 1;
+}
+
+/* the size of the slot's file on the card (SAVE_FILE_NAME), one block if unknown */
+static int32_t getSaveFileBytes(void)
+{
+	long count;
+
+	if (MemCardGetDirentry(MEMORY_CARD_ID, SAVE_FILE_NAME, MEMCARD_DIRENTRIES, &count, 0, 1) == 0 &&
+	    count == 1 && MEMCARD_DIRENTRIES[0].size >= SAVE_V2_BYTES) {
+		return SAVE_V2_BYTES;
+	}
+	return SAVE_V1_BYTES;
+}
+
+/*
+ * Starts writing SAVE_FILE (prepared) to the slot's file, as MemCardWriteFile.
+ * A one-block file becomes two blocks first when the card has a free block.
+ */
+static int32_t writeSaveFile(void)
+{
+	long count;
+	int32_t blocks;
+	int32_t i;
+
+	if (SAVE_FILE_BYTES < SAVE_V2_BYTES &&
+	    MemCardGetDirentry(MEMORY_CARD_ID, MAIN_D_801346C0[1], MEMCARD_DIRENTRIES, &count, 0, 15) == 0) {
+		blocks = 0;
+		for (i = 0; i < count; i++) {
+			blocks += (MEMCARD_DIRENTRIES[i].size + 0x1FFF) / 0x2000;
+		}
+		if (blocks < 15 && MemCardDeleteFile(MEMORY_CARD_ID, SAVE_FILE_NAME) == 0) {
+			if (MemCardCreateFile(MEMORY_CARD_ID, SAVE_FILE_NAME, SAVE_V2_BYTES / SAVE_V1_BYTES) == 0) {
+				SAVE_FILE_BYTES = SAVE_V2_BYTES;
+			} else {
+				MemCardCreateFile(MEMORY_CARD_ID, SAVE_FILE_NAME, 1);
+			}
+		}
+	}
+	if (SAVE_FILE_BYTES < SAVE_V2_BYTES && SAVE_FILE.saves[0].checksum != createSavegameChecksum(0)) {
+		/* no room for the extension: a plain v1 file, which the original reads with cut ids */
+		SAVE_FILE.saves[0].checksum = createSavegameChecksum(0);
+		SAVE_FILE.saves[1] = SAVE_FILE.saves[0];
+	}
+	SAVE_FILE.blockNumber = SAVE_FILE_BYTES / SAVE_V1_BYTES;
+	return MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
+}
+
 int32_t countRegisteredDigimon(RegisteredDigimon *p)
 {
 	int32_t i;
@@ -4251,7 +4514,7 @@ void openSaveMachine(void)
 	CURRENT_MENU = -2;
 	MAIN_STATE = 1;
 	TARGET_MENU = 0x3C;
-	if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+	if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 		TARGET_MENU = 0x46;
 	}
 

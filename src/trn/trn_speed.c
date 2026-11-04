@@ -34,7 +34,7 @@ int16_t arg;
 		TRN_D_8008F320.vx = 0x2d;
 		TRN_D_8008F320.vy = 0;
 		TRN_D_8008F320.vz = -0x184;
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeSpeedCounter++;
 		}
 		addObject(0xfad, 0, (TickFunction)TRN_tickSpeedTraining, NULL);

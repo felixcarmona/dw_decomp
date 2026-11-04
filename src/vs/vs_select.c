@@ -788,7 +788,7 @@ void VS__renderSelectDigimonPlayer(id)
 				strcpy(buf, STR_NOT_EQUIPPED);
 				text = (uint16_t *)buf;
 			} else {
-				moveId = DIGIMON_DATA[fighter->digimonId].moves[fighter->moves[j] - 0x2e];
+				moveId = DIGI_PARA(fighter->digimonId).moves[fighter->moves[j] - 0x2e];
 				text = (uint16_t *)MOVE_NAMES[moveId];
 			}
 			halfLen = strlen((char *)text) / 2;

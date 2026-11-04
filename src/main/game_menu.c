@@ -2120,29 +2120,29 @@ void equipMove(void)
 
 	for (animation = 0; animation < 16; animation++) {
 		if (moveId == 0x2c) {
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type)
 			            .moves[animation] == 0x2c) {
 				break;
 			}
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type)
 			            .moves[animation] == 0x30) {
 				moveId = 0x30;
 				break;
 			}
 		}
 		if (moveId == 0x37) {
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type)
 			            .moves[animation] == 0x37) {
 				break;
 			}
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type)
 			            .moves[animation] == 0x39) {
 				moveId = 0x39;
 				break;
 			}
 		}
 		if (moveId ==
-		    DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type]
+		    DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type)
 		            .moves[animation]) {
 			break;
 		}
@@ -2261,7 +2261,7 @@ void renderDigimonStatsView(void)
 		renderDigimonStatsBar(PARTNER_ENTITY.digimonEntity.stats.base.speed, 0x3e7, 0x32, 0x24, 0x48);
 		renderDigimonStatsBar(PARTNER_ENTITY.digimonEntity.stats.base.brain, 0x3e7, 0x32, 0x24, 0x57);
 		for (i = 0, k = 0; i < 3; i++) {
-			special = DIGIMON_DATA[ENTITY_TABLE[1]->type].special[i];
+			special = DIGI_PARA(ENTITY_TABLE[1]->type).special[i];
 			if (special != 0xff) {
 				clut = 0x7a06;
 				if ((special == 2) || (special == 3) || (special == 4)) {
@@ -2278,8 +2278,8 @@ void renderDigimonStatsView(void)
 				k += 0xc;
 			}
 		}
-		if (DIGIMON_DATA[ENTITY_TABLE[1]->type].type != 0) {
-			renderRectPolyFT4(0x3b, -0x33, 0xc, 0xc, (DIGIMON_DATA[ENTITY_TABLE[1]->type].type - 1) * 0xc, 0x80, 5, 0x7a06, 5, 0);
+		if (DIGI_PARA(ENTITY_TABLE[1]->type).type != 0) {
+			renderRectPolyFT4(0x3b, -0x33, 0xc, 0xc, (DIGI_PARA(ENTITY_TABLE[1]->type).type - 1) * 0xc, 0x80, 5, 0x7a06, 5, 0);
 		}
 		if (RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].sleepCycle == 5) {
 			renderString(0, 0x55, -0x33, 0x30, 0xc, 0xcc, 0x30, 5, 0);
@@ -2764,7 +2764,7 @@ void renderDigimonMoveBox(void)
 	}
 
 	for (i = 0; i < 0x10; i++) {
-		moves[i] = DIGIMON_DATA[ENTITY_TABLE[1]->type].moves[i];
+		moves[i] = DIGI_PARA(ENTITY_TABLE[1]->type).moves[i];
 	}
 	sortArray(moves, 0x10);
 
@@ -3113,7 +3113,8 @@ void renderEvoChartDetail(void)
 	for (j = 0; j < fromCount; j++) {
 		id = EVOLUTION_PATHS[CHART_SELECTED_DIGIMON - 1].from[j];
 		if (id > 0) {
-			if (hasDigimonRaised(id & 0xffff) == 1) {
+			/* MOD: no portrait beyond the chart's 61 (MasterTyrannomon): an empty box */
+			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
 				renderRectPolyFT4(fromSprites->posX, fromSprites->posY,
 				                  0x10, 0x10,
 				                  EVO_CHART_BOXES[id - 1].u,
@@ -3131,7 +3132,8 @@ void renderEvoChartDetail(void)
 	for (j = 0; j < toCount; j++) {
 		id = EVOLUTION_PATHS[CHART_SELECTED_DIGIMON - 1].to[j];
 		if (id > 0) {
-			if (hasDigimonRaised(id & 0xffff) == 1) {
+			/* MOD: no portrait beyond the chart's 61 (MasterTyrannomon): an empty box */
+			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
 				renderRectPolyFT4(toSprites->posX, toSprites->posY,
 				                  0x10, 0x10,
 				                  EVO_CHART_BOXES[id - 1].u,
@@ -3149,11 +3151,11 @@ void renderEvoChartDetail(void)
 #if !VERSION_IS(US)
 	renderString(3, -0x19, -0x4f, 0x30, 0xc, 0, 0x18, 4);
 	renderString(0, -0x56, 0x3a, 0x24, 0xc,
-	             ((DIGIMON_DATA[CHART_SELECTED_DIGIMON].level - 1) * 36) + 0x30, 0x18,
+	             ((DIGI_PARA(CHART_SELECTED_DIGIMON).level - 1) * 36) + 0x30, 0x18,
 	             4);
 #else
 	renderString(3, -0x14, -0x4f, 0x24, 0xc, 0, 0x18, 4);
-	switch (DIGIMON_DATA[CHART_SELECTED_DIGIMON].level) {
+	switch (DIGI_PARA(CHART_SELECTED_DIGIMON).level) {
 	case 1:
 		renderString(0, -0x5b, 0x3a, 0x2e, 0xc, 0x24, 0x18, 4);
 		break;
@@ -3479,7 +3481,7 @@ int8_t entityId;
 	type = entity->type;
 	anim = entity->anim.animId;
 	pos = entity->posData;
-	count = DIGIMON_DATA[type].boneCount;
+	count = DIGI_PARA(type).boneCount;
 	modInterpUnapplyEntity(entityId); /* MOD (fps): its own position */
 	savedPos = pos->location;
 	savedRot = pos->rotation;
@@ -3654,7 +3656,7 @@ int32_t drawPlayerInfoStrings(void)
 		MENU_SUB_STATE++;
 		break;
 	case 4:
-		drawString((char *)DIGIMON_DATA, 0, 0x30);
+		drawString((char *)digimonPara(0), 0, 0x30);
 		for (i = 0; i < 4; i++) {
 			drawString(TAMER_LEVEL_TITLES[i], 0, i * 0xc + 0x40);
 		}
@@ -3693,7 +3695,7 @@ int32_t drawEvoChartStrings(int8_t arg)
 		return 1;
 	case 2:
 		clearTextSubArea(&rect2);
-		drawString((char *)(DIGIMON_DATA + arg), 0, 0x30);
+		drawString((char *)digimonPara(arg), 0, 0x30);
 	}
 	return 0;
 }

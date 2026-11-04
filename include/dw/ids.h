@@ -26,7 +26,8 @@ typedef uint16_t CardId;
 #define ITEM_NONE (-1)
 
 /* Digimon types */
-#define NUM_DIGIMON		180	/* DIGIMON_DATA, models, skeletons, voices */
+#define NUM_ORIGINAL_DIGIMON	180	/* the disc's species: DIGIMON_DATA, models, skeletons, voices, ALLTIM */
+#define NUM_DIGIMON		256	/* MOD (species): id capacity; per-partner tables; DIGI.DAT ids < this */
 #define NUM_PARTNER_DIGIMON	66	/* RAISE_DATA, cards; partners are 1..65 */
 #define NUM_EVOLVING_DIGIMON	63	/* EVOLUTION_REQS (by type), raised flags; EVOLUTION_PATHS is by type - 1 */
 #define NUM_EVO_CHART_DIGIMON	61	/* EVO_CHART_BOXES, by type - 1 */
