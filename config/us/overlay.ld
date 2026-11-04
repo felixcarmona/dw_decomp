@@ -75,6 +75,16 @@ SECTIONS
 			BUILD_DIR/src/btl/battle_hud.c.o(.bss.*);
 			. = ALIGN(., 4);
 
+			/*
+			 * MOD (resident code moved, docs/mods/memory.md "Code out of the executable"): code that only
+			 * this overlay calls (tools/xref.py: no reference from the executable's own code), appended here
+			 * so every address of the original overlay stays where it was. Its data stays in the executable.
+			 */
+			BUILD_DIR/src/main/battle_ui.c.o(.text.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/src/main/battle_ui.c.o(.rodata.*);
+			. = ALIGN(., 4);
+
 			/* Trailer */
 			LONG(0);
 
@@ -328,6 +338,27 @@ SECTIONS
 			. = ALIGN(., 4);
 
 			BUILD_DIR/src/mov/mov.c.o(.bss.*);
+			. = ALIGN(., 4);
+
+			/*
+			 * MOD (resident code moved, docs/mods/memory.md "Code out of the executable"): code that only
+			 * this overlay calls (tools/xref.py: no reference from the executable's own code), appended here
+			 * so every address of the original overlay stays where it was. libpress (the MDEC decoder) with its
+			 * tables, and libcd's streaming functions (St*, CdRead2): mov.c unhooks their callbacks
+			 * (DecDCToutCallback(NULL), StUnSetRing) before it returns.
+			 */
+			BUILD_DIR/asm/main/psyq/libpress.s.o(.text .text.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/asm/main/psyq/libcd.s.o(.text.StSetRing .text.StClearRing .text.StUnSetRing .text.StSetStream
+				.text.StFreeRing .text.StGetNext .text.StSetMask .text.StGetBackloc .text.StCdInterrupt
+				.text.StCdInterrupt2 .text.data_ready_callback .text.init_ring_status .text.dma_execute
+				.text.mem2mem .text.CdRead2 .text.DsDataCallback .text.DsReadyCallback);
+			. = ALIGN(., 4);
+			BUILD_DIR/asm/main/psyq/libgpu.s.o(.text.SetDefDispEnv);
+			. = ALIGN(., 4);
+			BUILD_DIR/asm/main/data/psyq/libpress.rodata.s.o(.rodata .rodata.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/asm/main/data/psyq/libpress.data.s.o(.data .data.*);
 			. = ALIGN(., 4);
 		}
 	}
@@ -671,6 +702,20 @@ SECTIONS
 			BUILD_DIR/src/vs/vs_hud.c.o(.bss.*);
 			. = ALIGN(., 4);
 			BUILD_DIR/src/vs/vs_effect.c.o(.bss.*);
+			. = ALIGN(., 4);
+
+			/*
+			 * MOD (resident code moved, docs/mods/memory.md "Code out of the executable"): code that only
+			 * this overlay calls (tools/xref.py: no reference from the executable's own code), appended here
+			 * so every address of the original overlay stays where it was. Its data stays in the executable.
+			 */
+			BUILD_DIR/src/vs/vs_intro.c.o(.text.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/src/vs/vs_combat.c.o(.text.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/src/vs/vs_intro.c.o(.rodata.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/src/vs/vs_combat.c.o(.rodata.*);
 			. = ALIGN(., 4);
 
 			/* Trailer */
