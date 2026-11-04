@@ -2040,7 +2040,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801312E4, 0, 0x30);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c);
+		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		break;
 	case 7:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -2071,7 +2071,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_80131328, 0, 0x18);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c);
+		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		break;
 	case 8:
 		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
@@ -2101,7 +2101,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(SLOT_ACTION_QUESTIONS[MAIN_MENU_ACTION], 0x18, 0x30);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c);
+		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		if (MAIN_MENU_ACTION == 2) {
 			MENU_HIGHLIGHTS[view].pos = 1;
 		}
@@ -2152,7 +2152,7 @@ void drawMainMenuStrings(int32_t menu)
 			drawString(MEMORY_CARD_ERROR_MESSAGES[MEMORY_CARD_ERROR], 0, 0x30);
 			DrawSync(0);
 		}
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c);
+		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		break;
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
@@ -2163,7 +2163,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_8013141C, 0, 0x24);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c);
+		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		if (VS_PLAYER_INDEX == 1) {
 			drawString(STR_2, 0x76, 0x24);
 			drawString(STR_2, 0xB4, 0x24);
@@ -2249,7 +2249,7 @@ void drawMainMenuStrings(int32_t menu)
 	case 18:
 		drawString(MAIN_D_80131568, 0, 0);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xC, 0, 0x1c); /* MOD (font): cut into Yes and No */
+		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xC, 0, 0x1c | PIECE_LEFT); /* MOD (font): cut into Yes and No */
 		break;
 	case 19:
 		strcpy(buf, PARTNER_ENTITY.name);
@@ -2277,7 +2277,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801315EC, 0, 0x18);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0x24, 0, 0x1c); /* MOD (font): cut into Yes and No */
+		DRAW_STRING_PIECES(STR_YES_NO, 0, 0x24, 0, 0x1c | PIECE_LEFT); /* MOD (font): cut into Yes and No */
 		break;
 	}
 #endif
