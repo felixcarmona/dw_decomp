@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <string.h>
 
 #include <dw/mod_font.h>
@@ -84,7 +85,7 @@ int32_t getSpeakerName(speakerId, buf)
 
 	if (speakerId < 0xc8) {
 		speakerId = scriptIdToEntityId(speakerId);
-		type = ENTITY_TABLE[speakerId]->type;
+		type = npcSpeciesType(ENTITY_TABLE[speakerId]->type, 1);
 		goto digimon;
 	}
 
