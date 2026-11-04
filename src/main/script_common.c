@@ -4,6 +4,7 @@
 
 #include <dw/mod_font.h>
 #include <dw/level.h>
+#include <dw/mod_rules.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -1363,6 +1364,8 @@ uint8_t getRecycleId(uint8_t value)
 	return 0xff;
 }
 
+int16_t MOD_DAILY[MOD_DAILY_SIZE] = { -1, -1, -1, -1, -1, -1, -1 };
+
 void dailyPStatTrigger(void)
 {
 	ScriptState *st;
@@ -1371,35 +1374,41 @@ void dailyPStatTrigger(void)
 	uint8_t r;
 	uint8_t v;
 
+	/* MOD (rules as data): MOD_DAILY says how many cards, from what pool, which one never comes up, and the counters.
+	 * (The original compared the new card with the slot it was filling, so a card could repeat; it is compared with the earlier ones now.) */
 	st = SCRIPT_STATE_PTR;
 	for (i = 0; i < 6; i++) {
 		st->smth[i] = 0xff;
 	}
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < 6 && i < MOD_DAILY[MOD_DAILY_CARDS] && MOD_DAILY[MOD_DAILY_POOL] > 0; i++) {
 retry:
-		r = randomLimit(0x40);
+		r = randomLimit(MOD_DAILY[MOD_DAILY_POOL]);
 		r++;
-		if (r == 4) {
+		if (r == MOD_DAILY[MOD_DAILY_EXCLUDED]) {
 			goto retry;
 		}
-		for (j = 0; j < 6; j++) {
-			if (r == st->smth[i]) {
+		for (j = 0; j < i; j++) {
+			if (r == st->smth[j]) {
 				goto retry;
 			}
 		}
 		st->smth[i] = r;
 	}
-	for (i = 0x1c; i < 0x20; i++) {
-		v = readPStat(i);
-		if (v != 0xff) {
-			v++;
-			writePStat((uint8_t)i, v);
+	if (MOD_DAILY[MOD_DAILY_COUNTER_FIRST] >= 0) {
+		for (i = MOD_DAILY[MOD_DAILY_COUNTER_FIRST]; i < MOD_DAILY[MOD_DAILY_COUNTER_FIRST] + MOD_DAILY[MOD_DAILY_COUNTER_COUNT]; i++) {
+			v = readPStat(i);
+			if (v != 0xff) {
+				v++;
+				writePStat((uint8_t)i, v);
+			}
 		}
 	}
-	v = readPStat(2);
-	if (v != 0xff) {
-		v &= 0x7f;
-		writePStat(2, v);
+	if (MOD_DAILY[MOD_DAILY_CLEAR_PSTAT] >= 0 && MOD_DAILY[MOD_DAILY_CLEAR_MASK] >= 0) {
+		v = readPStat(MOD_DAILY[MOD_DAILY_CLEAR_PSTAT]);
+		if (v != 0xff) {
+			v &= MOD_DAILY[MOD_DAILY_CLEAR_MASK];
+			writePStat(MOD_DAILY[MOD_DAILY_CLEAR_PSTAT], v);
+		}
 	}
 }
 
