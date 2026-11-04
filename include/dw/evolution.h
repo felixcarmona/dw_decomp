@@ -5,6 +5,8 @@
 #include <dw/params.h>
 #include <dw/types.h>
 
+/* Deterministic natural target lookup; callers check the due hour. Does not change partner state. */
+int16_t getNaturalEvolutionTarget(int32_t currentDigimon);
 int16_t getFreshEvolutionTarget(int32_t currentDigimon);
 int16_t getInTrainingEvolutionTarget(int32_t currentDigimon);
 int16_t getRookieEvolutionTarget(int32_t currentDigimon);

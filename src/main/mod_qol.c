@@ -18,6 +18,7 @@
 #include <dw/types.h>
 #include <dw/entity.h>
 #include <dw/evl.h>
+#include <dw/evolution.h>
 #include <dw/font.h>
 #include <dw/level.h>
 #include <dw/mod_qol.h>
@@ -296,10 +297,11 @@ int32_t modTrainStopReason(int32_t t0, int32_t tiredAt)
 	if (PARTNER_PARA.remainingLifetime <= 0) {
 		return MOD_TB_LIFE;
 	}
-	/* the hour its next form is looked for; a Champion or Ultimate past it is looked at every hour, which a session
-	   does not hold up */
+	/* Preview the tick's actual target. Champion/Ultimate stops keep their first-hour window;
+	   later field checks still run every hour. No random special-evolution rules are previewed. */
 	if (level >= 1 && level <= LEVEL_ULTIMATE && MOD_EVO_TIMING[level] >= 0 &&
-	    PARTNER_PARA.evoTimer >= MOD_EVO_TIMING[level] && (level < 4 || PARTNER_PARA.evoTimer == MOD_EVO_TIMING[level])) {
+	    PARTNER_PARA.evoTimer >= MOD_EVO_TIMING[level] && (level < 4 || PARTNER_PARA.evoTimer == MOD_EVO_TIMING[level]) &&
+	    getNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type) != -1) {
 		return MOD_TB_EVOLVE;
 	}
 	if (PARTNER_PARA.condition & 0x60) {

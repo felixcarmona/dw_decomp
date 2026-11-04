@@ -922,7 +922,6 @@ int16_t getFreshEvolutionTarget(int32_t currentDigimon) {
       result = MOD_EVO_FRESH[i][1];
   }
 
-  PARTNER_PARA.evoTimer = 0;
   return result; // possible undefined behavior: 'result' may be uninitialized
 }
 
@@ -1389,4 +1388,32 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 		}
 	}
 	return -1;
+}
+
+/* The callers check the due hour. Keep random special-evolution rules in the tick. */
+int16_t getNaturalEvolutionTarget(int32_t currentDigimon)
+{
+	int32_t level = DIGI_PARA(currentDigimon).level;
+	int16_t evoTimer = PARTNER_PARA.evoTimer;
+	int16_t target = -1;
+
+	if (level == 1)
+		return getFreshEvolutionTarget(currentDigimon);
+	if (level == 2)
+		return getInTrainingEvolutionTarget(currentDigimon);
+	if (level == 3)
+		return getRookieEvolutionTarget(currentDigimon);
+	if (level == 4)
+		return getChampionEvolutionTarget(currentDigimon);
+	if (level == LEVEL_ULTIMATE) {
+		target = getModUltimateEvolutionTarget(currentDigimon);
+		if (target == -1 && MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN] >= 0 &&
+		    evoTimer >= MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN]) {
+			target = getChampionEvolutionTarget(currentDigimon);
+			if (target != -1 && evoTimer < MOD_EVO_TIMING[MOD_EVO_MEGA] &&
+			    DIGI_PARA(target).level == LEVEL_MEGA)
+				target = -1;
+		}
+	}
+	return target;
 }
