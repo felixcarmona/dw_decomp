@@ -1358,6 +1358,7 @@ void reincarnatePartner(unused, stats, partner, digimonId)
   removeEntity(PARTNER_ENTITY.digimonEntity.entity.type, 1);
   ENTITY_TABLE[1] = NULL;
   thunkUnloadModel(previousId, 3);
+  modPartnerNameFollow(previousId, id); /* MOD (optional name) */
   initializeReincarnatedPartner(id, 0, 0, 0, 0, 0, 0);
   PARTNER_ENTITY.lives = modNewGame(MOD_NG_LIVES);
   setDigimonRaised(id);
