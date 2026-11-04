@@ -458,6 +458,7 @@ void handlePraiseScold(int32_t state);
 void handleSleeping(void);
 int32_t createPoopPile(int16_t tileX, int16_t tileY);
 void sleepRegen(void);
+void addWithLimit(int16_t *value, int16_t amount, int16_t limit);
 void tickTirednessMechanics(void);
 int32_t partnerWillRefuseItem(void);
 void tickHungerMechanics(void);
@@ -1504,6 +1505,7 @@ int32_t createPoopPile(int16_t tileX, int16_t tileY)
 
 void sleepRegen(void)
 {
+	int32_t healed;
 	int16_t hoursSlept;
 	int16_t sleepFactor;
 	int16_t healRoll;
@@ -1533,12 +1535,11 @@ void sleepRegen(void)
 	maxHP = PARTNER_ENTITY.digimonEntity.stats.base.hp;
 	maxMP = PARTNER_ENTITY.digimonEntity.stats.base.mp;
 	healRoll = randomLimit(careDie(MOD_CARE_REGEN_HPMP_ROLL));
-	PARTNER_ENTITY.digimonEntity.stats.current.currentHP +=
-		(int16_t)(sleepFactor * (maxHP * (healRoll + careAmt(MOD_CARE_REGEN_HPMP_BASE)) / 100) /
-			  100);
-	PARTNER_ENTITY.digimonEntity.stats.current.currentMP +=
-		(int16_t)(sleepFactor * (maxMP * (healRoll + careAmt(MOD_CARE_REGEN_HPMP_BASE)) / 100) /
-			  100);
+	/* MOD (caps): a bar of up to 30000 wrapped the 16-bit sum and left the partner with negative HP */
+	healed = sleepFactor * (maxHP * (healRoll + careAmt(MOD_CARE_REGEN_HPMP_BASE)) / 100) / 100;
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentHP, healed > maxHP ? maxHP : healed, maxHP);
+	healed = sleepFactor * (maxMP * (healRoll + careAmt(MOD_CARE_REGEN_HPMP_BASE)) / 100) / 100;
+	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.current.currentMP, healed > maxMP ? maxMP : healed, maxMP);
 
 	healRoll = randomLimit(careDie(MOD_CARE_REGEN_TIRED_ROLL));
 	PARTNER_PARA.tiredness -=
@@ -1546,10 +1547,6 @@ void sleepRegen(void)
 			  (PARTNER_PARA.tiredness * (healRoll + careAmt(MOD_CARE_REGEN_TIRED_BASE)) / 100) /
 			  100);
 
-	if (PARTNER_ENTITY.digimonEntity.stats.current.currentHP >= maxHP)
-		PARTNER_ENTITY.digimonEntity.stats.current.currentHP = maxHP;
-	if (PARTNER_ENTITY.digimonEntity.stats.current.currentMP >= maxMP)
-		PARTNER_ENTITY.digimonEntity.stats.current.currentMP = maxMP;
 	if (PARTNER_PARA.tiredness < 0)
 		PARTNER_PARA.tiredness = 0;
 
@@ -1958,28 +1955,20 @@ void handleEatingPoop(void)
 
 	/* MOD (care rules as data): three sizes of poop; the part of the maximum HP/MP it gives (a divisor; left out: none), its weight and the chance it cures */
 	if (WORLD_POOP[POOP_TO_EAT].size < careAmt(MOD_CARE_EAT_MED_FROM)) {
-		stats->current.currentHP += (int16_t)(careGet(MOD_CARE_EAT_S_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_S_HP) : 0);
-		stats->current.currentMP += (int16_t)(careGet(MOD_CARE_EAT_S_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_S_MP) : 0);
+		addWithLimit(&stats->current.currentHP, careGet(MOD_CARE_EAT_S_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_S_HP) : 0, stats->base.hp);
+		addWithLimit(&stats->current.currentMP, careGet(MOD_CARE_EAT_S_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_S_MP) : 0, stats->base.mp);
 		PARTNER_PARA.weight += careAmt(MOD_CARE_EAT_S_W);
 		healingChance = careAmt(MOD_CARE_EAT_S_CURE);
 	} else if (WORLD_POOP[POOP_TO_EAT].size < careAmt(MOD_CARE_EAT_LARGE_FROM)) {
-		stats->current.currentHP += (int16_t)(careGet(MOD_CARE_EAT_M_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_M_HP) : 0);
-		stats->current.currentMP += (int16_t)(careGet(MOD_CARE_EAT_M_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_M_MP) : 0);
+		addWithLimit(&stats->current.currentHP, careGet(MOD_CARE_EAT_M_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_M_HP) : 0, stats->base.hp);
+		addWithLimit(&stats->current.currentMP, careGet(MOD_CARE_EAT_M_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_M_MP) : 0, stats->base.mp);
 		PARTNER_PARA.weight += careAmt(MOD_CARE_EAT_M_W);
 		healingChance = careAmt(MOD_CARE_EAT_M_CURE);
 	} else {
-		stats->current.currentHP += (int16_t)(careGet(MOD_CARE_EAT_L_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_L_HP) : 0);
-		stats->current.currentMP += (int16_t)(careGet(MOD_CARE_EAT_L_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_L_MP) : 0);
+		addWithLimit(&stats->current.currentHP, careGet(MOD_CARE_EAT_L_HP) > 0 ? stats->base.hp / careGet(MOD_CARE_EAT_L_HP) : 0, stats->base.hp);
+		addWithLimit(&stats->current.currentMP, careGet(MOD_CARE_EAT_L_MP) > 0 ? stats->base.mp / careGet(MOD_CARE_EAT_L_MP) : 0, stats->base.mp);
 		PARTNER_PARA.weight += careAmt(MOD_CARE_EAT_L_W);
 		healingChance = careAmt(MOD_CARE_EAT_L_CURE);
-	}
-
-	if (stats->current.currentHP > stats->base.hp) {
-		stats->current.currentHP = stats->base.hp;
-	}
-
-	if (stats->current.currentMP > stats->base.mp) {
-		stats->current.currentMP = stats->base.mp;
 	}
 
 	careClamp(&PARTNER_PARA.weight, MOD_CARE_LIM_WEIGHT_MIN, MOD_CARE_LIM_WEIGHT_MAX);
