@@ -42,6 +42,10 @@
 /* SpeciesRecord.flags */
 #define SPECIES_FLAG_DEFINED	0x01	/* the id exists */
 #define SPECIES_FLAG_PARTNER	0x02	/* the partner block is valid: it can be a partner */
+#define SPECIES_FLAG_COND_FX	0x04	/* conditionFx replaces CONDITION_FX_OFFSETS[originalType] */
+
+#define SPECIES_EFFECT_ORIGINS	8
+#define SPECIES_ANY_OFFSET	(-0x8000)	/* EffectOrigin.from[1]: any offset of that bone */
 
 /* SpeciesRecord.texFile */
 #define SPECIES_TEX_ALLTIM	0	/* CHDAT\ALLTIM.TIM */
@@ -56,6 +60,20 @@ typedef struct {
 	uint32_t recordsSector;	/* sector of the first record */
 	uint32_t totalSectors;
 } SpeciesHeader;
+
+/*
+ * MOD (dcb-import): where this species' technique effects start. The EFE data
+ * of each technique lists, per original type, a bone and an offset in that
+ * bone's space (EfeTechBoneOffset). A new species borrows the entries of its
+ * originalType, whose bone numbers belong to another skeleton: an entry here
+ * whose `from` equals the borrowed {bone, x, y, z} (or {bone, ANY_OFFSET, ..})
+ * replaces it with `to`, one of this species' bones and a point in it. Bone 0
+ * (the entity) offsets are skeleton-independent and are normally left alone.
+ */
+typedef struct {
+	int16_t from[4];		/* bone, x, y, z of the originalType's entry */
+	int16_t to[4];			/* bone, x, y, z for this species (an EfeBoneOffset) */
+} SpeciesEffectOrigin;
 
 typedef struct {
 	DigimonPara para;		/* 0x000 name, bones, radius, height, level, specials, drop, techniques */
@@ -79,7 +97,13 @@ typedef struct {
 	int8_t itemTakeDistance;	/* 0x130 */
 	int8_t trainingAnims[2];	/* 0x131 TRN_TRAINING_ANIM_IDS row */
 	int8_t training2Anims[2];	/* 0x133 TRN2_TRAINING_ANIM_IDS row */
-	uint8_t reserved135[SPECIES_RECORD_SIZE - 0x135];
+	uint8_t reserved135;
+	/* MOD (dcb-import): effect origins of a species with its own skeleton */
+	int16_t conditionFx[4];		/* 0x136 x, y, z, bone (SPECIES_FLAG_COND_FX) */
+	uint8_t numEffectOrigins;	/* 0x13E */
+	uint8_t reserved13F;
+	SpeciesEffectOrigin effectOrigins[SPECIES_EFFECT_ORIGINS]; /* 0x140 */
+	uint8_t reserved1C0[SPECIES_RECORD_SIZE - 0x1C0];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
@@ -91,6 +115,8 @@ SPECIES_LAYOUT_CHECK(evoReqs, __builtin_offsetof(SpeciesRecord, evoReqs) == 0xF0
 SPECIES_LAYOUT_CHECK(evoGains, __builtin_offsetof(SpeciesRecord, evoGains) == 0x10C);
 SPECIES_LAYOUT_CHECK(evoPaths, __builtin_offsetof(SpeciesRecord, evoPaths) == 0x11A);
 SPECIES_LAYOUT_CHECK(item, __builtin_offsetof(SpeciesRecord, itemTakeDistance) == 0x130);
+SPECIES_LAYOUT_CHECK(condfx, __builtin_offsetof(SpeciesRecord, conditionFx) == 0x136);
+SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) == 0x140);
 SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x14);
 
 /* ids 0..SPECIES_COUNT-1 exist (NUM_ORIGINAL_DIGIMON without DIGI.DAT) */
@@ -115,6 +141,11 @@ int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t
 /* the evolution paths of a type (EVOLUTION_PATHS covers types 1..62, new
  * species have their own rows; any other type has none) */
 EvolutionPath *getEvolutionPath(int32_t type);
+/* MOD (dcb-import): the bone offset a technique effect of `type` starts
+ * from: `borrowed` (the originalType's EFE entry) or this species' own one */
+int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed);
+/* the condition icon offset (x, y, z, bone) of a type */
+SVECTOR *getConditionFxOffset(int32_t type);
 /* a training animation row (TRN/TRN2 tables live in the overlays) */
 int8_t *getTrainingAnimRow(int8_t (*table)[2], int32_t type, int32_t which);
 

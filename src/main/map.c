@@ -5829,7 +5829,7 @@ void translateConditionFXToEntity(Entity *entity, SVECTOR *out)
 	SVECTOR *offset;
 	MATRIX *matrix;
 
-	offset = &CONDITION_FX_OFFSETS[getOriginalType(entity->type)];
+	offset = getConditionFxOffset(entity->type); /* MOD (dcb-import): new species may have their own */
 	matrix = &entity->posData[offset->pad].posMatrix.workm;
 	ApplyMatrixSV(matrix, offset, out);
 	out->vx += (int16_t)matrix->t[0];

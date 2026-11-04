@@ -10,17 +10,19 @@
  *                      afterwards it says the gift was already taken
  *   - "Frame rate  60 fps"  X (or right) cycles 20 -> 30 -> 60 fps, left
  *                      goes back (MOD_FPS_MODE, main.c; experimental branch)
- *   - "To MasterTyrannomon"  starts the real evolution sequence into
- *                      MasterTyrannomon (type 124) when the game is unpaused,
- *                      the way an evolution item does, but with the natural
- *                      stat gains (HAS_USED_EVOITEM = 0). Left/right choose
- *                      the target: "To MasterTyrannomon", "To Cherrymon"
- *                      (type 121; MOD cherrymon), "To King of Sukamon"
- *                      (type 120; MOD partners-npc-a), "To Icemon" (94),
- *                      "To Meteormon" (113), the partners of MOD
- *                      partners-npc-b, "To Machinedramon" (type 115; MOD
- *                      machinedramon), "To Jijimon" (117), "To Analogman"
- *                      (116)
+ *   - "To MasterTyrannomon"  starts the real evolution sequence into the shown
+ *                      species when the game is unpaused, the way an
+ *                      evolution item does, but with the natural stat gains
+ *                      (HAS_USED_EVOITEM = 0). Left/right choose the target:
+ *                      "To MasterTyrannomon" (124), "To Cherrymon" (121; MOD
+ *                      cherrymon), "To King of Sukamon" (120; MOD
+ *                      partners-npc-a), "To Icemon" (94), "To Meteormon"
+ *                      (113), the partners of MOD partners-npc-b, "To
+ *                      Machinedramon" (115; MOD machinedramon), "To Jijimon"
+ *                      (117), "To Analogman" (116), and the species imported
+ *                      from other games, Veemon (182), Puppetmon (183),
+ *                      Kimeramon (184) (MOD dcb-import); a species the disc's
+ *                      DIGI.DAT does not define is skipped
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -38,6 +40,7 @@
 #include <dw/entity.h>
 #include <dw/ids.h>
 #include <dw/params.h>
+#include <dw/species.h>
 #include <dw/font.h>
 #include <dw/script.h>
 #include <dw/sound.h>
@@ -109,6 +112,12 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_MACHINEDRAMON, /* MOD (machinedramon) */
 	DIGIMON_JIJIMON,       /* MOD (jijimon) */
 	DIGIMON_ANALOGMAN,     /* MOD (analogman) */
+	/* MOD (dcb-import): the species imported from other games
+	 * (content/species/: 182 Veemon and 183 Puppetmon from Digimon Digital
+	 * Card Battle, 184 Kimeramon from Digimon World 2003) */
+	182,
+	183,
+	184,
 };
 
 static char *MOD_LAB_EVO_TEXT[] = {
@@ -123,8 +132,24 @@ static char *MOD_LAB_EVO_TEXT[] = {
 	"To Machinedramon", /* MOD (machinedramon) */
 	"To Jijimon",       /* MOD (jijimon) */
 	"To Analogman",     /* MOD (analogman) */
+	"To Veemon",        /* MOD (dcb-import) */
+	"To Puppetmon",
+	"To Kimeramon",
 };
 #define MOD_LAB_EVO_COUNT ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
+
+/* MOD (dcb-import): next target (step 1 or COUNT-1) whose species exists */
+static void modLabStepEvoChoice(int32_t step)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_LAB_EVO_COUNT; i++) {
+		modLabEvoChoice = (modLabEvoChoice + step) % MOD_LAB_EVO_COUNT;
+		if (isValidDigimonType(MOD_LAB_EVO_TARGETS[modLabEvoChoice])) {
+			break;
+		}
+	}
+}
 
 static char *MOD_LAB_FPS_TEXT[3] = {
 	"Frame rate  20 fps",
@@ -277,7 +302,9 @@ static void modLabApply(void)
 		break;
 	case MOD_LAB_OPT_EVOLVE:
 		/* MOD (master-tyrannomon): as handleEvoItems does, with natural gains */
-		if (PARTNER_ENTITY.digimonEntity.entity.type == MOD_LAB_EVO_TARGETS[modLabEvoChoice]) {
+		if (!isValidDigimonType(MOD_LAB_EVO_TARGETS[modLabEvoChoice])) {
+			modLabShowMessage("Not on this disc");
+		} else if (PARTNER_ENTITY.digimonEntity.entity.type == MOD_LAB_EVO_TARGETS[modLabEvoChoice]) {
 			modLabShowMessage("Already evolved");
 		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
 			modLabShowMessage("Not now, try later");
@@ -336,8 +363,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && modLabCursor == MOD_LAB_OPT_EVOLVE) {
 			/* MOD (cherrymon): choose the evolution target */
 			playSound(0, 2);
-			modLabEvoChoice = (modLabEvoChoice + ((pressed & PAD_RIGHT) ? 1 : MOD_LAB_EVO_COUNT - 1)) %
-					  MOD_LAB_EVO_COUNT;
+			modLabStepEvoChoice((pressed & PAD_RIGHT) ? 1 : MOD_LAB_EVO_COUNT - 1);
 		} else if (pressed & PAD_CROSS) {
 			if (modLabCursor == MOD_LAB_OPTIONS - 1) {
 				break;
