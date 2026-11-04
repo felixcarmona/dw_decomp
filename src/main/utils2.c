@@ -383,11 +383,16 @@ int32_t isInvisible(Entity* entity)
 	return 0;
 }
 
+void modBtlPreloadDrop(void); /* MOD (quick battle start), btl.c */
+
 void loadDynamicLibrary(Overlay lib, uint8_t *isComplete, uint8_t isAsync,
 			FileCallback callback, void *param)
 {
 	uint8_t *nv;
 
+	if (lib != BTL_REL) {
+		modBtlPreloadDrop(); /* MOD (quick battle start), btl.c */
+	}
 	if (!isAsync) {
 		readFile(REL_BIN_FILES[lib - 1], (nv = REL_BIN_OFFSETS[lib - 1]));
 	} else {

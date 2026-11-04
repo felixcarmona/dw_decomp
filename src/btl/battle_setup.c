@@ -8,6 +8,7 @@
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/script.h>
+#include <dw/mod_options.h> /* MOD (quick battle start) */
 
 extern int8_t BATTLE_TOGGLE_LIFEBAR;
 extern int16_t DEATH_COUNTDOWN;
@@ -205,6 +206,62 @@ void BTL_initializeCombat(void)
 	BTL_initializeCommandMenu();
 }
 
+/* MOD (quick battle start): the intro without its waits. The tamer's walk back (the loop below: along the waypoints
+ * until the next step would leave the combat area, then to the screen's start tile) runs at once, unseen, with only
+ * the tamer's animation ticked, so he ends where the intro would have left him; those who flee leave at once; no
+ * BATTLE letters. The entity step snaps the 60 fps interpolation. */
+static void BTL_quickBattleIntro(int16_t *found, int32_t count, int16_t wp)
+{
+	int32_t i;
+	int32_t timer;
+	int16_t result;
+	int16_t tileX;
+	int16_t tileY;
+
+	result = -1;
+	for (timer = 0; timer < 0xc8; timer++) {
+		if (ENTITY_TABLE[0]->anim.animId != 1) {
+			getModelTile(&ENTITY_TABLE[0]->posData->location, &tileX, &tileY);
+			if (wp >= 0) {
+				entityLookAtTile(ENTITY_TABLE[0], TAMER_WAYPOINT_X[wp], TAMER_WAYPOINT_Y[wp]);
+				if ((tileX == TAMER_WAYPOINT_X[wp]) && (tileY == TAMER_WAYPOINT_Y[wp])) {
+					wp--;
+					TAMER_WAYPOINT_COUNT--;
+				}
+				result = entityCheckCollision(ENTITY_TABLE[1], ENTITY_TABLE[0], 0x136, 0xe6);
+			} else {
+				entityLookAtTile(ENTITY_TABLE[0], TAMER_START_TILE_X, TAMER_START_TILE_Y);
+				if ((tileX == TAMER_START_TILE_X) && (tileY == TAMER_START_TILE_Y)) {
+					result = 0xb;
+				} else {
+					result = entityCheckCollision(ENTITY_TABLE[1], ENTITY_TABLE[0], 0x12c, 0xdc);
+				}
+			}
+		}
+		if (result == 0xb) {
+			break;
+		}
+		tickAnimation(ENTITY_TABLE[0]);
+	}
+
+	if (wp != -1) {
+		TAMER_WAYPOINT_COUNT = wp + 1;
+		TAMER_WAYPOINT_ACTIVE = TAMER_WAYPOINT_COUNT - 1;
+	} else {
+		clearTamerWaypoints();
+	}
+
+	startAnimation(ENTITY_TABLE[0], 1);
+	entityLookAtLocation(ENTITY_TABLE[0], &ENTITY_TABLE[1]->posData->location);
+
+	for (i = 0; i < count; i++) {
+		ENTITY_TABLE[found[i]]->isOnMap = 0;
+		ENTITY_TABLE[found[i]]->anim.animFlag &= 0xfb;
+	}
+
+	GAME_STATE = 1;
+}
+
 void BTL_handleBattleIntro(void)
 {
 	int32_t i;
@@ -224,7 +281,9 @@ void BTL_handleBattleIntro(void)
 
 	startBattleIdleAnimation(&PARTNER_ENTITY.digimonEntity, &PARTNER_ENTITY.digimonEntity.stats, COMBAT_DATA_PTR->fighter[0].flags);
 	entityLookAtLocation(&PARTNER_ENTITY.digimonEntity.entity, &ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->posData->location);
-	BTL_initializeBattleStartText();
+	if (!MOD_OPT_QUICK_BATTLE) { /* MOD (quick battle start): no BATTLE letters */
+		BTL_initializeBattleStartText();
+	}
 	count = 0;
 	for (i = 2; i < 0xa; i++) {
 		npc = (NPCEntity *)ENTITY_TABLE[i];
@@ -257,6 +316,11 @@ void BTL_handleBattleIntro(void)
 	TAMER_WAYPOINT_ACTIVE = 0;
 	startAnimation(&TAMER_ENTITY.entity, 3);
 	playSound(0, 0x10);
+
+	if (MOD_OPT_QUICK_BATTLE) {
+		BTL_quickBattleIntro(found, count, wp);
+		return;
+	}
 
 	while ((timer < 0xc8) || (allOffScreen == 0) || (done == 0)) {
 		if (ENTITY_TABLE[0]->anim.animId != 1) {
