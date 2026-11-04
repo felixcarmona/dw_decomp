@@ -260,17 +260,17 @@ CHART_TEXT:
       ja: "MP"
       en_us: "MP"
     CHART_STR_STAT_OFF:
-      ja: "Off"
-      en_us: "Off"
+      ja: "Offense"
+      en_us: "Offense"
     CHART_STR_STAT_DEF:
-      ja: "Def"
-      en_us: "Def"
+      ja: "Defense"
+      en_us: "Defense"
     CHART_STR_STAT_SPD:
-      ja: "Spd"
-      en_us: "Spd"
+      ja: "Speed"
+      en_us: "Speed"
     CHART_STR_STAT_BRN:
-      ja: "Brn"
-      en_us: "Brn"
+      ja: "Brains"
+      en_us: "Brains"
     CHART_STR_AUTOMATIC:
       ja: "Automatic"
       en_us: "Automatic"
@@ -284,23 +284,23 @@ CHART_TEXT:
       ja: "Weight"
       en_us: "Weight"
     CHART_STR_TOP:
-      ja: "Top"
-      en_us: "Top"
+      ja: "Highest stat"
+      en_us: "Highest stat"
     CHART_STR_STATS_ANY:
-      ja: "Stats any"
-      en_us: "Stats any"
+      ja: "Any attributes"
+      en_us: "Any attributes"
     CHART_STR_STATS:
-      ja: "Stats"
-      en_us: "Stats"
+      ja: "Attributes"
+      en_us: "Attributes"
     CHART_STR_BONUS_ANY:
       ja: "Bonus any"
       en_us: "Bonus any"
     CHART_STR_BONUS_ONE_OF:
-      ja: "Bonus, one of"
-      en_us: "Bonus, one of"
+      ja: "Extra: any one"
+      en_us: "Extra: any one"
     CHART_STR_FROM:
-      ja: "From "
-      en_us: "From "
+      ja: "From %s"
+      en_us: "From %s"
     CHART_STR_YES:
       ja: "yes"
       en_us: "yes"
@@ -317,11 +317,8 @@ CHART_TEXT:
       ja: "Battles"
       en_us: "Battles"
     CHART_STR_TECHS:
-      ja: "Techs"
-      en_us: "Techs"
-    CHART_STR_OF_4:
-      ja: " of 4"
-      en_us: " of 4"
+      ja: "Techniques"
+      en_us: "Techniques"
     CHART_STR_READY:
       ja: "  ready"
       en_us: "  ready"
@@ -334,3 +331,24 @@ CHART_TEXT:
     STATUS_STR_TIRED:
       en_us: Tired
       ja: つかれ
+    CHART_STR_VIEW:
+      ja: "View requirements"
+      en_us: "View requirements"
+    CHART_STR_CLOSE:
+      ja: "Close"
+      en_us: "Close"
+    CHART_STR_EVOLVE:
+      ja: "Evolve: %s"
+      en_us: "Evolve: %s"
+    CHART_STR_VERDICT:
+      ja: "Met %d of 4. Need %d."
+      en_us: "Met %d of 4. Need %d."
+    CHART_STR_SHORT:
+      ja: "%d more needed."
+      en_us: "%d more needed."
+    CHART_STR_NEEDS:
+      ja: "Needs"
+      en_us: "Needs"
+    CHART_STR_HAVE:
+      ja: "You have"
+      en_us: "You have"
