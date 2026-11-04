@@ -210,11 +210,14 @@ void startAnimation(entity, animId)
 	modInterpAnimStarted(entity); /* MOD (fps): a pose jump */
 	if (animTable[animId] & COLD_ANIM_FLAG) {
 		/* MOD (cold animations): read from the disc into COLD_ANIM_BUFFER (species.h) */
-		instrPtr = (int16_t *)loadColdAnimation(entity, animTable[animId]);
+		instrPtr = (int16_t *)loadColdAnimation(entity, animTable[animId], animId);
 		if (instrPtr == NULL)
 			return;
 	} else {
 		instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
+		if (entity == (Entity *)&PARTNER_ENTITY.digimonEntity.entity) {
+			MOD_COLD_PENDING = 0; /* this animation replaces the one being read */
+		}
 	}
 	modSmoothBeforeStart(entity, animId);
 	if ((*instrPtr & 0x7fff) == 1) {
@@ -278,6 +281,8 @@ void startAnimation(entity, animId)
 	anim->animInstrPtr = instrPtr;
 }
 
+void tickColdAnimation(Entity *entity);
+
 void tickAnimation(Entity *entity)
 {
 	EntityAnim *anim;
@@ -292,8 +297,10 @@ void tickAnimation(Entity *entity)
 	framePtr = &anim->animFrame;
 	momentum = anim->momentum;
 
-	if (!(anim->animFlag & 1))
+	if (!(anim->animFlag & 1)) {
+		tickColdAnimation(entity); /* MOD (cold animations) */
 		return;
+	}
 
 	tickMomentum(entity, momentum);
 

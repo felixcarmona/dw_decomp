@@ -272,7 +272,8 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
  */
 #define COLD_ANIM_FLAG		0x80000000
 #define COLD_ANIM_MAX		0x2000
-uint8_t *loadColdAnimation(void *entity, uint32_t entry); /* an Entity * */
+uint8_t *loadColdAnimation(void *entity, uint32_t entry, int32_t animId); /* an Entity * */
+extern uint32_t MOD_COLD_PENDING;
 int32_t modProbeRam(void);
 void refreshColdCache(void);	/* with 8 MB of RAM the partner's cold part stays in memory (mod_species.c) */
 int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t *sectors);
