@@ -24,7 +24,7 @@
 #include <dw/utils.h>
 #include <dw/vecmath.h>
 
-#define MURD_ORDERING_TABLE_0	((GsOT_TAG *)0x8008c000)
+#define MURD_ORDERING_TABLE_0	((GsOT_TAG *)OVL_OT_0_ADDR)
 
 typedef struct {
 	int16_t timer;
@@ -303,7 +303,7 @@ void MURD_tickScene(int32_t instanceId)
 		}
 		removeObject(0x60a, instanceId);
 		scene->timer = -0xa;
-		DOOA_tick((PartnerEntity *)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + 0x4b000, 0);
+		DOOA_tick((PartnerEntity *)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + DOOA_WORK_OFFSET, 0);
 		ENTITY_TABLE[1]->isOnMap = 0;
 		break;
 	}

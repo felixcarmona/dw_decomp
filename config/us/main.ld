@@ -1,3 +1,5 @@
+#include <dw/memmap.h>
+
 ENTRY(__start)
 
 SECTIONS
@@ -5,7 +7,7 @@ SECTIONS
     __romPos = 0;
     _gp = main_SDATA_START + 0x8000;
     header_ROM_START = __romPos;
-    .header 0x80090000 : AT(header_ROM_START)
+    .header EXE_HEADER_ADDR : AT(header_ROM_START)
     {
         KEEP(BUILD_DIR/asm/main/data/header.data.s.o(.data.*));
         . = ALIGN(., 4);
@@ -196,11 +198,11 @@ SECTIONS
         _ftext = .;
         LONG(main_TEXT_START)
         _stack_addr = .;
-        LONG(0x801FFF00)
+        LONG(STACK_ADDR)
         _nbtvectors = .;
         LONG(0x0)
         _stack_size = .;
-        LONG(0x40)
+        LONG(STACK_SIZE_KB)
         _heap_size = .;
         LONG(0x400)
         _etext = .;
@@ -943,3 +945,26 @@ SECTIONS
         *(*);
     }
 }
+
+/*
+ * Memory map checks (include/dw/memmap.h, docs/mods/ids.md § 9.5): a link
+ * that would overlap the fixed areas fails here instead of in the game.
+ */
+#define OVL_END(s) (ADDR(s) + SIZEOF(s))
+ASSERT(OVL_END(.MOV) <= LOAD_AREA_END, "MOV overlay overflows the load area")
+ASSERT(OVL_END(.BTL) <= LOAD_AREA_END, "BTL overlay overflows the load area")
+ASSERT(OVL_END(.STD) <= LOAD_AREA_END, "STD overlay overflows the load area")
+ASSERT(OVL_END(.VS) <= LOAD_AREA_END, "VS overlay overflows the load area")
+ASSERT(OVL_END(.KAR) <= LOAD_AREA_END, "KAR overlay overflows the load area")
+ASSERT(OVL_END(.EVL) <= LOAD_AREA_END, "EVL overlay overflows the load area")
+ASSERT(OVL_END(.ENDI) <= LOAD_AREA_END, "ENDI overlay overflows the load area")
+ASSERT(OVL_END(.EAB) <= LOAD_AREA_END, "EAB overlay overflows the load area")
+ASSERT(OVL_END(.FISH) <= LOAD_AREA_END, "FISH overlay overflows the load area")
+ASSERT(OVL_END(.DOO2) <= LOAD_AREA_END, "DOO2 overlay overflows the load area")
+ASSERT(OVL_END(.MURD) <= OVL_OT_0_ADDR, "MURD overlay overlaps its ordering table")
+ASSERT(OVL_END(.DOOA) <= OVL_OT_0_ADDR, "DOOA overlay overlaps its ordering tables")
+ASSERT(OVL_END(.DGET) <= LOAD_AREA_END, "DGET overlay overflows the load area")
+ASSERT(OVL_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the original's slot")
+ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
+ASSERT(main_BSS_END + MIN_HEAP <= STACK_ADDR - STACK_SIZE_KB * 1024,
+       "main leaves less than MIN_HEAP bytes of heap below the stack")

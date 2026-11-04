@@ -21,7 +21,7 @@
 #include <dw/version.h>
 #include <text/main/utils2.h>
 
-#define shop_START		((char *)0x80080800)
+#define shop_START		((char *)OVL_SHOP_BASE)
 
 void reinitializeAfterTournament(void);
 void thunkReinitializeAfterTournament(void);
@@ -602,7 +602,7 @@ void startTournament(void)
 	if (i < 0xfe) {
 		if (id != 0x16) {
 			while ((i = *p++) < 0xfe) {
-				if (isTriggerSet(i + 200) != 0) {
+				if (isTriggerSet(i + TRIGGER_RECRUITED_BASE) != 0) {
 					*w++ = i;
 					count++;
 				}
@@ -614,8 +614,8 @@ void startTournament(void)
 			}
 		}
 	} else {
-		for (i = 0; i < 0x70; i++) {
-			if (isTriggerSet(i + 200) != 0) {
+		for (i = 0; i < NUM_RECRUITABLE_DIGIMON; i++) {
+			if (isTriggerSet(i + TRIGGER_RECRUITED_BASE) != 0) {
 				*w++ = i;
 				count++;
 			}

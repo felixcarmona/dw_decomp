@@ -4,6 +4,7 @@
 #include <libgte.h>
 
 #include <dw/entity.h>
+#include <dw/ids.h>
 #include <dw/types.h>
 #include <dw/version.h>
 
@@ -59,7 +60,7 @@ extern char *ITEM_NAMES[];
 extern TamerItem TAMER_ITEM;
 extern Inventory INVENTORY;
 extern DroppedItem DROPPED_ITEMS[11];
-extern ItemFunction ITEM_FUNCTIONS[128];
+extern ItemFunction ITEM_FUNCTIONS[NUM_ITEMS];
 
 void initializeInventory(void);
 void setInventorySize(uint8_t size);

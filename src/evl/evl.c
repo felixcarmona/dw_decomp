@@ -11,6 +11,8 @@
 #include <dw/evl.h>
 #include <dw/file_queue.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
+#include <dw/memmap.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -25,7 +27,7 @@
 
 #include "common.h"
 
-#define EVL_MMD_BUFFER	0x80020000
+#define EVL_MMD_BUFFER	EVO_MMD_ADDR
 
 typedef struct {
 	int16_t timer;
@@ -68,7 +70,6 @@ extern GsRVIEW2 EVL_D_80068918;
 extern int16_t EVL_D_800679E4[];
 extern RGB8 MAIN_D_801349E8;
 extern SVECTOR MAIN_D_801349EC;
-extern uint8_t CURRENT_SCREEN;
 extern int32_t MAIN_D_801349E4;
 extern VECTOR EVL_D_80068908;
 int32_t getMapSoundId(int32_t mapId);

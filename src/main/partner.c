@@ -7,6 +7,7 @@
 #include <dw/entity.h>
 #include <dw/evl.h>
 #include <dw/fade.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/kar.h>
 #include <dw/main.h>
@@ -30,7 +31,6 @@ extern uint8_t POOP_TO_EAT;
 
 extern int8_t MAIN_STATE;
 extern int8_t GAME_STATE;
-extern uint8_t CURRENT_SCREEN;
 
 extern int32_t IS_IN_MENU;
 extern int32_t CURRENT_MENU;
@@ -43,7 +43,7 @@ extern int32_t CHECKED_MEMORY_CARD;
 extern VECTOR STORED_TAMER_POS;
 
 
-extern int8_t ITEM_TAKE_DISTANCE[66];
+extern int8_t ITEM_TAKE_DISTANCE[NUM_PARTNER_DIGIMON];
 
 void tickMainMenu(int32_t instanceId);
 void renderMainMenu(int32_t instanceId);
@@ -649,7 +649,7 @@ void partnerTickDying(void)
 		entityLookAtLocation(&PARTNER_ENTITY.digimonEntity.entity, &(TAMER_ENTITY.entity.posData)->location);
 		if (getPartnerTamerCloseness() > 0) {
 			isSoundLoaded(0, 8);
-			DOOA_tick((PartnerEntity*)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + 0x4b000, 0);
+			DOOA_tick((PartnerEntity*)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + DOOA_WORK_OFFSET, 0);
 			setFishingDisabled();
 			tamerSetState(6);
 			unsetCameraFollowPlayer();
@@ -657,7 +657,7 @@ void partnerTickDying(void)
 		}
 		break;
 	case 2:
-		value = DOOA_tick((PartnerEntity*)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + 0x4b000, 1);
+		value = DOOA_tick((PartnerEntity*)ENTITY_TABLE[1], GENERAL_BUFFER_PTR + DOOA_WORK_OFFSET, 1);
 		if (value == -1) {
 			setFishingEnabled();
 			PARTNER_PARA.remainingLifetime = 360;
