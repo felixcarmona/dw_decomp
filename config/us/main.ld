@@ -1079,3 +1079,6 @@ ASSERT(STACK_SIZE_KB * 1024 >= 4 * STACK_MEASURED_MAX,
        "the stack is less than 4 times the deepest use measured")
 ASSERT(main_BSS_END + MIN_HEAP <= STACK_ADDR - STACK_SIZE_KB * 1024,
        "main leaves less than MIN_HEAP bytes of heap below the stack")
+
+ASSERT(NPC_STAGE_ADDR >= TFS_RING_END && NPC_STAGE_ADDR + NPC_STAGE_MAX <= SAVE_EXT_ADDR,
+       "NPC staging overlaps the TFS ring or save extensions");

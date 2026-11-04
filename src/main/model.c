@@ -5,6 +5,7 @@
 #include <libetc.h>
 #include <libgs.h>
 #include <libgte.h>
+#include <libspu.h>
 
 #include <dw/anim.h>
 #include <dw/entity.h>
@@ -3445,6 +3446,24 @@ static void readDigimonModel(int32_t type, char *path, void *buffer)
 	}
 }
 
+/* No read of staged bytes survives this call. The TFS ring ends at the
+ * staging start; pending CD/SPU sound transfers finish before reusing it. */
+int32_t compactNpcModel(int32_t type, uint8_t *mmd, int32_t size);
+extern int8_t GAME_STATE;
+__attribute__((noinline)) uint8_t *loadStagedNpcModel(int32_t type, char *path, int32_t size)
+{
+    uint8_t *stage = (uint8_t *)NPC_STAGE_ADDR;
+    uint8_t *model;
+    int32_t compact;
+    while (isFileReadQueueBusy()) tickFileReadQueue(0);
+    SpuIsTransferCompleted(1);
+    readDigimonModel(type, path, stage);
+    compact = compactNpcModel(type, stage, size);
+    model = malloc3(compact);
+    if (model != NULL) memcpy(model, stage, compact);
+    return model;
+}
+
 /*
  * MOD (partners-npc-c): NPC characters that can also be the partner get a
  * partner-only model file: the partner needs some 45 animation slots, while
@@ -3542,13 +3561,19 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 		concatStrings(path, MAIN_D_8011D484, name);
 		concatStrings(path, path, MAIN_D_801340E4);
 		path[9] = digiType / 30 + '0';
-		m->mmdPtr = malloc3((getDigimonModelFileSize(digiType, path) + 0x7FF) & ~0x7FF);
-		if (m->mmdPtr == NULL) {
-			handleNullModel();
-		}
-		readDigimonModel(digiType, path, m->mmdPtr);
-		/* MOD (memreclaim): drop the animations NPCs never play */
-		m->mmdPtr = trimNpcModel(digiType, m->mmdPtr, getDigimonModelFileSize(digiType, path));
+        {
+            int32_t size = getDigimonModelFileSize(digiType, path);
+            if (GAME_STATE == 0 && size > 0 && ((size + 0x7FF) & ~0x7FF) <= NPC_STAGE_MAX) {
+                m->mmdPtr = loadStagedNpcModel(digiType, path, size);
+            } else {
+                m->mmdPtr = malloc3((size + 0x7FF) & ~0x7FF);
+                if (m->mmdPtr != NULL) {
+                    readDigimonModel(digiType, path, m->mmdPtr);
+                    m->mmdPtr = trimNpcModel(digiType, m->mmdPtr, size);
+                }
+            }
+            if (m->mmdPtr == NULL) { handleNullModel(); return NULL; }
+        }
 		m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 		m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
 		GsMapModelingData((u_long *)&m->modelPtr->flags);
