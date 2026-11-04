@@ -45,7 +45,7 @@ void updateTournamentRegistration(void)
 	uint8_t value;
 	int32_t flag;
 	uint32_t minutes;
-	uint8_t partnerType;
+	DigimonId partnerType; /* MOD: was u8 */
 
 	flag = 0;
 	if (isTriggerSet(TRIGGER_TOURNAMENT_REGISTERED)) {
