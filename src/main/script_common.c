@@ -2,6 +2,7 @@
 
 #include <libgs.h>
 
+#include <dw/mod_font.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -1767,6 +1768,7 @@ void createShopBitsBox(int32_t showBits)
 	setupBoxOrigin(0xfd, &origin);
 	setRECT(&rect, -0x98, -0x62, 0x52, 0x21);
 	createTextbox(2, flags, &rect, &origin, tickShopBitsBox, renderShopBitsBox);
+	TEXTBOX_IN_CELLS(2); /* MOD (font): its row is cut in two (renderShopBitsBox) */
 	registerTextbox(2, 8, 1, 0, 0);
 	tickShopBitsBox();
 }
@@ -2073,6 +2075,7 @@ int32_t createSingleCardShopMenu(RECT *origin)
 	origin->y += (boxY + box->cursor * 18);
 	setRECT(&rect, -0x38, -0x15, 0x70, 0x2a);
 	createTextbox(3, flags, &rect, origin, tickSingleCardShop, renderSingleCardShop);
+	TEXTBOX_IN_CELLS(3); /* MOD (font): the answers are cut at fixed offsets (CONFIRM_BOX_LAYOUT) */
 	registerTextbox(3, ITEM_MENU_SUB_TEXTBOX_LINE, 2, 0, 0);
 	showMapHeadTextbox(0, 0xff, 3, 0x4d8);
 	SHOP_AMOUNT = 0;

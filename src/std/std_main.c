@@ -7,6 +7,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/aabb.h>
 #include <dw/attack_object.h>
@@ -1429,7 +1430,7 @@ void STD_drawStatLabelText(void)
 		DrawSync(0);
 	}
 
-	drawString(MAIN_D_80124C54, 0, 0xf0);
+	DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 }
 
 // clang-format off
