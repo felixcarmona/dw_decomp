@@ -540,9 +540,17 @@ char VS_PATH_STDDAT_DRAW_TMD[] = "\\STDDAT\\DRAW.TMD";
 
 uint8_t VS_COMMAND_LABEL_U[5] = { 0, 11, 25, 39, 50 };
 uint8_t VS_COMMAND_LABEL_W[5] = { 11, 14, 14, 11, 11 };
+/* MOD (language): the gauge's segments are the letters of BI_IN.TIM's FINISH!!; the Spanish texture has REMATE! there
+ * (tools/localize/textures/misc build.py finish), its eighth segment empty */
+#if MOD_LANG_BUILD == MOD_LANG_ES
+uint8_t VS_FINISHER_SEGMENT_U[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+uint8_t VS_FINISHER_SEGMENT_W[8] = { 7, 6, 9, 7, 6, 6, 5, 0 };
+uint8_t VS_FINISHER_SEGMENT_X[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+#else
 uint8_t VS_FINISHER_SEGMENT_U[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
 uint8_t VS_FINISHER_SEGMENT_W[8] = { 6, 4, 8, 4, 8, 8, 5, 5 };
 uint8_t VS_FINISHER_SEGMENT_X[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
+#endif
 char *VS_VERSUS_MODEL_PATH = VS_PATH_STDDAT_DRAW_TMD;
 int16_t VS_VERSUS_MODEL_TARGET_X[4] = { -273, -86, 94, 272 };
 
