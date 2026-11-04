@@ -812,7 +812,7 @@ char SAVEGAME_ID_LABEL[16][6] = {
 	"15",
 };
 
-MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
+MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD: every frame of rows 12 apart 12 high (h 0x0a, was 0x0c), in the gaps: renderMenuSelector draws h + 2 from 2 above the row, so 0x0c put its bottom line on the next row's letters */ /* MOD (options): view 22 */
 	{
 		0x00,
 		{ 0x05, 0x00, 0x00, 0x00, 0x00 }, /* MOD (options): 5 rows, OPTIONS the last (was 4) */
@@ -820,7 +820,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x004f,
 		0x0037,
 		0x0097,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -829,7 +829,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0048,
 		0x0037,
 		0x009c,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -838,7 +838,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x0037,
 		0x00a5,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -847,7 +847,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0058,
 		0x0037,
 		0x0090,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -856,7 +856,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x0037,
 		0x0080,
-		0x000c,
+		0x000a,
 	},
 	{
 		0xff,
@@ -874,7 +874,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x006b,
 		0x0037,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -892,7 +892,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0037,
 		0x0052,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -901,7 +901,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0049,
 		0x0065,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0xff,
@@ -928,7 +928,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x003d,
 		0x005a,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -937,7 +937,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x0065,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -946,7 +946,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x00c3,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -955,7 +955,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0046,
 		0x0037,
 		0x00cc,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -964,7 +964,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x0059,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0xff,
@@ -982,7 +982,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0043,
 		0x0057,
 		0x0021,
-		0x000c,
+		0x000a,
 	},
 	{
 		0xff,
@@ -1000,7 +1000,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x005e,
 		0x0037,
 		0x0084,
-		0x000c,
+		0x000a,
 	},
 	{
 		0x00,
@@ -1009,7 +1009,7 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0046,
 		0x0065,
 		0x0024,
-		0x000c,
+		0x000a,
 	},
 	{ /* MOD (options): the OPTIONS box (renderOptionsMenu), its rows; x and w follow the font (drawOptionsText) */
 		0x00,
