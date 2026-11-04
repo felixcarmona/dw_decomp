@@ -4242,10 +4242,28 @@ void openSaveMachine(void)
 	}
 }
 
+/* MOD (fps): the save machine menu is drawn from a script tick, into the first
+ * render pass only; modReplayMainMenu draws it again on the extra passes, from
+ * the same state (renderSelectSlot scrolls the slot list as it draws). */
+extern int32_t MOD_TICK_PRIM_MAIN_MENU;
+static int32_t modMainMenuScrollBefore;
+
+void modReplayMainMenu(void)
+{
+	int32_t scroll;
+
+	scroll = SAVE_SLOT_SCROLL_TENTHS;
+	SAVE_SLOT_SCROLL_TENTHS = modMainMenuScrollBefore;
+	renderMainMenu();
+	SAVE_SLOT_SCROLL_TENTHS = scroll;
+}
+
 int32_t tickSaveMachine(void)
 {
 	tickMainMenu();
+	modMainMenuScrollBefore = SAVE_SLOT_SCROLL_TENTHS;
 	renderMainMenu();
+	MOD_TICK_PRIM_MAIN_MENU = 1; /* MOD (fps): drawn again on extra passes */
 	if (CURRENT_MENU == -1) {
 		return 1;
 	}
@@ -4288,7 +4306,9 @@ void gameClearSave(void)
 int32_t scriptTickMainMenu(void)
 {
 	tickMainMenu();
+	modMainMenuScrollBefore = SAVE_SLOT_SCROLL_TENTHS;
 	renderMainMenu();
+	MOD_TICK_PRIM_MAIN_MENU = 1; /* MOD (fps): drawn again on extra passes */
 	if (CURRENT_MENU == -1) {
 		return 1;
 	}
