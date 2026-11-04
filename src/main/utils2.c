@@ -585,49 +585,23 @@ void updateMapLightState(void)
 
 /*
  * MOD (portraits): species of DIGI.DAT as opponents. The cup's pool is the recruited originals of its list
- * (all recruited ones when the list is empty); partner species whose level lies in the levels of that pool
- * (Rookie..Ultimate: a Mega is not drawn) join it, up to as many as half the pool, at least seven, so
- * an early game with few recruits still meets a different bracket. The opponents' stats depend on the cup
- * and the level only (STD_initializeOpponent), so a species of the level is as strong as the original.
+ * (all recruited ones when the list is empty); partner species whose level lies in the levels of that list
+ * (all of the list, recruited or not: Rookie, Champion, Ultimate; a Mega is not drawn) join it, up to as many
+ * as half the pool, at least seven, so an early game with few recruits still meets a different bracket. The
+ * opponents' stats depend on the cup and the level only (STD_initializeOpponent), so a species of the level
+ * is as strong as the original.
  */
 #define TOURNAMENT_NEW_MAX	64
 
-static int32_t addTournamentSpecies(uint16_t *pool, int32_t count)
+static int32_t addTournamentSpecies(uint16_t *pool, int32_t count, int32_t lo, int32_t hi)
 {
 	uint16_t *cand;
-	int32_t lo;
-	int32_t hi;
-	int32_t level;
 	int32_t n;
 	int32_t add;
 	int32_t i;
 	int32_t j;
 	uint16_t t;
 
-	lo = 9;
-	hi = 0;
-	for (i = 0; i < count; i++) {
-		level = DIGI_PARA(pool[i]).level;
-		if (level < lo) {
-			lo = level;
-		}
-		if (level > hi) {
-			hi = level;
-		}
-	}
-	if (count == 0) {
-		/* no recruit: the levels of the partner itself */
-		lo = hi = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
-	}
-	if (lo < 3) {
-		lo = 3;
-	}
-	if (hi > 5) {
-		hi = 5;
-	}
-	if (hi < lo) {
-		hi = lo;
-	}
 	cand = (uint16_t *)allocateArray(SPECIES_MAX_PARTNERS * 2);
 	n = getSpeciesPartnersByLevel(lo, hi, cand, SPECIES_MAX_PARTNERS);
 	add = count > 7 ? count / 2 : 7;
@@ -667,6 +641,8 @@ void startTournament(void)
 	int32_t count;
 	uint16_t *o;
 	int32_t k;
+	int32_t lo;
+	int32_t hi;
 
 	id = readPStat(3);
 	t.cup = id;
@@ -675,10 +651,20 @@ void startTournament(void)
 	jumpTable = getCupDataJumpTable(10, id);
 	p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
 	count = 0;
+	lo = 3; /* MOD (portraits): the levels of the cup's list: Rookie..Ultimate for a list that is every recruit */
+	hi = 5;
 	i = *p;
 	if (i < 0xfe) {
+		lo = 9;
+		hi = 0;
 		if (id != 0x16) {
 			while ((i = *p++) < 0xfe) {
+				if (DIGI_PARA(i).level < lo) {
+					lo = DIGI_PARA(i).level;
+				}
+				if (DIGI_PARA(i).level > hi) {
+					hi = DIGI_PARA(i).level;
+				}
 				if (isDigimonRecruited(i)) {
 					*w++ = i;
 					count++;
@@ -700,7 +686,7 @@ void startTournament(void)
 	}
 	if (id != 0x16) {
 		/* MOD (portraits): the special cup 0x16 lists its own contestants */
-		count = addTournamentSpecies(pool, count);
+		count = addTournamentSpecies(pool, count, lo > 5 ? 5 : lo, hi > 5 ? 5 : hi);
 	}
 	o = t.opponents;
 	if (count == 7) {
