@@ -381,8 +381,8 @@ MOD_OPTIONS:
       ja: "NORMAL"
       en_us: "NORMAL"
     MOD_OPT_STR_QUICK:
-      ja: "QUICK BATTLES"
-      en_us: "QUICK BATTLES"
+      ja: "QUICK BATTLE START"
+      en_us: "QUICK BATTLE START"
     MOD_OPT_STR_FPS:
       ja: "FRAME RATE"
       en_us: "FRAME RATE"
