@@ -16,6 +16,7 @@
 #include <dw/font.h>
 #include <dw/ids.h>
 #include <dw/level.h>
+#include <dw/mod_rules.h>
 #include <dw/tournament.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -821,14 +822,14 @@ int8_t startBattle(int16_t instanceId)
 	GAME_STATE = 0;
 
 	if (result == -1) {
-		PARTNER_PARA.happiness -= 0x1e;
-		PARTNER_PARA.discipline -= 0x14;
+		PARTNER_PARA.happiness -= careAmt(MOD_CARE_LOST_HAPPY); /* MOD (care rules as data) */
+		PARTNER_PARA.discipline -= careAmt(MOD_CARE_LOST_DISC);
 		partnerSetState(-1);
 		SKIP_DAYTIME_TRANSITION = 1;
 	} else if (result == 0) {
-		PARTNER_PARA.happiness -= 10;
-		PARTNER_PARA.discipline -= 6;
-		PARTNER_PARA.tiredness += 2;
+		PARTNER_PARA.happiness -= careAmt(MOD_CARE_FLED_HAPPY);
+		PARTNER_PARA.discipline -= careAmt(MOD_CARE_FLED_DISC);
+		PARTNER_PARA.tiredness += careAmt(MOD_CARE_FLED_TIRED);
 		handlePostBattleTiredness();
 		SKIP_DAYTIME_TRANSITION = 1;
 	} else if (result == 1) {
@@ -836,7 +837,7 @@ int8_t startBattle(int16_t instanceId)
 		readMapTFS(CURRENT_SCREEN);
 		STORED_TAMER_POS = TAMER_ENTITY.entity.posData->location;
 		partnerSetState(1);
-		PARTNER_PARA.happiness += 2;
+		PARTNER_PARA.happiness += careAmt(MOD_CARE_WON_HAPPY);
 		handlePostBattleTiredness();
 		++PARTNER_PARA.battles;
 		SKIP_DAYTIME_TRANSITION = 0;
@@ -859,9 +860,10 @@ void advanceBattleTime(result)
 	int8_t result;
 // clang-format on
 {
-	MINUTE += 20;
+	/* MOD (care rules as data): a fight takes MOD_CARE_BATTLE_TIME frames of game time (20 = a minute); what it costs the partner follows from the periods of the care rules */
+	MINUTE += careAmt(MOD_CARE_BATTLE_TIME) / 20;
 
-	CURRENT_FRAME += 400;
+	CURRENT_FRAME += careAmt(MOD_CARE_BATTLE_TIME);
 	if (MINUTE > 59) {
 		++HOUR;
 		MINUTE -= 60;
@@ -903,20 +905,20 @@ void advanceBattleTime(result)
 	}
 
 	if ((PARTNER_PARA.condition & 4) != 0) {
-		PARTNER_PARA.starvationTimer -= 40;
+		PARTNER_PARA.starvationTimer -= careGet(MOD_CARE_HUNGER_STARVE_PERIOD) > 0 ? careAmt(MOD_CARE_BATTLE_TIME) / careGet(MOD_CARE_HUNGER_STARVE_PERIOD) : 0;
 		if ((PARTNER_PARA.starvationTimer < 1) &&
 		    (PARTNER_PARA.energyLevel <
 		     RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold)) {
 			++PARTNER_PARA.careMistakes;
 		}
 	} else {
-		PARTNER_PARA.foodLevel -= 20;
+		PARTNER_PARA.foodLevel -= careGet(MOD_CARE_HUNGER_FOOD_PERIOD) > 0 ? careAmt(MOD_CARE_BATTLE_TIME) / careGet(MOD_CARE_HUNGER_FOOD_PERIOD) : 0;
 	}
 
 	if ((PARTNER_PARA.condition & 8) != 0) {
-		PARTNER_PARA.poopingTimer -= 400;
+		PARTNER_PARA.poopingTimer -= careAmt(MOD_CARE_BATTLE_TIME);
 	} else {
-		PARTNER_PARA.poopLevel -= 2;
+		PARTNER_PARA.poopLevel -= careGet(MOD_CARE_POOP_PERIOD) > 0 ? careAmt(MOD_CARE_BATTLE_TIME) / careGet(MOD_CARE_POOP_PERIOD) : 0;
 	}
 
 	updateMinuteHand(HOUR, MINUTE);
@@ -926,11 +928,11 @@ void advanceBattleTime(result)
 
 		flags = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
 		if (flags == 0) {
-			if (HOUR == 0x10) {
+			if (HOUR == MOD_DAYTIME[MOD_DT_DUSK]) {
 				initializeDaytimeTransition(0);
-			} else if (HOUR == 0x14) {
+			} else if (HOUR == MOD_DAYTIME[MOD_DT_NIGHT]) {
 				initializeDaytimeTransition(1);
-			} else if (HOUR == 6) {
+			} else if (HOUR == MOD_DAYTIME[MOD_DT_DAWN]) {
 				initializeDaytimeTransition(2);
 			}
 		}
