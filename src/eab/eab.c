@@ -211,7 +211,10 @@ void EAB_initializeRings(void)
 {
 	int32_t i;
 
-	for (i = 0; i < 18; i++) {
+	/* MOD (layout overruns): the original cleared 18 rings of the 3 in EAB_D_800617D0, writing -1
+	 * over the EabState and flash buffer that follow it on the disc; in the GCC link the array is
+	 * the overlay's last data, so the 15 extra stores went past the end of EAB_REL */
+	for (i = 0; i < 3; i++) {
 		EAB_D_800617D0[i].timer = -1;
 	}
 }
