@@ -356,6 +356,17 @@ EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON
 		0x0005, 0x0050, 0x005a, 0xffff, 0x0032, 0xffff, 0x10,
 		0x00,
 	},
+	/*
+	 * MOD (cherrymon): from Vegiemon (with Piximon, which needs 15 care
+	 * mistakes or more). A well kept, heavy tree: HP 4000, MP 4000,
+	 * Def 400, Brains 400, at most 5 care mistakes (flag 0x10), weight
+	 * 25..35; bonus: discipline 90 or 30 techniques learned.
+	 */
+	[DIGIMON_CHERRYMON] = {
+		0xffff, 0x0190, 0x0190, 0xffff, 0x0190, 0xffff, 0x0190,
+		0x0005, 0x001e, 0x005a, 0xffff, 0xffff, 0x001e, 0x10,
+		0x00,
+	},
 };
 
 EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
@@ -428,6 +439,9 @@ EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIG
 	/* MOD (master-tyrannomon): an Ultimate between MetalGreymon and Gigadramon */
 	[DIGIMON_MASTER_TYRANNOMON] = { 0x1770, 0x0fa0, 0x028a, 0x028a, 0x0190, 0x01f4,
 					DIGIMON_MASTER_TYRANNOMON },
+	/* MOD (cherrymon): a slow, sturdy Ultimate: HP 6000, MP 5000, Off 550, Def 650,
+	 * Speed 350, Brains 550 */
+	[DIGIMON_CHERRYMON] = { 0x1770, 0x1388, 0x0226, 0x028a, 0x015e, 0x0226, DIGIMON_CHERRYMON },
 };
 
 EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
@@ -530,7 +544,8 @@ EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	},
 	{
 		{   -1, 0x20, 0x2e,   -1,   -1 },
-		{   -1,   -1, 0x37,   -1,   -1,   -1 },
+		/* MOD (cherrymon): + Cherrymon, centred like the other pairs */
+		{   -1,   -1, 0x37, DIGIMON_CHERRYMON,   -1,   -1 },
 	},
 	{
 		{ 0x05, 0x06, 0x25, 0x16, 0x34 },
