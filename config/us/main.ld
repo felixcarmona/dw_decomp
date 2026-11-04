@@ -1037,23 +1037,25 @@ SECTIONS
  * that would overlap the fixed areas fails here instead of in the game.
  */
 #define OVL_END(s) (ADDR(s) + SIZEOF(s))
-ASSERT(OVL_END(.MOV) <= LOAD_AREA_END, "MOV overlay overflows the load area")
-ASSERT(OVL_END(.BTL) <= LOAD_AREA_END, "BTL overlay overflows the load area")
-ASSERT(OVL_END(.STD) <= LOAD_AREA_END, "STD overlay overflows the load area")
-ASSERT(OVL_END(.VS) <= LOAD_AREA_END, "VS overlay overflows the load area")
-ASSERT(OVL_END(.KAR) <= LOAD_AREA_END, "KAR overlay overflows the load area")
-ASSERT(OVL_END(.EVL) <= LOAD_AREA_END, "EVL overlay overflows the load area")
+/* MOD: readFile loads whole sectors, so an overlay really ends at its last sector */
+#define OVL_READ_END(s) (ADDR(s) + ((SIZEOF(s) + 0x7FF) & ~0x7FF))
+ASSERT(OVL_READ_END(.MOV) <= LOAD_AREA_END, "MOV overlay overflows the load area")
+ASSERT(OVL_READ_END(.BTL) <= LOAD_AREA_END, "BTL overlay overflows the load area")
+ASSERT(OVL_READ_END(.STD) <= LOAD_AREA_END, "STD overlay overflows the load area")
+ASSERT(OVL_READ_END(.VS) <= LOAD_AREA_END, "VS overlay overflows the load area")
+ASSERT(OVL_READ_END(.KAR) <= LOAD_AREA_END, "KAR overlay overflows the load area")
+ASSERT(OVL_READ_END(.EVL) <= LOAD_AREA_END, "EVL overlay overflows the load area")
 /* MOD: readFile loads whole sectors; FISH/DOO2 start at OVL_FISH_BASE (the shard scratch grew the overlay) */
 ASSERT(ADDR(.EVL) + ((SIZEOF(.EVL) + 0x7FF) & ~0x7FF) <= OVL_FISH_BASE, "EVL overlay (in whole sectors) overlaps FISH")
-ASSERT(OVL_END(.ENDI) <= LOAD_AREA_END, "ENDI overlay overflows the load area")
-ASSERT(OVL_END(.EAB) <= LOAD_AREA_END, "EAB overlay overflows the load area")
-ASSERT(OVL_END(.FISH) <= LOAD_AREA_END, "FISH overlay overflows the load area")
-ASSERT(OVL_END(.DOO2) <= LOAD_AREA_END, "DOO2 overlay overflows the load area")
-ASSERT(OVL_END(.MURD) <= OVL_OT_0_ADDR, "MURD overlay overlaps its ordering table")
-ASSERT(OVL_END(.DOOA) <= OVL_OT_0_ADDR, "DOOA overlay overlaps its ordering tables")
-ASSERT(OVL_END(.DGET) <= LOAD_AREA_END, "DGET overlay overflows the load area")
-ASSERT(OVL_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the original's slot")
-ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
+ASSERT(OVL_READ_END(.ENDI) <= LOAD_AREA_END, "ENDI overlay overflows the load area")
+ASSERT(OVL_READ_END(.EAB) <= LOAD_AREA_END, "EAB overlay overflows the load area")
+ASSERT(OVL_READ_END(.FISH) <= LOAD_AREA_END, "FISH overlay overflows the load area")
+ASSERT(OVL_READ_END(.DOO2) <= LOAD_AREA_END, "DOO2 overlay overflows the load area")
+ASSERT(OVL_READ_END(.MURD) <= OVL_OT_0_ADDR, "MURD overlay overlaps its ordering table")
+ASSERT(OVL_READ_END(.DOOA) <= OVL_OT_0_ADDR, "DOOA overlay overlaps its ordering tables")
+ASSERT(OVL_READ_END(.DGET) <= LOAD_AREA_END, "DGET overlay overflows the load area")
+ASSERT(OVL_READ_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the original's slot")
+ASSERT(OVL_READ_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
 /*
  * MOD (code out of the executable, docs/mods/memory.md): BTL and VS carry code the executable used to hold (battle_ui.c;
  * vs_combat.c, vs_intro.c, vs_select.c), appended at their ends. A battle-mode overlay may reach as high as STD, the tournament
@@ -1062,10 +1064,11 @@ ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the origi
  */
 ASSERT(OVL_END(.BTL) <= OVL_END(.STD), "BTL overlay ends above STD's end, the highest a battle overlay is known to reach")
 ASSERT(OVL_END(.VS) <= OVL_END(.STD), "VS overlay ends above STD's end, the highest a battle overlay is known to reach")
-ASSERT(OVL_END(.MOV) <= OVL_TRN_BASE, "MOV overlay overlaps TRN's slot (TEXTURE_BUFFER)")
-/* MOD (menu overlay): the save machine and the game-clear save run in the world, the latter with ENDI loading at
- * OVL_EVL_BASE (load_ending); the world's scratch with SAVE_EXT is below OVL_BTL_BASE */
-ASSERT(OVL_END(.MENU) <= OVL_EVL_BASE, "MENU overlay overlaps EVL/ENDI's slot")
+ASSERT(OVL_READ_END(.MOV) <= OVL_TRN_BASE, "MOV overlay overlaps TRN's slot (TEXTURE_BUFFER)")
+/* MOD (menu overlay): the save machine and the game-clear save run in the world. The world has nothing at
+ * OVL_EVL_BASE except ENDI during the game-clear save (load_ending), whose first sector the last sector of MENU may
+ * overlap: start_ending reads ENDI again. Whole sectors: one more would need that read to be proved again. */
+ASSERT(OVL_READ_END(.MENU) <= OVL_EVL_BASE + 0x800, "MENU overlay (in whole sectors) reaches past ENDI's first sector")
 ASSERT(TFS_RING_ADDR + TFS_RING_SLOTS * TFS_SLOT_SIZE == TFS_RING_END,
        "TFS ring size does not match TFS_RING_END")
 ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with the curling map")
