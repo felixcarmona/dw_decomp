@@ -2,6 +2,7 @@
 
 #include <libgs.h>
 
+#include <dw/mod_options.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
@@ -1183,7 +1184,7 @@ void renderUIBox(int32_t boxId)
 	SetPolyFT4(&poly);
 	SetSemiTrans(&poly, 1);
 	poly.tpage = GetTPage(0, 1, 320, 128);
-	poly.clut = GetClut(96, 500);
+	poly.clut = modButtonClut(); /* MOD (options): GetClut(96, 500), the ○ in red */
 	setRGB0(&poly, 0x80, 0x80, 0x80);
 	setUVDataPolyFT4(&poly, u, 0xb7, 0x10, 0xc);
 	setPosDataPolyFT4(&poly, x, y, 0x10, 0xc);

@@ -8,6 +8,7 @@
 #include <dw/entity.h>
 #include <dw/font.h>
 #include <dw/ids.h>
+#include <dw/mod_options.h>
 #include <dw/mod_rules.h>
 #include <dw/save_tags.h>
 #include <dw/input.h>
@@ -244,7 +245,7 @@ typedef struct {
 #define SAVE_EXT_BYTES		0x1000
 SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* the most a build writes: the head, the records (4 bytes each and their data), the end record and the checksum */
-#define SAVE_RECORDS_MAX	(sizeof(SaveExtHead) + 8 * 4 + 4 + 2 * 30 + 4 + 2 * 16 + 2 * 40 + 2 * 100 + 8 + 2 * (NUM_DIGIMON / 8) + 4 + 4)
+#define SAVE_RECORDS_MAX	(sizeof(SaveExtHead) + 9 * 4 + 4 + 2 * 30 + 4 + 2 * 16 + 2 * 40 + 2 * 100 + 8 + 2 * (NUM_DIGIMON / 8) + 1 + 4 + 4)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_EXT_BYTES);
 
 uint32_t CONNECTED_CARDS;
@@ -254,6 +255,8 @@ int32_t MEMORY_CARD_SLOT;
 int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
+static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
+static void renderOptionsMenu(void);
 int32_t CURRENT_MENU;
 int32_t NEW_CARDS;
 int32_t MAIN_D_80135054;
@@ -788,10 +791,10 @@ char SAVEGAME_ID_LABEL[16][6] = {
 	"15",
 };
 
-MenuHighlight MENU_HIGHLIGHTS[22] = {
+MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 	{
 		0x00,
-		{ 0x04, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x05, 0x00, 0x00, 0x00, 0x00 }, /* MOD (options): 5 rows, OPTIONS the last (was 4) */
 		0x000c,
 		0x004f,
 		0x0037,
@@ -987,12 +990,21 @@ MenuHighlight MENU_HIGHLIGHTS[22] = {
 		0x0024,
 		0x000c,
 	},
+	{ /* MOD (options): the OPTIONS box (renderOptionsMenu) */
+		0x00,
+		{ 0x01, 0x00, 0x00, 0x00, 0x00 },
+		0x000c,
+		0x003f,
+		0x0037,
+		0x00c2,
+		0x000c,
+	},
 };
 
 #endif
 
 int8_t MENU_VIEWS[] = {
-	0x00, 0x09, 0x05, 0x0a, 0xff, 0xff, 0xff, 0xff,
+	0x00, 0x09, 0x05, 0x0a, 0x16 /* MOD (options) */, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x05, 0x05, 0x05, 0x07, 0x08,
 	0x05, 0x05, 0xff, 0x06, 0x02, 0x05, 0x05, 0x07,
 	0x08, 0x05, 0xff, 0xff, 0xff, 0xff, 0x04, 0x05,
@@ -1777,6 +1789,10 @@ void drawMainMenuStrings(int32_t menu)
 	}
 	MENU_HIGHLIGHTS[view].pos = MENU_HIGHLIGHTS[view].pad[1];
 	MENU_HIGHLIGHTS[view].pad[2] = 0;
+	if (view == 0 && MOD_OPTIONS_BACK) { /* MOD (options): back from OPTIONS, on its row */
+		MENU_HIGHLIGHTS[view].pos = 4;
+	}
+	MOD_OPTIONS_BACK = 0;
 	SAVE_SLOT_SCROLL_TENTHS = 0;
 	NEW_CARDS = 0;
 	clearTextArea();
@@ -2055,6 +2071,11 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(TITLE_MENU_ITEMS[2], 0, 0x18);
 		drawString(TITLE_MENU_ITEMS[3], 0, 0x24);
+		DrawSync(0);
+		drawString(MOD_OPT_STR_OPTIONS, 0, 0x30); /* MOD (options) */
+		break;
+	case 22: /* MOD (options) */
+		drawString(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_OPT_STR_JP_ON : MOD_OPT_STR_JP_OFF, 0, 0);
 		break;
 	case 1:
 		drawString(SLOT_ACTION_TITLES[0], 0, 0);
@@ -2597,10 +2618,31 @@ void tickMainMenu(void)
 				TARGET_MENU = 0x32;
 				MAIN_MENU_ACTION = 5;
 				break;
+			case 4: /* MOD (options) */
+				TARGET_MENU = 4;
+				break;
 			}
 			break;
 		case 2:
 			break;
+		}
+		break;
+
+	case 4: /* MOD (options) */
+		cursor = (MenuCursor *)&MENU_HIGHLIGHTS[22];
+		input = tickMenuInput(cursor, 1);
+		if (input == 0 && (CHANGED_INPUT == 0x8000 || CHANGED_INPUT == 0x2000)) {
+			playSound(0, 2);
+			input = 1;
+		}
+		if (input == 1) {
+			MOD_OPT_TOUCHED = 1;
+			modSetButtons(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_BUTTONS_US : MOD_BUTTONS_JP);
+			clearTextArea();
+			drawString(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_OPT_STR_JP_ON : MOD_OPT_STR_JP_OFF, 0, 0);
+		} else if (input == 2) {
+			MOD_OPTIONS_BACK = 1;
+			TARGET_MENU = 0;
 		}
 		break;
 
@@ -4536,6 +4578,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t screens[2];
 	int16_t inventory[30];
 	int32_t partnerType;
+	uint8_t options[1]; /* MOD (options) */
 	int32_t size;
 	int32_t i;
 
@@ -4588,6 +4631,8 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_SPECIES_RAISED, SPECIES_RAISED_BITS, NUM_DIGIMON / 8);
 		p = putRecord(p, SAVE_TAG_SPECIES_RECRUITED, SPECIES_RECRUITED_BITS, NUM_DIGIMON / 8);
 	}
+	options[0] = MOD_OPT_BUTTONS; /* MOD (options) */
+	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -4736,6 +4781,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_POOP_MAPS:
 	case SAVE_TAG_SPECIES_RAISED:
 	case SAVE_TAG_SPECIES_RECRUITED:
+	case SAVE_TAG_OPTIONS:
 		return 1;
 	}
 	return 0;
@@ -4809,6 +4855,11 @@ static void applyRecords(uint8_t *e)
 			n = len < NUM_DIGIMON / 8 ? len : NUM_DIGIMON / 8;
 			for (i = 0; i < n; i++) {
 				SPECIES_RECRUITED_BITS[i] = d[i];
+			}
+			break;
+		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
+			if (len >= 1 && !MOD_OPT_TOUCHED) {
+				modSetButtons(d[0]);
 			}
 			break;
 		}
@@ -5070,6 +5121,9 @@ void renderMainMenu(void)
 		case 19:
 			renderCantRegisterBaby();
 			break;
+		case 22: /* MOD (options) */
+			renderOptionsMenu();
+			break;
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 		case 20:
 			renderBattleModeMenu();
@@ -5251,7 +5305,19 @@ void renderInitialMenu(void)
 		renderText(cur++, 0x52, 0x43, 0, 0xC, 0xB0, 0x18, 1);
 	}
 	renderText(cur++, 0x52, 0x5B, 0, 0x24, 0xB0, 0xC, 0);
+	renderText(cur++, 0x52, 0x67, 0, 0x30, 0xB0, 0xC, 0); /* MOD (options): OPTIONS */
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x48, 0x32, 0xB0, 0x3A);
+	renderMenuBox(0x48, 0x32, 0xB0, 0x46); /* MOD (options): was 0x3A high */
 #endif
+}
+
+/* MOD (options): one row, JAPANESE CONTROLS OFF / ON */
+static void renderOptionsMenu(void)
+{
+	POLY_FT4 *cur;
+
+	cur = (POLY_FT4 *)GsGetWorkBase();
+	renderText(cur++, 0x42, 0x37, 0, 0, 0xC0, 0xC, 0);
+	GsSetWorkBase((PACKET *)cur);
+	renderMenuBox(0x38, 0x32, 0xD0, 0x16);
 }
