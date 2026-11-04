@@ -2119,6 +2119,19 @@ void tickConditions(void)
 	}
 }
 
+/* MOD (fps): called by lateTickGameClock once per tick */
+void tickStatusBarsSlide(int32_t state)
+{
+	if (state == 0)
+		STATUS_UI_OFFSET_X += 50;
+	else
+		STATUS_UI_OFFSET_X -= 50;
+	if (STATUS_UI_OFFSET_X > 240)
+		STATUS_UI_OFFSET_X = 240;
+	if (STATUS_UI_OFFSET_X < 75)
+		STATUS_UI_OFFSET_X = 75;
+}
+
 // clang-format off
 void renderStatusBars(state)
 	int8_t state;
@@ -2132,14 +2145,7 @@ void renderStatusBars(state)
 	uint8_t disciplineTexX;
 	uint8_t disciplineTexY;
 
-	if (state == 0)
-		STATUS_UI_OFFSET_X += 50;
-	else
-		STATUS_UI_OFFSET_X -= 50;
-	if (STATUS_UI_OFFSET_X > 240)
-		STATUS_UI_OFFSET_X = 240;
-	if (STATUS_UI_OFFSET_X < 75)
-		STATUS_UI_OFFSET_X = 75;
+	/* MOD (fps): the slide is in tickStatusBarsSlide (late tick) */
 	renderRectPolyFT4(STATUS_UI_OFFSET_X, 85, 75, 8, 0, 236, 5, 0x7D06, 15, 0);
 	renderRectPolyFT4(STATUS_UI_OFFSET_X, 97, 75, 8, 0, 236, 5, 0x7D06, 15, 0);
 	if (PARTNER_PARA.happiness >= 0)
