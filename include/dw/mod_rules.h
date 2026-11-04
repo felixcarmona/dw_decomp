@@ -46,4 +46,25 @@ extern int16_t MOD_DAYTIME[MOD_DAYTIME_SIZE];
 /* 0 dusk, 1 night, 2 day at an hour */
 int32_t modTimeOfDay(int32_t hour);
 
+/* training: the gain multiplier of a stat (mode 0..5) by the species' training type, by level, and the bonus rows */
+#define MOD_TRAIN_MODES		6
+#define MOD_TRAIN_TYPES		5 /* training types 0..3 and "other" */
+#define MOD_TRAIN_LEVELS	8 /* level 0..7 (a level past 7 uses 7) */
+#define MOD_TRAIN_BONUS_MAX	6
+/* a bonus row: kind 0 = a trigger is set (arg), 1 = the upgrade counter of the mode >= arg (both only when training for real), 2 = the
+ * player holds the item (arg); modes = bit mask of the modes it applies to; the gain is multiplied by num/den; kind -1 = unused row */
+typedef struct {
+	int16_t kind;
+	int16_t arg;
+	int16_t modes;
+	int16_t num;
+	int16_t den;
+} ModTrainBonus;
+extern int16_t MOD_TRAIN_NUM[MOD_TRAIN_MODES][MOD_TRAIN_TYPES]; /* tenths; -1 = no gain */
+extern int16_t MOD_TRAIN_LEVEL[MOD_TRAIN_LEVELS];               /* tenths of the multiplier by level; -1 = no gain */
+extern ModTrainBonus MOD_TRAIN_BONUS[MOD_TRAIN_BONUS_MAX];
+
+/* the battle registration record a game clear unlocks for the VS mode: species, three techniques, slot (-1: nothing is unlocked) */
+extern int16_t MOD_VS_UNLOCK[5];
+
 #endif
