@@ -18,6 +18,7 @@
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/script.h>
+#include <dw/sound.h>
 #include <dw/sjis.h>
 #include <dw/swap.h>
 #include <dw/lang.h>
