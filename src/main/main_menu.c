@@ -259,6 +259,7 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
 static int32_t modOptionValue(int32_t row);
+static int32_t modOptionCount(int32_t row);
 static void modSetOption(int32_t row, int32_t value);
 int32_t CURRENT_MENU;
 int32_t NEW_CARDS;
@@ -997,9 +998,9 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x00,
 		{ 0x04, 0x00, 0x00, 0x00, 0x00 },
 		0x000c,
-		0x0035,
+		0x0025,
 		0x0037,
-		0x00d6,
+		0x00f6,
 		0x000c,
 	},
 };
@@ -2636,12 +2637,15 @@ void tickMainMenu(void)
 		cursor = (MenuCursor *)&MENU_HIGHLIGHTS[22];
 		input = tickMenuInput(cursor, 1);
 		value = -1;
-		if (input == 0 && CHANGED_INPUT == 0x8000) { /* left: the left value */
-			value = 0;
-		} else if (input == 0 && CHANGED_INPUT == 0x2000) { /* right: the right one */
-			value = 1;
-		} else if (input == 1) { /* confirm: the other one */
-			value = modOptionValue(cursor->pos) != 1;
+		if (modOptionValue(cursor->pos) < 0) {
+			/* nothing to choose (an FPS=20 build's frame rate) */
+		} else if (input == 0 && CHANGED_INPUT == 0x8000) { /* left: the value on the left, if any */
+			value = modOptionValue(cursor->pos) - 1;
+		} else if (input == 0 && CHANGED_INPUT == 0x2000) { /* right: the one on the right, if any */
+			value = modOptionValue(cursor->pos) + 1;
+			value = value < modOptionCount(cursor->pos) ? value : -1;
+		} else if (input == 1) { /* confirm: the next one round */
+			value = (modOptionValue(cursor->pos) + 1) % modOptionCount(cursor->pos);
 		}
 		if (value >= 0 && value != modOptionValue(cursor->pos)) {
 			if (input == 0) {
@@ -4877,7 +4881,7 @@ static void applyRecords(uint8_t *e)
 			if (len >= 2 && !MOD_OPT_TOUCHED) {
 				MOD_OPT_CLOCK = d[1] != 0;
 			}
-			if (len >= 3 && !MOD_OPT_TOUCHED && (d[2] == 30 || d[2] == 60)) {
+			if (len >= 3 && !MOD_OPT_TOUCHED && (d[2] == 20 || d[2] == 30 || d[2] == 60)) {
 				modSetFrameRate(d[2]);
 			}
 			if (len >= 4 && !MOD_OPT_TOUCHED) {
@@ -5334,22 +5338,29 @@ void renderInitialMenu(void)
 }
 
 /*
- * MOD (options): the box's rows, each a label and its two values side by side; the chosen value is drawn yellow and the
- * other one grey, so the row reads as a switch. Left picks the left value, right the right one, confirm the other one.
+ * MOD (options): the box's rows, each a label and its values side by side (two, or three for FRAME RATE); the chosen
+ * value is drawn yellow and the others grey, so the row reads as a switch. Left and right step to the next value,
+ * confirm takes the next one round.
  */
 #define MOD_OPT_ROWS	4
-#define MOD_OPT_VALUE_X	0x80	/* the left value's column in the text area; the right one's is MOD_OPT_VALUE_W further */
+#define MOD_OPT_VALUES	3	/* the most values a row has */
+#define MOD_OPT_VALUE_X	0x78	/* the first value's column in the text area; each next one MOD_OPT_VALUE_W further */
 #define MOD_OPT_VALUE_W	0x28
-#define MOD_OPT_TEXT_X	0x38	/* the box's text on the screen */
+#define MOD_OPT_TEXT_X	0x28	/* the box's text on the screen */
 
-static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
-	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_FPS, MOD_OPT_STR_30, MOD_OPT_STR_60 },
+static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
+	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON, NULL },
+	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON, NULL },
+	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON, NULL },
+	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_30, MOD_OPT_STR_60 },
 };
 
-/* 0 the row's left value, 1 the right one, -1 neither (an FPS=20 build's frame rate) */
+static int32_t modOptionCount(int32_t row)
+{
+	return MOD_OPT_TEXT[row][MOD_OPT_VALUES] != NULL ? 3 : 2;
+}
+
+/* the index of the row's chosen value; -1 none (an FPS=20 build's frame rate) */
 static int32_t modOptionValue(int32_t row)
 {
 	switch (row) {
@@ -5360,7 +5371,11 @@ static int32_t modOptionValue(int32_t row)
 	case 2:
 		return MOD_OPT_BARS != 0;
 	}
-	return modFrameRate() == 60 ? 1 : modFrameRate() == 30 ? 0 : -1;
+#if FPS == 20
+	return -1;
+#else
+	return modFrameRate() == 60 ? 2 : modFrameRate() == 30 ? 1 : 0;
+#endif
 }
 
 static void modSetOption(int32_t row, int32_t value)
@@ -5377,7 +5392,7 @@ static void modSetOption(int32_t row, int32_t value)
 		MOD_OPT_BARS = value;
 		break;
 	case 3:
-		modSetFrameRate(value ? 60 : 30);
+		modSetFrameRate(value == 2 ? 60 : value == 1 ? 30 : 20);
 		break;
 	}
 }
@@ -5386,11 +5401,14 @@ static void drawOptionsText(void)
 {
 	int32_t r;
 
+	int32_t v;
+
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		drawString(MOD_OPT_TEXT[r][0], 0, r * 0xC);
-		drawString(MOD_OPT_TEXT[r][1], MOD_OPT_VALUE_X, r * 0xC);
-		DrawSync(0);
-		drawString(MOD_OPT_TEXT[r][2], MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, r * 0xC);
+		for (v = 0; v < modOptionCount(r); v++) {
+			DrawSync(0);
+			drawString(MOD_OPT_TEXT[r][1 + v], MOD_OPT_VALUE_X + v * MOD_OPT_VALUE_W, r * 0xC);
+		}
 		DrawSync(0);
 	}
 }
@@ -5399,6 +5417,8 @@ static void renderOptionsMenu(void)
 {
 	POLY_FT4 *cur;
 	int32_t r;
+	int32_t v;
+	int32_t x;
 	int32_t y;
 	int32_t value;
 
@@ -5407,11 +5427,11 @@ static void renderOptionsMenu(void)
 		y = 0x37 + r * 0xC;
 		value = modOptionValue(r);
 		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_VALUE_X, 0xC, 0);
-		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X, y, MOD_OPT_VALUE_X, r * 0xC, MOD_OPT_VALUE_W, 0xC,
-			   value == 0 ? 2 : 1);
-		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, y, MOD_OPT_VALUE_X + MOD_OPT_VALUE_W,
-			   r * 0xC, MOD_OPT_VALUE_W, 0xC, value == 1 ? 2 : 1);
+		for (v = 0; v < modOptionCount(r); v++) {
+			x = MOD_OPT_VALUE_X + v * MOD_OPT_VALUE_W;
+			renderText(cur++, MOD_OPT_TEXT_X + x, y, x, r * 0xC, MOD_OPT_VALUE_W, 0xC, value == v ? 2 : 1);
+		}
 	}
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x30, 0x32, 0xE0, 0x16 + (MOD_OPT_ROWS - 1) * 0xC);
+	renderMenuBox(0x20, 0x32, 0x100, 0x16 + (MOD_OPT_ROWS - 1) * 0xC);
 }
