@@ -180,7 +180,12 @@ def __padded(text, other, where):
 
 def __pair(text, other, identity):
     if __PAD_ON and __PAD.get("identity"):
-        return (identity, None)
+        aliases = __PAD.get('aliases', {})
+        if isinstance(identity, tuple):
+            identity = (aliases.get(identity[0], identity[0]), identity[1])
+        else:
+            identity = aliases.get(identity, identity)
+        return (identity, text)
     return (text, other if __PAD_ON else None)
 
 
