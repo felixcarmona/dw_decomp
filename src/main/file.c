@@ -6,6 +6,7 @@
 #include <dw/file.h>
 #include <dw/file_table.h>
 #include <dw/main.h>
+#include <dw/tfs_stream.h>
 
 #include "common.h"
 
@@ -83,6 +84,7 @@ int32_t readFile(char *path, void *buffer)
 	int32_t result;
 
 	if (lookupFileTable(&lookup, path) != 0) {
+		tfsStreamCheckTarget(buffer, lookup.size); /* MOD (memreclaim) */
 		do {
 			do {
 				while (CdControl(CdlSetloc,
@@ -139,6 +141,7 @@ int32_t readFileSectors(char *path, void *buffer, int32_t offset,
 
 	if (lookupFileTable(&lookup, path) != 0) {
 		CdIntToPos(offset + CdPosToInt(&lookup.pos), &lookup.pos);
+		tfsStreamCheckTarget(buffer, sectors << 11); /* MOD (memreclaim) */
 		do {
 			do {
 				while (CdControl(CdlSetloc,
