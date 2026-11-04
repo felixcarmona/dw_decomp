@@ -75,6 +75,83 @@ extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 extern int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE];
 int32_t modNewGame(int32_t slot);
 
+/*
+ * MOD (training as data): the gains of each gym by the slot of its minigame (MOD_TRAIN_GAIN / MOD_TRAIN2_GAIN: rows of the gym, the slot (-2: any), the base gain in tenths of the
+ * six stats and the tiredness, energy and happiness it costs) and the rules of a session (MOD_TRAIN_RULES / MOD_TRAIN2_RULES), for the first gym set (TRN overlay) and the second (TRN2).
+ * Every value -1 = does not exist; tools/balance.py build writes them from content/tables/training-gains.json.
+ */
+#define MOD_TG_ROWS		16
+#define MOD_TG_WIDTH		11
+#define MOD_TR_SIZE		32
+#define MOD_TG_HP	0
+#define MOD_TG_MP	1
+#define MOD_TG_OFF	2
+#define MOD_TG_DEF	3
+#define MOD_TG_SPD	4
+#define MOD_TG_BRAIN	5
+#define MOD_TGF_HP	2
+#define MOD_TGF_MP	3
+#define MOD_TGF_OFF	4
+#define MOD_TGF_DEF	5
+#define MOD_TGF_SPD	6
+#define MOD_TGF_BRAIN	7
+#define MOD_TGF_TIRED	8
+#define MOD_TGF_ENERGY	9
+#define MOD_TGF_HAPPY	10
+#define MOD_TR_EXH_AT	0
+#define MOD_TR_EXH_GAIN	1
+#define MOD_TR_TIRED_AT	2
+#define MOD_TR_PEN_HAPPY	3
+#define MOD_TR_PEN_DISC	4
+#define MOD_TR_LIFE_BELOW	5
+#define MOD_TR_LIFE_PER	6
+#define MOD_TR_STARVE	7
+#define MOD_TR_FOOD	8
+#define MOD_TR_POOP	9
+#define MOD_TR_LIFE_COST	10
+#define MOD_TR_PAY_JACKPOT	11
+#define MOD_TR_PAY_MATCH	12
+#define MOD_TR_PAY_TRIPLE	13
+#define MOD_TR_PAY_MISS	14
+#define MOD_TR_ORDER0	15
+#define MOD_TR_ORDER1	16
+#define MOD_TR_ORDER2	17
+#define MOD_TR_ORDER3	18
+#define MOD_TR_ORDER4	19
+#define MOD_TR_LEARN0	20
+#define MOD_TR_LEARN1	21
+#define MOD_TR_LEARN2	22
+#define MOD_TR_LEARN3	23
+#define MOD_TR_LEARN4	24
+#define MOD_TR_LEARN5	25
+#define MOD_TR_LEARN6	26
+#define MOD_TR_LEARN7	27
+#define MOD_TR_LEARN8	28
+#define MOD_TR_LEARN9	29
+#define MOD_TR_LEARN10	30
+#define MOD_TR_LEARN11	31
+extern int16_t MOD_TRAIN_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH];
+extern int16_t MOD_TRAIN_RULES[MOD_TR_SIZE];
+extern int16_t MOD_TRAIN2_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH];
+extern int16_t MOD_TRAIN2_RULES[MOD_TR_SIZE];
+#define TG(row, field)		((row) ? (row)[field] : 0)
+/* the row of a gym for a slot of its minigame: the exact slot, else the row for any slot (-2); NULL = no gain */
+static inline const int16_t *trainGainRow(int16_t rows[][MOD_TG_WIDTH], int32_t gym, int32_t slot)
+{
+	int32_t i;
+	const int16_t *any = 0;
+
+	for (i = 0; i < MOD_TG_ROWS; i++) {
+		if (rows[i][0] == gym && rows[i][1] == slot) {
+			return rows[i];
+		}
+		if (rows[i][0] == gym && rows[i][1] == -2) {
+			any = rows[i];
+		}
+	}
+	return any;
+}
+
 /* the game clock: how many real seconds one game day lasts (MOD_CLOCK[0], -1: game time does not run). A frame of CURRENT_FRAME is
  * 1/20 of a game minute (3 game seconds) whatever the screen's frame rate; the logic runs at 20 ticks a second. */
 #define MOD_CLOCK_SIZE		1
@@ -116,6 +193,10 @@ typedef struct {
 extern int16_t MOD_TRAIN_NUM[MOD_TRAIN_MODES][MOD_TRAIN_TYPES]; /* tenths; -1 = no gain */
 extern int16_t MOD_TRAIN_LEVEL[MOD_TRAIN_LEVELS];               /* tenths of the multiplier by level; -1 = no gain */
 extern ModTrainBonus MOD_TRAIN_BONUS[MOD_TRAIN_BONUS_MAX];
+/* the second gym set (TRN2 overlay) has its own copy: its numbers (training.json "training2") are the same today, its bonus is the training manual only */
+extern int16_t MOD_TRAIN2_NUM[MOD_TRAIN_MODES][MOD_TRAIN_TYPES];
+extern int16_t MOD_TRAIN2_LEVEL[MOD_TRAIN_LEVELS];
+extern ModTrainBonus MOD_TRAIN2_BONUS[MOD_TRAIN_BONUS_MAX];
 
 /* the battle registration record a game clear unlocks for the VS mode: species, three techniques, slot (-1: nothing is unlocked) */
 extern int16_t MOD_VS_UNLOCK[5];
