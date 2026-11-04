@@ -73,7 +73,7 @@ static char *appendStr(char *dst, char *src)
  * inside the box, one row every 0x12 px, the native selection bar behind the
  * selected option. Each row has its own 0xC-high line in the VRAM text area. */
 #define ROW_PITCH	0x12
-#define BOX_W		0xB0
+#define BOX_W		0xC8
 #define ROW_TITLE	0
 #define ROW_STATS	1
 #define ROW_OPTIONS	2
