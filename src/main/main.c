@@ -5216,7 +5216,6 @@ int8_t MOD_TICK_FAST;
 int8_t MOD_REAL_TICK = 1;
 static int32_t modTickPeriod = 3;
 static int32_t modFastDue; /* the refresh the next fast tick is due at */
-int8_t MOD_TRAIN_BLOCK; /* MOD (training block, src/trn/trn_block.h): R2 in a gym session, x1 (0) or x5 (1) */
 
 static int32_t modTickRefreshes(void)
 {

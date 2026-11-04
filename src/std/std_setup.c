@@ -14,6 +14,7 @@
 #include <dw/ids.h>
 #include <dw/main.h>
 #include <dw/math.h>
+#include <dw/mod_qol.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -391,9 +392,11 @@ int16_t STD_runMatch(Entity *opponent, int16_t b)
 
 	ENTITY_TABLE[1]->isOnScreen = 1;
 	GAME_STATE = 5;
+	modSpeedPlateAdd(); /* MOD (battle speed): R2 x1 / x2 from the intro to the end of the match */
 	STD_runIntro(b);
 	STD_CAMERA_STATE = 1;
 	result = STD_combatMain(ENTITY_TABLE[0], opponent);
+	modSpeedPlateRemove();
 	STD_removeCameraIntro();
 	STD_CAMERA_STATE = 10;
 	return result;
