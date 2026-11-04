@@ -6,9 +6,8 @@
  * and amount, the description box under it) with what the partner's condition asks for, every need at once:
  * the triangle menu's commands a need asks for first, Scold when a scolding is fair (ITEM_SCOLD_FLAG 1: it refused
  * an item out of indiscipline, it pooped on the ground) and Sleep when it is sleepy, then in inventory order the
- * items that answer a need
- * it has: food when hungry (ITEM_FUNCTIONS[type] == handleFood), the food that lowers tiredness when tired, the
- * Port. potty when it needs to go, what cures an injury or a sickness when it has one (handleStatusItems with a
+ * items that answer a need it has, nothing it does not need: food only when hungry (ITEM_FUNCTIONS[type] ==
+ * handleFood), the Port. potty when it needs to go, what cures an injury or a sickness when it has one (handleStatusItems with a
  * cure in its effect row: Bandage, Medicine). X gives the chosen item as Items > Use does (startFeedingItem: the
  * partner comes, takes it or refuses it, one unit is used), a command does what the triangle menu's does (Scold:
  * discipline up and the next item taken; Sleep), triangle closes the box. When the partner refuses the item this
@@ -119,7 +118,7 @@ static int32_t answersNeed(ItemId type, uint32_t condition)
 	}
 	fx = itemFx(type);
 	if (ITEM_FUNCTIONS[type] == (ItemFunction)handleFood) {
-		return (condition & CONDITION_HUNGRY) || ((condition & CONDITION_TIRED) && MOD_FX(fx, MOD_FX_TIREDNESS) > 0);
+		return (condition & CONDITION_HUNGRY) != 0; /* eating when not hungry costs happiness and discipline */
 	}
 	if (ITEM_FUNCTIONS[type] == (ItemFunction)handleStatusItems) {
 		return ((condition & CONDITION_INJURED) && MOD_FX(fx, MOD_FX_CURE_INJURY) > 0) ||
