@@ -342,6 +342,9 @@ extern int32_t EFE_HIT_ENTITY_INDEX;
 extern long EFE_TARGET_ENTITY_INDEX;
 extern int32_t EFE_ACTIVE_SECTION;
 extern EfeSubEffect *EFE_SCRIPT_CONTEXT;
+/* MOD (effect fallback): efe.c, tools/balance.py "effectFallback" */
+#define EFFECT_FALLBACK_MAX 16
+extern int16_t EFFECT_FALLBACK_SPECIES[EFFECT_FALLBACK_MAX];
 extern int32_t EFE_SCRIPT_REGISTER;
 extern EfeBoneOffset *EFE_BONE_OFFSET;
 
