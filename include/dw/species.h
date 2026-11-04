@@ -43,6 +43,7 @@
 #define SPECIES_FLAG_DEFINED	0x01	/* the id exists */
 #define SPECIES_FLAG_PARTNER	0x02	/* the partner block is valid: it can be a partner */
 #define SPECIES_FLAG_COND_FX	0x04	/* conditionFx replaces CONDITION_FX_OFFSETS[originalType] */
+#define SPECIES_FLAG_EFFECT_DEFAULT 0x08 /* effectDefault: a technique without an origin row still has one (efe.c) */
 
 #define SPECIES_EFFECT_ORIGINS	8
 #define SPECIES_ANY_OFFSET	(-0x8000)	/* EffectOrigin.from[1]: any offset of that bone */
@@ -154,7 +155,10 @@ typedef struct {
 	uint8_t reserved13F;
 	SpeciesEffectOrigin effectOrigins[SPECIES_EFFECT_ORIGINS]; /* 0x140 */
 	uint32_t portrait;		/* 0x1C0 MOD (portraits): SPECIES_PORTRAIT_REF of its icon (0: none, the fallback icon) */
-	uint8_t reserved1C4[SPECIES_RECORD_SIZE - 0x1C4];
+	/* MOD (effect origins): where a technique whose EFE table has no row for originalType starts when its table's
+	 * rows are on bones (shots, breaths): bone, x, y, z of this species (SPECIES_FLAG_EFFECT_DEFAULT; efe.c) */
+	int16_t effectDefault[4];	/* 0x1C4 */
+	uint8_t reserved1CC[SPECIES_RECORD_SIZE - 0x1CC];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
@@ -171,6 +175,7 @@ SPECIES_LAYOUT_CHECK(condfx, __builtin_offsetof(SpeciesRecord, conditionFx) == 0
 SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) == 0x140);
 SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x1C);
 SPECIES_LAYOUT_CHECK(portrait, __builtin_offsetof(SpeciesRecord, portrait) == 0x1C0);
+SPECIES_LAYOUT_CHECK(effectDefault, __builtin_offsetof(SpeciesRecord, effectDefault) == 0x1C4);
 SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
 SPECIES_LAYOUT_CHECK(links, sizeof(SpeciesLinks) <= 0x800);
 
