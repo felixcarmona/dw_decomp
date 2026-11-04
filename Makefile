@@ -86,9 +86,7 @@ LANG_FILES ?=
 # tools/build-disc.py --relayout. NEW_FILES="RIFT01.MAP RIFT01.TFS ..." (8.3 upper-case names, given by tools/build-full.sh
 # from the content); empty by default: the table and the executable as before. About 24 bytes of .data per name.
 NEW_FILES ?=
-$(shell mkdir -p $(GEN_DIR); printf '%s\n' $(foreach n,$(NEW_FILES),'{ 0x00000000, 0x00000800, "$(n)" },') > $(GEN_DIR)/file_table_new.h.tmp; \
-	cmp -s $(GEN_DIR)/file_table_new.h.tmp $(GEN_DIR)/file_table_new.h && rm $(GEN_DIR)/file_table_new.h.tmp \
-	|| mv $(GEN_DIR)/file_table_new.h.tmp $(GEN_DIR)/file_table_new.h)
+$(shell mkdir -p $(GEN_DIR); python3 tools/gen_file_table.py $(GEN_DIR)/file_table_new.h --new '$(NEW_FILES)')
 $(shell mkdir -p $(GEN_DIR); printf '#define NUM_NEW_FILES %s\n' '$(words $(NEW_FILES))' > $(GEN_DIR)/file_table_count.h.tmp; \
 	cmp -s $(GEN_DIR)/file_table_count.h.tmp $(GEN_DIR)/file_table_count.h && rm $(GEN_DIR)/file_table_count.h.tmp \
 	|| mv $(GEN_DIR)/file_table_count.h.tmp $(GEN_DIR)/file_table_count.h)
