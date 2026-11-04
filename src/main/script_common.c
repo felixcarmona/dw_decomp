@@ -9,6 +9,7 @@
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/font.h>
+#include <dw/mod_battle.h>
 #include <dw/main.h>
 #include <dw/map.h>
 #include <dw/math.h>
@@ -3167,4 +3168,20 @@ int32_t econAmt(int32_t slot)
 int32_t econPercent(int32_t slot)
 {
 	return MOD_ECON[slot] >= 0 ? MOD_ECON[slot] : 100;
+}
+
+/* MOD (battle as data): written by tools/balance.py from content/tables/battle-formulas.json; -1 = the rule does not exist */
+int16_t MOD_BATTLE[MOD_BT_SIZE] = { [0 ... MOD_BT_SIZE - 1] = -1 };
+
+/* the percent of MP a partner's brains save: the highest tier of mp.discountBrain[] reached */
+int32_t modBtBrainDiscount(int32_t brain)
+{
+	int32_t i, pct = 0;
+
+	for (i = 0; i < 4; i++) {
+		if (MOD_BATTLE[MOD_BT_MP_BRAIN0 + i] >= 0 && brain >= MOD_BATTLE[MOD_BT_MP_BRAIN0 + i] && MOD_BATTLE[MOD_BT_MP_DISC0 + i] >= 0) {
+			pct = MOD_BATTLE[MOD_BT_MP_DISC0 + i];
+		}
+	}
+	return pct;
 }
