@@ -232,6 +232,28 @@ RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	  80, 30, 6, 36, 1200, 10, 46, 4, 6, 0, 30, 42, 376, -958 },
 	[DIGIMON_WARUMONZAEMON] = { { 2, 6, 11, 16, 21, -1, -1, -1 },
 	  80, 40, 8, 36, 1200, 10, 47, 1, 2, 3, 40, 100, 375, -1005 },
+	/*
+	 * MOD (machinedramon): MetalGreymon's row (12), a bit hungrier, with a
+	 * bigger poop and the weight of a war machine. The status-screen view
+	 * (viewX/Y/Z, see Cherrymon's row) puts the whole 600-high body, cannons
+	 * and tail included, in the Condition panel (tried in the game).
+	 */
+	[DIGIMON_MACHINEDRAMON] = { { 0, 4, 8, 12, 16, 20, -1, -1 },
+	  80, 50, 13, 36, 1200, 16, 53, 2, 3, 0, 70, -560, 640, -150 },
+	/*
+	 * MOD (jijimon): Ogremon's row (34) for a small old man: smaller
+	 * meals and poop, an early sleeper, light (weight 20); the
+	 * status-screen view fits him in the Condition panel.
+	 */
+	[DIGIMON_JIJIMON] = { { 1, 5, 9, 13, 17, 21, -1, -1 },
+	  80, 40, 9, 36, 1200, 8, 50, 1, 5, 1, 20, 280, 340, -1390 },
+	/*
+	 * MOD (analogman): Andromon's row (40): a late sleeper with regular
+	 * meals, weight 30; the status-screen view fits him in the Condition
+	 * panel.
+	 */
+	[DIGIMON_ANALOGMAN] = { { 2, 6, 11, 16, 21, -1, -1, -1 },
+	  80, 32, 6, 36, 1200, 10, 46, 1, 3, 2, 30, 260, 360, -1400 },
 };
 
 typedef struct {
@@ -271,6 +293,12 @@ int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	[DIGIMON_WARUMONZAEMON - 1] = 12,
 	[DIGIMON_MYOTISMON - 1] = 11, /* MOD (partners-npc-b): Devimon's 10 */
 	[DIGIMON_SHOGUNGEKOMON - 1] = 20, /* MOD (partners-npc-b): a wide frog */
+	/* MOD (machinedramon): long arms, MetalGreymon's 15 at its size */
+	[DIGIMON_MACHINEDRAMON - 1] = 20,
+	/* MOD (jijimon): short arms */
+	[DIGIMON_JIJIMON - 1] = 10,
+	/* MOD (analogman): a human's reach */
+	[DIGIMON_ANALOGMAN - 1] = 10,
 };
 
 extern uint8_t ITEM_CLUT_DATA[];
@@ -2163,19 +2191,27 @@ void tickConditions(void)
 			EVOLUTION_TARGET = getRookieEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
 		/*
-		 * MOD (partners-npc-a): only types with an EVOLUTION_PATHS row
-		 * (Panjyamon, type 63, read past the table); and an Ultimate
-		 * with a path (Etemon -> MetalEtemon) is evaluated after 96
-		 * hours like a Champion. The other Ultimates have no targets.
+		 * MOD (partners-npc-a): Panjyamon (type 63) has no EVOLUTION_PATHS
+		 * row: getEvolutionPath (species) gives it, and every type past
+		 * the table, an empty one, so no type guard is needed here.
 		 */
-		else if (level == 4 && evoTimer >= 144 &&
-			 PARTNER_ENTITY.digimonEntity.entity.type < NUM_EVOLVING_DIGIMON)
+		else if (level == 4 && evoTimer >= 144)
 			EVOLUTION_TARGET = getChampionEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (level == 5 && evoTimer >= 96 &&
-			 PARTNER_ENTITY.digimonEntity.entity.type < NUM_EVOLVING_DIGIMON)
-			EVOLUTION_TARGET = getChampionEvolutionTarget(
+		/*
+		 * MOD (integration): an Ultimate may evolve again:
+		 *   - partners-npc-c: Megadramon/Gigadramon -> Machinedramon after
+		 *     48 h (getModUltimateEvolutionTarget, evolution.c);
+		 *   - partners-npc-a: an Ultimate with a path (Etemon ->
+		 *     MetalEtemon) after 96 h, like a Champion.
+		 */
+		else if (level == 5 && evoTimer >= 48) {
+			EVOLUTION_TARGET = getModUltimateEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
+			if (EVOLUTION_TARGET == -1 && evoTimer >= 96)
+				EVOLUTION_TARGET = getChampionEvolutionTarget(
+					PARTNER_ENTITY.digimonEntity.entity.type);
+		}
 		if (level == 4 && evoTimer == 360)
 			EVOLUTION_TARGET = handleSpecialEvolutions(
 				3, ENTITY_TABLE[1]);
