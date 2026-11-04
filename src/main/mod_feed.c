@@ -14,7 +14,7 @@
  * triangle menu's does (Scold: discipline up and the next item taken; Sleep), triangle closes the box. When the
  * partner refuses the item this menu gave and a scolding is fair, the menu opens again on its own with Scold under
  * the cursor. With nothing to offer X does nothing here. While the box is open the clock stops, as with the triangle
- * menu.
+ * menu. While X would open it, an X button is drawn beside the condition bubbles (bubble.c).
  * Hooked from tamerTickWalkingState() (tamer.c), after checkMapInteraction(): talking to an NPC, a chest or a
  * press tile take the X first.
  */
@@ -55,6 +55,10 @@
 #define FEED_COMMAND_COLOR	0	/* TEXT_COLORS: white */
 #define FEED_DESC_V	0xC0	/* text area rows of the description and the note: under the 16 rows of names */
 #define FEED_NOTE_V	0xCC
+
+/* 1 for a tick in which X would open the menu: bubble.c (tickConditionRingObject) reads it and clears it, and
+ * draws an X badge beside the condition bubbles while it comes */
+int32_t MOD_FEED_HINT = 0;
 
 enum { FEED_OPENING, FEED_OPEN, FEED_CLOSING, FEED_GIVING, FEED_WATCHING };
 
@@ -529,11 +533,15 @@ static int32_t feedOpen(void)
  * (checkItemPickup: TAMER_STATE 7) */
 int32_t modFeedTick(void)
 {
-	if ((CHANGED_INPUT & CONFIRM_BUTTON) == 0 || TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
+	if (TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
 	    UI_BOX_DATA[FEED_LIST_BOX].state != 0 || UI_BOX_DATA[FEED_LIST_BOX].frame != 0 ||
 	    UI_BOX_DATA[FEED_DESC_BOX].state != 0 || UI_BOX_DATA[FEED_DESC_BOX].frame != 0 ||
 	    PARTNER_STATE != PARTNER_NORMAL || TAMER_ITEM.worldItem.type != ITEM_NONE || !feedPartnerAhead() ||
-	    !feedOpen()) {
+	    feedCollect() == 0) {
+		return 0;
+	}
+	MOD_FEED_HINT = 1; /* X would open the menu: bubble.c draws the X badge */
+	if ((CHANGED_INPUT & CONFIRM_BUTTON) == 0 || !feedOpen()) {
 		return 0;
 	}
 	addObject(FEED_OBJECT_ID, 0, feedTick, NULL);
