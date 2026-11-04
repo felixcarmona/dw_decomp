@@ -861,17 +861,33 @@ uint8_t HAS_USED_EVOITEM;
 
 GARBAGE(getFreshEvolutionTarget, 10);
 
+/*
+ * MOD (evolution rules as data): the rules are tables that start empty (-1 = does not exist) and tools/balance.py build
+ * writes from content/tables/evolution-rules.json (include/dw/level.h)
+ */
+int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+					       { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+						  { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+#define MOD_EVO_NO_RULE                                                                                        \
+	{                                                                                                      \
+		-1, { -1, -1, -1, -1 }, 0, 0, -1, 0, { { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 } } \
+	}
+ModEvoRule MOD_EVO_RULES[MOD_EVO_RULES_MAX] = { MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE,
+						MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE,
+						MOD_EVO_NO_RULE, MOD_EVO_NO_RULE };
+
 int16_t getFreshEvolutionTarget(int32_t currentDigimon) {
   int32_t result;
+  int32_t i;
 
-  if (currentDigimon == 0x01)
-    result = 0x02;
-  if (currentDigimon == 0x0f)
-    result = 0x10;
-  if (currentDigimon == 0x1d)
-    result = 0x1e;
-  if (currentDigimon == 0x2b)
-    result = 0x2c;
+  result = -1;
+  for (i = 0; i < MOD_EVO_PAIR_MAX; i++) {
+    if (MOD_EVO_FRESH[i][0] == currentDigimon)
+      result = MOD_EVO_FRESH[i][1];
+  }
 
   PARTNER_PARA.evoTimer = 0;
   return result; // possible undefined behavior: 'result' may be uninitialized
@@ -986,8 +1002,6 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
   return currentBestDigimon;
 }
 
-/* MOD (evolution rules as data): -1 = does not exist; tools/balance.py build writes the values */
-int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
   DigimonId *targetPtr; /* MOD: was int8_t */
@@ -1067,6 +1081,10 @@ int32_t handleSpecialEvolutions(mode, entity)
   int16_t tiredness;
   int16_t rand;
   int16_t evoTarget;
+  ModEvoRule *rule;
+  int32_t i;
+  int32_t k;
+  int32_t stat;
 
   if (tamerGetState() != 0)
     return -1;
@@ -1082,41 +1100,39 @@ int32_t handleSpecialEvolutions(mode, entity)
   rand = randomLimit(100);
   evoTarget = -1;
 
-  switch (mode) {
-  case 2: {
-    if (rand < 30) {
-      if ((type == 0x15 || type == 0x0a) && discipline == 100 &&
-          happiness == 100 && tiredness == 0) {
-        evoTarget = 7;
-      }
-      if (type == 0x19 && battles >= 50 && discipline == 100) {
-        evoTarget = 58;
-      }
-      if (type == 0x26 && def >= 500 && discipline == 100) {
-        evoTarget = 47;
-      }
+  /* MOD (evolution rules as data): the rows of MOD_EVO_RULES, in order; the last that matches wins. One roll for all of them */
+  for (i = 0; i < MOD_EVO_RULES_MAX; i++) {
+    rule = &MOD_EVO_RULES[i];
+    if (rule->target < 0 || rule->mode != mode || rand >= rule->chance)
+      continue;
+    if (rule->level >= 0 && level != rule->level)
+      continue;
+    if (rule->from[0] >= 0) {
+      for (k = 0; k < 4 && rule->from[k] >= 0 && rule->from[k] != type; k++)
+        ;
+      if (k == 4 || rule->from[k] != type)
+        continue;
     }
-    if (rand < 50 &&
-        (type == 0x02 || type == 0x1E || type == 0x10 || type == 0x2c) &&
-        CURRENT_SCREEN == 1) {
-      evoTarget = 32;
+    for (k = 0; k < MOD_EVO_COND_MAX && rule->cond[k].stat >= 0; k++) {
+      switch (rule->cond[k].stat) {
+      case MOD_STAT_DISCIPLINE: stat = discipline; break;
+      case MOD_STAT_HAPPINESS: stat = happiness; break;
+      case MOD_STAT_TIREDNESS: stat = tiredness; break;
+      case MOD_STAT_BATTLES: stat = battles; break;
+      case MOD_STAT_DEFENSE: stat = def; break;
+      case MOD_STAT_EVOTIMER: stat = evotimer; break;
+      case MOD_STAT_SCREEN: stat = CURRENT_SCREEN; break;
+      case MOD_STAT_SCOLD_FLAG: stat = NANIMON_TRIGGER; break;
+      default: stat = 0; break;
+      }
+      if (rule->cond[k].op == 1 ? stat < rule->cond[k].value : stat != rule->cond[k].value)
+        break;
     }
-    break;
-  }
-  case 3: {
-    if ((type == 0x18 || type == 0x23) && level == 4 && evotimer == 200 &&
-        rand < 30) {
-      evoTarget = 49;
-    }
-    if (NANIMON_TRIGGER == 1) {
-      evoTarget = 53;
+    if (k < MOD_EVO_COND_MAX && rule->cond[k].stat >= 0)
+      continue;
+    if (rule->flags & 1)
       NANIMON_TRIGGER = 0;
-    }
-    if (level == 4 && evotimer >= 240 && rand < 50) {
-      evoTarget = 28;
-    }
-    break;
-  }
+    evoTarget = rule->target;
   }
 
   if (evoTarget != -1) {
@@ -1292,14 +1308,19 @@ void reincarnatePartner(unused, stats, partner, digimonId)
 int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 {
 	EvoRequirements *reqs;
+	int32_t i;
+	int32_t target;
 
-	if (currentDigimon != DIGIMON_MEGADRAMON && currentDigimon != DIGIMON_GIGADRAMON) {
-		return -1;
-	}
-	reqs = &EVO_REQ_ROW(DIGIMON_MACHINEDRAMON);
-	if (calculateRequirementScore(currentDigimon, DIGIMON_MACHINEDRAMON, (reqs->flags & 0x10) >> 4,
-	                              reqs->flags & 1, -1) >= 3) {
-		return DIGIMON_MACHINEDRAMON;
+	/* MOD (evolution rules as data): the {from, to} pairs of MOD_EVO_ULTIMATE (Megadramon/Gigadramon -> Machinedramon) */
+	for (i = 0; i < MOD_EVO_PAIR_MAX; i++) {
+		target = MOD_EVO_ULTIMATE[i][1];
+		if (MOD_EVO_ULTIMATE[i][0] != currentDigimon || target < 0) {
+			continue;
+		}
+		reqs = &EVO_REQ_ROW(target);
+		if (calculateRequirementScore(currentDigimon, target, (reqs->flags & 0x10) >> 4, reqs->flags & 1, -1) >= 3) {
+			return target;
+		}
 	}
 	return -1;
 }
