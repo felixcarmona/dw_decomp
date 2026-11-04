@@ -33,6 +33,7 @@ typedef struct {
 } Chest;
 
 extern DoorStruct DOOR_MAPDATA[NUM_DOOR_MAPDATA];
+void loadDoorData(DoorStruct *door); /* MOD (screens beyond 255) */
 extern Chest CHEST_ARRAY[NUM_CHESTS];
 extern GsDOBJ2 MEDAL_OBJECT;
 extern GsCOORDINATE2 MEDAL_COORDINATES;

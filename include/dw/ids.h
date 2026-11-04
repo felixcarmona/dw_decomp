@@ -142,7 +142,15 @@ typedef uint16_t CardId;
 	((type) == DIGIMON_MYOTISMON ? TRIGGER_RAISED_MYOTISMON : (type) + TRIGGER_RAISED_BASE)
 
 /* Screens (maps) */
-#define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */
+/*
+ * MOD (screens beyond 255): screen ids are 0..NUM_SCREENS-1, a build constant. The original 255 (0..254,
+ * NUM_ORIGINAL_SCREENS: what the original executable and the v1 save's u8 bytes can name) have their resident
+ * MAP_ENTRIES row and MAPHEAD section; the others are records of SCRN.DAT read from the disc (screen.h).
+ */
+#define NUM_ORIGINAL_SCREENS	255
+#ifndef NUM_SCREENS
+#define NUM_SCREENS		1024
+#endif
 /*
  * Value of CURRENT_SCREEN/PREVIOUS_SCREEN before the first map is loaded
  * (initializeMap) and the start section of a new game (initializeDefaultSavegame). It is
