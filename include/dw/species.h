@@ -91,6 +91,18 @@ typedef struct {
  * has no new species to keep out: every species counts as vanilla then.
  */
 #define SPECIES_HEADER_VANILLA	0x780
+/*
+ * MOD (canon levels): the originals whose species file gives them another level than the original game's (Phoenixmon,
+ * HerculesKabuterimon, MetalEtemon ... are Mega), at SPECIES_HEADER_LEVEL_OFF of the header sector: a count, then
+ * {id, level with NEW DIGIMON on, level with it off} per species. modApplySpeciesLevels writes the one of the current
+ * option into DIGIMON_DATA (at boot and whenever NEW DIGIMON changes), so with the option off the game sees the original
+ * levels and has no Mega.
+ */
+#define SPECIES_HEADER_LEVEL_OFF	0x500
+#define SPECIES_LEVEL_SWAP_MAX	32
+void modApplySpeciesLevels(void);
+/* the level the original game gives a species (its NEW DIGIMON off level): the original evolution items keep their rule with it */
+int32_t modOriginalLevel(int32_t type);
 #define SPECIES_VANILLA_BYTES	(NUM_DIGIMON / 8)
 int32_t isVanillaSpecies(int32_t type);
 /* the vanilla species a new partner species becomes with NEW DIGIMON off (its record's vanillaAs), 0 none */
