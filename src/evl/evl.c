@@ -60,7 +60,6 @@ extern u_long EVL_D_80065398[];
 extern u_long EVL_D_8006569C[];
 extern char EVL_D_80065FA0[];
 extern char EVL_D_80066274[];
-#define EVL_SHARD_SCRATCH_SIZE 5436 /* MOD (integration): sizeof EVL_D_80066274 (evl_bss_us.c) */
 extern EfeFlashBuffer EVL_D_800677B0;
 extern int16_t EVL_D_80067994[40];
 extern GsRVIEW2 GS_VIEWPOINT;
@@ -1010,6 +1009,8 @@ int32_t EVL_buildShardSet(Entity *entity, int32_t objIndex, int32_t bone)
 	 * the bone order, particles and sparks, and a shard world object was
 	 * left with its tick in the unloaded overlay (crash at the next battle).
 	 * A bone whose shards do not fit gets none (its wireframe still fades).
+	 * MOD: the array is now EVL_SHARD_SCRATCH_SIZE (dw/evl.h); the check
+	 * stays as a safety net (tools/species.py checks every species).
 	 */
 	if (out + (int32_t)(obj->vern + obj->primn) * (int32_t)sizeof(EvlModelVertex) >
 	    (int32_t)EVL_D_80066274 + EVL_SHARD_SCRATCH_SIZE) {
