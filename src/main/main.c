@@ -7,6 +7,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/attack_object.h>
 #include <dw/bubble.h>
@@ -5739,20 +5740,20 @@ void handleBuffDisks(type)
 
 	offLimit = (INITIAL_COMBAT_STATS[0].offense +
 		    ((INITIAL_COMBAT_STATS[0].offense * 3) / 10));
-	if (offLimit > 999) {
-		offLimit = 999;
+	if (offLimit > STAT_CAP) { /* MOD (caps): was 999 */
+		offLimit = STAT_CAP;
 	}
 
 	defLimit = (INITIAL_COMBAT_STATS[0].defense +
 		    ((INITIAL_COMBAT_STATS[0].defense * 3) / 10));
-	if (defLimit > 999) {
-		defLimit = 999;
+	if (defLimit > STAT_CAP) { /* MOD (caps): was 999 */
+		defLimit = STAT_CAP;
 	}
 
 	speedLimit = (INITIAL_COMBAT_STATS[0].speed +
 		      ((INITIAL_COMBAT_STATS[0].speed * 3) / 10));
-	if (speedLimit > 999) {
-		speedLimit = 999;
+	if (speedLimit > STAT_CAP) { /* MOD (caps): was 999 */
+		speedLimit = STAT_CAP;
 	}
 
 	stats = &PARTNER_ENTITY.digimonEntity.stats.base;
