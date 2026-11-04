@@ -272,7 +272,7 @@ static int32_t findSlot(int32_t tile)
 	return -1;
 }
 
-static int8_t TFS_CELL[12];	/* tile in each VRAM window cell, -1 = none (tfsLoadTile) */
+int8_t TFS_CELL[12];	/* tile in each VRAM window cell, -1 = none (tfsLoadTile) */
 
 static int32_t inVram(int32_t tile)
 {
