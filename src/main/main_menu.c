@@ -257,10 +257,13 @@ int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	7 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROWS	9 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_LANG	7
 #else
-#define MOD_OPT_ROWS	6
+#define MOD_OPT_ROWS	8
+#define MOD_OPT_ROW_LANG	6
 #endif
+#define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
 static int32_t modOptionValue(int32_t row);
@@ -373,6 +376,7 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos);
 static int32_t modRegisterLong(void);
 static void modTitleNameTail(void);
 static void modDrawSlotName(char *name, int32_t y);
+static void modDrawSlot2(char *str, int32_t x, int32_t y, int32_t slot2);
 static int32_t MOD_REG_LIST_LONG;
 static int32_t MOD_SAVE_SLOTS_LONG;
 /* MOD (sleep menu): its rows as wide as the longer option measures, never narrower than the original's 0x54 */
@@ -2089,23 +2093,20 @@ void drawMainMenuStrings(int32_t menu)
 	case 1:
 		drawString(SLOT_ACTION_TITLES[0], 0, 0);
 		DrawSync(0);
-		drawString(SLOT_ACTION_TITLES[0], 0, 0xC);
-		drawString(STR_2, 0x76, 0xC);
+		modDrawSlot2(SLOT_ACTION_TITLES[0], 0, 0xC, 1); /* MOD (language) */
 		DrawSync(0);
 		drawString(SLOT_ACTION_TITLES[3], 0, 0x18);
 		break;
 	case 2:
 		drawString(SLOT_ACTION_TITLES[1], 0, 0);
 		DrawSync(0);
-		drawString(SLOT_ACTION_TITLES[1], 0, 0xC);
-		drawString(STR_2, 0x9A, 0xC);
+		modDrawSlot2(SLOT_ACTION_TITLES[1], 0, 0xC, 1); /* MOD (language) */
 		MAIN_D_80135054 = 1;
 		break;
 	case 4:
 		drawString(SLOT_ACTION_TITLES[2], 0, 0);
 		DrawSync(0);
-		drawString(SLOT_ACTION_TITLES[2], 0, 0xC);
-		drawString(STR_2, 0x76, 0xC);
+		modDrawSlot2(SLOT_ACTION_TITLES[2], 0, 0xC, 1); /* MOD (language) */
 		MAIN_D_80135054 = 2;
 		break;
 	case 5:
@@ -2129,29 +2130,15 @@ void drawMainMenuStrings(int32_t menu)
 		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		break;
 	case 7:
-		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
+		/* MOD (language): the title of slot 2 drawn whole (the original drew a "2" at the x of the US title's "1") */
+		modDrawSlot2(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0, MAIN_MENU_ACTION <= 2 && MEMORY_CARD_ID != 0);
 		DrawSync(0);
-		if (MAIN_MENU_ACTION == 0 || MAIN_MENU_ACTION == 1 ||
-		    MAIN_MENU_ACTION == 2) {
-			if (MEMORY_CARD_ID != 0) {
-				if (MAIN_D_80135054 == 1) {
-					drawString(STR_2, 0x9A, 0);
-				}
-				if (MAIN_D_80135054 == 2) {
-					drawString(STR_2, 0x76, 0);
-				}
-			}
-		}
 		for (i = 0; i < 6; i++) {
 			drawSaveSlotText(i, i);
 		}
 		break;
 	case 9:
-		drawString(MAIN_D_801312FC, 0, 0);
-		DrawSync(0);
-		if (MEMORY_CARD_ID != 0) {
-			drawString(STR_2, 0x76, 0);
-		}
+		modDrawSlot2(MAIN_D_801312FC, 0, 0, MEMORY_CARD_ID != 0); /* MOD (language) */
 		DrawSync(0);
 		drawString(MAIN_D_80131318, 0, 0xC);
 		DrawSync(0);
@@ -2160,18 +2147,7 @@ void drawMainMenuStrings(int32_t menu)
 		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
 		break;
 	case 8:
-		drawString(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0);
-		if (MAIN_MENU_ACTION == 0 || MAIN_MENU_ACTION == 1 ||
-		    MAIN_MENU_ACTION == 2) {
-			if (MEMORY_CARD_ID != 0) {
-				if (MAIN_D_80135054 == 1) {
-					drawString(STR_2, 0x9A, 0);
-				}
-				if (MAIN_D_80135054 == 2) {
-					drawString(STR_2, 0x76, 0);
-				}
-			}
-		}
+		modDrawSlot2(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0, MAIN_MENU_ACTION <= 2 && MEMORY_CARD_ID != 0); /* MOD (language) */
 		DrawSync(0);
 		drawString(MAIN_D_80131340, 0x90, 0);
 		DrawSync(0);
@@ -2244,17 +2220,14 @@ void drawMainMenuStrings(int32_t menu)
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
 		DrawSync(0);
-		drawString(MAIN_D_801313E4, 0, 0xC);
+		/* MOD (language): player 2's rows drawn with their own "2"s (the original drew two at the US row's x) */
+		modDrawSlot2(MAIN_D_801313E4, 0, 0xC, VS_PLAYER_INDEX == 1);
 		DrawSync(0);
-		drawString(MAIN_D_80131400, 0, 0x18);
+		modDrawSlot2(MAIN_D_80131400, 0, 0x18, VS_PLAYER_INDEX == 1);
 		DrawSync(0);
-		drawString(MAIN_D_8013141C, 0, 0x24);
+		modDrawSlot2(MAIN_D_8013141C, 0, 0x24, VS_PLAYER_INDEX == 1);
 		DrawSync(0);
 		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
-		if (VS_PLAYER_INDEX == 1) {
-			drawString(STR_2, 0x76, 0x24);
-			drawString(STR_2, 0xB4, 0x24);
-		}
 		break;
 	case 14:
 		drawString(SLOT_ACTION_TITLES[6], 0, 0);
@@ -2384,6 +2357,27 @@ static void modSaveSlotsLayout(int32_t isLong)
 }
 
 /* MOD (long names): a save slot's species in its column, tighter in the long layout if it must */
+/*
+ * MOD (language): a row that names slot or player 1, drawn for 2 (`slot2`): every digit 1 of it becomes STR_2's. The
+ * original drew the row and then a "2" at the x of the US text's "1", which lands elsewhere in another text or font
+ * ("SEGUIR EN RANURA 1   2").
+ */
+static void modDrawSlot2(char *str, int32_t x, int32_t y, int32_t slot2)
+{
+	char buf[0x40];
+	int32_t i;
+
+	if (!slot2) {
+		drawString(str, x, y);
+		return;
+	}
+	for (i = 0; str[i] != '\0' && i < (int32_t)sizeof(buf) - 1; i++) {
+		buf[i] = str[i] == '1' ? STR_2[0] : str[i]; /* (a two-byte code's second byte is never below 0x40) */
+	}
+	buf[i] = '\0';
+	drawString(buf, x, y);
+}
+
 static void modDrawSlotName(char *name, int32_t y)
 {
 	if (MOD_SAVE_SLOTS_LONG) {
@@ -4598,7 +4592,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t screens[2];
 	int16_t inventory[30];
 	int32_t partnerType;
-	uint8_t options[7]; /* MOD (options) */
+	uint8_t options[9]; /* MOD (options) */
 	int16_t swap[2];
 	int32_t size;
 	int32_t i;
@@ -4663,6 +4657,8 @@ static void prepareSaveFile(int32_t fromRam)
 #endif
 	options[5] = MOD_OPT_EVO_GUIDE;
 	options[6] = MOD_OPT_NEW_DIGIMON;
+	options[7] = MOD_LANG; /* MOD (language) */
+	options[8] = MOD_OPT_SIGNS;
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	if (MOD_SWAP_TO > 0 && MOD_SWAP_TO == partnerType) { /* MOD (options): the partner NEW DIGIMON off turned */
 		swap[0] = MOD_SWAP_FROM;
@@ -5016,6 +5012,12 @@ static void applyRecords(uint8_t *e)
 			}
 			if (len >= 7 && !MOD_OPT_TOUCHED) {
 				MOD_OPT_NEW_DIGIMON = d[6] != 0;
+			}
+			if (len >= 8 && !MOD_OPT_TOUCHED) { /* MOD (language) */
+				modSetLanguage(d[7]);
+			}
+			if (len >= 9 && !MOD_OPT_TOUCHED) {
+				modSetSigns(d[8]);
 			}
 			break;
 		}
@@ -5476,7 +5478,7 @@ void renderInitialMenu(void)
  * and 61 for "20 FPS"): a row then shows its chosen value only, as the original game's own settings do.
  */
 #define MOD_OPT_VALUES	3	/* the most values a row has */
-#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, a band per value */
+#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, one row each */
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
@@ -5490,7 +5492,11 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
 #endif
+	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH }, /* MOD (language) */
+	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 };
+/* the text area row of each value: a value two rows share (OFF, ON, ORIGINAL) is drawn once (drawOptionsText) */
+static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
  * width, a value's, and how many values a row shows (all, or 1 with the original font: above) */
@@ -5498,19 +5504,6 @@ static int16_t MOD_OPT_TEXT_X;
 static int16_t MOD_OPT_LABEL_W;
 static int16_t MOD_OPT_VALUE_W;
 static int16_t MOD_OPT_SHOWN;
-
-/* where a row's label (k 0) or value (k 1..) is in the text area: the labels in the first rows, the values in a band
- * each under them; the third values (FONT's) in the right half of the second band, as six rows of three bands would pass
- * the area's 256 rows */
-static int32_t modOptTextU(int32_t k)
-{
-	return k == 3 ? 0x80 : 0;
-}
-
-static int32_t modOptTextV(int32_t row, int32_t k)
-{
-	return MOD_OPT_VALUE_Y * (k == 3 ? 2 : k) + row * 0xC;
-}
 
 static int32_t modOptionCount(int32_t row)
 {
@@ -5535,6 +5528,10 @@ static int32_t modOptionValue(int32_t row)
 	case 6: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
 #endif
+	case MOD_OPT_ROW_LANG: /* MOD (language) */
+		return MOD_LANG;
+	case MOD_OPT_ROW_SIGNS:
+		return MOD_OPT_SIGNS;
 	}
 #if FPS == 20
 	return -1;
@@ -5570,6 +5567,12 @@ static void modSetOption(int32_t row, int32_t value)
 		modSetFont(value == 0 ? MOD_FONT_NEW : value == 1 ? MOD_FONT_CLASSIC : MOD_FONT_ORIGINAL);
 		break;
 #endif
+	case MOD_OPT_ROW_LANG: /* MOD (language) */
+		modSetLanguage(value);
+		break;
+	case MOD_OPT_ROW_SIGNS:
+		modSetSigns(value);
+		break;
 	}
 }
 
@@ -5584,11 +5587,33 @@ static void drawOptionsText(void)
 	int32_t k;
 	int32_t w;
 
+	int32_t y;
+	int32_t r2;
+	int32_t k2;
+
 	MOD_OPT_LABEL_W = 0;
 	MOD_OPT_VALUE_W = 0;
+	y = MOD_OPT_VALUE_Y;
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		for (k = 0; k <= modOptionCount(r); k++) {
-			drawString(MOD_OPT_TEXT[r][k], modOptTextU(k), modOptTextV(r, k));
+			if (k > 0) { /* MOD (language): a value an earlier row has is drawn once */
+				for (r2 = 0; r2 <= r; r2++) {
+					for (k2 = 1; k2 <= modOptionCount(r2) && (r2 < r || k2 < k); k2++) {
+						if (!strcmp(MOD_OPT_TEXT[r2][k2], MOD_OPT_TEXT[r][k])) {
+							goto shared;
+						}
+					}
+				}
+				MOD_OPT_V[r][k - 1] = y;
+				drawString(MOD_OPT_TEXT[r][k], 0, y);
+				y += 0xC;
+				goto drawn;
+			shared:
+				MOD_OPT_V[r][k - 1] = MOD_OPT_V[r2][k2 - 1];
+				continue;
+			}
+			drawString(MOD_OPT_TEXT[r][k], 0, r * 0xC);
+		drawn:
 			DrawSync(0);
 			w = measureStringMode(MOD_OPT_TEXT[r][k], FIT_VANILLA) + 1; /* and the shadow */
 			if (k == 0) {
@@ -5626,12 +5651,11 @@ static void renderOptionsMenu(void)
 		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_LABEL_W, 0xC, 0);
 		x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
 		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the first one, grey, when none is) */
-			k = value > 0 ? value + 1 : 1;
-			renderText(cur++, x, y, modOptTextU(k), modOptTextV(r, k), MOD_OPT_VALUE_W, 0xC, value >= 0 ? 2 : 1);
+			renderText(cur++, x, y, 0, MOD_OPT_V[r][value > 0 ? value : 0], MOD_OPT_VALUE_W, 0xC, value >= 0 ? 2 : 1);
 			continue;
 		}
 		for (k = 0; k < modOptionCount(r); k++) {
-			renderText(cur++, x, y, modOptTextU(k + 1), modOptTextV(r, k + 1), MOD_OPT_VALUE_W, 0xC, value == k ? 2 : 1);
+			renderText(cur++, x, y, 0, MOD_OPT_V[r][k], MOD_OPT_VALUE_W, 0xC, value == k ? 2 : 1);
 			x += MOD_OPT_VALUE_W + MOD_OPT_GAP;
 		}
 	}

@@ -70,8 +70,18 @@ void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, in
 			drawString(str, x, y);                                     \
 		}                                                                  \
 	} while (0)
+/* the same with the crops' offsets in a table (PIECES_END at its end): a language's own (dw/lang.h) */
+#define DRAW_STRING_PIECES_AT(str, x, y, pieces)                                   \
+	do {                                                                       \
+		if (FONT_PROPORTIONAL) {                                           \
+			drawStringPieces(str, x, y, pieces);                       \
+		} else {                                                           \
+			drawString(str, x, y);                                     \
+		}                                                                  \
+	} while (0)
 #else
 #define DRAW_STRING_PIECES(str, x, y, ...) drawString(str, x, y)
+#define DRAW_STRING_PIECES_AT(str, x, y, pieces) drawString(str, x, y)
 #endif
 
 /*

@@ -58,13 +58,12 @@ static int32_t readScreenRecord(int32_t id)
 	return 1;
 }
 
-#if FONT_SWITCH
-/* MOD (font): the font changed: the next record is read from its file (script_interp.c modFontScriptsChanged) */
+/* MOD (font, language): the font or the language changed: the next record is read from its file (script_interp.c
+ * modFontScriptsChanged) */
 void modScreenFileChanged(void)
 {
 	SCREEN_SECTOR_ID = -1;
 }
-#endif
 
 static ScreenRecordHead *getScreenHead(int32_t id)
 {

@@ -231,3 +231,97 @@ LEVEL_TITLES:
     MAIN_D_801342D8:
       ja: 伝説
       en_us: Legend
+
+# MOD (chart criteria; language): the evolution chart's level tabs and requirement card, ours (not the game's), keyed
+# (keys main.CHART_STR_*); `storage: define`, a literal where game_menu.c uses it. The card measures its lines and the
+# tabs are laid out by measuring their names, so a translation needs no other change.
+CHART_TEXT:
+  storage: define
+  strings:
+    CHART_STR_BABY:
+      ja: "Baby"
+      en_us: "Baby"
+    CHART_STR_ROOKIE:
+      ja: "Rookie"
+      en_us: "Rookie"
+    CHART_STR_CHAMPION:
+      ja: "Champion"
+      en_us: "Champion"
+    CHART_STR_ULTIMATE:
+      ja: "Ultimate"
+      en_us: "Ultimate"
+    CHART_STR_MEGA:
+      ja: "Mega"
+      en_us: "Mega"
+    CHART_STR_STAT_HP:
+      ja: "HP"
+      en_us: "HP"
+    CHART_STR_STAT_MP:
+      ja: "MP"
+      en_us: "MP"
+    CHART_STR_STAT_OFF:
+      ja: "Off"
+      en_us: "Off"
+    CHART_STR_STAT_DEF:
+      ja: "Def"
+      en_us: "Def"
+    CHART_STR_STAT_SPD:
+      ja: "Spd"
+      en_us: "Spd"
+    CHART_STR_STAT_BRN:
+      ja: "Brn"
+      en_us: "Brn"
+    CHART_STR_AUTOMATIC:
+      ja: "Automatic"
+      en_us: "Automatic"
+    CHART_STR_MISTAKES_ANY:
+      ja: "Mistakes any"
+      en_us: "Mistakes any"
+    CHART_STR_MISTAKES:
+      ja: "Mistakes"
+      en_us: "Mistakes"
+    CHART_STR_WEIGHT:
+      ja: "Weight"
+      en_us: "Weight"
+    CHART_STR_TOP:
+      ja: "Top"
+      en_us: "Top"
+    CHART_STR_STATS_ANY:
+      ja: "Stats any"
+      en_us: "Stats any"
+    CHART_STR_STATS:
+      ja: "Stats"
+      en_us: "Stats"
+    CHART_STR_BONUS_ANY:
+      ja: "Bonus any"
+      en_us: "Bonus any"
+    CHART_STR_BONUS_ONE_OF:
+      ja: "Bonus, one of"
+      en_us: "Bonus, one of"
+    CHART_STR_FROM:
+      ja: "From "
+      en_us: "From "
+    CHART_STR_YES:
+      ja: "yes"
+      en_us: "yes"
+    CHART_STR_NO:
+      ja: "no"
+      en_us: "no"
+    CHART_STR_DISCIPLINE:
+      ja: "Discipline"
+      en_us: "Discipline"
+    CHART_STR_HAPPINESS:
+      ja: "Happiness"
+      en_us: "Happiness"
+    CHART_STR_BATTLES:
+      ja: "Battles"
+      en_us: "Battles"
+    CHART_STR_TECHS:
+      ja: "Techs"
+      en_us: "Techs"
+    CHART_STR_OF_4:
+      ja: " of 4"
+      en_us: " of 4"
+    CHART_STR_READY:
+      ja: "  ready"
+      en_us: "  ready"
