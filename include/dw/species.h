@@ -93,6 +93,8 @@ typedef struct {
 #define SPECIES_HEADER_VANILLA	0x780
 #define SPECIES_VANILLA_BYTES	(NUM_DIGIMON / 8)
 int32_t isVanillaSpecies(int32_t type);
+/* the vanilla species a new partner species becomes with NEW DIGIMON off (its record's vanillaAs), 0 none */
+int32_t getSpeciesVanillaAs(int32_t type);
 /* 1 if the original type is carried by its DIGI.DAT record (always 0 for ids >= NUM_ORIGINAL_DIGIMON) */
 int32_t isRecordOriginal(int32_t type);
 
@@ -167,7 +169,8 @@ typedef struct {
 	/* MOD (effect origins): where a technique whose EFE table has no row for originalType starts when its table's
 	 * rows are on bones (shots, breaths): bone, x, y, z of this species (SPECIES_FLAG_EFFECT_DEFAULT; efe.c) */
 	int16_t effectDefault[4];	/* 0x1C4 */
-	uint8_t reserved1CC[SPECIES_RECORD_SIZE - 0x1CC];
+	int16_t vanillaAs;		/* 0x1CC MOD (options): NEW DIGIMON off, the vanilla species a loaded partner becomes */
+	uint8_t reserved1CE[SPECIES_RECORD_SIZE - 0x1CE];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
