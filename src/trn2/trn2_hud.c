@@ -222,6 +222,8 @@ int16_t TRN2_calculateTrainingMultiplier(type, mode)
 		num = num * 10;
 	} else if (DIGI_PARA(type).level == 4) {
 		num = num * 11;
+	} else if (DIGI_PARA(type).level == 6) { /* MOD (mega): x1.3 */
+		num = num * 13;
 	} else {
 		num = num * 12;
 	}
