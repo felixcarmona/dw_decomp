@@ -50,6 +50,9 @@
 #include <dw/species.h>
 #include <dw/font.h>
 #include <dw/script.h>
+#include <dw/screen.h>
+#include <dw/tamer.h>
+#include <dw/clock.h>
 #include <dw/sound.h>
 #include <text/main/mod_lab.h>   /* MOD (text sources): the lab menu's text, keyed (main.LAB_STR_*) */
 #include <dw/species.h>
@@ -436,8 +439,8 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 }
 
 /*
- * MOD (roster switch, temporary test tool): on the map, SELECT + L1 or L2 turns the partner into the next species of
- * the roster and SELECT + R1 or R2 into the previous one, at once (no evolution scene), and a caption at the top of
+ * MOD (roster switch, temporary test tool): on the map, SELECT + L1 turns the partner into the next species of
+ * the roster and SELECT + R1 into the previous one (L2 and R2 are the screen jump, below), at once (no evolution scene), and a caption at the top of
  * the screen shows its name and level for a few seconds. The roster is every partner species in id order: the
  * original partners (1..65), the NPC partners of the lab menu and the partner species of DIGI.DAT; a model too big
  * for the partner buffer is skipped. The partner is reloaded as Continue loads it (loadMMD, its sounds), keeps its
@@ -599,7 +602,34 @@ static void modRosterSwitch(int32_t type)
 	setDigimonRaised(type); /* raised, as an evolution marks it (the chart, the raised count) */
 }
 
-/* returns 1 when it switched the partner (the tamer's tick ends there) */
+/*
+ * MOD (screen jump, temporary test tool): on the map, SELECT + R2 walks the tamer into the next new screen of the
+ * disc (SCRN.DAT, ids 255..) and SELECT + L2 into the previous one, wrapping; from an original screen R2 goes to
+ * the first and L2 to the last. The tamer arrives at the screen's exit 0, by the fade and caption of a warp tile.
+ */
+void unsetCameraFollowPlayer(void);
+
+extern ScreenId TARGET_MAP;
+extern uint8_t CURRENT_EXIT;
+
+static int32_t modScreenJump(int32_t step)
+{
+	int32_t id = findNewScreen(CURRENT_SCREEN, step);
+
+	if (id < 0 || id == CURRENT_SCREEN) {
+		playSound(0, 4);
+		return 0;
+	}
+	playSound(0, 2);
+	TARGET_MAP = id;
+	CURRENT_EXIT = 0;
+	tamerSetState(5);
+	unsetCameraFollowPlayer();
+	stopGameTime();
+	return 1;
+}
+
+/* returns 1 when it switched the partner or started a screen jump (the tamer's tick ends there) */
 int32_t modRosterTick(void)
 {
 	uint32_t pressed;
@@ -614,7 +644,10 @@ int32_t modRosterTick(void)
 		playSound(0, 4); /* not now: the press was heard */
 		return 0;
 	}
-	step = (pressed & (PAD_L1 | PAD_L2)) ? 1 : -1;
+	if (pressed & (PAD_L2 | PAD_R2)) {
+		return modScreenJump((pressed & PAD_R2) ? 1 : -1);
+	}
+	step = (pressed & PAD_L1) ? 1 : -1;
 	type = modRosterStep(step);
 	if (type != PARTNER_ENTITY.digimonEntity.entity.type) {
 		modRosterSwitch(type);

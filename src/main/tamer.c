@@ -495,7 +495,7 @@ void tamerTickWalkingState(void)
 
 	tickTamerWaypoints();
 
-	if (modRosterTick()) { /* MOD (roster switch): SELECT + L1/L2/R1/R2, mod_lab.c */
+	if (modRosterTick()) { /* MOD (roster switch): SELECT + L1/R1; screen jump: SELECT + L2/R2, mod_lab.c */
 		return;
 	}
 
