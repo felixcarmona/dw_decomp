@@ -143,7 +143,17 @@ void TRN_applyBaseStats(void)
 	PARTNER_ENTITY.digimonEntity.stats.base.brain = INITIAL_COMBAT_STATS[0][5];
 }
 
+/* MOD (training block, src/trn/trn_block.h): a block opens the box once, after its last session */
 void TRN_createPostTrainingStatsBox(void)
+{
+	if (TRN_MOD_QUIET) {
+		return;
+	}
+	clearTextArea();
+	TRN_modOpenStatsBox();
+}
+
+void TRN_modOpenStatsBox(void)
 {
 	int32_t i;
 	DVECTOR screenPos;
@@ -151,7 +161,6 @@ void TRN_createPostTrainingStatsBox(void)
 	RECT startPos;
 
 	MAIN_D_80135394 = 0;
-	clearTextArea();
 
 	for (i = 0; i < 6; i++) {
 		if (STATS_GAINS[i] == 0) {

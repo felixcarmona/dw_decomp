@@ -70,4 +70,12 @@ void TRN_createSlotMachineBox(int32_t arg);
 int32_t TRN_getSlotMachineResult(void);
 void TRN_startSlotSpin(void);
 
+
+/* MOD (training block, src/trn/trn_block.h) */
+extern int8_t TRN_MOD_QUIET;
+void TRN_modBlockArm(void);
+void TRN_modBlockBegin(void);
+int32_t TRN_modBlockNext(void);
+void TRN_modOpenStatsBox(void);
+
 #endif

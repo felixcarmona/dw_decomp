@@ -83,7 +83,10 @@ int16_t instanceId;
 			playSound(8, 0xa);
 			MAIN_D_801353C2 /= TRN_STEP_OF(MOD_TRAIN2_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
-			TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			TRN2_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			} while (TRN2_modBlockNext());
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			MAIN_D_801353BD = 3;
 		}
@@ -128,6 +131,7 @@ void TRN2_saveTrainingStartTime(void)
 	MAIN_D_801353CE = CURRENT_FRAME;
 	MAIN_D_801353D0 = HOUR;
 	MAIN_D_801353D2 = MINUTE;
+	TRN2_modBlockArm(); /* MOD (training block) */
 }
 
 GARBAGE(TRN2_setupMpTraining, 8);
