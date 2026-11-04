@@ -39,8 +39,8 @@ typedef struct {
 } EvoStatsGains;
 
 typedef struct {
-	int8_t from[5];
-	int8_t to[6];
+	DigimonId from[5]; /* MOD: was s8 (ids.md step 3); -1 = none */
+	DigimonId to[6];
 } EvolutionPath;
 
 typedef struct {
