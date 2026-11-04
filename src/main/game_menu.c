@@ -6,6 +6,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_fps.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
 #include <dw/evl.h>
@@ -3442,6 +3443,9 @@ void renderDigimonStatusConditions(int32_t condition)
 	}
 }
 
+static VECTOR modDigiviceSavedPos;
+static SVECTOR modDigiviceSavedRot;
+
 void renderDigiviceEntity(entity, entityId)
 	Entity *entity;
 int8_t entityId;
@@ -3478,6 +3482,17 @@ int8_t entityId;
 	count = DIGIMON_DATA[type].boneCount;
 	savedPos = pos->location;
 	savedRot = pos->rotation;
+	/* MOD (fps): this moves the live entity to the menu view, poses it and
+	 * puts it back (restarting its animation), on every render pass. The
+	 * extra passes put it back where it was before the first pass, so they
+	 * leave the entity exactly as the first one did. */
+	if (MOD_RENDER_PASS == 0) {
+		modDigiviceSavedPos = savedPos;
+		modDigiviceSavedRot = savedRot;
+	} else {
+		savedPos = modDigiviceSavedPos;
+		savedRot = modDigiviceSavedRot;
+	}
 	setEntityPosition(entityId, RAISE_DATA[type].viewX,
 	                  RAISE_DATA[type].viewY,
 	                  RAISE_DATA[type].viewZ);
