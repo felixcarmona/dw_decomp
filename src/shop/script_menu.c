@@ -3686,6 +3686,8 @@ static void openPackResults(void)
 	int32_t n;
 	int32_t fresh;
 
+	/* the list first: the arrays are a stack (allocateArray), got is freed above it */
+	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1c, 6, 0x56);
 	got = (uint8_t *)allocateArray(NUM_CARDS * 2);   /* how many came, the copies before */
 	for (i = 0; i < NUM_CARDS; i++) {
 		got[i] = 0;
@@ -3702,7 +3704,6 @@ static void openPackResults(void)
 		}
 	}
 
-	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1c, 6, 0x56);
 	out = ITEM_MENU_LEFT->buf;
 	fresh = 0;
 	for (r = 0; r < 5; r++) {
