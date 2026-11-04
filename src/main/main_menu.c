@@ -256,14 +256,17 @@ int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
-#define MOD_OPT_BYTES	9 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes) */
+#define MOD_OPT_BYTES	10 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes) */
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
+#define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
+#define MOD_OPT_ROW_FPS	6
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	9 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_LANG	7
+#define MOD_OPT_ROWS	10 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	7
+#define MOD_OPT_ROW_LANG	8
 #else
-#define MOD_OPT_ROWS	8
-#define MOD_OPT_ROW_LANG	6
+#define MOD_OPT_ROWS	9
+#define MOD_OPT_ROW_LANG	7
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4665,6 +4668,7 @@ static void modOptionBytes(uint8_t *d)
 	d[6] = MOD_OPT_NEW_DIGIMON;
 	d[7] = MOD_LANG; /* MOD (language) */
 	d[8] = MOD_OPT_SIGNS;
+	d[9] = MOD_OPT_STORY; /* MOD (story) */
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
@@ -4701,6 +4705,9 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	}
 	if (len >= 9) {
 		modSetSigns(d[8]);
+	}
+	if (len >= 10) { /* MOD (story) */
+		modSetStory(d[9]);
 	}
 }
 
@@ -5041,6 +5048,33 @@ static void modVanillaSwap(void)
 	swapPartnerSpecies(to);
 }
 
+/*
+ * MOD (story): the save was played with the other story (EXTENDED STORY changed in OPTIONS since): its screen may not
+ * exist in this one, nor the way out of it, so the game goes on in Jijimon's house, as the original's door from File
+ * City picks it (205 once Angemon or Monzaemon live in the city or prosperity is 50, else 218), at its exit 0
+ * (initializeLoadedMap places the tamer and the partner there). The flags stay: each story reads its own.
+ */
+#define MOD_STORY_HOUSE		218	/* Jijimon's house */
+#define MOD_STORY_HOUSE_BIG	205	/* the same, grown */
+#define MOD_STORY_CITY		168	/* File City, outside its door */
+static int32_t MOD_SAVE_STORY; /* the story the loaded save was played with (SAVE_TAG_OPTIONS byte 9; none: extended) */
+
+static void modStoryRelocate(void)
+{
+	if (MOD_SAVE_STORY == MOD_OPT_STORY || !modStoryChoice()) {
+		return;
+	}
+	SAVED_STATE.currentScreen =
+	    isDigimonRecruited(20) || isDigimonRecruited(DIGIMON_MONZAEMON) || readPStat(1) >= 50 ? MOD_STORY_HOUSE_BIG
+												  : MOD_STORY_HOUSE;
+	SAVED_STATE.previousScreen = MOD_STORY_CITY;
+	SAVED_STATE.currentExit = 0;
+	SAVED_STATE.previousExit = 0;
+	SAVED_STATE.tamerWaypointActive = 0;
+	SAVED_STATE.tamerWaypointCount = 0;
+	MOD_STORY_ARRIVE = 1;
+}
+
 static void dropAbsentSaveContent(void)
 {
 	uint32_t *learned = &PARTNER_ENTITY.learnedMoves[0]; /* 128 bits: the struct names 64 (unk1, unk2 follow) */
@@ -5192,6 +5226,7 @@ static void applyRecords(uint8_t *e)
 			}
 			break;
 		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
+			MOD_SAVE_STORY = len >= 10 ? d[9] != 0 : 1;
 			modApplyOptions(d, len);
 			break;
 		}
@@ -5226,6 +5261,8 @@ static int32_t loadSaveCopy(int32_t copy)
 	}
 	resetSpeciesFlags();
 	MOD_SWAP_FROM = MOD_SWAP_TO = 0;
+	MOD_SAVE_STORY = 1; /* MOD (story): a save from before the option was played with the story the disc had */
+	MOD_STORY_ARRIVE = 0;
 	if (isExtensionValid(0)) {
 		if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0]))) {
 			applyRecords(saveExtOf(0));
@@ -5247,6 +5284,7 @@ static int32_t loadSaveCopy(int32_t copy)
 	}
 	dropAbsentSaveContent();
 	modVanillaSwap();
+	modStoryRelocate();
 	return 1;
 }
 
@@ -5662,6 +5700,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
@@ -5698,8 +5737,10 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_EVO_GUIDE != 0;
 	case 4:
 		return MOD_OPT_NEW_DIGIMON != 0;
+	case MOD_OPT_ROW_STORY: /* MOD (story) */
+		return MOD_OPT_STORY != 0;
 #if FONT_SWITCH
-	case 6: /* NEW, CLASSIC, ORIGINAL */
+	case MOD_OPT_ROW_FONT: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
 #endif
 	case MOD_OPT_ROW_LANG: /* MOD (language) */
@@ -5733,11 +5774,14 @@ static void modSetOption(int32_t row, int32_t value)
 	case 4:
 		MOD_OPT_NEW_DIGIMON = value;
 		break;
-	case 5:
+	case MOD_OPT_ROW_STORY: /* MOD (story) */
+		modSetStory(value);
+		break;
+	case MOD_OPT_ROW_FPS:
 		modSetFrameRate(value ? 60 : 20);
 		break;
 #if FONT_SWITCH
-	case 6:
+	case MOD_OPT_ROW_FONT:
 		modSetFont(value == 0 ? MOD_FONT_NEW : value == 1 ? MOD_FONT_CLASSIC : MOD_FONT_ORIGINAL);
 		break;
 #endif

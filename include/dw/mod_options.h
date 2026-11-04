@@ -57,4 +57,19 @@ void modSetSigns(int32_t translated);
 /* the file name to read for `name` (no folder): its language's or translated signs' copy when the disc has it */
 char *modLangFile(char *name);
 
+/*
+ * MOD (story): EXTENDED STORY (docs/mods/options.md). On, the game reads the disc's files: the script text and the maps
+ * with the story mods. Off, the files they change are read from their copies as the original story has them
+ * (modStoryFile: the same name with an underscore for its first letter, tools/dws/variants.py), the language's copy's
+ * own copy for a file read in the language. A save keeps the story it was played with; a Continue with the other one moves the tamer to
+ * Jijimon's house (main_menu.c modStoryRelocate, main.c initializeLoadedMap).
+ */
+extern int32_t MOD_OPT_STORY;	/* EXTENDED STORY: 1 = with the story mods, 0 = the original story */
+extern int32_t MOD_STORY_ARRIVE; /* a Continue changed the story: the tamer arrives at the loaded screen's exit */
+/* the file name to read for `name` (no folder): its original story's copy when the option is off and the disc has it */
+char *modStoryFile(char *name);
+/* 1 when the disc has the original story's copies (the option is a choice) */
+int32_t modStoryChoice(void);
+void modSetStory(int32_t extended);
+
 #endif
