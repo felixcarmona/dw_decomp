@@ -85,6 +85,16 @@ extern int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2];
 extern int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2];
 extern ModEvoRule MOD_EVO_RULES[MOD_EVO_RULES_MAX];
 extern int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE];
+
+/* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
+#define MOD_EVO_ITEM_MAX	4
+typedef struct {
+	int16_t item;
+	int16_t target;
+	int16_t level;
+} ModEvoItem;
+extern ModEvoItem MOD_EVO_ITEMS[MOD_EVO_ITEM_MAX];
+ModEvoItem *getModEvoItem(int32_t item);
 /* lifetime added on reaching Mega naturally (Ultimate: +96) */
 #define MEGA_LIFETIME_BONUS	120
 
