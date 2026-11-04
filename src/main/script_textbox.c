@@ -715,9 +715,15 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 #if VERSION_IS(US)
 	uint16_t adv;
 #endif
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	uint16_t cellsSpace;
+#endif
 	uint16_t glyph;
 
 	pos = 0;
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	cellsSpace = 0xc;
+#endif
 	for (;;) {
 		ch = *str++;
 		switch (ch) {
@@ -836,7 +842,11 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			} else {
 				adv = drawGlyph(glyph, x + pos, y);
 				if (FONT_CELLS != 0 && glyph == 0x4081) {
-					adv = DRAW_STRING2_SPACE_WIDTH; /* the space's cell in these rows */
+					/* as the original advanced a space in these rows: by the glyph before it (the calendar's
+					 * grades: a blank cell after a grade or at the row's start is 12, like the cell) */
+					adv = cellsSpace;
+				} else {
+					cellsSpace = adv;
 				}
 			}
 #else
