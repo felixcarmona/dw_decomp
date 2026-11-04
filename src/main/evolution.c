@@ -890,7 +890,7 @@ int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
   targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1) {
+    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
       targetPtr++;
       continue;
     }
@@ -925,7 +925,7 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
   bestScore = statTotal = statCount = 0U;
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1) {
+    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
       targetPtr++;
       continue;
     }
@@ -990,7 +990,7 @@ int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
   bestScore = statTotal = statCount = 0U;
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1) {
+    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
       targetPtr++;
       continue;
     }
