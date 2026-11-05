@@ -33,6 +33,17 @@ $(shell mkdir -p $(GEN_DIR); printf '#define PARTNER_MMD_MAX %s\n' '$(PARTNER_MM
 	cmp -s $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h && rm $(GEN_DIR)/partner_mmd_max.h.tmp \
 	|| mv $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h)
 
+# MOD (fps): the frame rate the build presents, 20, 30 or 60 fps (docs/mods/60fps.md); the
+# game logic runs at 20 Hz in all three. Chosen here, at build time only (no menu option).
+# The default below is the one line to change (docs/open-items.md: 60 or 30, pending).
+FPS ?= 60
+ifeq ($(filter $(FPS),20 30 60),)
+$(error FPS=$(FPS): the frame rate must be 20, 30 or 60)
+endif
+$(shell mkdir -p $(GEN_DIR); printf '#define FPS %s\n' '$(FPS)' > $(GEN_DIR)/fps.h.tmp; \
+	cmp -s $(GEN_DIR)/fps.h.tmp $(GEN_DIR)/fps.h && rm $(GEN_DIR)/fps.h.tmp \
+	|| mv $(GEN_DIR)/fps.h.tmp $(GEN_DIR)/fps.h)
+
 PYTHON := python3
 
 .DEFAULT_GOAL := all
