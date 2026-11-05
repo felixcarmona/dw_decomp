@@ -1,0 +1,75 @@
+# MOD (lab menu; text sources, docs/handoff/text-sources-design.md 2.9 E): the lab menu's own text, ours (not the game's),
+# keyed so a text source can translate it (keys main.LAB_STR_*). `storage: define`: each is a literal where src/main/mod_lab.c
+# uses it, as before (the same binary). The same text for every release.
+MOD_LAB:
+  storage: define
+  strings:
+    LAB_STR_TITLE:
+      ja: "LAB MENU"
+      en_us: "LAB MENU"
+    LAB_STR_ADD_BITS:
+      ja: "+1000 bits"
+      en_us: "+1000 bits"
+    LAB_STR_HEAL:
+      ja: "Heal partner"
+      en_us: "Heal partner"
+    LAB_STR_GIFT:
+      ja: "One-time gift"
+      en_us: "One-time gift"
+    LAB_STR_BUBBLES_ALL:
+      ja: "Status bubbles  All"
+      en_us: "Status bubbles  All"
+    LAB_STR_BUBBLES_CLASSIC:
+      ja: "Status bubbles  Classic"
+      en_us: "Status bubbles  Classic"
+    LAB_STR_CLOSE:
+      ja: "Close"
+      en_us: "Close"
+    LAB_STR_BITS:
+      ja: "Bits "
+      en_us: "Bits "
+    LAB_STR_HP:
+      ja: "   HP "
+      en_us: "   HP "
+    LAB_STR_OF:
+      ja: " of "
+      en_us: " of "
+    LAB_STR_TO_MEGA:
+      ja: "To Mega "
+      en_us: "To Mega "
+    LAB_STR_TO:
+      ja: "To "
+      en_us: "To "
+    LAB_STR_NONE:
+      ja: "none"
+      en_us: "none"
+    LAB_STR_MSG_BITS:
+      ja: "Bits +1000"
+      en_us: "Bits +1000"
+    LAB_STR_MSG_HEALED:
+      ja: "Partner healed"
+      en_us: "Partner healed"
+    LAB_STR_MSG_GIFT_TAKEN:
+      ja: "Gift already taken"
+      en_us: "Gift already taken"
+    LAB_STR_MSG_GOT_MEAT:
+      ja: "You got 1 Meat"
+      en_us: "You got 1 Meat"
+    LAB_STR_MSG_NO_MEGA:
+      ja: "No Mega on this disc"
+      en_us: "No Mega on this disc"
+    LAB_STR_MSG_NOT_ON_DISC:
+      ja: "Not on this disc"
+      en_us: "Not on this disc"
+    LAB_STR_MSG_TOO_BIG:
+      ja: "Model too big for it"
+      en_us: "Model too big for it"
+    LAB_STR_MSG_ALREADY:
+      ja: "Already evolved"
+      en_us: "Already evolved"
+    LAB_STR_MSG_NOT_NOW:
+      ja: "Not now, try later"
+      en_us: "Not now, try later"
+    LAB_STR_MSG_UNPAUSE:
+      ja: "Unpause to evolve"
+      en_us: "Unpause to evolve"

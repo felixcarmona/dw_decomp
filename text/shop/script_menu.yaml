@@ -61,3 +61,15 @@ NAMING_BUTTONS:
     MAIN_D_80134600:
       ja: NULL
       en_us: "BackOK\0"
+
+# MOD (text sources): the item keeper's box labels were literals of script_menu.c with no entry (keys shop.STR_IN_HAND,
+# shop.STR_KEEPING). `storage: define`: still literals where the C uses them (the same binary).
+BOX_LABELS:
+  storage: define
+  strings:
+    STR_IN_HAND:
+      ja: NULL
+      en_us: In hand
+    STR_KEEPING:
+      ja: NULL
+      en_us: Keeping

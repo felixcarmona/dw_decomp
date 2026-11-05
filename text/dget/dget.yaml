@@ -1,0 +1,8 @@
+# MOD (text sources): the arena calendar's title, a literal of dget.c that had no entry (key dget.DGET_STR_TOURNAMENT).
+# `storage: define`: still a literal where the C uses it (the same binary). US only, as the code that draws it.
+CALENDAR:
+  storage: define
+  strings:
+    DGET_STR_TOURNAMENT:
+      ja: NULL
+      en_us: Tournament

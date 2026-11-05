@@ -425,9 +425,9 @@ uint16_t NAMING_ROLLOVER_CHARS[10] = {
 	0x8000, 0x0000,
 };
 
-BoxLabel MAIN_D_801307B4 = { "In hand" };
+BoxLabel MAIN_D_801307B4 = { STR_IN_HAND };   /* MOD (text sources): keyed, text/shop/script_menu.yaml */
 
-BoxLabel MAIN_D_801307C0 = { "Keeping" };
+BoxLabel MAIN_D_801307C0 = { STR_KEEPING };
 #endif
 
 TRADE_LABEL_TEXT
