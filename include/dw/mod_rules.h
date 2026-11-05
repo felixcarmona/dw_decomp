@@ -32,7 +32,7 @@ extern int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE];
  * written by tools/balance.py from content/tables/economy.json. A cap left out is the limit of what holds the value (money 2^31 - 1, merit 32767, a stack 255); a
  * percent left out is 100 (a price ratio) or 0 (the part of the items lost on a defeat); an amount left out is 0.
  */
-#define MOD_ECON_SIZE		12
+#define MOD_ECON_SIZE		13
 #define MOD_ECON_MONEY_CAP	0
 #define MOD_ECON_MERIT_CAP	1
 #define MOD_ECON_STACK_CAP	2
@@ -45,6 +45,7 @@ extern int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE];
 #define MOD_ECON_CARD_CUT3	9
 #define MOD_ECON_CARD_MAX	10
 #define MOD_ECON_PACK_PRICE	11 /* MOD (amounts): what a card pack costs (left out: nothing) */
+#define MOD_ECON_BATTLE_BITS	12 /* MOD (economy): the per cent of the enemies' bits a won battle pays (left out: 100) */
 extern int32_t MOD_ECON[MOD_ECON_SIZE];
 int32_t econCap(int32_t slot, int32_t whenLeftOut);
 int32_t econAmt(int32_t slot);
