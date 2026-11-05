@@ -1195,6 +1195,7 @@ uint16_t CHAR_TO_GLYPH_TABLE[NUM_GLYPHS] = {
 // clang-format on
 
 #if FONT_SWITCH
+#include "font_compact.h"
 #include "font_b.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=b (tools/fontgen.py, tools/font/b.txt) */
 /* MOD (font): the original font's glyphs, for NEW FONT off */
 #define CELL_GLYPH_DATA ORIGINAL_GLYPH_DATA
@@ -1304,19 +1305,60 @@ GlyphData CELL_GLYPH_DATA[NUM_GLYPHS] = {
 #include "font_extra.h"
 #endif
 
-/* Japanese glyphs share a dictionary of ten-pixel rows in every font.
- * Nine-bit indices keep the full font within the console's memory budget. */
+#if FONT_SWITCH
+/* Latin glyphs retain their exact pixels/widths, decoded into one cache. */
+static uint16_t *compactGlyph(int32_t glyph)
+{
+	static GlyphData cached;
+	static int32_t previous = -1;
+	int32_t row, length, bit;
+	uint32_t code, first, index, count;
+	if (glyph != previous) {
+		bit = LATIN_GLYPH_OFFSETS[glyph];
+		for (row = 0; row < 11; row++) {
+			code = first = index = 0;
+			for (length = 1; length <= LATIN_HUFFMAN_MAX_BITS; length++) {
+				code = (code << 1) | ((LATIN_GLYPH_BITS[bit >> 3] >> (7 - (bit & 7))) & 1);
+				bit++;
+				count = LATIN_ROW_COUNTS[length];
+				if (code - first < count) { cached.pixelData[row] = LATIN_ROW_WORDS[index + code - first]; break; }
+				index += count;
+				first = (first + count) << 1;
+			}
+		}
+		cached.width = LATIN_GLYPH_WIDTHS[glyph];
+		previous = glyph;
+	}
+	return cached.pixelData;
+}
+
+#endif
+
+/* Canonical Huffman row words; checkpoints bound a glyph lookup to 80 rows. */
+static uint16_t japaneseRow(int32_t *bit)
+{
+	uint32_t code = 0, first = 0, index = 0, count;
+	int32_t length;
+	for (length = 1; length <= JAPANESE_HUFFMAN_MAX_BITS; length++) {
+		code = (code << 1) | ((JAPANESE_GLYPH_BITS[*bit >> 3] >> (7 - (*bit & 7))) & 1);
+		(*bit)++;
+		count = JAPANESE_HUFFMAN_COUNTS[length];
+		if (code - first < count) return JAPANESE_GLYPH_ROWS[index + code - first];
+		index += count;
+		first = (first + count) << 1;
+	}
+	return 0xffff;
+}
+
 static uint16_t *japaneseGlyph(int32_t index, int32_t pixel)
 {
 	static GlyphData cached;
 	static int32_t previous = -1;
-	int32_t row;
+	int32_t row, bit;
 	if (index != previous) {
-		for (row = 0; row < 10; row++) {
-			int32_t bit = index * 90 + row * 9;
-			uint16_t pair = (JAPANESE_GLYPH_INDICES[bit >> 3] << 8) | JAPANESE_GLYPH_INDICES[(bit >> 3) + 1];
-			cached.pixelData[row] = JAPANESE_GLYPH_ROWS[(pair >> (7 - (bit & 7))) & 511];
-		}
+		bit = JAPANESE_GLYPH_OFFSETS[index / 8];
+		for (row = 0; row < (index % 8) * 10; row++) japaneseRow(&bit);
+		for (row = 0; row < 10; row++) cached.pixelData[row] = japaneseRow(&bit);
 		cached.pixelData[10] = 0xffff;
 		previous = index;
 	}
@@ -1419,7 +1461,7 @@ static int32_t glyphColor(uint16_t codepoint)
 
 #if FONT_SWITCH
 /* the rows of the glyph `code` (Shift-JIS, big endian) in a font's tables: GLYPH_HEIGHT, then its width */
-static uint16_t *lookupGlyph(uint16_t code, const GlyphData *glyphs, const GlyphData *extras)
+static uint16_t *lookupGlyph(uint16_t code, int32_t pixel)
 {
 	int32_t n;
 
@@ -1429,14 +1471,14 @@ static uint16_t *lookupGlyph(uint16_t code, const GlyphData *glyphs, const Glyph
 	}
 	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
 		if (n >= NUM_LATIN_GLYPHS) {
-			return japaneseGlyph(n - NUM_LATIN_GLYPHS, glyphs != ORIGINAL_GLYPH_DATA);
+			return japaneseGlyph(n - NUM_LATIN_GLYPHS, pixel);
 		}
-		return (uint16_t *)extras[n].pixelData;
+		return compactGlyph((pixel ? 229 : 79) + n);
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
 	}
-	return (uint16_t *)glyphs[n].pixelData;
+	return compactGlyph((pixel ? 150 : 0) + n);
 }
 
 /*
@@ -1457,7 +1499,7 @@ static uint16_t *classicRows(uint16_t code)
 	int32_t adv;
 	int32_t i;
 
-	p = lookupGlyph(code == FONT_FIGURE_SPACE ? 0x8140 : code, CELL_GLYPH_DATA, CELL_EXTRA_GLYPH_DATA);
+	p = lookupGlyph(code == FONT_FIGURE_SPACE ? 0x8140 : code, 0);
 	ink = 0;
 	for (i = 0; i < GLYPH_HEIGHT; i++) {
 		ink |= ~p[i] & 0xfff0; /* 0 = ink */
@@ -1495,7 +1537,7 @@ static uint16_t *glyphRows(uint16_t codepoint)
 	if (code == FONT_FIGURE_SPACE) {
 		return (uint16_t *)FIGURE_SPACE_GLYPH.pixelData;
 	}
-	return lookupGlyph(code, GLYPH_DATA, EXTRA_GLYPH_DATA);
+	return lookupGlyph(code, 1);
 }
 
 #ifdef FONT_KERN
@@ -1888,7 +1930,11 @@ int32_t drawGlyph(codepoint, x, y)
 		n--;
 	}
 	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+#if FONT_SWITCH
+		p = n < NUM_LATIN_GLYPHS ? compactGlyph(79 + n) : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
+#else
 		p = n < NUM_LATIN_GLYPHS ? (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
+#endif
 	} else
 #endif
 	{
@@ -1900,7 +1946,11 @@ int32_t drawGlyph(codepoint, x, y)
 			}
 		}
 
+		#if FONT_SWITCH
+		p = compactGlyph(n);
+#else
 		p = CELL_GLYPH_DATA[n].pixelData;
+#endif
 	}
 #if FONT_SWITCH
 	GLYPH_DRAWING_AREA_INDEX++;
@@ -2213,12 +2263,20 @@ static uint16_t *nextGlyph(char **str, int32_t mode)
 		n--;
 	}
 	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+#if FONT_SWITCH
+		return n < NUM_LATIN_GLYPHS ? compactGlyph(79 + n) : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
+#else
 		return n < NUM_LATIN_GLYPHS ? (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
+#endif
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
 	}
+	#if FONT_SWITCH
+	return compactGlyph(n);
+#else
 	return CELL_GLYPH_DATA[n].pixelData;
+#endif
 }
 
 /* the glyph's inked columns: returns the one after the last (0: no ink), *left the first */

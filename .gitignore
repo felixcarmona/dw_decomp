@@ -9,3 +9,4 @@ permuter/
 local.mk
 objdiff.json
 text-bank.json
+src/main/font_compact.h
