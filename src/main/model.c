@@ -11,6 +11,7 @@
 #include <dw/evl.h>
 #include <dw/file.h>
 #include <dw/file_queue.h>
+#include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/version.h>
@@ -2737,7 +2738,9 @@ void renderFlatDigimon(Entity *entity)
 	setRGB0(prim, 0x80, 0x80, 0x80);
 	prim->clut = model->clutPage + 0x3C0;
 	prim->tpage = model->pixelPage;
-	if (entity->flatSprite < 2) {
+	/* MOD (fps): the blink advances on the first render pass of a tick only;
+	 * it happens before drawing, so the other passes draw the same frame */
+	if (entity->flatSprite < 2 && MOD_RENDER_PASS == 0) {
 		if ((entity->flatTimer % 10) == 0) {
 			entity->flatSprite = (entity->flatSprite + 1) & 1;
 		}
@@ -3009,7 +3012,7 @@ void renderWireframed(GsDOBJ2 *obj, int32_t wireFrameShare)
 	LINE_F2 *lf2;
 	int8_t color;
 
-	color = WIREFRAME_COLOR_MIN + rand() % (WIREFRAME_COLOR_MAX - WIREFRAME_COLOR_MIN);
+	color = WIREFRAME_COLOR_MIN + modRenderRand() % (WIREFRAME_COLOR_MAX - WIREFRAME_COLOR_MIN);
 	tmd = (struct TMD_STRUCT *)obj->tmd;
 	vert = (SVECTOR *)tmd->vertop;
 	normal = (SVECTOR *)tmd->nortop;
@@ -3139,7 +3142,7 @@ void renderWireframed(GsDOBJ2 *obj, int32_t wireFrameShare)
 	LINE_F2 *lf2;
 
 	min = WIREFRAME_COLOR_MIN;
-	color = min + rand() % (WIREFRAME_COLOR_MAX - min);
+	color = min + modRenderRand() % (WIREFRAME_COLOR_MAX - min);
 	tmd = (struct TMD_STRUCT *)obj->tmd;
 	vert = (SVECTOR *)tmd->vertop;
 	normal = (SVECTOR *)tmd->nortop;
