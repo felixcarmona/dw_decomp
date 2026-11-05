@@ -144,10 +144,18 @@ static void modRosterTickCaption(int32_t instanceId)
 
 static void modRosterShowCaption(int32_t type)
 {
-	static char *LEVEL_TEXT[] = {
-		"", LAB_STR_LEVEL_FRESH, LAB_STR_LEVEL_IN_TRAINING, LAB_STR_LEVEL_ROOKIE,
-		LAB_STR_LEVEL_CHAMPION, LAB_STR_LEVEL_ULTIMATE, LAB_STR_LEVEL_MEGA,
-	};
+    /* These captions also run in the field with MENU absent. Give every
+     * translated literal its own resident section before moving the UI pool. */
+    static const char ROSTER_FRESH[] = LAB_STR_LEVEL_FRESH;
+    static const char ROSTER_IN_TRAINING[] = LAB_STR_LEVEL_IN_TRAINING;
+    static const char ROSTER_ROOKIE[] = LAB_STR_LEVEL_ROOKIE;
+    static const char ROSTER_CHAMPION[] = LAB_STR_LEVEL_CHAMPION;
+    static const char ROSTER_ULTIMATE[] = LAB_STR_LEVEL_ULTIMATE;
+    static const char ROSTER_MEGA[] = LAB_STR_LEVEL_MEGA;
+    static const char *const LEVEL_TEXT[] = {
+        "", ROSTER_FRESH, ROSTER_IN_TRAINING, ROSTER_ROOKIE,
+        ROSTER_CHAMPION, ROSTER_ULTIMATE, ROSTER_MEGA,
+    };
 	RECT area;
 	char *p;
 	int32_t level;
