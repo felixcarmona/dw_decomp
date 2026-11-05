@@ -174,9 +174,6 @@ GARBAGE(setFleeBubble, 9);
 
 void setFleeBubble(int16_t id, int16_t v)
 {
-	if (MOD_OPT_QUICK_BATTLE) {
-		return; /* MOD (quick battle start): no bubbles over who joins and who flees */
-	}
 	FLEE_BUBBLE_DATA[id - 2].frame = 0;
 	FLEE_BUBBLE_DATA[id - 2].type = v;
 	addObject(0x196, id, NULL, renderFleeBubble);
@@ -351,6 +348,7 @@ extern char btl_START[];
 extern char btl_END[];
 extern int32_t IS_SCRIPT_PAUSED;
 void _tickFileReadQueue(int32_t instanceId);
+int32_t entityIsOffScreen(Entity *entity, int32_t width, int32_t height);
 int32_t isFileReadQueueIdle(void);
 
 /* MOD (quick battle start): BTL_REL read ahead in the world, at its own address (OVL_BTL_BASE..btl_END is world
@@ -564,12 +562,66 @@ void modBattleLoadStep(void)
 	}
 }
 
-/* the fight ends (BTL_battleMain, before its clean-up): whatever is still loading lands first, as before the fight */
+/* MOD (quick battle start): the Digimon that do not join run off while the fight goes on (the original intro waited
+ * for them): each leaves the map when it is off the screen, or after 0xC8 ticks wherever it is, as the intro's end did */
+static int8_t modFleeing[8];
+static int8_t modFleeingCount;
+static int16_t modFleeingTicks;
+
+void modBattleFleeStart(int16_t *ids, int32_t count)
+{
+	int32_t i;
+
+	for (i = 0; i < count; i++) {
+		modFleeing[i] = ids[i];
+	}
+	modFleeingCount = count;
+	modFleeingTicks = 0;
+}
+
+static void modBattleFleeLeave(int32_t i)
+{
+	Entity *e;
+
+	e = ENTITY_TABLE[modFleeing[i]];
+	e->isOnMap = 0;
+	e->anim.animFlag &= 0xfb;
+	removeFleeBubble(modFleeing[i]);
+	modFleeing[i] = -1;
+}
+
+/* every tick of the fight (tamerTickBattle) */
+void modBattleFleeTick(void)
+{
+	int32_t i;
+
+	for (i = 0; i < modFleeingCount; i++) {
+		if ((modFleeing[i] >= 0) &&
+		    ((modFleeingTicks >= 0xc8) || entityIsOffScreen(ENTITY_TABLE[modFleeing[i]], 0x140, 0xf0))) {
+			modBattleFleeLeave(i);
+		}
+	}
+	modFleeingTicks++;
+}
+
+/* the fight ends (BTL_battleMain, before its clean-up): whatever is still loading lands first, as before the fight;
+ * the runaways leave and no bubble outlives the fight */
 void modBattleLoadFinish(void)
 {
+	int32_t i;
+
 	while (MOD_BATTLE_LOADING) {
 		_tickFileReadQueue(0);
 		modBattleLoadStep();
+	}
+	for (i = 0; i < modFleeingCount; i++) {
+		if (modFleeing[i] >= 0) {
+			modBattleFleeLeave(i);
+		}
+	}
+	modFleeingCount = 0;
+	for (i = 2; i < 10; i++) {
+		removeFleeBubble(i);
 	}
 }
 
@@ -832,7 +884,9 @@ void renderFleeBubble(int32_t instanceId)
 	GsSetWorkBase((PACKET *)prim);
 	GsSortSprite(&sprite, ACTIVE_ORDERING_TABLE, 8);
 	FLEE_BUBBLE_DATA[instanceId - 2].frame++;
-	if ((LOAD_EFE_STATE == 0) || (FLEE_BUBBLE_DATA[instanceId - 2].frame == 0xc8)) {
+	/* MOD (quick battle start): the fight has started and the loads go on, so a bubble lasts 2 s (40 ticks) */
+	if ((MOD_OPT_QUICK_BATTLE ? (FLEE_BUBBLE_DATA[instanceId - 2].frame >= 40) : (LOAD_EFE_STATE == 0)) ||
+	    (FLEE_BUBBLE_DATA[instanceId - 2].frame == 0xc8)) {
 		/* MOD (fps): the other render passes of this tick still draw it
 		 * (frame is rolled back for them, main.c) */
 		if (MOD_RENDER_MULTIPASS) {
