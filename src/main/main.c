@@ -35,6 +35,7 @@
 #include <dw/types.h>
 #include <dw/ui.h>
 #include <dw/utils.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/vs.h>
 #include <dw/world_object.h>
@@ -5556,6 +5557,16 @@ void pollInputMenu(void)
 	CHANGED_INPUT |= held;
 }
 
+/* MOD (language): the title screen's "Press Start Button" (x, y, w, h, u, v in TITLE256.TIM); the Spanish "Pulsa el
+ * botón START" is 129 wide and one row higher for the accent (its letters on the same screen rows) */
+int16_t PRESS_START_QUAD[6] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	-58, 49, 129, 11, 0, 240,
+#else
+	-0x36, 0x32, 121, 10, 0, 0xf1,
+#endif
+};
+
 void renderPressStartToContinue(void)
 {
 	GsOT_TAG *ot;
@@ -5573,8 +5584,8 @@ void renderPressStartToContinue(void)
 
 	if (FIRST_SCREEN_FRAME_COUNTER < 0x1e) {
 		SetPolyFT4(prim);
-		setXYWH(prim, -0x36, 0x32, 121, 10);
-		setUVWH(prim, 0, 0xf1, 121, 10);
+		setXYWH(prim, PRESS_START_QUAD[0], PRESS_START_QUAD[1], PRESS_START_QUAD[2], PRESS_START_QUAD[3]);
+		setUVWH(prim, PRESS_START_QUAD[4], PRESS_START_QUAD[5], PRESS_START_QUAD[2], PRESS_START_QUAD[3]);
 #if VERSION_IS(JP)
 		setRGB0(prim, 0x80, 0x80, 0x80);
 #elif VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)

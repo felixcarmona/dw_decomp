@@ -7,6 +7,7 @@
 #include <dw/file_table.h>
 #include <dw/main.h>
 #include <dw/mod_font.h>
+#include <dw/mod_options.h>
 #include <dw/tfs_stream.h>
 
 #include "common.h"
@@ -48,6 +49,7 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	} else {
 		++filename;
 	}
+	filename = modLangFile(filename); /* MOD (language) */
 
 	for (; entry->size != 0; ++entry) {
 		if (!strcmp(filename, entry->filename)) {

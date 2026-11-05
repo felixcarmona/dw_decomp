@@ -7,6 +7,7 @@
 #include <libgs.h>
 
 #include <dw/types.h>
+#include <dw/lang.h>
 
 /*
  * MOD (options): the title menu's OPTIONS (main_menu.c) and what they change (mod_options.c, docs/mods/options.md).
@@ -41,5 +42,19 @@ int32_t modFrameRate(void);
 void modSetFrameRate(int32_t fps);
 /* a TIM of ETCTIM.BIN was uploaded (loadStackedTIMFile): the SYSTEM_W page's button frames */
 void modButtonsTimLoaded(GsIMAGE *img);
+
+/*
+ * MOD (language): LANGUAGE and MAP SIGNS (docs/mods/language.md). The executable's strings and language tables are
+ * switched by writing the other language's bytes over them (LANGEN.BIN / LANGES.BIN, tools/langpatch.py); the disc's
+ * files are read from their language's copy when the disc has one, and the map backgrounds from their copy with the
+ * signs translated unless MAP SIGNS is ORIGINAL (modLangFile: the table tools/build-full.sh writes, LANG_FILES). Only
+ * at the title (OPTIONS, a loaded save's options), as the font.
+ */
+extern int32_t MOD_LANG;	/* the language the game shows */
+extern int32_t MOD_OPT_SIGNS;	/* MAP SIGNS: 1 = translated (the language's), 0 = as the disc has them */
+void modSetLanguage(int32_t lang);
+void modSetSigns(int32_t translated);
+/* the file name to read for `name` (no folder): its language's or translated signs' copy when the disc has it */
+char *modLangFile(char *name);
 
 #endif
