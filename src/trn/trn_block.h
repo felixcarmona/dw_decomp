@@ -1,7 +1,6 @@
 /*
- * MOD (training block): R2 during a gym session switches the sessions between x1 and x5 (MOD_TRAIN_BLOCK, main.c,
- * kept until the console resets; never with Bonus Try, whose reels are played). A plate in the bottom right corner
- * shows "R2 x1" (white) or "R2 x5" (yellow) until the session's gains are worked out. In a block the animation is
+ * MOD (training block): a gym's training menu has a "Normal training x5" row (story/base: the script sets the Bonus
+ * Try flag, pstat 246, to 2 for it; never with Bonus Try, whose reels are played). In a block the animation is
  * the first session's; then the gym's own award function runs once per session, each with its hour of game time
  * and its care costs, the gains of one added to the stats before the next (so a brains mark is crossed as it would
  * be), and the block stops after the session that left the partner hungry, needing the toilet, sleepy, tired, hurt
@@ -20,13 +19,10 @@
 #include <libgpu.h>
 #include <libgs.h>
 #include <dw/mod_qol.h>
-#include <dw/sound.h>
 #include <dw/ui.h>
 
 extern int16_t INITIAL_COMBAT_STATS[][6];
 extern int16_t STATS_GAINS[6];
-extern uint32_t POLLED_INPUT;
-extern uint32_t POLLED_INPUT_PREVIOUS;
 void clearTextSubArea(RECT *rect);
 void createMenuBox(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, void (*tick)(void), void (*render)(void));
 void renderString(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h, int32_t i);
@@ -47,6 +43,7 @@ static char *const TB_REASONS[] = {
 };
 
 int8_t TB(MOD_QUIET); /* the stats box waits for the block's last session */
+static int8_t TB_x5; /* the menu's x5 row */
 static int8_t TB_count;
 static int8_t TB_done;
 static int8_t TB_reason;
@@ -56,27 +53,15 @@ static int16_t TB_pre[6];
 static int16_t TB_sum[6];
 static char TB_doneText[64];
 
-static void TB_renderPlate(int32_t instanceId)
-{
-	(void)instanceId;
-	modPlate(0x80, 0x60, MOD_TRAIN_BLOCK ? "R2 x5" : "R2 x1", 3, 0xF8, MOD_TRAIN_BLOCK ? 0xD8 : 0xF0,
-		 MOD_TRAIN_BLOCK ? 0x30 : 0xF0);
-}
-
-static void TB_tickPlate(int32_t instanceId)
-{
-	(void)instanceId;
-	if (((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 2) && !(POLLED_INPUT & 0x100)) {
-		MOD_TRAIN_BLOCK ^= 1;
-		playSound(0, 2);
-	}
-}
-
-/* from the session's setup (TB(saveTrainingStartTime)): the plate, but not for the Bonus Try or a block's next hour */
+/* from the session's setup (TB(saveTrainingStartTime)), after it read the flag: the menu's x5 row is a normal session
+   in a block (not a block's next hour, which arms again) */
 void TB(modBlockArm)(void)
 {
-	if (TB_SLOT == 0 && !TB(MOD_QUIET)) {
-		addObject(0xfb2, 0, (TickFunction)TB_tickPlate, (RenderFunction)TB_renderPlate);
+	if (!TB(MOD_QUIET)) {
+		TB_x5 = TB_SLOT == 2;
+		if (TB_x5) {
+			TB_SLOT = 0;
+		}
 	}
 }
 
@@ -102,8 +87,7 @@ void TB(modBlockBegin)(void)
 {
 	int32_t i;
 
-	removeObject(0xfb2, 0);
-	TB_count = (MOD_TRAIN_BLOCK && TB_SLOT == 0) ? 5 : 1;
+	TB_count = TB_x5 ? 5 : 1;
 	TB_done = 0;
 	TB_reason = MOD_TB_GO;
 	TB_box2Before = UI_BOX_DATA[2].state != 0;
