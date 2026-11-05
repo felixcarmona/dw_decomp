@@ -68,7 +68,7 @@ extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 
 /* a new game and a new partner: MOD_NEWGAME[], every slot -1 = the rule does not exist (modNewGame answers 0), written by tools/balance.py
  * from content/tables/new-game.json */
-#define MOD_NEWGAME_SIZE	20
+#define MOD_NEWGAME_SIZE	76
 #define MOD_NG_MONEY		0 /* the tamer's money in a new game */
 #define MOD_NG_START_HOUR	1 /* the game clock in a new game */
 #define MOD_NG_START_MINUTE	2
@@ -78,14 +78,22 @@ extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 #define MOD_NG_BIRTH_LIFETIME	6 /* the lifetime (hours) of every partner that is born or reborn */
 #define MOD_NG_BIRTH_DISCIPLINE	7
 #define MOD_NG_BIRTH_HAPPINESS	8
-#define MOD_NG_STARTER0		9 /* the partner the Jijimon scene gives: the first choice (pstat 0xfe = 0) ... */
-#define MOD_NG_STARTER1		10 /* ... and the second */
+#define MOD_NG_STARTER0		9 /* legacy copy of starters[0]; quiz readers use the packed list */
+#define MOD_NG_STARTER1		10 /* legacy copy of starters[1] */
 #define MOD_NG_START_SCRIPT	11 /* the MAPHEAD section that starts a new game (puts the tamer on its first screen) */
 #define MOD_NG_START_EXIT	12 /* the exit stored in the empty save of a new slot */
 #define MOD_NG_FIRST_SPECIES	13 /* the partner type stored in that empty save */
 #define MOD_NG_SHOP_CARD0	14 /* the first six values of the card shop's script state (SAVE scriptState[0..5]) */
 extern int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE];
 int32_t modNewGame(int32_t slot);
+/* Packed tail of MOD_NEWGAME: species ids, three sparse axis/weight bytes per answer, cells. */
+#define MOD_QUIZ_STARTERS ((uint16_t *)&MOD_NEWGAME[20])
+#define MOD_QUIZ_WEIGHTS ((uint8_t *)&MOD_NEWGAME[20] + 70)
+#define MOD_QUIZ_CELLS ((uint8_t *)&MOD_NEWGAME[20] + 133)
+#define MOD_QUIZ_VANILLA_CELLS ((uint8_t *)&MOD_NEWGAME[20] + 178) /* read with NEW DIGIMON off: original rookies only */
+int32_t modNewGameStarter(void);
+void modInitializeStarterTechniques(int32_t type);
+uint8_t modQuizResult(const uint8_t *answers);
 
 /*
  * MOD (training as data): the gains of each gym by the slot of its minigame (MOD_TRAIN_GAIN / MOD_TRAIN2_GAIN: rows of the gym, the slot (-2: any), the base gain in tenths of the
