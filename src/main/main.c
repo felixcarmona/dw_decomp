@@ -4992,6 +4992,50 @@ static void modInterpApply(int32_t alpha)
 	if (alpha >= 4096) {
 		return;
 	}
+	if (modCamLerp) {
+		/* the background drawn at x is at tile x - (cameraX + DRAWING_OFFSET_X
+		 * - POSITION.offx); keep that inside the tiles in VRAM */
+		for (;;) {
+			cx = modLerp(modCamPrev.cx, modCamCur.cx, alpha);
+			cy = modLerp(modCamPrev.cy, modCamCur.cy, alpha);
+			dx = modLerp(modCamPrev.dx, modCamCur.dx, alpha);
+			dy = modLerp(modCamPrev.dy, modCamCur.dy, alpha);
+			ox = modLerp(modCamPrev.ox, modCamCur.ox, alpha);
+			oy = modLerp(modCamPrev.oy, modCamCur.oy, alpha);
+			if (modTilesCovered(cx + dx - ox, cy + dy - oy,
+					    modCamCur.cx + modCamCur.dx - modCamCur.ox,
+					    modCamCur.cy + modCamCur.dy - modCamCur.oy)) {
+				break;
+			}
+			MOD_INTERP_STATS[2]++;
+			alpha += 512;
+			if (alpha >= 4096) {
+				MOD_RENDER_ALPHA = 4096;
+				return;
+			}
+		}
+		modCamSaveCX = MAP_TILE_DATA.cameraX;
+		modCamSaveCY = MAP_TILE_DATA.cameraY;
+		modCamSaveDX = DRAWING_OFFSET_X;
+		modCamSaveDY = DRAWING_OFFSET_Y;
+		MAP_TILE_DATA.cameraX = cx;
+		MAP_TILE_DATA.cameraY = cy;
+		DRAWING_OFFSET_X = dx;
+		DRAWING_OFFSET_Y = dy;
+		POSITION.offx = ox;
+		POSITION.offy = oy;
+		if (isMistActive()) {
+			/* the mist moves by the camera step of each tick (tickMist) */
+			MOD_MIST_SHIFT[0] = modCamCur.cx - cx;
+			MOD_MIST_SHIFT[1] = modCamCur.cy - cy;
+			MOD_MIST_SHIFT[2] = (modCamCur.cx - cx) * 12 / 10;
+		}
+		modCamApplied = 1;
+		modInterpLastPassLerped = 1;
+	}
+
+	/* The view, camera, entities and overlay geometry share this fraction. */
+	MOD_RENDER_ALPHA = alpha;
 	if (modViewLerp) {
 		/* the matrix (and projection) the pass renders with, between the
 		 * two ticks' first passes; GS_VIEWPOINT is written for the pass
@@ -5023,46 +5067,6 @@ static void modInterpApply(int32_t alpha)
 		modViewApplied = 1;
 		modInterpLastPassLerped = 1;
 		MOD_INTERP_STATS[6]++;
-	}
-	if (modCamLerp) {
-		/* the background drawn at x is at tile x - (cameraX + DRAWING_OFFSET_X
-		 * - POSITION.offx); keep that inside the tiles in VRAM */
-		for (;;) {
-			cx = modLerp(modCamPrev.cx, modCamCur.cx, alpha);
-			cy = modLerp(modCamPrev.cy, modCamCur.cy, alpha);
-			dx = modLerp(modCamPrev.dx, modCamCur.dx, alpha);
-			dy = modLerp(modCamPrev.dy, modCamCur.dy, alpha);
-			ox = modLerp(modCamPrev.ox, modCamCur.ox, alpha);
-			oy = modLerp(modCamPrev.oy, modCamCur.oy, alpha);
-			if (modTilesCovered(cx + dx - ox, cy + dy - oy,
-					    modCamCur.cx + modCamCur.dx - modCamCur.ox,
-					    modCamCur.cy + modCamCur.dy - modCamCur.oy)) {
-				break;
-			}
-			MOD_INTERP_STATS[2]++;
-			alpha += 512;
-			if (alpha >= 4096) {
-				return;
-			}
-		}
-		modCamSaveCX = MAP_TILE_DATA.cameraX;
-		modCamSaveCY = MAP_TILE_DATA.cameraY;
-		modCamSaveDX = DRAWING_OFFSET_X;
-		modCamSaveDY = DRAWING_OFFSET_Y;
-		MAP_TILE_DATA.cameraX = cx;
-		MAP_TILE_DATA.cameraY = cy;
-		DRAWING_OFFSET_X = dx;
-		DRAWING_OFFSET_Y = dy;
-		POSITION.offx = ox;
-		POSITION.offy = oy;
-		if (isMistActive()) {
-			/* the mist moves by the camera step of each tick (tickMist) */
-			MOD_MIST_SHIFT[0] = modCamCur.cx - cx;
-			MOD_MIST_SHIFT[1] = modCamCur.cy - cy;
-			MOD_MIST_SHIFT[2] = (modCamCur.cx - cx) * 12 / 10;
-		}
-		modCamApplied = 1;
-		modInterpLastPassLerped = 1;
 	}
 
 	for (i = 0; i < ENTITY_MAX; i++) {
@@ -5223,6 +5227,8 @@ static void modInterpEndTick(void)
  * passes, like the built-in list (dw/mod_fps.h). */
 static int32_t modTickV;
 static int32_t modTickL0;
+int32_t MOD_RENDER_CADENCE;
+void KAR_flushTiles(void); /* overlay: finish CPU geometry before waiting for VRAM */
 static int32_t modLastEndV = -1000;
 static int32_t modLastEndLines;
 
@@ -5258,6 +5264,7 @@ void modTickStart(int32_t flags)
 	}
 	modFlushRemovals();
 	MOD_RENDER_PASS = 0;
+	MOD_RENDER_CADENCE = 0;
 	now = VSync(-1);
 	MOD_TICK_FAST = (flags & MOD_PRESENT_BATTLE) && MOD_BATTLE_FAST_TICK;
 	MOD_BATTLE_FAST_TICK = 0; /* armed again by the battle before its next tick */
@@ -5273,7 +5280,8 @@ void modTickStart(int32_t flags)
 		modTickV = (now >= modFastDue && now - modFastDue <= 3) ? modFastDue : now;
 		modTickL0 = modLines();
 		modFastDue = modTickV + modTickRefreshes();
-	} else if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < modTickRefreshes()) {
+	} else if (((flags & MOD_PRESENT_BATTLE) | (now < modLastEndV)) &&
+		now - modLastEndV < modTickRefreshes()) {
 		/* VSync(3) counts from the previous tick's last VSync: the battle
 		 * AI, which runs before the loop function, is part of this tick */
 		modTickV = modLastEndV;
@@ -5348,7 +5356,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	if (MOD_FPS_MODE <= 0 || period < 3) { /* a fast battle tick: one frame */
 		n = 1;
 		thirds[0] = 3;
-	} else if (MOD_FPS_MODE == 1) {
+	} else if (MOD_FPS_MODE == 1 || (MOD_RENDER_CADENCE & 3)) {
 		/* 30 fps: by tick parity, a frame at 2/3, or at 1/3 and 3/3 */
 		if (MOD_FPS_TICKS & 1) {
 			n = 2;
@@ -5445,6 +5453,9 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 		}
 		modRandLogPos = 0;
 		renderObjects();
+		if (MOD_RENDER_CADENCE) {
+			KAR_flushTiles();
+		}
 		modRandLogging = 0;
 		applyDrawOffset(ACTIVE_FRAMEBUFFER);
 		if (battle) {
@@ -5498,14 +5509,17 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	if (battle) {
 		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
 	}
-	while (!discard && VSync(-1) < tickV + period) {
+	/* A 30 fps pair ends at refreshes 2 and 6; retain the nominal
+	 * deadline 3 for the tick computed between refreshes 2 and 4. */
+	endV = tickV + period - ((MOD_RENDER_CADENCE >> 1) & 1);
+	while (!discard && VSync(-1) < endV) {
 		modWaitVblank(); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
 	MOD_RENDER_PASS = 0;
 	MOD_RENDER_MULTIPASS = 0;
 	modExtraRollback = NULL;
 	modFlushRemovals();
-	modLastEndV = VSync(-1);
+	modLastEndV = MOD_RENDER_CADENCE ? tickV + period : VSync(-1);
 	modLastEndLines = modLines();
 }
 
