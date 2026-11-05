@@ -141,11 +141,11 @@
  * original read 0x2000 bytes at boot: the other 0x1800 were the start of entry
  * 0, a copy of MAPHEAD.SCN nothing reads. They go to MAPHEAD.SCN, which stays
  * resident from boot (shared dialogue, shops, the new-game questions) and is
- * read in whole sectors: 0x8000 bytes, 32 KB (the original 25 000, GCC
- * 0x6800 until now), for translations. The bss does not grow.
+ * read in whole sectors: 0x6800 bytes, 26 KB (the original 25 000). The eight
+ * languages take at most 24 554 bytes; the build refuses a file that does not fit.
  */
 #define SCRIPT_OFFSET_TABLE_SIZE 0x800
-#define MAPHEAD_SCRIPT_MAX	0x8000
+#define MAPHEAD_SCRIPT_MAX	0x6800
 /*
  * The SEQ block of the current music font (every track of it), copied from
  * the FAALL chunk (sound.c). Original 0x5800 (font 0xB uses 0x55F8); the
