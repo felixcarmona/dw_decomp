@@ -26,6 +26,7 @@ typedef struct {
 	int32_t captureWaitMax;		/* lines waiting for the GPU before one */
 	int32_t captureLinesMax;	/* lines of one StoreImage */
 	int32_t startLinesMax;		/* lines to start one tile read (CdControl + CdRead) */
+	int32_t refused;		/* tile wanted outside the world while the ring was invalid: not reopened (the load area is a battle's) */
 } TfsStreamStats;
 
 extern int8_t MOD_TFS_TILE_SEQ[35];
