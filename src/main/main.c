@@ -3983,7 +3983,10 @@ void recalculatePPandArena(void)
 	int32_t i;
 
 	pp = 0;
-	for (i = 3; i < 0x3b; i++) {
+	/* MOD (city recruits): every species with a recruit flag counts, not only the
+	 * original's 3..58: a story mod recruits Gotsumon, Guardromon, Gekomon... and
+	 * the rule is the same (stage - 2: rookie 1, champion 2, ultimate 3). */
+	for (i = 3; i < NUM_RECRUITABLE_DIGIMON; i++) {
 		if ((DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
