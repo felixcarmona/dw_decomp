@@ -52,6 +52,18 @@ static int8_t TB_box2Before; /* box 2 was open when the block began */
 static int16_t TB_pre[6];
 static int16_t TB_sum[6];
 static char TB_doneText[64];
+static int8_t TB_box2Dy; /* box 2 under the stats box: lower by the skip hint's row when the box has one */
+
+/* MOD (skip hint, patch "Show how to skip the gym's and the battle's tallies"): the stats box grows by a row
+   (MOD_COUNT_ROW_H) when a gain counts, so box 2 (the block's box, and in TRN the gym's technique and new orders
+   boxes) opens that much lower, under it, with its text (TB_box2Dy). TB_box2Y: box 2's y for the gains in
+   STATS_GAINS, by the gym's own check (TB(statGainsAreZero)) */
+int32_t TB(statGainsAreZero)(void);
+static int32_t TB_box2Y(void)
+{
+	TB_box2Dy = TB(statGainsAreZero)() ? 0 : MOD_COUNT_ROW_H;
+	return 0x12 + TB_box2Dy;
+}
 
 /* from the session's setup (TB(saveTrainingStartTime)), after it read the flag: the menu's x5 row is a normal session
    in a block (not a block's next hour, which arms again) */
@@ -78,8 +90,8 @@ static void TB_tickMessage(void)
 
 static void TB_renderMessage(void)
 {
-	renderString(0, -78, 24, 156, 12, 0, 120, 4, 0);
-	renderString(0, -78, 36, 156, 12, 0, 132, 4, 0);
+	renderString(0, -78, 24 + TB_box2Dy, 156, 12, 0, 120, 4, 0);
+	renderString(0, -78, 36 + TB_box2Dy, 156, 12, 0, 132, 4, 0);
 }
 
 /* before the gym's award function */
@@ -173,7 +185,7 @@ int32_t TB(modBlockNext)(void)
 		drawString(TB_doneText, 0, 120);
 		drawString(TB_REASONS[TB_reason], 0, 132);
 		TB_box1Seen = 0;
-		createMenuBox(2, -0x58, 0x12, 0xb0, 0x23, 2, TB_tickMessage, TB_renderMessage);
+		createMenuBox(2, -0x58, TB_box2Y(), 0xb0, 0x23, 2, TB_tickMessage, TB_renderMessage);
 	}
 	return 0;
 }
