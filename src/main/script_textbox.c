@@ -161,7 +161,7 @@ int32_t drawTextboxStrings(boxId, flag)
 		x = 2;
 	}
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 	FONT_CELLS = (TEXTBOX_CELLS >> boxId) & 1;
 #endif
 	while (x != 0) {
@@ -182,7 +182,7 @@ int32_t drawTextboxStrings(boxId, flag)
 		buf += 0x40;
 		x--;
 	}
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 	FONT_CELLS = 0;
 #endif
 
@@ -544,11 +544,12 @@ void closeAllTextboxes(void)
 	}
 }
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 /*
  * MOD (font): the boxes (bit = box id) whose rows a screen cuts into pieces at offsets made for the original
  * advances (the tournament calendar, the shop's bits and confirm boxes): their rows are drawn in the original's
- * cells (font.c FONT_CELLS). createTextbox clears the bit; the creator of such a box sets it.
+ * cells (font.c FONT_CELLS; with the original font a space advances as the original's, drawString2). createTextbox
+ * clears the bit; the creator of such a box sets it.
  */
 uint8_t TEXTBOX_CELLS;
 #endif
@@ -576,7 +577,7 @@ void createTextbox(boxId, flags, rect, origin, tick, render)
 	entry->origin = *origin;
 	entry->tick = tick;
 	entry->render = render;
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 	TEXTBOX_CELLS &= ~(1 << boxId); /* MOD (font): its rows are laid out to the pixel unless its creator says */
 #endif
 
@@ -715,13 +716,13 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 #if VERSION_IS(US)
 	uint16_t adv;
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 	uint16_t cellsSpace;
 #endif
 	uint16_t glyph;
 
 	pos = 0;
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 	cellsSpace = 0xc;
 #endif
 	for (;;) {
@@ -862,6 +863,15 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 				 * starts a glyph past TEXT_DRAW_LIMIT (docs/mods/font.md).
 				 */
 				adv = DRAW_STRING2_IS_FIXED_WIDTH != 0 ? 0xc : DRAW_STRING2_SPACE_WIDTH;
+				/*
+				 * MOD (font): but in the rows a screen cuts into pieces (TEXTBOX_IN_CELLS: the tournament
+				 * calendar's columns, the shop's bits box, the card shop's answers) as the original advanced
+				 * it, by the glyph before it, 12 at the row's start (a blank grade cell); the fixed 8 moved
+				 * the calendar's columns ("9 1 01 11 21")
+				 */
+				if (FONT_CELLS != 0) {
+					adv = cellsSpace;
+				}
 #endif
 			} else {
 #if !VERSION_IS(US)
@@ -872,6 +882,7 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 				if (DRAW_STRING2_IS_FIXED_WIDTH != 0) {
 					adv = 0xc;
 				}
+				cellsSpace = adv;
 #endif
 			}
 
