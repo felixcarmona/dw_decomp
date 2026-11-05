@@ -17,6 +17,12 @@ void isSoundLoaded();
 void loadVLALL();
 
 int8_t IS_LOAD_EVL_COMPLETE;
+/* MOD (evolution skip): an evolution into a species raised before can be skipped with START, from the start of the
+ * scene; the loading waits end at once, and the EVL overlay jumps to the evolution itself (EVL_modSkipToEnd) */
+int8_t MOD_EVO_SKIP;
+extern uint32_t POLLED_INPUT;
+extern uint32_t POLLED_INPUT_PREVIOUS;
+int32_t hasDigimonRaised(int32_t digimonId);
 
 EvoSequenceData EVO_SEQUENCE_DATA;
 
@@ -31,10 +37,13 @@ void tickEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
+	if (MOD_EVO_SKIP == 1 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
+		MOD_EVO_SKIP = 2;
+	}
 
 	switch (data->state) {
 	case 0:
-		if ((evoSequenceAlwaysTrue(500) == 1) && (data->timer > 55)) {
+		if ((evoSequenceAlwaysTrue(500) == 1) && (data->timer > 55 || MOD_EVO_SKIP == 2)) {
 			data->state = 1;
 			data->timer = 0;
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 1);
@@ -42,7 +51,7 @@ void tickEvoSequenceLoading(int32_t instanceId)
 		}
 		break;
 	case 1:
-		if ((data->timer > 55) && (IS_LOAD_EVL_COMPLETE == 0)) {
+		if ((data->timer > 55 || MOD_EVO_SKIP == 2) && (IS_LOAD_EVL_COMPLETE == 0)) {
 			removeObject(0x809, instanceId);
 			stopBGM();
 			EVL_initEvoSequence();
@@ -93,6 +102,7 @@ int16_t isInitialized;
 	data->evoTarget = target;
 	data->heightFactor = (DIGI_PARA(data->digimonId).height << 12) /
 			     DIGI_PARA(partner->digimonEntity.entity.type).height;
+	MOD_EVO_SKIP = hasDigimonRaised(data->digimonId) ? 1 : 0;
 
 	startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
 	stopSound();
