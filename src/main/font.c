@@ -1445,6 +1445,11 @@ void clearTextSubArea(RECT *rect)
 	if (rect->w == TEXT_ROW_VRAM_W - 1) {
 		rect->w = TEXT_ROW_VRAM_W; /* widths 252-255 mean the whole row */
 	}
+	/* a clear that starts at the pen may reach past the row's end (a tab to the price column, a long padding): the VRAM
+	 * right of the text area (x 768 and up) holds a background's textures, which the zeroes would erase */
+	if (rect->x + rect->w > TEXT_VRAM_X + TEXT_ROW_VRAM_W) {
+		rect->w = TEXT_VRAM_X + TEXT_ROW_VRAM_W - rect->x;
+	}
 	if (rect->w == TEXT_ROW_VRAM_W && rect->x == TEXT_VRAM_X) {
 		ClearImage(rect, 0, 0, 0);
 	} else if (rect->w > 0) {
