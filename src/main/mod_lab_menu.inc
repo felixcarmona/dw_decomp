@@ -238,6 +238,35 @@ static void modLabFit(char *s, int32_t width)
     }
 }
 
+/* Map captions carry the old fixed-width centering padding. Keep only the actual label. */
+static void modLabTrimLabel(char *s)
+{
+    char *start = s, *p, *end;
+    int32_t space;
+    while (*start == ' ' || ((uint8_t)start[0] == 0x81 && (uint8_t)start[1] == 0x40))
+        start += (uint8_t)*start >= 0x80 ? 2 : 1;
+    if (start != s) memmove(s, start, strlen(start) + 1);
+    end = s;
+    for (p = s; *p; ) {
+        space = *p == ' ' || ((uint8_t)p[0] == 0x81 && (uint8_t)p[1] == 0x40);
+        p += (uint8_t)*p >= 0x80 ? 2 : 1;
+        if (!space) end = p;
+    }
+    *end = 0;
+}
+
+static int32_t modLabStage(int32_t id)
+{
+    int32_t level = DIGI_PARA(id).level;
+    if (level) return level;
+    /* Original unused rows: the canonical stages are in content/species/{62,122,123,126}-*.json. */
+    switch (id) {
+    case 122: return LEVEL_ROOKIE;
+    case 62: case 123: case 126: return LEVEL_ULTIMATE;
+    default: return 0;
+    }
+}
+
 /* Keep the stage and new marker visible even when a long name needs fitting. */
 static void modLabEntry(char *out, int32_t id, int32_t evolution)
 {
@@ -246,10 +275,9 @@ static void modLabEntry(char *out, int32_t id, int32_t evolution)
     int32_t level;
     suffix[0] = 0;
     appendStr(name, evolution ? DIGIMON_NAME(id) : getScreenCaption(id));
+    if (!evolution) modLabTrimLabel(name);
     if (evolution) {
-        level = DIGI_PARA(id).level;
-        /* The original unused WereGarurumon row has no stage; content/species/62 declares Ultimate. */
-        if (id == 62 && level == 0) level = 5;
+        level = modLabStage(id);
         p = appendStr(p, " - ");
         p = appendStr(p, level >= 1 && level <= 6 ? LAB_STAGES[level] : "?");
     }
