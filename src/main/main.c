@@ -1,3 +1,5 @@
+extern int MOD_CHEATS_TRANSITION;
+void modCheatsCleanup(void);
 #include <stdlib.h>
 
 #include <__rts_info_t__.h>
@@ -3499,10 +3501,12 @@ int32_t main(void)
 			finalizeMusic();
 		}
 
+	cheats_title:
 		loadStackedTIMFile(MAIN_D_8012CE8C);
 		initializeMusic();
 		runMainMenu();
 
+	cheats_loaded:
 		switch (MAIN_STATE) {
 		case 0:
 			newGameScene();
@@ -3587,8 +3591,17 @@ int32_t main(void)
 #if VERSION_EQUAL_OR_NEWER(US)
 		recalculatePPandArena();
 #endif
-		while (MAIN_STATE != 3) {
+		while (MAIN_STATE != 3 && !MOD_CHEATS_TRANSITION) {
 			gameLoop();
+		}
+		if (MOD_CHEATS_TRANSITION) {
+			partnerId = MOD_CHEATS_TRANSITION;
+			MOD_CHEATS_TRANSITION = 0;
+			modCheatsCleanup();
+			cleanupGame();
+			finalizeMusic();
+			if (partnerId == 1) { MAIN_STATE = 1; initializeMusic(); goto cheats_loaded; }
+			goto cheats_title;
 		}
 		cleanupGame();
 		finalizeMusic();
