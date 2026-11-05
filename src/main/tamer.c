@@ -425,6 +425,8 @@ void tamerTick(int16_t instanceId)
 	}
 }
 
+void modBtlPreloadTick(void); /* MOD (quick battle start), btl.c */
+
 void tamerTickOverworld(int16_t instanceId)
 {
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
@@ -435,6 +437,7 @@ void tamerTickOverworld(int16_t instanceId)
 	switch (TAMER_STATE) {
 	case 0:
 		tamerTickWalkingState(instanceId);
+		modBtlPreloadTick(); /* MOD (quick battle start), btl.c */
 		break;
 	case 1:
 		tamerSetState(6);
