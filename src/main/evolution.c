@@ -439,6 +439,41 @@ EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON
 		0x0000, 0x000f, 0xffff, 0xffff, 0x0064, 0x002d, 0x10,
 		0x00,
 	},
+	/*
+	 * MOD (partners-npc-b): from Numemon, the neglected road: Monzaemon
+	 * needs no care mistake at all, WaruMonzaemon at least 10 (no flag
+	 * 0x10: a minimum). HP 3000, Off 400, Def 300, weight 35..45; bonus:
+	 * 50 battles or 40 techniques learned.
+	 */
+	/*
+	 * MOD (partners-npc-b): from Devimon (with SkullGreymon, 10 care
+	 * mistakes or more, and Megadramon, weight 50..60): a slender, well
+	 * kept night lord. HP 4000, MP 6000, Speed 400, Brains 500, at most 5
+	 * care mistakes (flag 0x10), weight 25..35; bonus: 40 battles or 35
+	 * techniques.
+	 */
+	/*
+	 * MOD (partners-npc-b): from Whamon (with MegaSeadramon, weight
+	 * 25..35, and Mamemon, 15 care mistakes or more): a heavy, well kept
+	 * lord of the swamp. HP 5000, Def 400, Brains 300, at most 5 care
+	 * mistakes (flag 0x10), weight 55..65; bonus: discipline 90 or 30
+	 * techniques.
+	 */
+	[DIGIMON_SHOGUNGEKOMON] = {
+		0xffff, 0x01f4, 0xffff, 0xffff, 0x0190, 0xffff, 0x012c,
+		0x0005, 0x003c, 0x005a, 0xffff, 0xffff, 0x001e, 0x10,
+		0x00,
+	},
+	[DIGIMON_MYOTISMON] = {
+		0xffff, 0x0190, 0x0258, 0xffff, 0xffff, 0x0190, 0x01f4,
+		0x0005, 0x001e, 0xffff, 0xffff, 0x0028, 0x0023, 0x10,
+		0x00,
+	},
+	[DIGIMON_WARUMONZAEMON] = {
+		0xffff, 0x012c, 0xffff, 0x0190, 0x012c, 0xffff, 0xffff,
+		0x000a, 0x0028, 0xffff, 0xffff, 0x0032, 0x0028, 0x00,
+		0x00,
+	},
 };
 
 EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
@@ -524,6 +559,15 @@ EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIG
 	/* MOD (partners-npc-a): a hard hitter: HP 5500, MP 4500, Off 650, Def 550, Speed 350,
 	 * Brains 400 */
 	[DIGIMON_METEORMON] = { 0x157c, 0x1194, 0x028a, 0x0226, 0x015e, 0x0190, DIGIMON_METEORMON },
+	/* MOD (partners-npc-b): a brawler, harder hitting than Monzaemon: HP 5000, MP 4000,
+	 * Off 600, Def 450, Speed 450, Brains 400 */
+	/* MOD (partners-npc-b): a fast caster: HP 6000, MP 6000, Off 550, Def 450, Speed 600,
+	 * Brains 600 */
+	/* MOD (partners-npc-b): a slow, heavy Ultimate: HP 7000, MP 3500, Off 500, Def 600,
+	 * Speed 300, Brains 500 */
+	[DIGIMON_SHOGUNGEKOMON] = { 0x1b58, 0x0dac, 0x01f4, 0x0258, 0x012c, 0x01f4, DIGIMON_SHOGUNGEKOMON },
+	[DIGIMON_MYOTISMON] = { 0x1770, 0x1770, 0x0226, 0x01c2, 0x0258, 0x0258, DIGIMON_MYOTISMON },
+	[DIGIMON_WARUMONZAEMON] = { 0x1388, 0x0fa0, 0x0258, 0x01c2, 0x01c2, 0x0190, DIGIMON_WARUMONZAEMON },
 };
 
 EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
@@ -549,7 +593,8 @@ EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	},
 	{
 		{   -1,   -1,   -1,   -1,   -1 },
-		{   -1,   -1, 0x1a, 0x36,   -1,   -1 },
+		/* MOD (partners-npc-b): + Myotismon, centred like Ninjamon's three */
+		{   -1, 0x1a, 0x36, DIGIMON_MYOTISMON,   -1,   -1 },
 	},
 	{
 		{   -1,   -1, 0x2d,   -1,   -1 },
@@ -571,7 +616,8 @@ EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	},
 	{
 		{   -1,   -1,   -1,   -1,   -1 },
-		{   -1,   -1, 0x0e,   -1,   -1,   -1 },
+		/* MOD (partners-npc-b): + WaruMonzaemon, centred like the other pairs */
+		{   -1,   -1, 0x0e, DIGIMON_WARUMONZAEMON,   -1,   -1 },
 	},
 	{
 		{ 0x05, 0x09, 0x2f, 0x26, 0x08 },
@@ -625,7 +671,8 @@ EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	},
 	{
 		{   -1, 0x2e, 0x04, 0x39,   -1 },
-		{   -1,   -1, 0x3d, 0x0d,   -1,   -1 },
+		/* MOD (partners-npc-b): + ShogunGekomon, centred like Ninjamon's three */
+		{   -1, 0x3d, 0x0d, DIGIMON_SHOGUNGEKOMON,   -1,   -1 },
 	},
 	{
 		{   -1, 0x20, 0x2e,   -1,   -1 },

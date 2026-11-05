@@ -2925,7 +2925,7 @@ void showMapheadSelection(int32_t idx, uint8_t owner, uint16_t x, int32_t *outSe
 void setDigimonRaised(int32_t digimonId)
 {
 	if (HAS_RAISED_FLAG(digimonId)) { /* MOD: + MasterTyrannomon (ids.h) */
-		setTrigger(digimonId + TRIGGER_RAISED_BASE);
+		setTrigger(RAISED_TRIGGER(digimonId)); /* MOD (partners-npc-b): was + 0x200 */
 	}
 }
 
@@ -2942,7 +2942,7 @@ int32_t hasDigimonRaised(digimonId)
 	if (!HAS_RAISED_FLAG(digimonId)) {
 		return 0;
 	}
-	return isTriggerSet(digimonId + TRIGGER_RAISED_BASE);
+	return isTriggerSet(RAISED_TRIGGER(digimonId)); /* MOD (partners-npc-b): was + 0x200 */
 }
 
 void unlockMedal(uint16_t medal)

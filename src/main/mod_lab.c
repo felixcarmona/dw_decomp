@@ -14,10 +14,11 @@
  *                      MasterTyrannomon (type 124) when the game is unpaused,
  *                      the way an evolution item does, but with the natural
  *                      stat gains (HAS_USED_EVOITEM = 0). Left/right choose
- *                      the target: "To MasterTyrannomon" or "To Cherrymon"
+ *                      the target: "To MasterTyrannomon", "To Cherrymon"
  *                      (type 121; MOD cherrymon), "To King of Sukamon"
  *                      (type 120; MOD partners-npc-a), "To Icemon" (94),
- *                      "To Meteormon" (113)
+ *                      "To Meteormon" (113), or one of the partners of
+ *                      MOD partners-npc-b
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -90,22 +91,28 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 };
 
 /* MOD (cherrymon): the evolve option cycles through these targets */
-#define MOD_LAB_EVO_COUNT 5
-static int16_t MOD_LAB_EVO_TARGETS[MOD_LAB_EVO_COUNT] = {
+static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_MASTER_TYRANNOMON,
 	DIGIMON_CHERRYMON,
 	DIGIMON_KING_SUKAMON, /* MOD (partners-npc-a) */
 	DIGIMON_ICEMON,       /* MOD (partners-npc-a) */
 	DIGIMON_METEORMON,    /* MOD (partners-npc-a) */
+	DIGIMON_WARUMONZAEMON, /* MOD (partners-npc-b) */
+	DIGIMON_MYOTISMON,
+	DIGIMON_SHOGUNGEKOMON,
 };
 
-static char *MOD_LAB_EVO_TEXT[MOD_LAB_EVO_COUNT] = {
+static char *MOD_LAB_EVO_TEXT[] = {
 	"To MasterTyrannomon",
 	"To Cherrymon",
 	"To King of Sukamon", /* MOD (partners-npc-a) */
 	"To Icemon",          /* MOD (partners-npc-a) */
 	"To Meteormon",       /* MOD (partners-npc-a) */
+	"To WaruMonzaemon", /* MOD (partners-npc-b) */
+	"To Myotismon",
+	"To ShogunGekomon",
 };
+#define MOD_LAB_EVO_COUNT ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
 
 static char *MOD_LAB_FPS_TEXT[3] = {
 	"Frame rate  20 fps",

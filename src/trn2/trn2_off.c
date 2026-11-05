@@ -63,6 +63,10 @@ int8_t TRN2_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66)
 	[DIGIMON_ICEMON] = { 0x2e, 0xa },
 	/* MOD (partners-npc-a): Megaton Punch (animation 0x30) */
 	[DIGIMON_METEORMON] = { 0x30, 0xa },
+	/* MOD (partners-npc-b): Monzaemon's (14) */
+	[DIGIMON_WARUMONZAEMON] = { 0x2e, 0xa },
+	/* MOD (partners-npc-b): its first technique, like Whamon (24) */
+	[DIGIMON_SHOGUNGEKOMON] = { 0x2e, 0xa },
 };
 // clang-format on
 
