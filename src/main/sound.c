@@ -632,8 +632,15 @@ void stopSoundMask(uint32_t mask)
 	}
 }
 
+/* MOD (fps): renders that play sounds do it on the first render pass of a
+ * tick only (dw/mod_fps.h) */
+extern int32_t MOD_RENDER_PASS;
+
 uint32_t playSound(int32_t vabId, int32_t val)
 {
+	if (MOD_RENDER_PASS != 0) {
+		return 0;
+	}
 	if ((vabId == 0) || (vabId == 1) || (vabId == 8)) {
 		return startSound(vabId, val / 16, (val % 16) + 0x3c);
 	} else if ((2 < vabId) && (vabId < 8)) {
@@ -659,6 +666,9 @@ void stopSound(void)
 
 uint32_t playSound2(int32_t vabId, int32_t val)
 {
+	if (MOD_RENDER_PASS != 0) {
+		return 0;
+	}
 	return startSound(vabId, val / 16, (val % 16) + 0x3c);
 }
 
