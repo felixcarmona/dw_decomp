@@ -73,3 +73,18 @@ BOX_LABELS:
     STR_KEEPING:
       ja: NULL
       en_us: Keeping
+
+# MOD (amounts): the card pack's name in its amount box and the head of the list of what the packs gave
+# (script_menu.c, the card packs). `storage: define`: literals where the C uses them.
+MOD_PACK_TEXT:
+  storage: define
+  strings:
+    STR_CARD_PACK:
+      ja: Card pack
+      en_us: Card pack
+    STR_PACK_CARDS:
+      ja: " cards, "
+      en_us: " cards, "
+    STR_PACK_NEW:
+      ja: " new"
+      en_us: " new"
