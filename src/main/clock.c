@@ -1,6 +1,7 @@
 #include <libgs.h>
 
 #include <dw/clock.h>
+#include <dw/mod_rules.h>
 #include <dw/level.h>
 #include <dw/params.h>
 #include <dw/pstat.h>
@@ -253,12 +254,29 @@ void lateTickGameClock(int32_t instanceId)
 	tickStatusBarsSlide(IS_GAMETIME_RUNNING);
 }
 
+int16_t MOD_DAYTIME[MOD_DAYTIME_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+/* MOD (rules as data): 0 dusk, 1 night, 2 day; without the three hours it is always day */
+int32_t modTimeOfDay(int32_t hour)
+{
+	if (MOD_DAYTIME[MOD_DT_DUSK] < 0 || MOD_DAYTIME[MOD_DT_NIGHT] < 0 || MOD_DAYTIME[MOD_DT_DAWN] < 0) {
+		return 2;
+	}
+	if (hour >= MOD_DAYTIME[MOD_DT_DUSK] && hour < MOD_DAYTIME[MOD_DT_NIGHT]) {
+		return 0;
+	}
+	if (hour < MOD_DAYTIME[MOD_DT_DAWN] || hour >= MOD_DAYTIME[MOD_DT_NIGHT]) {
+		return 1;
+	}
+	return 2;
+}
+
 void renderGameClock(int32_t instanceId)
 {
 	uint8_t isNight;
 	uint8_t frame;
 
-	if (HOUR >= 6 && HOUR < 17) {
+	if (MOD_DAYTIME[MOD_DT_CLOCK_TO] < 0 || (HOUR >= MOD_DAYTIME[MOD_DT_CLOCK_FROM] && HOUR < MOD_DAYTIME[MOD_DT_CLOCK_TO])) {
 		isNight = 0;
 	} else {
 		isNight = 1;

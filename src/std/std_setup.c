@@ -505,6 +505,11 @@ void STD_loadTIMToVRAM(char *path)
 	}
 }
 
+/* MOD (rules as data): written by tools/balance.py build from content/tables/tournament-rules.json; -1 = does not exist */
+#define STD_REMAP_MAX 4
+int16_t STD_REMAP[STD_REMAP_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+int16_t STD_ARENA_SCREEN = -1;
+
 int16_t STD_tournamentMain(uint16_t *arg)
 {
 	int32_t j;
@@ -514,21 +519,19 @@ int16_t STD_tournamentMain(uint16_t *arg)
 	long n;
 	long i;
 
+	/* MOD (rules as data): the opponents whose models do not exist here are swapped for another species: STD_REMAP */
 	for (n = 1; n < 8; n++) {
-		if (arg[n] == 0x40) {
-			arg[n] = 0x36;
-		}
-		if (arg[n] == 0x3f) {
-			arg[n] = 0x30;
-		}
-		if (arg[n] == 0x41) {
-			arg[n] = 0x2a;
+		for (i = 0; i < STD_REMAP_MAX; i++) {
+			if (STD_REMAP[i][0] >= 0 && arg[n] == STD_REMAP[i][0]) {
+				arg[n] = STD_REMAP[i][1];
+				break;
+			}
 		}
 	}
 	fadeToBlack(5);
 	STD_tickFrames(5);
 	loadMapSounds(0x10);
-	if (CURRENT_SCREEN == 0x6a) {
+	if (STD_ARENA_SCREEN >= 0 && CURRENT_SCREEN == STD_ARENA_SCREEN) { /* MOD (rules as data) */
 		arena = 1;
 	} else {
 		arena = 0;
