@@ -252,6 +252,13 @@ int32_t getEvolutionExtraTargets(int32_t type, DigimonId **targets)
 	return 0;
 }
 
+/* MOD (chart lists): the Baby II of extra list k (0: none) and its targets */
+int32_t getEvolutionExtraParent(int32_t k, DigimonId **targets)
+{
+	*targets = EXTRA_TO[k];
+	return EXTRA_PARENT[k];
+}
+
 /* a Baby II's Rookie target with every "to" slot taken: into its extra list */
 static void addExtraTarget(int32_t orig, int32_t other)
 {

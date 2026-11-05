@@ -3771,49 +3771,130 @@ static int8_t CHART_CURSOR_SIDE; /* 0 the "from" boxes, 1 the "to" boxes */
 static int8_t CHART_CURSOR_J;	 /* the slot in that side's array */
 
 /*
- * MOD (options): a species' evolution paths as the chart shows them: with NEW DIGIMON off, the species the original does
- * not raise are left out (DIGI.DAT's links fill the original rows' empty slots, so what stays is the original row).
- * Not to be kept across a load (getEvolutionPath).
+ * MOD (chart lists): the boxes of the detail view, every evolution the game can take into or out of the species in
+ * the middle, not only its path row's slots: the row's "to" slots, a Baby II's Rookies past them
+ * (getEvolutionExtraTargets), the Fresh and Ultimate pairs (MOD_EVO_FRESH, MOD_EVO_ULTIMATE); the row's "from" slots,
+ * the pairs and extra lists into it, and the parents DIGI.DAT's chart block lists for a species without a path row.
+ * In order, without repeats; with NEW DIGIMON off only the original's species. The "to" side shows CHART_TO_PAGE boxes
+ * at a time: the cursor turns the page past the first or last box, a bar at the right shows where it is.
  */
-static EvolutionPath CHART_PATH;
+#define CHART_TO_MAX	24
+#define CHART_FROM_MAX	5
+#define CHART_TO_PAGE	6
+static int16_t CHART_TO_IDS[CHART_TO_MAX];
+static int16_t CHART_FROM_IDS[CHART_FROM_MAX];
+static int8_t CHART_TO_N;
+static int8_t CHART_FROM_N;
+static int8_t CHART_TO_TOP;	/* the first "to" box of the page shown */
 
-static EvolutionPath *chartEvolutionPath(int32_t id)
+static void chartListAdd(int16_t *list, int8_t *n, int32_t max, int32_t id)
 {
-	EvolutionPath *path;
-	int32_t j;
+	int32_t i;
 
-	path = getEvolutionPath(id);
-	if (MOD_OPT_NEW_DIGIMON) {
-		return path;
+	if (id <= 0 || id >= NUM_DIGIMON || !modSpeciesAllowed(id)) {
+		return;
 	}
-	CHART_PATH = *path;
-	for (j = 0; j < 5; j++) {
-		if (CHART_PATH.from[j] > 0 && !modSpeciesAllowed(CHART_PATH.from[j])) {
-			CHART_PATH.from[j] = -1;
+	for (i = 0; i < *n; i++) {
+		if (list[i] == id) {
+			return;
 		}
 	}
-	for (j = 0; j < 6; j++) {
-		if (CHART_PATH.to[j] > 0 && !modSpeciesAllowed(CHART_PATH.to[j])) {
-			CHART_PATH.to[j] = -1;
-		}
+	if (*n < max) {
+		list[(*n)++] = id;
 	}
-	return &CHART_PATH;
 }
 
-static void loadChartPortraits(int32_t id)
+static void chartBuildLists(int32_t id)
 {
 	EvolutionPath *path;
+	DigimonId *extra;
+	uint16_t *block;
+	int32_t n;
+	int32_t i;
+	int32_t k;
+
+	CHART_TO_N = CHART_FROM_N = CHART_TO_TOP = 0;
+	path = getEvolutionPath(id);
+	for (i = 0; i < 6; i++) {
+		chartListAdd(CHART_TO_IDS, &CHART_TO_N, CHART_TO_MAX, path->to[i]);
+	}
+	for (i = 0; i < 5; i++) {
+		chartListAdd(CHART_FROM_IDS, &CHART_FROM_N, CHART_FROM_MAX, path->from[i]);
+	}
+	n = getEvolutionExtraTargets(id, &extra);
+	for (i = 0; i < n; i++) {
+		chartListAdd(CHART_TO_IDS, &CHART_TO_N, CHART_TO_MAX, extra[i]);
+	}
+	for (k = 0; k < SPECIES_EXTRA_PARENTS; k++) {
+		n = getEvolutionExtraParent(k, &extra);
+		for (i = 0; n > 0 && i < SPECIES_EXTRA_TARGETS && extra[i] > 0; i++) {
+			if (extra[i] == id) {
+				chartListAdd(CHART_FROM_IDS, &CHART_FROM_N, CHART_FROM_MAX, n);
+			}
+		}
+	}
+	for (i = 0; i < MOD_EVO_PAIR_MAX * 2; i++) {
+		int16_t *pair = i < MOD_EVO_PAIR_MAX ? MOD_EVO_FRESH[i] : MOD_EVO_ULTIMATE[i - MOD_EVO_PAIR_MAX];
+
+		if (pair[0] == id) {
+			chartListAdd(CHART_TO_IDS, &CHART_TO_N, CHART_TO_MAX, pair[1]);
+		} else if (pair[1] == id) {
+			chartListAdd(CHART_FROM_IDS, &CHART_FROM_N, CHART_FROM_MAX, pair[0]);
+		}
+	}
+	/* the block's {child, parent} pairs after the tabs' counts and ids (tools/species.py chart_parents) */
+	block = (uint16_t *)readSpeciesChart(0, 0);
+	if (block != NULL) {
+		k = SPECIES_CHART_TABS;
+		for (i = 0; i < SPECIES_CHART_TABS; i++) {
+			k += block[i];
+		}
+		n = block[k];
+		for (i = 0; i < n && k + 2 + i * 2 < 0x400; i++) {
+			if (block[k + 1 + i * 2] == id) {
+				chartListAdd(CHART_FROM_IDS, &CHART_FROM_N, CHART_FROM_MAX, block[k + 2 + i * 2]);
+			}
+		}
+	}
+}
+
+/* the boxes of a side as drawn: the first index of its list, how many, and the layout's first slot (centred) */
+static int32_t chartSide(int32_t side, int32_t *first, int32_t *slot)
+{
+	int32_t n;
+
+	if (side == 0) {
+		n = CHART_FROM_N;
+		*first = 0;
+		*slot = ((n % 2) == 0 ? 4 - n : 5 - n) / 2;
+	} else {
+		*first = CHART_TO_TOP;
+		n = CHART_TO_N - CHART_TO_TOP;
+		if (n > CHART_TO_PAGE) {
+			n = CHART_TO_PAGE;
+		}
+		*slot = ((n % 2) == 0 ? 6 - n : 5 - n) / 2;
+	}
+	return n;
+}
+
+/* the icons of the species in the middle and of the boxes shown (at most 1 + 5 + 6 = CHART_EXTRA_SLOTS) */
+static void loadChartPortraits(int32_t id)
+{
 	int32_t n;
 	int32_t i;
 	int32_t other;
+	int32_t first;
+	int32_t slot;
+	int32_t to;
 
 	for (i = 0; i < CHART_EXTRA_SLOTS; i++) {
 		CHART_EXTRA_ID[i] = 0;
 	}
-	path = chartEvolutionPath(id);
+	to = chartSide(1, &first, &slot);
 	n = 0;
-	for (i = -1; i < 11 && n < CHART_EXTRA_SLOTS; i++) {
-		other = i < 0 ? id : (i < 5 ? path->from[i] : path->to[i - 5]);
+	for (i = -1; i < CHART_FROM_N + to && n < CHART_EXTRA_SLOTS; i++) {
+		other = i < 0 ? id : (i < CHART_FROM_N ? CHART_FROM_IDS[i] : CHART_TO_IDS[first + i - CHART_FROM_N]);
 		if (other <= NUM_EVO_CHART_DIGIMON || other >= NUM_DIGIMON) {
 			continue;
 		}
@@ -3821,9 +3902,6 @@ static void loadChartPortraits(int32_t id)
 		loadSpeciesPortrait(other, CHART_EXTRA_X + (n % 8) * 8, CHART_EXTRA_Y + (n / 8) * 16, 16,
 		                    CHART_EXTRA_X + (n % 8) * 16, CHART_EXTRA_CLUT_Y + n / 8);
 		n++;
-		if (i >= 0) {
-			path = chartEvolutionPath(id); /* the loads may have moved the record of a new species */
-		}
 	}
 }
 
@@ -3841,41 +3919,26 @@ static void renderChartPortrait(int32_t id, int16_t x, int16_t y)
 	}
 }
 
-/* the box of a side/slot: its species (0 for none) and position on the detail view, as renderEvoChartDetail lays them out */
+/* the box j of a side's page: its species (0 for none) and position on the detail view, as renderEvoChartDetail lays them out */
 static int32_t chartDetailBox(int32_t side, int32_t j, int16_t *x, int16_t *y)
 {
-	EvolutionPath *path;
 	ChartSprite *sprites;
-	int32_t count;
 	int32_t n;
-	int32_t i;
-	int32_t id;
+	int32_t first;
+	int32_t slot;
 
-	path = chartEvolutionPath(CHART_DETAIL_ID);
-	n = side == 0 ? 5 : 6;
-	count = 0;
-	for (i = 0; i < n; i++) {
-		if ((side == 0 ? path->from[i] : path->to[i]) != -1) {
-			count++;
-		}
-	}
-	if (side == 0) {
-		sprites = (count % 2) == 0 ? CHART_FROM_SPRITES_EVEN : CHART_FROM_SPRITES_ODD;
-		n = (count % 2) == 0 ? 4 : 5;
-	} else {
-		sprites = (count % 2) == 0 ? CHART_TO_SPRITES_EVEN : CHART_TO_SPRITES_ODD;
-		n = (count % 2) == 0 ? 6 : 5;
-	}
+	n = chartSide(side, &first, &slot);
 	if (j < 0 || j >= n) {
 		return 0;
 	}
-	id = side == 0 ? path->from[j] : path->to[j];
-	if (id <= 0) {
-		return 0;
+	if (side == 0) {
+		sprites = (n % 2) == 0 ? CHART_FROM_SPRITES_EVEN : CHART_FROM_SPRITES_ODD;
+	} else {
+		sprites = (n % 2) == 0 ? CHART_TO_SPRITES_EVEN : CHART_TO_SPRITES_ODD;
 	}
-	*x = sprites[j].posX;
-	*y = sprites[j].posY;
-	return id;
+	*x = sprites[slot + j].posX;
+	*y = sprites[slot + j].posY;
+	return side == 0 ? CHART_FROM_IDS[j] : CHART_TO_IDS[first + j];
 }
 
 static void chartDetailMoveCursor(int32_t side, int32_t j)
@@ -3896,7 +3959,7 @@ static void chartDetailPlaceCursor(void)
 	CHART_CURSOR_SIDE = 1;
 	CHART_CURSOR_J = 0;
 	for (side = 1; side >= 0; side--) {
-		for (j = 0; j < 6; j++) {
+		for (j = 0; j < CHART_TO_PAGE; j++) {
 			if (chartDetailBox(side, j, &x, &y) != 0) {
 				CHART_CURSOR_SIDE = side;
 				CHART_CURSOR_J = j;
@@ -3919,6 +3982,7 @@ static void chartDetailOpen(int32_t id)
 	CHART_CARD_ID = CHART_LIT_FOR = -1; /* MOD (chart criteria): the partner may have changed since the last time */
 	CHART_DETAIL_ID = id;
 	CHART_DETAIL_DEPTH = 0;
+	chartBuildLists(id); /* MOD (chart lists) */
 	chartDetailPlaceCursor();
 	loadChartPortraits(id);
 }
@@ -3926,6 +3990,7 @@ static void chartDetailOpen(int32_t id)
 static void chartDetailGoto(int32_t id)
 {
 	CHART_DETAIL_ID = id;
+	chartBuildLists(id); /* MOD (chart lists) */
 	chartDetailPlaceCursor();
 	loadChartPortraits(id);
 	playSound(0, 3);
@@ -3972,28 +4037,30 @@ static int32_t chartDetailInput(void)
 			return 0; /* no box at all: TRIANGLE closes */
 		}
 	}
-	if (CHANGED_INPUT & 0x1000) { /* up */
-		for (j = CHART_CURSOR_J - 1; j >= 0; j--) {
-			if (chartDetailBox(side, j, &ox, &oy) != 0) {
-				chartDetailMoveCursor(side, j);
-				break;
-			}
+	if (CHANGED_INPUT & 0x1000) { /* up; MOD (chart lists): past the first "to" box, the page before */
+		if (CHART_CURSOR_J > 0) {
+			chartDetailMoveCursor(side, CHART_CURSOR_J - 1);
+		} else if (side == 1 && CHART_TO_TOP > 0) {
+			CHART_TO_TOP -= CHART_TO_PAGE;
+			chartDetailMoveCursor(1, CHART_TO_PAGE - 1);
+			loadChartPortraits(CHART_DETAIL_ID);
 		}
 		return 1;
 	}
-	if (CHANGED_INPUT & 0x4000) { /* down */
-		for (j = CHART_CURSOR_J + 1; j < 6; j++) {
-			if (chartDetailBox(side, j, &ox, &oy) != 0) {
-				chartDetailMoveCursor(side, j);
-				break;
-			}
+	if (CHANGED_INPUT & 0x4000) { /* down; past the last, the next page */
+		if (chartDetailBox(side, CHART_CURSOR_J + 1, &ox, &oy) != 0) {
+			chartDetailMoveCursor(side, CHART_CURSOR_J + 1);
+		} else if (side == 1 && CHART_TO_TOP + CHART_TO_PAGE < CHART_TO_N) {
+			CHART_TO_TOP += CHART_TO_PAGE;
+			chartDetailMoveCursor(1, 0);
+			loadChartPortraits(CHART_DETAIL_ID);
 		}
 		return 1;
 	}
 	if (CHANGED_INPUT & (0x8000 | 0x2000)) { /* left, right: the other side, the box nearest in height */
 		best = -1;
 		bestd = 0x7fff;
-		for (j = 0; j < 6; j++) {
+		for (j = 0; j < CHART_TO_PAGE; j++) {
 			if (chartDetailBox(1 - side, j, &ox, &oy) != 0) {
 				d = oy > y ? oy - y : y - oy;
 				if (d < bestd) {
@@ -4728,7 +4795,7 @@ static int16_t CHART_CARD_FOOTER_W;
 static int16_t CHART_PROMPT_W;
 static int16_t CHART_NEEDS_W;
 static int16_t CHART_HAVE_W;
-static uint8_t CHART_LIT;		/* bit j: the "to" box j's evolution is met */
+static uint32_t CHART_LIT;		/* bit k: the evolution into CHART_TO_IDS[k] is met */
 /* Only MENU code reads these immutable translated strings. */
 static const char CHART_POPUP_AUTOMATIC[] __attribute__((section(".rodata.CHART_POPUP_AUTOMATIC"))) = CHART_STR_AUTOMATIC;
 #define CHART_TEXT_AUTOMATIC ((char *)CHART_POPUP_AUTOMATIC)
@@ -4827,17 +4894,17 @@ static int32_t chartEvoMet(int32_t target)
 }
 
 /* the met evolutions of the partner's tree, once per centre */
-static void chartUpdateLit(EvolutionPath *ep)
+static void chartUpdateLit(void)
 {
-	int32_t j;
+	int32_t k;
 
 	if (CHART_LIT_FOR == CHART_DETAIL_ID) {
 		return;
 	}
 	CHART_LIT = 0;
-	for (j = 0; j < 6; j++) {
-		if (ep->to[j] > 0 && chartEvoMet(ep->to[j])) {
-			CHART_LIT |= 1 << j;
+	for (k = 0; k < CHART_TO_N; k++) {
+		if (chartEvoMet(CHART_TO_IDS[k])) {
+			CHART_LIT |= 1 << k;
 		}
 	}
 	CHART_LIT_FOR = CHART_DETAIL_ID;
@@ -5201,6 +5268,31 @@ static void chartCardRelease(void)
 
 GARBAGE_ARRAY(renderEvoChartDetail, (&MOVES_TECHSET_LINES[0].x1), 30, 9);
 
+/* MOD (chart lists): when the "to" boxes take more than a page, arrows and a bar right of them (as the requirements
+ * table's): an arrow is bright while there is a page that way */
+static void chartToScrollBar(void)
+{
+	int32_t i;
+	int32_t h;
+	int32_t y;
+
+	if (CHART_TO_N <= CHART_TO_PAGE) {
+		return;
+	}
+	for (i = 0; i < 4; i++) {
+		drawLine2P(CHART_TO_TOP > 0 ? 0xffffff : 0x7d6e5a, 131 + i, -76 - i, 137 - i, -76 - i, 4, 0);
+		drawLine2P(CHART_TO_TOP + CHART_TO_PAGE < CHART_TO_N ? 0xffffff : 0x7d6e5a, 131 + i, 47 + i, 137 - i, 47 + i,
+		           4, 0);
+	}
+	h = 116 * CHART_TO_PAGE / CHART_TO_N;
+	y = -72 + (116 - h) * CHART_TO_TOP / (CHART_TO_N - CHART_TO_PAGE);
+	if (y > 44 - h) {
+		y = 44 - h;
+	}
+	renderBox(133, y, 3, h, 120, 220, 255, 0, 4);
+	renderBox(133, -72, 3, 116, 20, 30, 38, 0, 4);
+}
+
 void renderEvoChartDetail(void)
 {
 	int32_t w; /* MOD (long names) */
@@ -5215,11 +5307,11 @@ void renderEvoChartDetail(void)
 	int32_t len;
 	EvoClutTable clut;
 	int32_t i;
-	int8_t count1;
-	int8_t count2;
-	int8_t fromCount;
-	int8_t toCount;
-	EvolutionPath *ep;
+	int32_t fromCount; /* MOD (chart lists): the boxes of each side, from its list */
+	int32_t toCount;
+	int32_t toFirst;
+	int32_t fromSlot;
+	int32_t toSlot;
 	int16_t cx;
 	int16_t cy;
 	int32_t mine; /* MOD (chart criteria) */
@@ -5227,130 +5319,65 @@ void renderEvoChartDetail(void)
 
 	clut = EVO_CHART_DETAIL_COLORS;
 	MENU_SUB_STATE = 2;
-	ep = chartEvolutionPath(CHART_DETAIL_ID); /* MOD (portraits): any species of the tree; MOD (options): NEW DIGIMON */
 	drawEvoChartStrings(CHART_DETAIL_ID);
-	count1 = (count2 = 0);
-	for (i = 0; i < 5; i++) {
-		if ((*ep).from[i] != -1) {
-			count1++;
-		}
-	}
-	for (i = 0; i < 6; i++) {
-		if ((*ep).to[i] != -1) {
-			count2++;
-		}
-	}
+	fromCount = chartSide(0, &i, &fromSlot);
+	toCount = chartSide(1, &toFirst, &toSlot);
 
 	/* The partner's tree lights met evolutions; only a "to" box offers the modal. */
 	mine = MOD_OPT_EVO_GUIDE && chartIsPartnerTree(); /* OPTIONS' EVOLUTION GUIDE off: the original chart */
 	if (mine) {
-		chartUpdateLit(ep);
+		chartUpdateLit();
 	}
 	cardId = MOD_OPT_EVO_GUIDE && CHART_CURSOR_SIDE == 1 ? chartDetailBox(1, CHART_CURSOR_J, &cx, &cy) : 0;
 
-
-	if ((count1 % 2) == 0) {
-		fromLines = CHART_FROM_LINES_EVEN;
-		fromSprites = CHART_FROM_SPRITES_EVEN;
-		fromCount = 4;
-	} else {
-		fromLines = CHART_FROM_LINES_ODD;
-		fromSprites = CHART_FROM_SPRITES_ODD;
-		fromCount = 5;
-	}
-	if ((count2 % 2) == 0) {
-		toLines = CHART_TO_LINES_EVEN;
-		toSprites = CHART_TO_SPRITES_EVEN;
-		toCount = 6;
-	} else {
-		toLines = CHART_TO_LINES_ODD;
-		toSprites = CHART_TO_SPRITES_ODD;
-		toCount = 5;
-	}
+	/* MOD (chart lists): an even count on the 4-box (from) or 6-box (to) layout, an odd one on the 5-box one, centred
+	 * as the original rows were; the line colours stay those of the layout's slot */
+	fromLines = ((fromCount % 2) == 0 ? CHART_FROM_LINES_EVEN : CHART_FROM_LINES_ODD) + fromSlot;
+	fromSprites = ((fromCount % 2) == 0 ? CHART_FROM_SPRITES_EVEN : CHART_FROM_SPRITES_ODD) + fromSlot;
+	toLines = ((toCount % 2) == 0 ? CHART_TO_LINES_EVEN : CHART_TO_LINES_ODD) + toSlot;
+	toSprites = ((toCount % 2) == 0 ? CHART_TO_SPRITES_EVEN : CHART_TO_SPRITES_ODD) + toSlot;
 
 	for (j = 0; j < fromCount; j++) {
-		if ((*ep).from[j] > 0 && mine) {
+		if (mine) {
 			drawLine3P(CHART_FROM_LINE, fromLines->x1, fromLines->y1, fromLines->x2, fromLines->y2, fromLines->x3,
 			           fromLines->y3, 4, 0);
 			drawLine2P(CHART_FROM_LINE, fromLines->x3, fromLines->y3, fromLines->x4, fromLines->y4, 4, 0);
-		} else if ((*ep).from[j] > 0) {
-			drawLine3P(0x65db,
-			           fromLines->x1, fromLines->y1 - 1,
-			           fromLines->x2, fromLines->y2 - 1,
-			           fromLines->x3, fromLines->y3 - 1,
-			           4, 0);
-			drawLine2P(0x65db,
-			           fromLines->x3, fromLines->y3 - 1,
-			           fromLines->x4, fromLines->y4 - 1,
-			           4, 0);
-			drawLine3P(0x794e3,
-			           fromLines->x1, fromLines->y1,
-			           fromLines->x2, fromLines->y2,
-			           fromLines->x3, fromLines->y3,
-			           4, 0);
-			drawLine2P(0x794e3,
-			           fromLines->x3, fromLines->y3,
-			           fromLines->x4, fromLines->y4,
-			           4, 0);
-			drawLine3P(0x65db,
-			           fromLines->x1, fromLines->y1 + 1,
-			           fromLines->x2, fromLines->y2 + 1,
-			           fromLines->x3, fromLines->y3 + 1,
-			           4, 0);
-			drawLine2P(0x65db,
-			           fromLines->x3, fromLines->y3 + 1,
-			           fromLines->x4, fromLines->y4 + 1,
-			           4, 0);
+		} else {
+			for (i = -1; i <= 1; i++) {
+				color1 = i == 0 ? 0x794e3 : 0x65db;
+				drawLine3P(color1, fromLines->x1, fromLines->y1 + i, fromLines->x2, fromLines->y2 + i,
+				           fromLines->x3, fromLines->y3 + i, 4, 0);
+				drawLine2P(color1, fromLines->x3, fromLines->y3 + i, fromLines->x4, fromLines->y4 + i, 4, 0);
+			}
 		}
 		fromLines++;
 	}
 
 	for (j = 0; j < toCount; j++) {
-		if ((*ep).to[j] > 0 && mine && !(CHART_LIT & (1 << j))) {
+		if (mine && !(CHART_LIT & (1 << (toFirst + j)))) {
 			/* MOD (chart criteria): an evolution the partner does not meet, dim */
 			drawLine3P(CHART_DIM_LINE, toLines->x1, toLines->y1, toLines->x2, toLines->y2, toLines->x3, toLines->y3, 4, 0);
 			drawLine2P(CHART_DIM_LINE, toLines->x3, toLines->y3, toLines->x4, toLines->y4, 4, 0);
-		} else if ((*ep).to[j] > 0) {
-			color1 = (MAIN_D_80124A84[j * 2].r & 0xff) |
-			         ((MAIN_D_80124A84[j * 2].g & 0xff) << 8) |
-			         ((MAIN_D_80124A84[j * 2].b & 0xff) << 16);
-			color2 = (MAIN_D_80124A84[(j * 2) + 1].r & 0xff) |
-			         ((MAIN_D_80124A84[(j * 2) + 1].g & 0xff) << 8) |
-			         ((MAIN_D_80124A84[(j * 2) + 1].b & 0xff) << 16);
+		} else {
+			color1 = (MAIN_D_80124A84[(toSlot + j) * 2].r & 0xff) |
+			         ((MAIN_D_80124A84[(toSlot + j) * 2].g & 0xff) << 8) |
+			         ((MAIN_D_80124A84[(toSlot + j) * 2].b & 0xff) << 16);
+			color2 = (MAIN_D_80124A84[((toSlot + j) * 2) + 1].r & 0xff) |
+			         ((MAIN_D_80124A84[((toSlot + j) * 2) + 1].g & 0xff) << 8) |
+			         ((MAIN_D_80124A84[((toSlot + j) * 2) + 1].b & 0xff) << 16);
 			if (mine) { /* MOD (chart criteria): one it meets, green */
 				color1 = CHART_LIT_CORE;
 				color2 = CHART_LIT_EDGE;
 			}
-			drawLine3P(color2,
-			           toLines->x1, toLines->y1 - 1,
-			           toLines->x2, toLines->y2 - 1,
-			           toLines->x3, toLines->y3 - 1,
-			           4, 0);
-			drawLine2P(color2,
-			           toLines->x3, toLines->y3 - 1,
-			           toLines->x4, toLines->y4 - 1,
-			           4, 0);
-			drawLine3P(color1,
-			           toLines->x1, toLines->y1,
-			           toLines->x2, toLines->y2,
-			           toLines->x3, toLines->y3,
-			           4, 0);
-			drawLine2P(color1,
-			           toLines->x3, toLines->y3,
-			           toLines->x4, toLines->y4,
-			           4, 0);
-			drawLine3P(color2,
-			           toLines->x1, toLines->y1 + 1,
-			           toLines->x2, toLines->y2 + 1,
-			           toLines->x3, toLines->y3 + 1,
-			           4, 0);
-			drawLine2P(color2,
-			           toLines->x3, toLines->y3 + 1,
-			           toLines->x4, toLines->y4 + 1,
-			           4, 0);
+			for (i = -1; i <= 1; i++) {
+				drawLine3P(i == 0 ? color1 : color2, toLines->x1, toLines->y1 + i, toLines->x2, toLines->y2 + i,
+				           toLines->x3, toLines->y3 + i, 4, 0);
+				drawLine2P(i == 0 ? color1 : color2, toLines->x3, toLines->y3 + i, toLines->x4, toLines->y4 + i, 4, 0);
+			}
 		}
 		toLines++;
 	}
+	chartToScrollBar(); /* MOD (chart lists) */
 
 	if (CHART_DETAIL_ID <= NUM_EVO_CHART_DIGIMON) {
 		renderRectPolyFT4(-8, -0x14, 0x10, 0x10,
@@ -5364,57 +5391,37 @@ void renderEvoChartDetail(void)
 	renderBorderBox(0x97, 99, 0x12, 0x12, 0xbebebe, 0x3c3c3c, 0x87, 0x87,
 	                0x87, 4);
 
-	for (j = 0; j < fromCount; j++) {
-		id = (*ep).from[j];
-		if (id > 0) {
-			/* MOD (portraits): beyond the chart's 61 the icon comes from DIGI.DAT */
-			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
-				renderRectPolyFT4(fromSprites->posX, fromSprites->posY,
-				                  0x10, 0x10,
-				                  EVO_CHART_BOXES[id - 1].u,
-				                  EVO_CHART_BOXES[id - 1].v, 0x18,
-				                  clut.m[EVO_CHART_BOXES[id - 1].clut],
-				                  4, 0);
-			} else if (id > NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
-				renderChartPortrait(id, fromSprites->posX, fromSprites->posY);
-			}
+	for (j = 0; j < fromCount + toCount; j++) {
+		id = j < fromCount ? CHART_FROM_IDS[j] : CHART_TO_IDS[toFirst + j - fromCount];
+		if (j == fromCount) {
+			fromSprites = toSprites;
+		}
+		/* MOD (portraits): beyond the chart's 61 the icon comes from DIGI.DAT */
+		if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
+			renderRectPolyFT4(fromSprites->posX, fromSprites->posY,
+			                  0x10, 0x10,
+			                  EVO_CHART_BOXES[id - 1].u,
+			                  EVO_CHART_BOXES[id - 1].v, 0x18,
+			                  clut.m[EVO_CHART_BOXES[id - 1].clut],
+			                  4, 0);
+		} else if (id > NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
+			renderChartPortrait(id, fromSprites->posX, fromSprites->posY);
+		}
+		if (j >= fromCount && DIGI_PARA(id).level == LEVEL_MEGA) {
+			/* MOD (mega): the chart has no Mega column and no Mega portraits: a
+			 * gold box with the level name under it */
+			renderBorderBox(fromSprites->posX + 0x9f,
+			                fromSprites->posY + 0x77, 0x12, 0x12,
+			                0x60e0ff, 0x104878, 0xb0, 0x88, 0x28, 4);
+			renderString(0, fromSprites->posX + 8 - EVO_CHART_MEGA_WIDTH / 2,
+			             fromSprites->posY + 0x13, EVO_CHART_MEGA_WIDTH, 0xc, 0,
+			             EVO_CHART_MEGA_ROW, 4);
+		} else {
 			renderBorderBox(fromSprites->posX + 0x9f,
 			                fromSprites->posY + 0x77, 0x12, 0x12,
 			                0xbebebe, 0x3c3c3c, 0x87, 0x87, 0x87, 4);
 		}
 		fromSprites++;
-	}
-
-	for (j = 0; j < toCount; j++) {
-		id = (*ep).to[j];
-		if (id > 0) {
-			/* MOD (portraits): beyond the chart's 61 the icon comes from DIGI.DAT */
-			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
-				renderRectPolyFT4(toSprites->posX, toSprites->posY,
-				                  0x10, 0x10,
-				                  EVO_CHART_BOXES[id - 1].u,
-				                  EVO_CHART_BOXES[id - 1].v, 0x18,
-				                  clut.m[EVO_CHART_BOXES[id - 1].clut],
-				                  4, 0);
-			} else if (id > NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
-				renderChartPortrait(id, toSprites->posX, toSprites->posY);
-			}
-			if (DIGI_PARA(id).level == LEVEL_MEGA) {
-				/* MOD (mega): the chart has no Mega column and no Mega portraits: a
-				 * gold box with the level name under it */
-				renderBorderBox(toSprites->posX + 0x9f,
-				                toSprites->posY + 0x77, 0x12, 0x12,
-				                0x60e0ff, 0x104878, 0xb0, 0x88, 0x28, 4);
-				renderString(0, toSprites->posX + 8 - EVO_CHART_MEGA_WIDTH / 2,
-				             toSprites->posY + 0x13, EVO_CHART_MEGA_WIDTH, 0xc, 0,
-				             EVO_CHART_MEGA_ROW, 4);
-			} else {
-				renderBorderBox(toSprites->posX + 0x9f,
-				                toSprites->posY + 0x77, 0x12, 0x12,
-				                0xbebebe, 0x3c3c3c, 0x87, 0x87, 0x87, 4);
-			}
-		}
-		toSprites++;
 	}
 
 #if !VERSION_IS(US)
