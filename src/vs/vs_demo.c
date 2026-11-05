@@ -219,6 +219,10 @@ void VS_randomizeDemoFighter(Entity *entity)
 		div = 10;
 		mul = 25;
 		break;
+	case 6: /* MOD (mega): x3.5; without it div and mul were left unset */
+		div = 10;
+		mul = 35;
+		break;
 	}
 	stats = &((DigimonEntity *)entity)->stats;
 	stats->base.off = mul * (base + base * (0x1e - randomLimit(0x3d)) / 100) / div;
@@ -406,6 +410,10 @@ void VS_randomizeTrialDigimon(RegisteredDigimon *digimon)
 	case 5:
 		div = 10;
 		mul = 25;
+		break;
+	case 6: /* MOD (mega): x3.5; without it div and mul were left unset */
+		div = 10;
+		mul = 35;
 		break;
 	}
 	digimon->offense = mul * (base + base * (0x1e - randomLimit(0x3d)) / 100) / div;
