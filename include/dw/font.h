@@ -8,6 +8,9 @@
 #include <dw/version.h>
 
 void initializeFontCLUT(void);
+#define TEXT_VRAM_X		704
+#define TEXT_VRAM_Y		256
+
 void clearTextArea(void);
 void clearTextSubArea(RECT *rect);
 void setTextColor(int32_t color);

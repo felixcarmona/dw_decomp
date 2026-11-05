@@ -177,6 +177,13 @@ uint32_t PAUSE_INPUT_PREVIOUS;
 uint8_t PAUSE_BOX_VISIBLE;
 uint8_t PAUSE_STATE;
 int32_t MAIN_D_80134E7C;
+/* MOD (cheats): the Select hint's text width while it is on screen, 0 = hidden */
+static int16_t MOD_PAUSE_HINT_WIDTH;
+
+#define PAUSE_HINT_TEXT_Y	0xE4 /* a text-area row only the status page shares: modPauseHintShow keeps what was there */
+#define PAUSE_HINT_TEXT_W	216
+#define PAUSE_HINT_TEXT_H	12
+#define PAUSE_HINT_BAR_LEFT	232 /* the box is centred left of the status bars */
 
 static void *utils2_sbss_order[] = {
 	&MAIN_D_80134E7C,
@@ -418,8 +425,44 @@ void startMovie(int32_t movieId)
 	ResetGraph(3);
 }
 
+/* MOD (cheats): the hint appears exactly when Select opens the menu (modLabMenu's guard). The pause can
+ * interrupt a screen using the row, so its pixels wait in the caller's `saved` until modPauseHintHide */
+static void modPauseHintShow(u_long *saved)
+{
+	RECT area;
+
+	if (!MOD_OPT_CHEATS || IS_SCRIPT_PAUSED != 1) {
+		return;
+	}
+	DrawSync(0);
+	setRECT(&area, TEXT_VRAM_X, TEXT_VRAM_Y + PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W / 4, PAUSE_HINT_TEXT_H);
+	StoreImage(&area, saved);
+	DrawSync(0);
+	setRECT(&area, 0, PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W, PAUSE_HINT_TEXT_H);
+	clearTextSubArea(&area);
+	drawString(LAB_STR_PAUSE_HINT, 0, PAUSE_HINT_TEXT_Y);
+	MOD_PAUSE_HINT_WIDTH = measureStringMode(LAB_STR_PAUSE_HINT, FIT_VANILLA);
+}
+
+static void modPauseHintHide(u_long *saved)
+{
+	RECT area;
+
+	if (MOD_PAUSE_HINT_WIDTH == 0) {
+		return;
+	}
+	MOD_PAUSE_HINT_WIDTH = 0;
+	setRECT(&area, 0, PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W, PAUSE_HINT_TEXT_H);
+	clearTextSubArea(&area); /* and forgets the last glyph's cell */
+	setRECT(&area, TEXT_VRAM_X, TEXT_VRAM_Y + PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W / 4, PAUSE_HINT_TEXT_H);
+	LoadImage(&area, saved);
+	DrawSync(0);
+}
+
 void handlePause(void)
 {
+	u_long hintPixels[PAUSE_HINT_TEXT_W / 4 * PAUSE_HINT_TEXT_H / 2];
+
 	if (PAUSE_BOX_VISIBLE != 0) {
 		removePauseBox();
 		PAUSE_BOX_VISIBLE = 0;
@@ -437,6 +480,7 @@ void handlePause(void)
 	PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
 	if (PAUSE_STATE != 0) {
 		createPauseBox();
+		modPauseHintShow(hintPixels);
 		pauseFrame();
 		pauseFrame();
 		PAUSE_BOX_VISIBLE++;
@@ -449,10 +493,12 @@ void handlePause(void)
 		/* MOD: SELECT while paused opens the lab menu (mod_lab.c) */
 		if (MOD_OPT_CHEATS && (PAUSE_INPUT & 0x100) && !(PAUSE_INPUT_PREVIOUS & 0x100)) {
 			PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
+			modPauseHintHide(hintPixels);
 			modLabMenu(&PAUSE_INPUT, &PAUSE_INPUT_PREVIOUS);
 			MAIN_D_80134E7C = 0;
 			if (PAUSE_STATE != 0) {
 				createPauseBox();
+				modPauseHintShow(hintPixels);
 				pauseFrame();
 				pauseFrame();
 			} else {
@@ -462,6 +508,7 @@ void handlePause(void)
 		}
 		PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
 	}
+	modPauseHintHide(hintPixels);
 }
 
 void removePauseBox(void)
@@ -506,6 +553,16 @@ void renderPauseBox(instanceId)
 #else
 	renderString(0, pos->x + 6, pos->y + 6, 0x2A, 0xC, 0x78, 0xF0, 0, 1);
 #endif
+	if (MOD_PAUSE_HINT_WIDTH != 0) {
+		RECT hint;
+
+		hint.w = MOD_PAUSE_HINT_WIDTH + 16;
+		hint.h = 0x18;
+		hint.x = (PAUSE_HINT_BAR_LEFT - hint.w) / 2 - 0xA0;
+		hint.y = 0x56;
+		renderString(0, hint.x + 8, hint.y + 6, MOD_PAUSE_HINT_WIDTH, PAUSE_HINT_TEXT_H, 0, PAUSE_HINT_TEXT_Y, 0, 1);
+		renderUIBoxPlain(&hint, 1, 1);
+	}
 }
 
 void thunkReinitializeAfterTournament(void)
