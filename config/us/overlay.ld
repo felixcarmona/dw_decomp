@@ -967,7 +967,6 @@ SECTIONS
             BUILD_DIR/src/main/main_menu.c.o(.text.modOptionCount);
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
             BUILD_DIR/src/main/mod_options.c.o(.text.modFrameRate);
-            BUILD_DIR/src/main/mod_species.c.o(.text.getSpeciesVanillaAs);
             BUILD_DIR/src/main/sjis.c.o(.text.asciiToShiftJIS);
             . = ALIGN(., 4);
 
