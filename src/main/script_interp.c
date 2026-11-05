@@ -2061,14 +2061,14 @@ void scriptInstruction64to7E(op)
 	case SCRIPT_OP_SPAWN_ITEM:
 		pollNextScriptUByte(&byteArg1);
 		pollNextTwoScriptShorts(&posX, &posY);
-		spawnItem(byteArg1, posX, posY);
+		spawnItem(itemFromLegacy(byteArg1), posX, posY); /* MOD */
 		break;
 	case SCRIPT_OP_SPAWN_CHEST:
 		pollNextScriptUByte(&byteArg1);
 		pollNextTwoScriptShorts(&posX, &posY);
 		pollNextTwoScriptShorts(&posZ, &posW);
 		pollNextScriptUShort(&triggerId);
-		spawnChest(posX, posY, posZ, posW, byteArg1, triggerId);
+		spawnChest(posX, posY, posZ, posW, itemFromLegacy(byteArg1), triggerId); /* MOD */
 		break;
 	case SCRIPT_OP_SPAWN_BOULDER:
 		pollNextScriptUByte(&byteArg1);
