@@ -16,6 +16,7 @@
 #include <dw/map.h>
 #include <dw/math.h>
 #include <dw/params.h>
+#include <dw/pstat.h>
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/species.h>
@@ -3144,10 +3145,14 @@ void checkShopMap(mapId)
 	uint8_t local;
 	int32_t i;
 
+	/* MOD (death map entry): trigger 41 is set by the death's MAPHEAD section (1246) and consumed by the load of the
+	   death map: the screen's enter code can tell that load from a homecoming (PSTAT_DEATH_MAP_ENTRY, pstat.h) */
 	if (isTriggerSet(0x29) == 1) {
 		unsetTrigger(0x29);
+		writePStat(PSTAT_DEATH_MAP_ENTRY, 1);
 		return;
 	}
+	writePStat(PSTAT_DEATH_MAP_ENTRY, 0);
 	for (i = 0; i < 8; i++) {
 		if (mapId == SHOP_MAPS[i]) {
 			loadDynamicLibrary(SHOP_REL, &local, 0, 0, 0);
