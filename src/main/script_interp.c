@@ -181,7 +181,7 @@ int16_t TEXTBOX_ORIGIN_Z;
 uint8_t *ACTIVE_SCRIPT;
 uint8_t *SCRIPT_POINTER;
 int32_t SCRIPT_SECTION_IS_EVENT;
-uint8_t SCRIPT_SECTION;
+uint16_t SCRIPT_SECTION; /* MOD: u16 like the section ids */
 uint8_t TEXTBOX_CLOSE_MODE;
 uint8_t CURRENT_DIALOGUE_OWNER;
 uint8_t MAIN_D_80134FE7;
@@ -2172,10 +2172,7 @@ void initializeLoadedNPCModels(void)
 	}
 }
 
-// clang-format off
-void runMapHeadScript(section)
-	uint8_t section;
-// clang-format on
+void runMapHeadScript(int32_t section) /* MOD: was u8 */
 {
 	callScriptSection(0, section, 1);
 	tickScript();
@@ -2679,14 +2676,15 @@ void scriptPauseGame(int32_t owner)
 		stopGameTime();
 
 		if (SCRIPT_SECTION_IS_EVENT != 0 && isTriggerSet(TRIGGER_44) == 0) {
-			entityId = scriptIdToEntityId(SCRIPT_SECTION) & 0xff;
+			/* MOD: the low byte, as when SCRIPT_SECTION was u8 */
+			entityId = scriptIdToEntityId((uint8_t)SCRIPT_SECTION) & 0xff;
 			if (entityId != 0xff) {
 				SCRIPT_MOVEMENT[entityId].type = 0;
-				SCRIPT_MOVEMENT[entityId].entityId = SCRIPT_SECTION;
+				SCRIPT_MOVEMENT[entityId].entityId = (uint8_t)SCRIPT_SECTION;
 				SCRIPT_MOVEMENT[entityId].target = 0xfd;
 				SCRIPT_MOVEMENT[0].type = 0;
 				SCRIPT_MOVEMENT[0].entityId = 0xfd;
-				SCRIPT_MOVEMENT[0].target = SCRIPT_SECTION;
+				SCRIPT_MOVEMENT[0].target = (uint8_t)SCRIPT_SECTION;
 			}
 		}
 	}

@@ -87,7 +87,7 @@ extern int32_t HAS_BUTTERFLY;
 extern int32_t BUTTERFLY_ID;
 extern int32_t SOME_SCRIPT_SYNC_BIT;
 extern uint8_t TEXTBOX_OPEN_TIMER;
-extern uint8_t TARGET_MAP;
+extern ScreenId TARGET_MAP;
 extern uint8_t CURRENT_EXIT;
 extern uint8_t PREVIOUS_EXIT;
 extern GsRVIEW2 GS_VIEWPOINT;
@@ -156,8 +156,8 @@ static void *tamer_bss_order[] = {
 
 void entityLookAtLocation(Entity *entity, VECTOR *pos);
 void setupEntityMatrix(int32_t entityId);
-void changeMap(uint8_t mapId, uint8_t exitId);
-void addMapNameObject(uint8_t mapId);
+void changeMap(int16_t mapId, int16_t exitId);
+void addMapNameObject(int32_t mapId);
 void renderString(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
                   int32_t, int32_t, int32_t);
 void renderUIBox(int32_t id);
