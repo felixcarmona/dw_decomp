@@ -2358,11 +2358,9 @@ void renderStatusBars(state)
 {
 	int32_t i;
 	uint8_t happinessTexX;
-	uint8_t happinessTexY;
 	int32_t happinessCount;
 	int32_t disciplineCount;
 	uint8_t disciplineTexX;
-	uint8_t disciplineTexY;
 
 	/* MOD (fps): the slide is in tickStatusBarsSlide (late tick) */
 	renderRectPolyFT4(STATUS_UI_OFFSET_X, 85, 75, 8, 0, 236, 5, 0x7D06, 15, 0);
@@ -2383,28 +2381,15 @@ void renderStatusBars(state)
 	else
 		disciplineTexX = 33;
 	renderRectPolyFT4(STATUS_UI_OFFSET_X + 3, 95, 11, 11, disciplineTexX, 244, 5, GetClut(96, 498), 14, 0);
-	if (PARTNER_PARA.happiness >= 0) {
-		happinessTexY = 153;
-		happinessCount = PARTNER_PARA.happiness / 4;
-		for (i = 0; i < 25; i++)
-			renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 88, 2, 2, 232, 151, 5, GetClut(96, 503), 14, 0);
-	} else {
-		happinessTexY = 151;
-		happinessCount = (PARTNER_PARA.happiness + 100) / 4;
-	}
+	/* MOD (status bars): each bar is one colour over its whole range, empty to full (happiness -100..100, 8 a
+	   segment; discipline 0..100, 4 a segment); the original filled each half again in a second colour. The
+	   icons still change at the midpoint */
+	happinessCount = (PARTNER_PARA.happiness + 100) / 8;
 	for (i = 0; i < happinessCount; i++)
-		renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 88, 2, 2, 232, happinessTexY, 5, GetClut(96, 503), 13, 0);
-	if (PARTNER_PARA.discipline >= 50) {
-		disciplineTexY = 153;
-		disciplineCount = (PARTNER_PARA.discipline - 50) / 2;
-		for (i = 0; i < 25; i++)
-			renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 100, 2, 2, 232, 151, 5, GetClut(96, 503), 14, 0);
-	} else {
-		disciplineTexY = 151;
-		disciplineCount = PARTNER_PARA.discipline / 2;
-	}
+		renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 88, 2, 2, 232, 153, 5, GetClut(96, 503), 13, 0);
+	disciplineCount = PARTNER_PARA.discipline / 4;
 	for (i = 0; i < disciplineCount; i++)
-		renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 100, 4, 2, 232, disciplineTexY, 5, GetClut(96, 503), 13, 0);
+		renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 100, 2, 2, 232, 153, 5, GetClut(96, 503), 13, 0);
 }
 
 void setImmortalHour(void)
