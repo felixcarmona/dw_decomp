@@ -101,6 +101,10 @@ MAIN_ASM_EXCLUDE := shop vs
 
 $(eval $(call unit,MAIN,main))
 
+# MOD (menu overlay, docs/mods/memory.md "The menu overlay"): most of main_menu.c's code is linked into .MENU
+# (config/us/overlay.ld), read where a card menu opens; the file stays a MAIN source
+OVERLAY += MENU
+
 SHOP_C_SRC := \
 	src/shop/script_menu.c
 

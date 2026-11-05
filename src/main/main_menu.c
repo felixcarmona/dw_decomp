@@ -13,6 +13,7 @@
 #include <dw/save_tags.h>
 #include <dw/input.h>
 #include <dw/item.h>
+#include <dw/kar.h>
 #include <dw/main.h>
 #include <dw/map.h>
 #include <dw/move.h>
@@ -31,6 +32,8 @@
 #include <text/main/main_menu.h>
 
 #include "common.h"
+
+void modMenuVsBattle(int32_t trial); /* MOD (menu overlay) */
 
 #if !VERSION_IS(US)
 #define YES_TEXT_W 0x18
@@ -2623,10 +2626,6 @@ void tickMainMenu(void)
 	int32_t lo;
 	int32_t hi;
 	int32_t oldScroll;
-	uint8_t loadComplete;
-#if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
-	uint8_t demoLoadComplete;
-#endif
 	MenuCursor *cursor;
 	int32_t input;
 	int32_t value; /* MOD (options) */
@@ -3512,14 +3511,7 @@ void tickMainMenu(void)
 
 	case 0x38:
 		if (MAIN_MENU_TICKS >= 3) {
-			removeObject(0x1388, 0);
-			removeObject(0xFA3, 0);
-			loadDynamicLibrary(VS_REL, &loadComplete, 0, 0, 0);
-			VS__initialize(VS__REGISTERED_DIGIMON_BUFFER,
-					     &VS__REGISTERED_DIGIMON_BUFFER[0x28]);
-			addObject(0xFA3, 0, NULL, (RenderFunction)renderMainMenuBackground);
-			addObject(0x1388, 0, (TickFunction)tickMainMenu,
-				  (RenderFunction)renderMainMenu);
+			modMenuVsBattle(0); /* MOD (menu overlay): VS_REL is read over this code */
 			TARGET_MENU = VS_RETURN_MENU;
 		}
 		break;
@@ -3813,14 +3805,7 @@ void tickMainMenu(void)
 
 	case 0x48:
 		if (MAIN_MENU_TICKS >= 3) {
-			removeObject(0x1388, 0);
-			removeObject(0xFA3, 0);
-			loadDynamicLibrary(VS_REL, &demoLoadComplete, 0, 0, 0);
-			VS_initializeTrialBattle(VS__REGISTERED_DIGIMON_BUFFER,
-					  &VS__REGISTERED_DIGIMON_BUFFER[0x28]);
-			addObject(0xFA3, 0, NULL, (RenderFunction)renderMainMenuBackground);
-			addObject(0x1388, 0, (TickFunction)tickMainMenu,
-				  (RenderFunction)renderMainMenu);
+			modMenuVsBattle(1); /* MOD (menu overlay): VS_REL is read over this code */
 			TARGET_MENU = 0x47;
 		}
 		break;
@@ -5588,8 +5573,50 @@ void renderMenuSelector(MenuHighlight *b)
 	GsSetWorkBase((PACKET *)prim);
 }
 
+/*
+ * MOD (menu overlay, docs/mods/memory.md "The menu overlay"): most of this file's code is linked into MENU_REL.BIN at
+ * OVL_BTL_BASE (config/us/main.ld keeps the rest in the executable) and read where a card menu opens: the title
+ * (runMainMenu), the sleep save (partner.c), the save machine and the game-clear save (below). Nothing of a battle,
+ * the tournament or VS is loaded then; KAR (0x80053800) is, on the curling screen, so a menu closing in the world
+ * reads it again.
+ */
+void loadMenuOverlay(void)
+{
+	loadDynamicLibrary(MENU_REL, NULL, 0, NULL, NULL);
+}
+
+void closeMenuOverlay(void)
+{
+	checkCurlingMap(CURRENT_SCREEN);
+}
+
+/* a VS battle from the title's menus: VS_REL is read where this overlay is, so the battle runs from here, in the
+ * executable, and the overlay is read again before the return into tickMainMenu (the same code at the same place) */
+void modMenuVsBattle(int32_t trial)
+{
+	uint8_t complete;
+
+	removeObject(0x1388, 0);
+	removeObject(0xFA3, 0);
+	loadDynamicLibrary(VS_REL, &complete, 0, 0, 0);
+#if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
+	if (trial) {
+		VS_initializeTrialBattle(VS__REGISTERED_DIGIMON_BUFFER, &VS__REGISTERED_DIGIMON_BUFFER[0x28]);
+	} else
+#else
+	(void)trial;
+#endif
+	{
+		VS__initialize(VS__REGISTERED_DIGIMON_BUFFER, &VS__REGISTERED_DIGIMON_BUFFER[0x28]);
+	}
+	loadMenuOverlay();
+	addObject(0xFA3, 0, NULL, (RenderFunction)renderMainMenuBackground);
+	addObject(0x1388, 0, (TickFunction)tickMainMenu, (RenderFunction)renderMainMenu);
+}
+
 void openSaveMachine(void)
 {
+	loadMenuOverlay();
 	CHECKED_MEMORY_CARD = 0x10;
 	CURRENT_MENU = -2;
 	MAIN_STATE = 1;
@@ -5626,6 +5653,8 @@ int32_t tickSaveMachine(void)
 	renderMainMenu();
 	MOD_TICK_PRIM_MAIN_MENU = 1; /* MOD (fps): drawn again on extra passes */
 	if (CURRENT_MENU == -1) {
+		MOD_TICK_PRIM_MAIN_MENU = 0; /* MOD (menu overlay): no extra pass draws it once it may be gone */
+		closeMenuOverlay();
 		return 1;
 	}
 
@@ -5666,6 +5695,7 @@ void gameClearSave(void)
 	 * the card write and its extensions at SAVE_EXT_ADDR.
 	 */
 	isSoundLoaded(0, 8);
+	loadMenuOverlay();
 	CHECKED_MEMORY_CARD = 0x10;
 	CURRENT_MENU = -2;
 	MAIN_STATE = 2;
@@ -5684,6 +5714,8 @@ int32_t scriptTickMainMenu(void)
 	renderMainMenu();
 	MOD_TICK_PRIM_MAIN_MENU = 1; /* MOD (fps): drawn again on extra passes */
 	if (CURRENT_MENU == -1) {
+		MOD_TICK_PRIM_MAIN_MENU = 0; /* MOD (menu overlay): no extra pass draws it once it may be gone */
+		closeMenuOverlay();
 		return 1;
 	}
 

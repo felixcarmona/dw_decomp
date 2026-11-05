@@ -1062,6 +1062,9 @@ ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the origi
 ASSERT(OVL_END(.BTL) <= OVL_END(.STD), "BTL overlay ends above STD's end, the highest a battle overlay is known to reach")
 ASSERT(OVL_END(.VS) <= OVL_END(.STD), "VS overlay ends above STD's end, the highest a battle overlay is known to reach")
 ASSERT(OVL_END(.MOV) <= OVL_TRN_BASE, "MOV overlay overlaps TRN's slot (TEXTURE_BUFFER)")
+/* MOD (menu overlay): the save machine and the game-clear save run in the world, the latter with ENDI loading at
+ * OVL_EVL_BASE (load_ending); the world's scratch with SAVE_EXT is below OVL_BTL_BASE */
+ASSERT(OVL_END(.MENU) <= OVL_EVL_BASE, "MENU overlay overlaps EVL/ENDI's slot")
 ASSERT(TFS_RING_ADDR + TFS_RING_SLOTS * TFS_SLOT_SIZE == TFS_RING_END,
        "TFS ring size does not match TFS_RING_END")
 ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with the curling map")
