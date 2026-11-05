@@ -13,7 +13,9 @@
  *   - "To MasterTyrannomon"  starts the real evolution sequence into
  *                      MasterTyrannomon (type 124) when the game is unpaused,
  *                      the way an evolution item does, but with the natural
- *                      stat gains (HAS_USED_EVOITEM = 0)
+ *                      stat gains (HAS_USED_EVOITEM = 0). Left/right choose
+ *                      the target: "To MasterTyrannomon" or "To Cherrymon"
+ *                      (type 121; MOD cherrymon)
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -73,6 +75,7 @@ int32_t tamerGetState(void);
 void tamerSetState(int32_t state);
 
 static int32_t modLabCursor;
+static int32_t modLabEvoChoice; /* MOD (cherrymon): index into MOD_LAB_EVO_TARGETS */
 static char *modLabMessage;
 
 static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
@@ -80,8 +83,20 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"Heal partner",
 	"One-time gift",
 	NULL, /* MOD_LAB_FPS_TEXT */
-	"To MasterTyrannomon",
+	NULL, /* MOD_LAB_EVO_TEXT */
 	"Close",
+};
+
+/* MOD (cherrymon): the evolve option cycles through these targets */
+#define MOD_LAB_EVO_COUNT 2
+static int16_t MOD_LAB_EVO_TARGETS[MOD_LAB_EVO_COUNT] = {
+	DIGIMON_MASTER_TYRANNOMON,
+	DIGIMON_CHERRYMON,
+};
+
+static char *MOD_LAB_EVO_TEXT[MOD_LAB_EVO_COUNT] = {
+	"To MasterTyrannomon",
+	"To Cherrymon",
 };
 
 static char *MOD_LAB_FPS_TEXT[3] = {
@@ -156,6 +171,8 @@ static void modLabDrawText(void)
 	for (i = 0; i < MOD_LAB_OPTIONS; i++) {
 		if (i == MOD_LAB_OPT_FPS) {
 			drawString(MOD_LAB_FPS_TEXT[modLabFpsMode()], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+		} else if (i == MOD_LAB_OPT_EVOLVE) {
+			drawString(MOD_LAB_EVO_TEXT[modLabEvoChoice], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		} else {
 			drawString(MOD_LAB_OPTION_TEXT[i], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		}
@@ -233,12 +250,12 @@ static void modLabApply(void)
 		break;
 	case MOD_LAB_OPT_EVOLVE:
 		/* MOD (master-tyrannomon): as handleEvoItems does, with natural gains */
-		if (PARTNER_ENTITY.digimonEntity.entity.type == DIGIMON_MASTER_TYRANNOMON) {
+		if (PARTNER_ENTITY.digimonEntity.entity.type == MOD_LAB_EVO_TARGETS[modLabEvoChoice]) {
 			modLabShowMessage("Already evolved");
 		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
 			modLabShowMessage("Not now, try later");
 		} else {
-			EVOLUTION_TARGET = DIGIMON_MASTER_TYRANNOMON;
+			EVOLUTION_TARGET = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
 			HAS_USED_EVOITEM = 0;
 			tamerSetState(6);
 			partnerSetState(13);
@@ -289,6 +306,11 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && modLabCursor == MOD_LAB_OPT_FPS) {
 			playSound(0, 2);
 			modLabSetFps((pressed & PAD_RIGHT) ? 1 : -1);
+		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && modLabCursor == MOD_LAB_OPT_EVOLVE) {
+			/* MOD (cherrymon): choose the evolution target */
+			playSound(0, 2);
+			modLabEvoChoice = (modLabEvoChoice + ((pressed & PAD_RIGHT) ? 1 : MOD_LAB_EVO_COUNT - 1)) %
+					  MOD_LAB_EVO_COUNT;
 		} else if (pressed & PAD_CROSS) {
 			if (modLabCursor == MOD_LAB_OPTIONS - 1) {
 				break;

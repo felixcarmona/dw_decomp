@@ -179,6 +179,15 @@ RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	 */
 	[DIGIMON_MASTER_TYRANNOMON] = { { 1, 5, 9, 13, 17, 21, -1, -1 },
 	  80, 55, 14, 36, 1200, 13, 51, 3, 0, 0, 45, 75, 510, -1410 },
+	/*
+	 * MOD (cherrymon): Vegiemon's row (25) with fewer, bigger meals and
+	 * bigger poop, Red Berry (49) as the favourite food and the weight of
+	 * a tree. The status screen draws the model at (viewX, viewY, viewZ)
+	 * seen from DIGIVICE_ENTITY_VIEW (1300, 0, -3280): this puts the whole
+	 * 650-high tree inside the Condition panel, feet at its bottom.
+	 */
+	[DIGIMON_CHERRYMON] = { { 3, 8, 13, 18, 23, -1, -1, -1 },
+	  80, 35, 8, 36, 1200, 14, 49, 0, 5, 2, 30, -511, 630, -232 },
 };
 
 typedef struct {
@@ -208,6 +217,8 @@ int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	10, 10, 10, 10, 10, 10, 10, 10, 15, 15, 10, 10, 10, 10, 10,
 	/* MOD (master-tyrannomon): by type - 1; Tyrannomon's 15 at 1.5 times */
 	[DIGIMON_MASTER_TYRANNOMON - 1] = 22,
+	/* MOD (cherrymon): long branch arms */
+	[DIGIMON_CHERRYMON - 1] = 20,
 };
 
 extern uint8_t ITEM_CLUT_DATA[];

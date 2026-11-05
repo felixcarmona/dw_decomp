@@ -344,6 +344,9 @@ extern int32_t EFE_ACTIVE_SECTION;
 extern EfeSubEffect *EFE_SCRIPT_CONTEXT;
 extern int32_t EFE_SCRIPT_REGISTER;
 extern EfeBoneOffset *EFE_BONE_OFFSET;
+
+/* MOD (cherrymon): origin of a technique effect for a type the EFE table lacks (efe.c) */
+EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table);
 extern int32_t *EFE_CALL_STACK;
 extern int16_t *EFE_SCRIPT_PTR;
 extern int16_t EFE_SCRIPT_CURRENT_VALUE;

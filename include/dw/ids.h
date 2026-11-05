@@ -44,8 +44,18 @@ typedef uint16_t CardId;
  */
 #define DIGIMON_TYRANNOMON		8
 #define DIGIMON_MASTER_TYRANNOMON	124
-#define HAS_RAISED_FLAG(type) \
-	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_MASTER_TYRANNOMON)
+/*
+ * MOD (cherrymon): Cherrymon is a partner too, reached from Vegiemon, with
+ * its own model, animations and techniques (the Earth ones and Bit Bomb).
+ * Its per-partner rows are at index 121 of the same tables; its "raised"
+ * flag is trigger 0x200 + 121 = 633, also free (627-639).
+ */
+#define DIGIMON_VEGIEMON		25
+#define DIGIMON_PIXIMON			55
+#define DIGIMON_CHERRYMON		121
+#define HAS_RAISED_FLAG(type)                                                 \
+	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_CHERRYMON || \
+	 (type) == DIGIMON_MASTER_TYRANNOMON)
 
 /* Screens (maps) */
 #define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */
