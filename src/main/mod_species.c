@@ -946,12 +946,12 @@ int32_t npcSpeciesType(int32_t type, int32_t reverse)
 /*
  * MOD (flat sprites): a flattened Digimon is drawn as one of four 16x16 frames of its own texture
  * (renderFlatDigimon: idle, idle 2, attack, hurt). The originals keep them at u 0xE0/0xF0, v 0x60/0x70 with CLUT
- * row 15; a texture the build made (tools/flatsprite.py) ends, after the TIM, with "FLT1", the (u, v) of each frame
- * and their CLUT row. Kept per texture slot (its CLUT column: 0 the tamer, 1 the partner, 2..6 the NPC slots) when
+ * row 15; a texture the build made (tools/flatsprite.py) ends, after the TIM, with "FLT2", the (u, v) of each frame
+ * and their four CLUT rows. Kept per texture slot (its CLUT column: 0 the tamer, 1 the partner, 2..6 the NPC slots) when
  * the texture is uploaded.
  */
 static uint32_t FLAT_SPRITES[7][3];
-static const uint32_t FLAT_SPRITE_NATIVE[3] = { 0x60F060E0, 0x70F070E0, 15 };
+static const uint32_t FLAT_SPRITE_NATIVE[3] = { 0x60F060E0, 0x70F070E0, 0x0F0F0F0F };
 
 uint8_t *getFlatSprite(ModelComponent *model)
 {
@@ -976,7 +976,7 @@ void loadFlatSprite(void *textureData, ModelComponent *model)
 	p = (uint8_t *)tim + 8 + tim[2]; /* past the CLUT block (a model texture has one), then the pixel block */
 	p += *(uint32_t *)p;
 	src = FLAT_SPRITE_NATIVE;
-	if (p + 16 <= (uint8_t *)tim + 0x4800 && *(uint32_t *)p == 0x31544C46) { /* "FLT1" */
+	if (p + 16 <= (uint8_t *)tim + 0x4800 && *(uint32_t *)p == 0x32544C46) { /* "FLT2" */
 		src = (uint32_t *)p + 1;
 	}
 	dst[0] = src[0];

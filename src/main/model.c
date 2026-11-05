@@ -2754,7 +2754,6 @@ void renderFlatDigimon(Entity *entity)
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	SetPolyFT4(prim);
 	setRGB0(prim, 0x80, 0x80, 0x80);
-	prim->clut = model->clutPage + (sprite[8] << 6);
 	prim->tpage = model->pixelPage;
 	/* MOD (fps): the blink advances on the first render pass of a tick only;
 	 * it happens before drawing, so the other passes draw the same frame */
@@ -2764,7 +2763,9 @@ void renderFlatDigimon(Entity *entity)
 		}
 		++entity->flatTimer;
 	}
-	sprite += (entity->flatSprite & 3) * 2; /* idle, idle 2, attack, hurt */
+	i = entity->flatSprite & 3; /* idle, idle 2, attack, hurt */
+	prim->clut = model->clutPage + (sprite[8 + i] << 6);
+	sprite += i * 2;
 	setUVWH(prim, sprite[0], model->pixelOffsetY + sprite[1], 0xF, 0xF);
 	height = DIGI_PARA(entity->type).height;
 	half = height / 2;
