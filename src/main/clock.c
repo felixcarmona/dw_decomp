@@ -1,6 +1,7 @@
 #include <libgs.h>
 
 #include <dw/clock.h>
+#include <dw/level.h>
 #include <dw/params.h>
 #include <dw/pstat.h>
 #include <dw/script.h>
@@ -141,10 +142,13 @@ void tickGameClock(int32_t instanceId)
 				if (DAY >= 30) {
 					DAY = 0;
 					YEAR++;
-					if (PARTNER_PARA.happiness == 100) {
-						addTamerLevel(5, 1);
-					} else if (PARTNER_PARA.happiness < 0) {
-						addTamerLevel(10, -1);
+					/* MOD (tamer level as data): MOD_TAMER_LEVEL's chances and happiness marks */
+					if (MOD_TAMER_LEVEL[MOD_TL_YEAR_HAPPY_AT] >= 0 &&
+					    PARTNER_PARA.happiness == MOD_TAMER_LEVEL[MOD_TL_YEAR_HAPPY_AT]) {
+						modTamerLevelEvent(MOD_TL_YEAR_HAPPY_CHANCE, 1);
+					} else if (MOD_TAMER_LEVEL[MOD_TL_YEAR_UNHAPPY_BELOW] >= 0 &&
+						   PARTNER_PARA.happiness < MOD_TAMER_LEVEL[MOD_TL_YEAR_UNHAPPY_BELOW]) {
+						modTamerLevelEvent(MOD_TL_YEAR_UNHAPPY_CHANCE, -1);
 					}
 				}
 			}

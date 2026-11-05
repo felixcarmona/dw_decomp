@@ -86,6 +86,28 @@ extern int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2];
 extern ModEvoRule MOD_EVO_RULES[MOD_EVO_RULES_MAX];
 extern int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE];
 
+/*
+ * MOD (tamer level as data): the chances (percent) of the events that change the tamer level, and the formulas that use it.
+ * MOD_TAMER_LEVEL[]: every slot -1 = the event does not exist; tools/balance.py build writes them from
+ * content/tables/tamer-level.json. The sign of each event (a good year +1, a chip -1...) is its meaning and stays in the code.
+ */
+#define MOD_TAMER_LEVEL_SIZE		13
+#define MOD_TL_YEAR_HAPPY_CHANCE	0  /* a year ends with the partner's happiness exactly MOD_TL_YEAR_HAPPY_AT: +1 */
+#define MOD_TL_YEAR_HAPPY_AT		1
+#define MOD_TL_YEAR_UNHAPPY_CHANCE	2  /* a year ends with happiness below MOD_TL_YEAR_UNHAPPY_BELOW: -1 */
+#define MOD_TL_YEAR_UNHAPPY_BELOW	3
+#define MOD_TL_EATS_POOP_CHANCE		4  /* the partner eats its poop: -1 */
+#define MOD_TL_SLEEPS_LATE_CHANCE	5  /* the partner falls asleep late: -1 */
+#define MOD_TL_CHIP_CHANCE		6  /* a chip item (0x1D-0x1F): -1 */
+#define MOD_TL_EVOLVE_CHAMPION_CHANCE	7  /* evolving into a Champion: +1 */
+#define MOD_TL_EVOLVE_ULTIMATE_CHANCE	8  /* into an Ultimate: +1 */
+#define MOD_TL_EVOLVE_MEGA_CHANCE	9  /* into a Mega: +1 */
+#define MOD_TL_REBIRTH_PERCENT		10 /* percent of each old base stat inherited per tamer level on a natural death */
+#define MOD_TL_FORGET_BASE		11 /* a lost life forgets (BASE - level) * STEP percent of the learned moves */
+#define MOD_TL_FORGET_STEP		12
+extern int16_t MOD_TAMER_LEVEL[MOD_TAMER_LEVEL_SIZE];
+void modTamerLevelEvent(int32_t slot, int32_t amount);
+
 /* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
 #define MOD_EVO_ITEM_MAX	4
 typedef struct {
