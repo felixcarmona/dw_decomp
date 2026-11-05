@@ -143,6 +143,12 @@ void moveCameraByDiff(VECTOR *from, VECTOR *to);
 void readMapTFS(int32_t mapId);
 void renderFXParticle(SVECTOR *pos, int32_t size, RGB8 *color);
 void renderMap(int32_t arg0);
+void lateTickMap(int32_t arg0);
+/* MOD (fps): see dw/mod_fps.h (not included: this file declares addObject
+ * with other parameter types) */
+int32_t addObjectLate(int32_t objectId, int32_t instanceId,
+		      void (*tick)(int32_t), void (*lateTick)(int32_t),
+		      void (*render)(int32_t));
 void renderMapName(int32_t instanceId);
 void renderSprite(GsSPRITE *sprite, int16_t x, int16_t y, int32_t distance, int32_t width, int32_t height);
 void setCameraFollowPlayer(void);
@@ -4068,29 +4074,20 @@ void initializeMap(void)
 	CURRENT_TIME_OF_DAY = 0;
 	CAMERA_UPDATE_TILES = 0;
 	SKIP_MAP_FILE_READ = 0;
-	addObject(0xfa0, 0, 0, renderMap);
+	addObjectLate(0xfa0, 0, NULL, lateTickMap, renderMap);
 	DAYTIME_TRANSITION_ACTIVE = 0;
 	SKIP_DAYTIME_TRANSITION = 0;
 }
 
-void renderMap(int32_t arg0)
+/* MOD (fps): what renderMap used to change, once per tick after all the
+ * object ticks (the camera follow with its tile uploads, the daytime check,
+ * the map sprite/mist/snow animation, the previous camera position), in the
+ * order renderMap did it. */
+void lateTickMap(int32_t arg0)
 {
-	POLY_FT4 *prim;
-	GsOT_TAG *ot;
-	int16_t startTile;
-	int16_t stride;
-	int16_t columns;
 	int8_t skipTimeOfDay;
-	int32_t col;
-	int32_t row;
 
 	tickCameraFollowPlayer();
-
-	startTile = MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width);
-	columns = stride = MAP_TILE_DATA.width;
-	if (stride > 3) {
-		columns = 4;
-	}
 
 	skipTimeOfDay = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
 	if ((skipTimeOfDay == 0) && ((CURRENT_FRAME % 1200) == 0)) {
@@ -4105,6 +4102,29 @@ void renderMap(int32_t arg0)
 		if (HOUR == 6) {
 			initializeDaytimeTransition(2);
 		}
+	}
+
+	tickMapOverlays(MAP_TILE_DATA.objects,
+			MAP_TILE_DATA.cameraX, MAP_TILE_DATA.cameraY);
+
+	CAMERA_X_PREVIOUS = MAP_TILE_DATA.cameraX;
+	CAMERA_Y_PREVIOUS = MAP_TILE_DATA.cameraY;
+}
+
+void renderMap(int32_t arg0)
+{
+	POLY_FT4 *prim;
+	GsOT_TAG *ot;
+	int16_t startTile;
+	int16_t stride;
+	int16_t columns;
+	int32_t col;
+	int32_t row;
+
+	startTile = MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width);
+	columns = stride = MAP_TILE_DATA.width;
+	if (stride > 3) {
+		columns = 4;
 	}
 
 	ot = ACTIVE_ORDERING_TABLE->org;
@@ -4139,9 +4159,6 @@ void renderMap(int32_t arg0)
 
 	renderMapOverlays(MAP_TILE_DATA.objects,
 			  MAP_TILE_DATA.cameraX, MAP_TILE_DATA.cameraY);
-
-	CAMERA_X_PREVIOUS = MAP_TILE_DATA.cameraX;
-	CAMERA_Y_PREVIOUS = MAP_TILE_DATA.cameraY;
 }
 
 void loadMap(int16_t mapId)
@@ -5569,7 +5586,7 @@ void renderMapName(mapId)
 void reinitializeAfterTournament(void)
 {
 	addObject(0xfa2, 0, tickGameClock, renderGameClock);
-	addObject(0xfa0, 0, NULL, renderMap);
+	addObjectLate(0xfa0, 0, NULL, lateTickMap, renderMap);
 #if VERSION_IS(JP)
 	addObject(0xfa6, 0, tickConditions, NULL);
 #endif
