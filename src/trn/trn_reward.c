@@ -53,7 +53,7 @@ static void *trn_reward_functions[] = {
 };
 
 // clang-format off
-int8_t TRN_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66) */
+int8_t TRN_TRAINING_ANIM_IDS[NUM_ORIGINAL_DIGIMON][2] = { /* MOD: was [67] (types 0..66) */
 	{ 0x0, 0x0 }, { 0x2e, 0xa }, { 0x2e, 0xa }, { 0x33, 0xc },
 	{ 0x2e, 0x14 }, { 0x35, 0x14 }, { 0x2e, 0xa }, { 0x2e, 0xa },
 	{ 0x2e, 0xa }, { 0x35, 0xd }, { 0x2e, 0xa }, { 0x2e, 0x14 },
@@ -621,7 +621,7 @@ int16_t TRN_calculateTrainingMultiplier(int32_t type, int16_t mode, int16_t flag
 
 	num = 0;
 	den = 0;
-	tt = RAISE_DATA[type].trainingType;
+	tt = RAISE_ROW(type).trainingType;
 	switch (mode) {
 	case 0:
 		if ((tt == 0) || (tt == 1)) {
@@ -794,7 +794,7 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 	if (PARTNER_PARA.condition & 4) {
 		PARTNER_PARA.starvationTimer -= 0x78;
 		if (PARTNER_PARA.starvationTimer <= 0) {
-			if (PARTNER_PARA.energyLevel < RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold) {
+			if (PARTNER_PARA.energyLevel < RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold) {
 				PARTNER_PARA.careMistakes++;
 			}
 		}
@@ -802,7 +802,7 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 		PARTNER_PARA.foodLevel -= 0x3c;
 	}
 
-	PARTNER_PARA.energyLevel -= RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyUsage;
+	PARTNER_PARA.energyLevel -= RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if (PARTNER_PARA.condition & 8) {
 		PARTNER_PARA.poopingTimer -= 0x4b0;
 	} else {

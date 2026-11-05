@@ -88,7 +88,7 @@ int16_t isInitialized;
 	data->partner = partner;
 	data->unk_0x8 = 0;
 	data->state = 0;
-	data->digimonId = EVOLUTION_STATS_GAINS[target].targetDigimon;
+	data->digimonId = EVO_GAINS_ROW(target).targetDigimon;
 	data->para = para;
 	data->evoTarget = target;
 	data->heightFactor = (DIGI_PARA(data->digimonId).height << 12) /

@@ -565,9 +565,9 @@ void VS__renderIntroName(id)
 
 	charIndex = 0;
 	for (i = 0; i < VS__INTRO_DATA_RENDERED_CHARACTERS; ++i) {
-		character = VS__INTRO_DIGIMON_NAMES[ENTITY_TABLE[id]->type][charIndex++];
+		character = VS__INTRO_DIGIMON_NAMES[VS_NAME_ROW(ENTITY_TABLE[id]->type)][charIndex++];
 		if (character == 0x3d) {
-			character = VS__INTRO_DIGIMON_NAMES[ENTITY_TABLE[id]->type][charIndex++];
+			character = VS__INTRO_DIGIMON_NAMES[VS_NAME_ROW(ENTITY_TABLE[id]->type)][charIndex++];
 		}
 
 		if (i == VS__INTRO_DATA_RENDERED_CHARACTERS - 1) {
@@ -581,7 +581,7 @@ void VS__renderIntroName(id)
 		VS__renderIntroNameChar((int16_t)VS__INTRO_DATA_POS_X + i * 32, y, size, character);
 
 		if (character == 0x1f || character == 0x25) {
-			character = VS__INTRO_DIGIMON_NAMES[ENTITY_TABLE[id]->type][charIndex++];
+			character = VS__INTRO_DIGIMON_NAMES[VS_NAME_ROW(ENTITY_TABLE[id]->type)][charIndex++];
 			VS__renderIntroNameChar((int16_t)VS__INTRO_DATA_POS_X + i * 32, y, size, character);
 		}
 	}

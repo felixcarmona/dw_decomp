@@ -43,7 +43,7 @@ extern int32_t CHECKED_MEMORY_CARD;
 extern VECTOR STORED_TAMER_POS;
 
 
-extern int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON];
+extern int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON];
 
 void tickMainMenu(int32_t instanceId);
 void renderMainMenu(int32_t instanceId);
@@ -420,7 +420,7 @@ void partnerTickFeedItem(void)
 
 	switch (PARTNER_SUB_STATE) {
 	case 0:
-		if (checkEatDistance(ITEM_TAKE_DISTANCE[PARTNER_ENTITY.digimonEntity.entity.type - 1]) == 1) {
+		if (checkEatDistance(getItemTakeDistance(PARTNER_ENTITY.digimonEntity.entity.type)) == 1) {
 			PARTNER_SUB_STATE = 1;
 		}
 		else {
@@ -433,7 +433,7 @@ void partnerTickFeedItem(void)
 	case 1:
 		entityLookAtLocation(&TAMER_ENTITY.entity,
                                      &PARTNER_ENTITY.digimonEntity.entity.posData->location);
-		if (checkEatDistance(ITEM_TAKE_DISTANCE[PARTNER_ENTITY.digimonEntity.entity.type - 1]) == 0) {
+		if (checkEatDistance(getItemTakeDistance(PARTNER_ENTITY.digimonEntity.entity.type)) == 0) {
 			PARTNER_SUB_STATE = 3;
 		}
 		break;
@@ -442,7 +442,7 @@ void partnerTickFeedItem(void)
                                      &PARTNER_ENTITY.digimonEntity.entity.posData->location);
 		entityLookAtLocation(&PARTNER_ENTITY.digimonEntity.entity,
                                      &TAMER_ENTITY.entity.posData->location);
-		if (checkEatDistance(ITEM_TAKE_DISTANCE[PARTNER_ENTITY.digimonEntity.entity.type - 1]) == 1) {
+		if (checkEatDistance(getItemTakeDistance(PARTNER_ENTITY.digimonEntity.entity.type)) == 1) {
 			PARTNER_SUB_STATE = 3;
 		}
 		break;

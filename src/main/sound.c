@@ -55,7 +55,7 @@ unsigned long VHB_SOUNDBUFFER_START[NUM_SOUND_BUFFERS] = {
 	0x0,
 };
 
-uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
+uint8_t DIGIMON_VLALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	0x00,	/* main character */
 	0x00,	/* Botamon */
 	0x00,	/* Koromon */
@@ -127,7 +127,7 @@ uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON 
 	 * were outside it keep the voice the guards gave them (15);
 	 * MasterTyrannomon uses Tyrannomon's partner sounds.
 	 */
-	[NUM_PARTNER_DIGIMON ... NUM_DIGIMON - 1] = 15,
+	[NUM_PARTNER_DIGIMON ... NUM_ORIGINAL_DIGIMON - 1] = 15,
 	[DIGIMON_MASTER_TYRANNOMON] = 0x02,
 	[DIGIMON_CHERRYMON] = 0x0e, /* MOD (cherrymon): Vegiemon's partner sounds */
 	[DIGIMON_KING_SUKAMON] = 0x06, /* MOD (partners-npc-a): Sukamon's partner sounds */
@@ -970,11 +970,7 @@ int32_t loadPartnerSounds(int32_t type)
 	int32_t sector;
 	int32_t sectors;
 
-	if ((type > 0) && (type < NUM_DIGIMON)) { /* MOD: was NUM_PARTNER_DIGIMON */
-		soundId = DIGIMON_VLALL_SOUND_ID[type];
-	} else {
-		soundId = 15;
-	}
+	soundId = getPartnerVlallSoundId(type); /* MOD (scale): was DIGIMON_VLALL_SOUND_ID[type] for type < NUM_PARTNER_DIGIMON, else 15 */
 
 	/* MOD (sound limits): the index instead of soundId * 15 */
 	if (!getSoundChunk(SOUND_FILE_VLALL, soundId, &sector, &sectors)) {
