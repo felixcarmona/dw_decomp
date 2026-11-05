@@ -350,7 +350,7 @@ int32_t scriptCompareItemCount(void)
 
 	pollNextTwoScriptBytes(&itemId, &op);
 	pollNextScriptUShort(&value);
-	count = getItemCount(itemId);
+	count = getItemCount(itemFromLegacy(itemId)); /* MOD: 0xFF = none */
 
 	return scriptCompareValue(op, count, value);
 }
