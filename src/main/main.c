@@ -5629,7 +5629,9 @@ void pollInputMenu(void)
 /* MOD (language): the title screen's "Press Start Button" (x, y, w, h, u, v in TITLE256.TIM); the Spanish "Pulsa el
  * botón START" is 129 wide and one row higher for the accent (its letters on the same screen rows) */
 int16_t PRESS_START_QUAD[6] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+	-36, 49, 85, 11, 0, 240,
+#elif MOD_LANG_BUILD != MOD_LANG_EN
 	-58, 49, 129, 11, 0, 240,
 #else
 	-0x36, 0x32, 121, 10, 0, 0xf1,

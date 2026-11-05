@@ -55,6 +55,8 @@ void modButtonsBoot(void);
 extern int32_t MOD_LANG;	/* the language the game shows */
 extern int32_t MOD_OPT_SIGNS;	/* MAP SIGNS: 1 = translated (the language's), 0 = as the disc has them */
 void modSetLanguage(int32_t lang);
+int32_t modLanguageAt(int32_t index);
+int32_t modLanguageCount(void);
 void modSetSigns(int32_t translated);
 /* the file name to read for `name` (no folder): its language's or translated signs' copy when the disc has it */
 char *modLangFile(char *name);

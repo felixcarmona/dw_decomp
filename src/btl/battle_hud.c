@@ -134,7 +134,7 @@ MESSAGES_TEXT
 
 /* MOD (language): the gauge's segments are the letters of BI_IN.TIM's FINISH!!; the Spanish texture has REMATE! there
  * (tools/localize/textures/misc build.py finish), its eighth segment empty */
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 uint8_t BTL_FINISHER_SEGMENT_U[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
 uint8_t BTL_FINISHER_SEGMENT_W[8] = { 7, 6, 9, 7, 6, 6, 5, 0 };
 uint8_t BTL_FINISHER_SEGMENT_X[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
@@ -1241,7 +1241,9 @@ void BTL_renderFinisherGauge(int16_t idx)
 /* MOD (language): the finisher's "○PUSH" label: the quad's x and w, its backing box's x and w; the Spanish ○PULSA is 43
  * wide, moved left so its right edge stays (tools/localize/textures/misc/NOTES.md) */
 int16_t BTL_FINISHER_LABEL[4] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+	99, 48, 97, 52,
+#elif MOD_LANG_BUILD != MOD_LANG_EN
 	0x68, 43, 0x66, 0x2f,
 #else
 	0x6e, 37, 0x6c, 0x29,

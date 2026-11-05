@@ -150,6 +150,10 @@ def __banked_pad(key, value):
 def __other_string(entry, release, where, key=None):
     """the other language's text of a string (a two-language build), else the string's own"""
     value = __banked_pad(key, __text(entry, release, where)) if __PAD_ON else __banked(key, __text(entry, release, where))
+    if __PAD_ON and __PAD.get('identity'):
+        original = __text(entry, release, where)
+        if isinstance(original, str) and (not isinstance(value, str) or __c_bytes(original, where) > __c_bytes(value, where)):
+            value = original
     return value if not isinstance(value, list) else None
 
 
@@ -157,7 +161,14 @@ def __other_lines(entry, release, count, where, key=None):
     value = __banked_pad(key, __text(entry, release, where)) if __PAD_ON else __banked(key, __text(entry, release, where))
     if not isinstance(value, list):
         value = [value]
-    return (value + [''] * count)[:count]
+    out = (value + [''] * count)[:count]
+    if __PAD_ON and __PAD.get('identity'):
+        original = __text(entry, release, where)
+        original = original if isinstance(original, list) else [original]
+        for n, old in enumerate(original[:count]):
+            if isinstance(old, str) and (out[n] is None or __c_bytes(old, where) > __c_bytes(out[n], where)):
+                out[n] = old
+    return out
 
 
 def __padded(text, other, where):
@@ -167,7 +178,9 @@ def __padded(text, other, where):
     return __c_string(text, where, __c_bytes(other, where))
 
 
-def __pair(text, other):
+def __pair(text, other, identity):
+    if __PAD_ON and __PAD.get("identity"):
+        return (identity, None)
     return (text, other if __PAD_ON else None)
 
 
@@ -207,7 +220,7 @@ def __generate(release, blocks, source):
                 literal = __c_string(text, where, max(__c_bytes(text, where), __c_bytes(other or '', where)) + 1)
             header.append('#define {} {}'.format(symbol, literal))
             return []
-        pair = __pair(literal, other)
+        pair = __pair(literal, other, key or where)
         if pair in named:
             header.append('#define {} {}'.format(symbol, named[pair]))
             return []
@@ -285,7 +298,7 @@ def __generate(release, blocks, source):
                     refs.append('NULL')
                     continue
                 literal = __padded(line, others[n], where)
-                pair = __pair(literal, others[n])
+                pair = __pair(literal, others[n], (key, n))
                 if storage == 'literal' and line == '' and body.get('empty'):
                     symbol = body['empty']
                 elif storage == 'literal' and not named_here and not __PAD_ON:
