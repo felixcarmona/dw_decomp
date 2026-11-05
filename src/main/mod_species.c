@@ -36,6 +36,8 @@ static uint16_t SPECIES_CACHE_AGE[SPECIES_CACHE_SLOTS];
 static uint16_t SPECIES_CACHE_CLOCK;
 static int32_t SPECIES_LAST_SLOT;
 static uint32_t SPECIES_SECTOR[0x800 / 4];
+static uint32_t SPECIES_FALLBACK_PORTRAIT;
+static uint8_t SPECIES_PORTRAIT_BUFFER[SPECIES_PORTRAIT_SIZE] __attribute__((aligned(4)));
 static EvolutionPath NO_EVOLUTION_PATH;
 /* what the per-partner rows read for a type that is no partner (zeroes, like the tables past the originals' rows) */
 /* what an id that is no species reads (the original read the bytes past DIGIMON_DATA) */
@@ -203,6 +205,7 @@ void initializeSpecies(void)
 	SPECIES_COUNT = NUM_ORIGINAL_DIGIMON;
 	SPECIES_RECORD_READS = 0;
 	SPECIES_INDEX_SECTOR = 0;
+	SPECIES_FALLBACK_PORTRAIT = 0;
 	SPECIES_PARTNER_COUNT = 0;
 	SPECIES_FIRST_MEGA = 0;
 	resetSpeciesFlags();
@@ -238,6 +241,7 @@ void initializeSpecies(void)
 	if (count <= NUM_ORIGINAL_DIGIMON) {
 		return;
 	}
+	SPECIES_FALLBACK_PORTRAIT = header->fallbackPortrait;
 	SPECIES_RECORDS_SECTOR = header->recordsSector;
 	SPECIES_INDEX_SECTOR = header->indexSector;
 	SPECIES_COUNT = count;
@@ -491,4 +495,72 @@ SVECTOR *getConditionFxOffset(int32_t type)
 		return (SVECTOR *)rec->conditionFx;
 	}
 	return &CONDITION_FX_OFFSETS[getOriginalType(type)];
+}
+
+/*
+ * MOD (portraits): the icon of a species. The record of the type is read like the cache does (the originals'
+ * records 0..179 exist in DIGI.DAT too, so a partner-only original can have an icon), then the sector of the
+ * icon; the CLUT and the 32x32 image are copied to `dest`.
+ */
+int32_t getSpeciesPortrait(int32_t type, void *dest)
+{
+	SpeciesRecord *rec;
+	uint32_t ref;
+	int32_t own;
+
+	if (SPECIES_INDEX_SECTOR == 0) {
+		return -1;
+	}
+	ref = 0;
+	if (type >= NUM_ORIGINAL_DIGIMON && (rec = getSpeciesRecord(type)) != NULL) {
+		ref = rec->portrait;
+	} else if (type > 0 && type < NUM_ORIGINAL_DIGIMON) {
+		readSpeciesSector(SPECIES_RECORDS_SECTOR + type / SPECIES_RECORDS_PER_SECTOR);
+		ref = ((SpeciesRecord *)SPECIES_SECTOR + type % SPECIES_RECORDS_PER_SECTOR)->portrait;
+	}
+	own = ref != 0;
+	if (!own) {
+		ref = SPECIES_FALLBACK_PORTRAIT;
+	}
+	if (ref == 0) {
+		memset(dest, 0, SPECIES_PORTRAIT_SIZE);
+		return 0;
+	}
+	readSpeciesSector(ref & 0xFFFFFF);
+	memcpy(dest, (uint8_t *)SPECIES_SECTOR + (ref >> 24) * SPECIES_PORTRAIT_SIZE, SPECIES_PORTRAIT_SIZE);
+	return own;
+}
+
+void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32_t clutX, int32_t clutY)
+{
+	RECT rect;
+
+	if (getSpeciesPortrait(type, SPECIES_PORTRAIT_BUFFER) < 0) {
+		return;
+	}
+	setRECT(&rect, clutX, clutY, 16, 1);
+	LoadImage(&rect, (u_long *)SPECIES_PORTRAIT_BUFFER);
+	setRECT(&rect, x, y, 8, rows);
+	LoadImage(&rect, (u_long *)(SPECIES_PORTRAIT_BUFFER + 0x20));
+	DrawSync(0);
+}
+
+int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t max)
+{
+	int32_t i;
+	int32_t n;
+	uint8_t level;
+
+	if (SPECIES_INDEX_SECTOR == 0) {
+		return 0;
+	}
+	readSpeciesSector(0);
+	n = 0;
+	for (i = 0; i < SPECIES_PARTNER_COUNT && n < max; i++) {
+		level = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVELS + i];
+		if (level >= lo && level <= hi) {
+			out[n++] = SPECIES_PARTNER_IDS[i];
+		}
+	}
+	return n;
 }
