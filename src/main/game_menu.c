@@ -400,7 +400,11 @@ char FMT_PLAYTIME[8] = "%d : %d";
 
 RECT EVO_CHART_TEXT_AREA = { 0, 12, 256, 200 };
 
-RECT EVO_CHART_NAME_AREA = { 0, 48, 120, 12 };
+RECT EVO_CHART_NAME_AREA = { 0, 48, 200, 12 }; /* MOD (long names): was 120 wide (a name of 19 characters is ~160) */
+static int16_t MOD_STATUS_NAME_WIDTH; /* MOD (long names): drawn widths of the status screen's and the chart's name */
+static int16_t MOD_CHART_NAME_WIDTH;
+void renderStringFit(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t maxW, int16_t h, uint8_t u, uint8_t v,
+		     long layer, int32_t shadow);
 
 /* MOD (mega): the level name of the Megas, drawn into the text area with the
  * chart's other level names (row 0x3C holds "Ultimate"; 0x48 is free) */
@@ -2238,11 +2242,10 @@ void renderDigimonStatsView(void)
 #if !VERSION_IS(US)
 		renderString(0, -0x6d, -0x33, (w / 2) * 12, 0xc, 0x9c, 0x24, 5, 0);
 #else
-		w = w * 10;
-		if (w >= 0x79) {
-			w = 0x78;
-		}
-		renderString(0, -0x6c, -0x32, w, 0xc, 0, 0x48, 5, 0);
+		/* MOD (long names): the name as wide as drawn, a longer one narrowed into the field (was len * 10, cut
+		 * at 0x78: MetalGreymonVirus showed as "MetalGreymonVi") */
+		(void)w;
+		renderStringFit(0, -0x6c, -0x32, MOD_STATUS_NAME_WIDTH, 0x78, 0xc, 0, 0x48, 5, 0);
 #endif
 		renderNumber(0, -0x6d, -0x22, 2, PARTNER_PARA.age, 5);
 #if !VERSION_IS(US)
@@ -3436,8 +3439,16 @@ void renderEvoChartDetail(void)
 		break;
 	}
 #endif
+#if VERSION_IS(US)
+	/* MOD (long names): centred by its drawn width in the level's panel, a long name narrowed (was centred by
+	 * an estimate of 12 px a character and cut at 0x78) */
+	(void)len;
+	len = MOD_CHART_NAME_WIDTH > 0x88 ? 0x88 : MOD_CHART_NAME_WIDTH;
+	renderStringFit(0, -0x42 - len / 2, 0x4d, MOD_CHART_NAME_WIDTH, 0x88, 0xc, 0, 0x30, 4, 0);
+#else
 	len = strlen(DIGIMON_NAME(CHART_DETAIL_ID)) / 2;
 	renderString(0, -0x5c - ((len - 4) * 6), 0x4d, 0x78, 0xc, 0, 0x30, 4);
+#endif
 	/* MOD (portraits): the cursor of the navigation, blinking, on the box it points at */
 	if (chartDetailBox(CHART_CURSOR_SIDE, CHART_CURSOR_J, &cx, &cy) != 0 && (PLAYTIME_FRAMES % 10) < 7) {
 		renderBorderBox(cx + 0x9f - 2, cy + 0x77 - 2, 0x16, 0x16, 0x20e0ff, 0x1070a0, 0xd0, 0xc0, 0x20, 4);
@@ -3642,6 +3653,7 @@ int32_t drawDigimonStatsStrings(void)
 		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0x9c, 0x24);
 #else
 		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0, 0x48);
+		MOD_STATUS_NAME_WIDTH = MOD_STRING_END_X; /* MOD (long names) */
 #endif
 		drawString(PARTNER_ENTITY.name, 0, 0x3c);
 		MENU_SUB_STATE = 2;
@@ -3970,6 +3982,9 @@ int32_t drawEvoChartStrings(int32_t arg)
 	case 2:
 		clearTextSubArea(&rect2);
 		drawString((char *)digimonPara(arg), 0, 0x30);
+#if VERSION_IS(US)
+		MOD_CHART_NAME_WIDTH = MOD_STRING_END_X; /* MOD (long names) */
+#endif
 	}
 	return 0;
 }
