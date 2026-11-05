@@ -11,6 +11,7 @@ extern int MOD_CHEATS_CARD_MODE, MOD_CHEATS_CARD_DONE;
 #include <dw/font.h>
 #include <dw/ids.h>
 #include <dw/mod_options.h>
+#include <dw/mod_version.h>
 #include <dw/mod_rules.h>
 #include <dw/save_tags.h>
 #include <dw/input.h>
@@ -2130,6 +2131,8 @@ void drawMainMenuStrings(int32_t menu)
 		drawStringMode(TITLE_MENU_ITEMS[3], 0, 0x24, fitStringMode(TITLE_MENU_ITEMS[3], 0xA4));
 		DrawSync(0);
 		drawString(MOD_OPT_STR_OPTIONS, 0, 0x30); /* MOD (options) */
+		DrawSync(0);
+		modVersionDraw(); /* MOD (version) */
 		break;
 	case 22: /* MOD (options) */
 		drawOptionsText();
@@ -5829,6 +5832,7 @@ void renderInitialMenu(void)
 	renderText(cur++, 0x52, 0x67, 0, 0x30, 0xB0, 0xC, 0); /* MOD (options): OPTIONS */
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(0x48, 0x32, 0xB0, 0x46); /* MOD (options): was 0x3A high */
+	modVersionRender(); /* MOD (version) */
 #endif
 }
 
