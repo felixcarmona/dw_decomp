@@ -91,8 +91,8 @@ int16_t isInitialized;
 	data->digimonId = EVOLUTION_STATS_GAINS[target].targetDigimon;
 	data->para = para;
 	data->evoTarget = target;
-	data->heightFactor = (DIGIMON_DATA[data->digimonId].height << 12) /
-			     DIGIMON_DATA[partner->digimonEntity.entity.type].height;
+	data->heightFactor = (DIGI_PARA(data->digimonId).height << 12) /
+			     DIGI_PARA(partner->digimonEntity.entity.type).height;
 
 	startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
 	stopSound();

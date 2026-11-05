@@ -73,7 +73,7 @@ int16_t instanceId;
 			setMapObjectsFlag(MAIN_D_80135372, MAIN_D_80135374, 1);
 			setMapObjectsFlag(MAIN_D_80135376, MAIN_D_80135378, 0);
 			svec.vx = PARTNER_ENTITY.digimonEntity.entity.posData->location.vx;
-			svec.vy = PARTNER_ENTITY.digimonEntity.entity.posData->location.vy - DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].height;
+			svec.vy = PARTNER_ENTITY.digimonEntity.entity.posData->location.vy - DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).height;
 			svec.vz = PARTNER_ENTITY.digimonEntity.entity.posData->location.vz;
 			getDrawPosition(&svec, &screen.vx, &screen.vy);
 			moveMapObjects(MAIN_D_8013536C, MAIN_D_8013536E, 0, screen.vy - 0x14);
@@ -151,7 +151,7 @@ int16_t arg;
 		MAIN_D_80135376 = 0xa3;
 		MAIN_D_80135378 = 0x18;
 		addObject(0xfaf, 0, (TickFunction)TRN_tickMpTraining, NULL);
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeMPcounter++;
 		}
 		TRAINING_COMPLETE = 0;

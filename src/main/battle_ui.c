@@ -180,8 +180,8 @@ void battleStatsGainsAndDrops(uint8_t *droppedItems)
 				continue;
 			}
 
-			if (DIGIMON_DATA[ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i + 1]]->type].dropChance > randomLimit(100)) {
-				droppedItems[i] = DIGIMON_DATA[ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i + 1]]->type].dropItem;
+			if (DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i + 1]]->type).dropChance > randomLimit(100)) {
+				droppedItems[i] = DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i + 1]]->type).dropItem;
 				continue;
 			}
 		}
@@ -224,7 +224,7 @@ void battleMoveLearning(void)
 		}
 
 		for (j = 0; j < 3; j++) {
-			if (MOVE_DATA[moveId].special == DIGIMON_DATA[ENTITY_TABLE[1]->type].special[j]) {
+			if (MOVE_DATA[moveId].special == DIGI_PARA(ENTITY_TABLE[1]->type).special[j]) {
 				foundIdx = j;
 				break;
 			}
@@ -235,7 +235,7 @@ void battleMoveLearning(void)
 		}
 
 		for (j = 0; j < 16; j++) {
-			if (DIGIMON_DATA[ENTITY_TABLE[1]->type].moves[j] == moveId) {
+			if (DIGI_PARA(ENTITY_TABLE[1]->type).moves[j] == moveId) {
 				break;
 			}
 		}

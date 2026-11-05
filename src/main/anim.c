@@ -147,7 +147,7 @@ void tickMomentum(Entity *entity, MomentumData *momentumBase)
 	int32_t updateLoc;
 
 	posData = entity->posData;
-	boneCount = DIGIMON_DATA[entity->type].boneCount;
+	boneCount = DIGI_PARA(entity->type).boneCount;
 
 	for (i = 0; i < boneCount; i++, momentumBase++, posData++) {
 		updateLoc = 0;
@@ -221,7 +221,7 @@ void startAnimation(entity, animId)
 	modInterpAnimStarted(entity); /* MOD (fps): a pose jump */
 	instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
 	anim = &entity->anim;
-	boneCount = DIGIMON_DATA[entity->type].boneCount;
+	boneCount = DIGI_PARA(entity->type).boneCount;
 	posData = entity->posData;
 	model = getEntityModelComponent(entity->type, getEntityType(entity));
 

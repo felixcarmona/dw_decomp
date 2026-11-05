@@ -1092,9 +1092,9 @@ top: {
 			{
 				ctrl = readPStat(ctrl);
 				strcpy(out,
-				       (const char *)&DIGIMON_DATA[ctrl]);
+				       (const char *)&DIGI_PARA(ctrl));
 				lines = strlen(
-					(const char *)&DIGIMON_DATA[ctrl]);
+					(const char *)&DIGI_PARA(ctrl));
 				out += lines;
 				col += (uint16_t)(lines >> 1);
 			}

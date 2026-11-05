@@ -1575,7 +1575,7 @@ void tamerTickPraiseScold(int8_t state)
 	case 0:
 		if (state == 0xd) {
 			type = PARTNER_ENTITY.digimonEntity.entity.type;
-			if ((DIGIMON_DATA[type].level < 4) ||
+			if ((DIGI_PARA(type).level < 4) ||
 			    (type == 0xd) ||
 			    (type == 0x1b) ||
 			    (type == 0x38)) {

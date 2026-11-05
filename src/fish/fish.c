@@ -4500,7 +4500,7 @@ void FISH_getBoneTransform(Entity *e, int32_t bone, VECTOR *outPos, SVECTOR *out
 {
 	MATRIX m;
 
-	if (!(bone < DIGIMON_DATA[e->type].boneCount)) {
+	if (!(bone < DIGI_PARA(e->type).boneCount)) {
 		bone = 0;
 	}
 
