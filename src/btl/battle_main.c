@@ -3471,7 +3471,9 @@ int16_t BTL_calculateTargetScore(DigimonEntity *self, DigimonEntity *other)
 		break;
 	}
 
-	mult = st->current.currentHP * 100 / st->base.hp + BMD(mult * BMD(st->base.def * 100, TSCORE_DEF), TSCORE_DIV);
+	/* MOD (caps): keep the score below the selector's 1000 sentinel even past STAT_CAP.
+	 * Defense through the original cap keeps exactly the same integer divisions. */
+	mult = st->current.currentHP * 100 / st->base.hp + BMD(mult * BMD(CAPS_OLD_STAT(st->base.def) * 100, TSCORE_DEF), TSCORE_DIV);
 	return mult;
 }
 
