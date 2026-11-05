@@ -93,6 +93,10 @@
  * DOOA_SHARD, and below the battle prefix (0x80052AE0). (A battle's EFE heap covers it: no card
  * operation runs in a battle.)
  */
+/* NPC CD reads are sector-rounded; compact in field scratch, then copy to
+ * the heap. Never retain a pointer here. Drained sound staging may reuse it. */
+#define NPC_STAGE_ADDR WORLD_SCRATCH_START
+#define NPC_STAGE_MAX  0x19000
 #define SAVE_EXT_ADDR		0x8004E000
 /*
  * MOD (save robustness): the most a sound bank staged at GENERAL_BUFFER may take (a VHB chunk or file, in
