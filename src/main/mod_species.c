@@ -18,6 +18,8 @@ extern int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON];
 extern SkeletonBone *DIGIMON_SKELETONS[NUM_ORIGINAL_DIGIMON];
 extern char *PTR_DIGIMON_FILE_NAMES[NUM_ORIGINAL_DIGIMON];
 extern uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON];
+extern int16_t ORIGINAL_DIGIMON_TYPES[NUM_ORIGINAL_DIGIMON];
+extern uint8_t SPECIES_BATTLE_MUSIC[NUM_ORIGINAL_DIGIMON];
 void tickFileReadQueue(int32_t unused);
 int32_t isFileReadQueueBusy(void);
 
@@ -26,6 +28,8 @@ int32_t SPECIES_RECORD_READS;
 uint8_t SPECIES_RAISED_BITS[NUM_DIGIMON / 8];
 uint8_t SPECIES_RECRUITED_BITS[NUM_DIGIMON / 8];
 static int32_t SPECIES_RECORDS_SECTOR;
+/* MOD (record originals): the originals carried by their DIGI.DAT record (species.h) */
+static uint8_t SPECIES_RECORD_ORIGINALS[SPECIES_RECORD_ORIGINALS_BYTES];
 static int32_t SPECIES_INDEX_SECTOR;
 static int32_t SPECIES_PARTNER_COUNT;
 static uint16_t SPECIES_PARTNER_IDS[SPECIES_MAX_PARTNERS]; /* the partner list of DIGI.DAT, for the lab menu */
@@ -47,14 +51,22 @@ static RaiseData NO_RAISE;
 static EvoRequirements NO_EVO_REQS;
 static EvoStatsGains NO_EVO_GAINS;
 
+int32_t isRecordOriginal(int32_t type)
+{
+	if ((uint32_t)type >= NUM_ORIGINAL_DIGIMON) {
+		return 0;
+	}
+	return (SPECIES_RECORD_ORIGINALS[type >> 3] >> (type & 7)) & 1;
+}
+
 EvolutionPath *getEvolutionPath(int32_t type)
 {
 	SpeciesRecord *rec;
 
 	if (type >= 1 && type < NUM_EVOLVING_DIGIMON) {
-		return &EVOLUTION_PATHS[type - 1];
+		return &EVOLUTION_PATHS[type - 1]; /* a record original among them keeps its row: the links fill it */
 	}
-	if (type >= NUM_ORIGINAL_DIGIMON && (rec = getSpeciesRecord(type)) != NULL &&
+	if ((rec = getSpeciesRecord(type)) != NULL &&
 	    (rec->flags & SPECIES_FLAG_PARTNER)) {
 		/* in the cache slot: kept while the species is the partner (isSpeciesInUse) */
 		return &rec->evoPaths;
@@ -194,6 +206,33 @@ static void addEvolutionLink(int32_t orig, int32_t other, int32_t isFrom)
 	}
 }
 
+/*
+ * MOD (record originals): the record's rows over the resident tables of an original it carries (at boot; the
+ * record stays on the disc, read into the cache when its model, skeleton or paths are needed).
+ */
+static void copyRecordOriginal(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	if (rec == NULL) {
+		return;
+	}
+	DIGIMON_DATA[type] = rec->para;
+	DIGIMON_VBALL_SOUND_ID[type] = rec->vballId;
+	SPECIES_BATTLE_MUSIC[type] = rec->battleMusic;
+	if (type <= 0xb0) {
+		ORIGINAL_DIGIMON_TYPES[type] = rec->originalType;
+	}
+	if (rec->flags & SPECIES_FLAG_PARTNER) {
+		RAISE_DATA[type] = rec->raise;
+		EVOLUTION_REQS[type] = rec->evoReqs;
+		EVOLUTION_STATS_GAINS[type] = rec->evoGains;
+		ITEM_TAKE_DISTANCE[type - 1] = rec->itemTakeDistance;
+		DIGIMON_VLALL_SOUND_ID[type] = rec->vlallId;
+	}
+}
+
 void initializeSpecies(void)
 {
 	SpeciesHeader *header;
@@ -202,6 +241,7 @@ void initializeSpecies(void)
 	int32_t i;
 	SpeciesPartnerList *partners;
 	SpeciesLinks *links;
+	uint8_t hasRecordOriginals;
 
 	SPECIES_COUNT = NUM_ORIGINAL_DIGIMON;
 	SPECIES_RECORD_READS = 0;
@@ -209,6 +249,9 @@ void initializeSpecies(void)
 	SPECIES_FALLBACK_PORTRAIT = 0;
 	SPECIES_PARTNER_COUNT = 0;
 	SPECIES_FIRST_MEGA = 0;
+	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
+		SPECIES_RECORD_ORIGINALS[i] = 0;
+	}
 	resetSpeciesFlags();
 	for (i = 0; i < 16; i++) {
 		NO_PARA.moves[i] = 0xFF;
@@ -239,8 +282,16 @@ void initializeSpecies(void)
 	if (count > NUM_DIGIMON) {
 		count = NUM_DIGIMON;
 	}
-	if (count <= NUM_ORIGINAL_DIGIMON) {
+	/* MOD (record originals): a file of 180 ids is read when it carries originals */
+	hasRecordOriginals = 0;
+	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
+		hasRecordOriginals |= ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_RECORD_ORIGINALS + i];
+	}
+	if (count < NUM_ORIGINAL_DIGIMON || (count == NUM_ORIGINAL_DIGIMON && hasRecordOriginals == 0)) {
 		return;
+	}
+	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
+		SPECIES_RECORD_ORIGINALS[i] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_RECORD_ORIGINALS + i];
 	}
 	SPECIES_FALLBACK_PORTRAIT = header->fallbackPortrait;
 	SPECIES_RECORDS_SECTOR = header->recordsSector;
@@ -261,6 +312,11 @@ void initializeSpecies(void)
 			addEvolutionLink(links->link[i][0], links->link[i][1] & ~SPECIES_LINK_FROM, 1);
 		} else {
 			addEvolutionLink(links->link[i][0], links->link[i][1], 0);
+		}
+	}
+	for (i = 1; i < NUM_ORIGINAL_DIGIMON; i++) {
+		if (isRecordOriginal(i)) {
+			copyRecordOriginal(i);
 		}
 	}
 }
@@ -291,7 +347,7 @@ SpeciesRecord *getSpeciesRecord(int32_t type)
 	int32_t oldest;
 	int32_t age;
 
-	if (type < NUM_ORIGINAL_DIGIMON || type >= SPECIES_COUNT) {
+	if ((type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || type >= SPECIES_COUNT) {
 		return NULL;
 	}
 	SPECIES_CACHE_CLOCK++;
@@ -356,7 +412,7 @@ int32_t isValidDigimonType(int32_t type)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) {
 		return 1;
 	}
 	rec = getSpeciesRecord(type);
@@ -367,7 +423,7 @@ int32_t isPartnerModelFit(int32_t type)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) {
 		return 1; /* the originals and the partner-only files of the mods fit the original size */
 	}
 	rec = getSpeciesRecord(type);
@@ -378,7 +434,7 @@ SkeletonBone *getDigimonSkeleton(int32_t type)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON || (rec = getSpeciesRecord(type)) == NULL) {
+	if (((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || (rec = getSpeciesRecord(type)) == NULL) {
 		return DIGIMON_SKELETONS[type];
 	}
 	return rec->bones;
@@ -388,7 +444,7 @@ int32_t getDigimonVballId(int32_t type)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON || (rec = getSpeciesRecord(type)) == NULL) {
+	if (((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || (rec = getSpeciesRecord(type)) == NULL) {
 		return DIGIMON_VBALL_SOUND_ID[type];
 	}
 	return rec->vballId;
@@ -413,7 +469,7 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) {
 		*file = NULL;
 		*sector = 0;
 		*size = 0;
@@ -441,7 +497,7 @@ char *getDigimonModelName(int32_t type)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON || (rec = getSpeciesRecord(type)) == NULL) {
+	if (((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || (rec = getSpeciesRecord(type)) == NULL) {
 		return PTR_DIGIMON_FILE_NAMES[type];
 	}
 	return rec->modelName;
@@ -451,7 +507,7 @@ int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON || (rec = getSpeciesRecord(type)) == NULL) {
+	if (((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || (rec = getSpeciesRecord(type)) == NULL) {
 		/* ALLTIM.TIM: entry `type`, 9 sectors each */
 		*file = "ALLTIM.TIM";
 		*sector = type * 9;
@@ -468,7 +524,7 @@ int8_t *getTrainingAnimRow(int8_t (*table)[2], int32_t type, int32_t which)
 {
 	SpeciesRecord *rec;
 
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON || (rec = getSpeciesRecord(type)) == NULL) {
+	if (((uint32_t)type < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(type)) || (rec = getSpeciesRecord(type)) == NULL) {
 		return table[type];
 	}
 	return which == 0 ? rec->trainingAnims : rec->training2Anims;
