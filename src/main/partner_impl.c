@@ -13,6 +13,7 @@
 #include <dw/file.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/map.h>
 #include <dw/map_object.h>
@@ -37,7 +38,7 @@ extern uint8_t HAS_USED_EVOITEM;
 IS_SICK_TEXT
 
 char MAIN_D_801225AC[16] = "\\ETCNA\\UNTI.TMD";
-RaiseData RAISE_DATA[66] = {
+RaiseData RAISE_DATA[NUM_PARTNER_DIGIMON] = {
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
 	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 670, 200, -2270 },
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -192,7 +193,7 @@ SleepPattern SLEEP_PATTERN[8] = {
 	{0, 0, 0, 0, 8, 3},
 };
 
-int8_t ITEM_TAKE_DISTANCE[66] = {
+int8_t ITEM_TAKE_DISTANCE[NUM_PARTNER_DIGIMON] = {
 	10, 10, 10, 10, 15, 10, 10, 15, 10, 15, 10, 15, 10, 10, 10, 10, 10,
 	10, 15, 10, 10, 15, 10, 15, 10, 25, 10, 10, 10, 10, 10, 10, 10, 10,
 	15, 15, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15,
@@ -206,7 +207,6 @@ extern GsOT *ACTIVE_ORDERING_TABLE;
 extern int8_t GAME_STATE;
 extern int32_t FADE_PROTECTION;
 
-extern uint8_t CURRENT_SCREEN;
 extern uint8_t MAP_LAYER_ENABLED;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern GsOT GS_ORDERING_TABLE[2];

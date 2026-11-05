@@ -671,7 +671,7 @@ int32_t loadPartnerSounds(int32_t type)
 {
 	int32_t soundId;
 
-	if ((type > 0) && (type < 66)) {
+	if ((type > 0) && (type < NUM_PARTNER_DIGIMON)) {
 		soundId = DIGIMON_VLALL_SOUND_ID[type];
 	} else {
 		soundId = 15;

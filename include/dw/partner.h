@@ -1,6 +1,7 @@
 #ifndef DW_PARTNER_H
 #define DW_PARTNER_H
 
+#include <dw/ids.h>
 #include <dw/types.h>
 
 typedef struct {
@@ -28,7 +29,7 @@ typedef struct {
 	int8_t size;
 } PoopPile;
 
-extern RaiseData RAISE_DATA[66];
+extern RaiseData RAISE_DATA[NUM_PARTNER_DIGIMON];
 extern PoopPile WORLD_POOP[];
 
 void partnerTick(int32_t instanceId);
