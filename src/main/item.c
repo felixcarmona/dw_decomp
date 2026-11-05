@@ -63,6 +63,9 @@ void addTamerLevel(int32_t chance, int32_t amount);
 Inventory INVENTORY;
 TamerItem TAMER_ITEM;
 DroppedItem DROPPED_ITEMS[11];
+GroundSpot MOD_GROUND_PICKED[MOD_GROUND_PICKED_MAX];
+uint8_t MOD_GROUND_NEXT;
+static uint8_t MOD_DROPPED_SPOT[11]; /* MOD (ground items a day): the dropped item came from a script's spot */
 int8_t TAMER_WAYPOINT_Y[30];
 int8_t TAMER_WAYPOINT_X[30];
 int8_t PARTNER_WAYPOINT_Y[30];
@@ -2401,6 +2404,7 @@ void spawnDroppedItems(Entity *e, ItemId type) /* MOD: was u8 */
 		it = &DROPPED_ITEMS[i];
 		if (it->worldItem.type == ITEM_NONE) {
 			it->worldItem.type = type;
+			MOD_DROPPED_SPOT[i] = 0;
 			break;
 		}
 	}
@@ -2424,12 +2428,39 @@ void renderDroppedItem(int32_t instanceId)
 
 GARBAGE(spawnItem, 24);
 
+void modForgetGroundPicked(void)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_GROUND_PICKED_MAX; i++) {
+		MOD_GROUND_PICKED[i].screen = -1;
+	}
+	MOD_GROUND_NEXT = 0;
+}
+
+static int32_t modGroundPicked(int16_t tileX, int16_t tileY)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_GROUND_PICKED_MAX; i++) {
+		if (MOD_GROUND_PICKED[i].screen == CURRENT_SCREEN && MOD_GROUND_PICKED[i].tileX == (uint8_t)tileX &&
+		    MOD_GROUND_PICKED[i].tileY == (uint8_t)tileY) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void spawnItem(ItemId itemId, int16_t tileX, int16_t tileY) /* MOD: was u8 */
 {
 	int32_t i;
 
+	if (modGroundPicked(tileX, tileY)) { /* MOD (ground items a day): picked up here today */
+		return;
+	}
 	for (i = 0; i < 0xb; i++) {
 		if (DROPPED_ITEMS[i].worldItem.type == ITEM_NONE) {
+			MOD_DROPPED_SPOT[i] = 1;
 			DROPPED_ITEMS[i].worldItem.type = itemId;
 			DROPPED_ITEMS[i].tileX = tileX;
 			DROPPED_ITEMS[i].tileY = tileY;
@@ -2634,6 +2665,12 @@ int32_t pickupItem(int16_t itemId)
 	type = DROPPED_ITEMS[itemId].worldItem.type;
 	got = giveItem(type, 1);
 	if (got != 0) {
+		if (MOD_DROPPED_SPOT[itemId]) { /* MOD (ground items a day) */
+			MOD_GROUND_PICKED[MOD_GROUND_NEXT].screen = CURRENT_SCREEN;
+			MOD_GROUND_PICKED[MOD_GROUND_NEXT].tileX = DROPPED_ITEMS[itemId].tileX;
+			MOD_GROUND_PICKED[MOD_GROUND_NEXT].tileY = DROPPED_ITEMS[itemId].tileY;
+			MOD_GROUND_NEXT = (MOD_GROUND_NEXT + 1) % MOD_GROUND_PICKED_MAX;
+		}
 		deleteDroppedItem(itemId);
 	}
 	return got;
