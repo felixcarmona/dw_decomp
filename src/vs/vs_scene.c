@@ -532,6 +532,13 @@ int16_t VS_FONT_GLYPHS[216] = {
 	0x00a1, 0x00a2, 0x00a3, 0x00af, 0x00b0, 0x00b1, 0x00b2, 0x0056,
 };
 
+#if VERSION_IS(US)
+/* MOD (player data): the USA renderers discard these Japanese sprite glyphs:
+ * their AddPrim calls are compiled out. Keep empty authored rows rather than
+ * inheriting a Japanese name table that western player discs cannot supply.
+ * Row counts stay fixed for the existing bounded lookups. */
+uint8_t VS__INTRO_DIGIMON_NAMES[116][14] = { { 0 } };
+#else
 uint8_t VS__INTRO_DIGIMON_NAMES[116][14] = {
 	{
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -998,6 +1005,7 @@ uint8_t VS__INTRO_DIGIMON_NAMES[116][14] = {
 		0x15, 0x00, 0x00, 0x00, 0x00, 0x00,
 	},
 };
+#endif
 
 char VS_PATH_ARENA_MODEL_STDDAT_T_TOGI_TMD[] = "\\STDDAT\\T_TOGI.TMD";
 
