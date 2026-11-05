@@ -259,19 +259,20 @@ int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
-#define MOD_OPT_BYTES	11 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes); the header's copy (modTitleOptions)
-			     * holds 12 after its 4: one more option fits there */
+#define MOD_OPT_BYTES	12 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes); the header's copy (modTitleOptions)
+			     * holds 12 after its 4: it is full */
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
 #define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
 #define MOD_OPT_ROW_DIFF	6 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
-#define MOD_OPT_ROW_FPS	7
+#define MOD_OPT_ROW_QUICK	7 /* MOD (quick battle start): QUICK BATTLES, under DIFFICULTY */
+#define MOD_OPT_ROW_FPS	8
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	8
-#define MOD_OPT_ROW_LANG	9
+#define MOD_OPT_ROWS	12 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	9
+#define MOD_OPT_ROW_LANG	10
 #else
-#define MOD_OPT_ROWS	10
-#define MOD_OPT_ROW_LANG	8
+#define MOD_OPT_ROWS	11
+#define MOD_OPT_ROW_LANG	9
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4661,6 +4662,7 @@ static void modOptionBytes(uint8_t *d)
 	d[8] = MOD_OPT_SIGNS;
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
 	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
+	d[11] = MOD_OPT_QUICK_BATTLE; /* MOD (quick battle start) */
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
@@ -4703,6 +4705,9 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	}
 	if (len >= 11) { /* MOD (difficulty) */
 		MOD_OPT_DIFFICULTY = d[10] == MOD_DIFF_EASY ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
+	}
+	if (len >= 12) { /* MOD (quick battle start) */
+		MOD_OPT_QUICK_BATTLE = d[11] != 0;
 	}
 }
 
@@ -5783,7 +5788,7 @@ void renderInitialMenu(void)
  */
 #define MOD_OPT_VALUES	3	/* the most values a row has */
 #define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, two values a row */
-#define MOD_OPT_VALUE_U	0x80	/* the second value of a row (the area's 256 rows hold 11 labels and 12 values no other way) */
+#define MOD_OPT_VALUE_U	0x80	/* the second value of a row (the area's 256 rows hold 12 labels and 12 values no other way) */
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
@@ -5795,6 +5800,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
 	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL }, /* MOD (difficulty) */
+	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
@@ -5840,6 +5846,8 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_STORY != 0;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty): EASY, NORMAL */
 		return MOD_OPT_DIFFICULTY == MOD_DIFF_EASY ? 0 : 1;
+	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
+		return MOD_OPT_QUICK_BATTLE != 0;
 #if FONT_SWITCH
 	case MOD_OPT_ROW_FONT: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
@@ -5880,6 +5888,9 @@ static void modSetOption(int32_t row, int32_t value)
 		break;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty) */
 		MOD_OPT_DIFFICULTY = value == 0 ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
+		break;
+	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
+		MOD_OPT_QUICK_BATTLE = value;
 		break;
 	case MOD_OPT_ROW_FPS:
 		modSetFrameRate(value ? 60 : 20);
