@@ -454,6 +454,136 @@ int32_t addConditionBubble(int32_t type, Entity *entity)
 	return i;
 }
 
+static void drawConditionIcon(int32_t icon, int32_t fc, int32_t x, int32_t y,
+			      int32_t depth, uint32_t scale)
+{
+	GsSPRITE **sprites;
+
+	switch (icon) {
+	case 9: {
+		int32_t tiredIndex = fc % 13;
+
+		CONDITION_SPRITES[6].u = CONDITION_TIRED_FRAME_U[tiredIndex] + 0xc0;
+		CONDITION_SPRITES[6].my = CONDITION_TIRED_FRAME_MY[tiredIndex] + 0x17;
+		renderSprite(&CONDITION_SPRITES[6], x, y,
+			     depth, scale, scale);
+		break;
+	}
+	case 1: {
+		int32_t hungryIndex = fc % 19;
+		ConditionFramesHungry frames = CONDITION_HUNGRY_FRAMES;
+
+		CONDITION_SPRITES[0].u = (frames.frame[hungryIndex] << 4) + 0x90;
+		if (frames.frame[hungryIndex] != 3) {
+			CONDITION_SPRITES[0].v = 0x80;
+		} else {
+			CONDITION_SPRITES[0].v = 0xb0;
+		}
+		CONDITION_SPRITES[0].my = 0x1a;
+		if (((hungryIndex + 1) % 5) == 0) {
+			CONDITION_SPRITES[0].my += 3;
+		}
+		renderSprite(&CONDITION_SPRITES[0], x, y,
+			     depth, scale, scale);
+		break;
+	}
+	case 2: {
+		int32_t poopyIndex = fc % 13;
+		ConditionFramesPoopy frames = CONDITION_POOPY_FRAMES;
+
+		CONDITION_SPRITES[1].u = (frames.frame[poopyIndex] << 4) + 0xd0;
+		renderSprite(&CONDITION_SPRITES[1], x, y,
+			     depth, scale, scale);
+		break;
+	}
+	case 3:
+		CONDITION_SPRITES[2].u = (((fc / 15) & 1) << 4) + 0xe0;
+		renderSprite(&CONDITION_SPRITES[2], x, y,
+			     depth, scale, scale);
+		break;
+	case 10:
+		CONDITION_SPRITES[7].v = (((fc / 20) & 1) << 4) + 0x90;
+		renderSprite(&CONDITION_SPRITES[7], x, y,
+			     depth, scale, scale);
+		break;
+	case 11: {
+		int32_t injuredIndex = fc % 20;
+		ConditionFramesInjured frames = CONDITION_INJURED_FRAMES;
+
+		CONDITION_SPRITES[8].u = (frames.frame[injuredIndex] << 4) + 0xd0;
+		renderSprite(&CONDITION_SPRITES[8], x, y,
+			     depth, scale, scale);
+		break;
+	}
+	case 12: {
+		int32_t evolvingIndex = fc % 19;
+		ConditionFramesEvolving frames = CONDITION_EVOLVING_FRAMES;
+
+		CONDITION_SPRITES[9].u = (frames.frame[evolvingIndex] << 4) + 0x80;
+		if (frames.frame[evolvingIndex] == 0) {
+			CONDITION_SPRITES[9].v = 0xb8;
+			CONDITION_SPRITES[9].my = 0x12;
+			CONDITION_SPRITES[9].h = 8;
+		} else {
+			CONDITION_SPRITES[9].v = 0xb0;
+			CONDITION_SPRITES[9].my = 0x1a;
+			CONDITION_SPRITES[9].h = 0x10;
+		}
+		renderSprite(&CONDITION_SPRITES[9], x, y,
+			     depth, scale, scale);
+		break;
+	}
+	default:
+		sprites = CONDITION_SPRITES_ICON[icon];
+		while (*sprites != NULL) {
+			renderSprite(*sprites, x, y, depth,
+				     scale, scale);
+			++sprites;
+		}
+		break;
+	}
+
+}
+
+int32_t MOD_STATUS_BUBBLES = 1;
+
+static const int8_t RING_DX[6] = { -25, -23, -9, 9, 23, 25 };
+static const int8_t RING_DY[6] = { -11, -30, -42, -42, -30, -11 };
+static const uint8_t RING_BIT[6] = { 0x04, 0x08, 0x01, 0x02, 0x40, 0x20 };
+static const uint8_t RING_ICON[6] = { 1, 2, 4, 9, 10, 11 };
+
+static void renderConditionRing(int32_t fc, int32_t x, int32_t y,
+				int32_t depth, uint32_t scale)
+{
+	uint32_t cond = PARTNER_PARA.condition;
+	int32_t k = (scale * VIEWPORT_DISTANCE) / depth;
+	int32_t i;
+	int32_t icon;
+
+	for (i = 0; i < 6; ++i) {
+		int32_t cx;
+		int32_t cy;
+
+		if (!(cond & RING_BIT[i])) {
+			continue;
+		}
+		cx = x + ((RING_DX[i] * k) >> 12);
+		cy = y + ((RING_DY[i] * k) >> 12);
+		icon = RING_ICON[i];
+		if (icon == 4) {
+			icon = 4 + ((fc / 8) % 5);
+		}
+		drawConditionIcon(icon, fc, cx, cy + ((9 * k) >> 12),
+				  depth, scale >> 1);
+		CONDITION_SPRITES[11].h = 26;
+		CONDITION_SPRITES[11].my = 13;
+		renderSprite(&CONDITION_SPRITES[11], cx, cy, depth, scale >> 1,
+			     scale >> 1);
+		CONDITION_SPRITES[11].h = 32;
+		CONDITION_SPRITES[11].my = 0x1f;
+	}
+}
+
 void renderConditionBubble(int32_t instanceId)
 {
 	ConditionBubble *bubble;
@@ -507,90 +637,12 @@ void renderConditionBubble(int32_t instanceId)
 		return;
 	}
 
-	icon = bubble->iconPtr->icon;
+	drawConditionIcon(bubble->iconPtr->icon, bubble->frameCount, screen.vx,
+			  screen.vy, depth, scale);
 
-	switch (icon) {
-	case 9: {
-		int32_t tiredIndex = bubble->frameCount % 13;
-
-		CONDITION_SPRITES[6].u = CONDITION_TIRED_FRAME_U[tiredIndex] + 0xc0;
-		CONDITION_SPRITES[6].my = CONDITION_TIRED_FRAME_MY[tiredIndex] + 0x17;
-		renderSprite(&CONDITION_SPRITES[6], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	}
-	case 1: {
-		int32_t hungryIndex = bubble->frameCount % 19;
-		ConditionFramesHungry frames = CONDITION_HUNGRY_FRAMES;
-
-		CONDITION_SPRITES[0].u = (frames.frame[hungryIndex] << 4) + 0x90;
-		if (frames.frame[hungryIndex] != 3) {
-			CONDITION_SPRITES[0].v = 0x80;
-		} else {
-			CONDITION_SPRITES[0].v = 0xb0;
-		}
-		CONDITION_SPRITES[0].my = 0x1a;
-		if (((hungryIndex + 1) % 5) == 0) {
-			CONDITION_SPRITES[0].my += 3;
-		}
-		renderSprite(&CONDITION_SPRITES[0], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	}
-	case 2: {
-		int32_t poopyIndex = bubble->frameCount % 13;
-		ConditionFramesPoopy frames = CONDITION_POOPY_FRAMES;
-
-		CONDITION_SPRITES[1].u = (frames.frame[poopyIndex] << 4) + 0xd0;
-		renderSprite(&CONDITION_SPRITES[1], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	}
-	case 3:
-		CONDITION_SPRITES[2].u = (((bubble->frameCount / 15) & 1) << 4) + 0xe0;
-		renderSprite(&CONDITION_SPRITES[2], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	case 10:
-		CONDITION_SPRITES[7].v = (((bubble->frameCount / 20) & 1) << 4) + 0x90;
-		renderSprite(&CONDITION_SPRITES[7], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	case 11: {
-		int32_t injuredIndex = bubble->frameCount % 20;
-		ConditionFramesInjured frames = CONDITION_INJURED_FRAMES;
-
-		CONDITION_SPRITES[8].u = (frames.frame[injuredIndex] << 4) + 0xd0;
-		renderSprite(&CONDITION_SPRITES[8], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	}
-	case 12: {
-		int32_t evolvingIndex = bubble->frameCount % 19;
-		ConditionFramesEvolving frames = CONDITION_EVOLVING_FRAMES;
-
-		CONDITION_SPRITES[9].u = (frames.frame[evolvingIndex] << 4) + 0x80;
-		if (frames.frame[evolvingIndex] == 0) {
-			CONDITION_SPRITES[9].v = 0xb8;
-			CONDITION_SPRITES[9].my = 0x12;
-			CONDITION_SPRITES[9].h = 8;
-		} else {
-			CONDITION_SPRITES[9].v = 0xb0;
-			CONDITION_SPRITES[9].my = 0x1a;
-			CONDITION_SPRITES[9].h = 0x10;
-		}
-		renderSprite(&CONDITION_SPRITES[9], screen.vx, screen.vy,
-			     depth, scale, scale);
-		break;
-	}
-	default:
-		sprites = CONDITION_SPRITES_ICON[icon];
-		while (*sprites != NULL) {
-			renderSprite(*sprites, screen.vx, screen.vy, depth,
-				     scale, scale);
-			++sprites;
-		}
-		break;
+	if (MOD_STATUS_BUBBLES != 0) {
+		renderConditionRing(bubble->frameCount, screen.vx, screen.vy,
+				    depth, scale);
 	}
 
 	renderSprite(&CONDITION_SPRITES[11], screen.vx, screen.vy, depth,
