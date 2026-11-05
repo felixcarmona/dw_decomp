@@ -37,10 +37,8 @@ void tickEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
-	/* not in its first ticks: the START that closed a pause (the lab menu evolves under it) is not a skip */
-	if (MOD_EVO_SKIP == 1 && (data->state != 0 || data->timer >= 10) && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
-		MOD_EVO_SKIP = 2;
-	}
+	(void)data;
+	modEvoSkipInput();
 
 	switch (data->state) {
 	case 0:
@@ -74,7 +72,7 @@ void renderEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
-	if (MOD_EVO_SKIP == 1) {
+	if (MOD_EVO_SKIP == 3) {
 		modSkipPlate(); /* MOD (evolution skip): the hint (mod_qol.c) */
 	}
 }
@@ -106,7 +104,7 @@ int16_t isInitialized;
 	data->evoTarget = target;
 	data->heightFactor = (DIGI_PARA(data->digimonId).height << 12) /
 			     DIGI_PARA(partner->digimonEntity.entity.type).height;
-	MOD_EVO_SKIP = 1; /* MOD (evolution skip): every evolution */
+	MOD_EVO_SKIP = 1; /* MOD (evolution skip): every evolution, armed by modEvoSkipInput */
 
 	startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
 	stopSound();

@@ -1,0 +1,8 @@
+# MOD (quality of life; language): the evolution's skip hint, ours (not the game's), keyed so a text source can
+# translate it (key main.QOL_STR_*). `storage: define`: a literal where src/main/mod_qol.c uses it.
+MOD_QOL:
+  storage: define
+  strings:
+    QOL_STR_SKIP_EVOLUTION:
+      ja: "Press START to skip the animation"
+      en_us: "Press START to skip the animation"

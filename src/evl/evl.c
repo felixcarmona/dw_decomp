@@ -385,9 +385,7 @@ void EVL_tickEvoSequence(int32_t instanceId)
 		startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 1);
 	}
 
-	if (MOD_EVO_SKIP == 1 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
-		MOD_EVO_SKIP = 2; /* MOD (evolution skip) */
-	}
+	modEvoSkipInput(); /* MOD (evolution skip, mod_qol.c) */
 	if (MOD_EVO_SKIP == 2 && data->state < 3) {
 		EVL_modSkipToEnd(data);
 		partner = data->partner;
@@ -604,7 +602,7 @@ shards:
 
 void EVL_renderEvoSequence(void)
 {
-	if (MOD_EVO_SKIP == 1 && EVO_SEQUENCE_DATA.state < 3) {
+	if (MOD_EVO_SKIP == 3 && EVO_SEQUENCE_DATA.state < 3) {
 		modSkipPlate(); /* MOD (evolution skip): the hint (mod_qol.c) */
 	}
 }

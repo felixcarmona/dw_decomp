@@ -5,7 +5,7 @@
 
 /* MOD (quality of life, src/main/mod_qol.c) */
 
-/* a plate at (x, y) with text (the letters R 2 x 1 5 S T A K I P O M and spaces): the letters from index hi on in (r, g, b), the
+/* a plate at (x, y) with text (the letters R 2 x 1 5 S T A > and spaces): the letters from index hi on in (r, g, b), the
    others white */
 void modPlate(int32_t x, int32_t y, const char *text, int32_t hi, int32_t r, int32_t g, int32_t b);
 /* the battle speed (BTL, STD, VS): before each tick of a battle's loop, held = the fight stays at x1; after the pad is
@@ -15,7 +15,10 @@ void modSpeedBeforeTick(int32_t held);
 void modSpeedInput(void);
 void modSpeedPlateAdd(void);
 void modSpeedPlateRemove(void);
-/* the evolution's skip hint: START SKIP (START OMITIR in Spanish) */
+/* the evolution's skip: modEvoSkipInput each tick of the scene (arms it, draws the hint's line into the text area,
+   takes START), modSkipPlate each frame while armed */
+void modEvoSkipInput(void);
+void modSkipHintDraw(void);
 void modSkipPlate(void);
 
 /* why a block stops (MOD_TB_LEARNED is the block's own check) after a session that started at minute t0 of the day, with the gym's tiredness rule tiredAt */
