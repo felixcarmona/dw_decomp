@@ -9,6 +9,7 @@
  * stops: the partner is hungry, needs the toilet, is sleepy, tired, hurt or sick, is due to digivolve or at the end of
  * its life (the gym's own box, a technique or new orders, is the block's own check).
  */
+#include <stdio.h>
 #include <sys/types.h>
 #include <libgte.h>
 #include <libgpu.h>
@@ -24,6 +25,7 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/sound.h>
+#include <dw/script.h>
 #include <dw/world_object.h>
 
 #include <text/main/mod_qol.h>
@@ -39,8 +41,8 @@ extern uint32_t POLLED_INPUT_PREVIOUS;
 extern uint8_t PAUSE_STATE;
 
 /* each row of a letter is 3 bits, bit 2 the left column */
-static const char MOD_PLATE_CHARS[] = "R2x15STA>";
-static const uint8_t MOD_PLATE_GLYPHS[9][5] = {
+static const char MOD_PLATE_CHARS[] = "R2x15STA>0346789/B";
+static const uint8_t MOD_PLATE_GLYPHS[][5] = {
 	{ 6, 5, 6, 5, 5 }, /* R */
 	{ 7, 1, 7, 4, 7 }, /* 2 */
 	{ 0, 0, 5, 2, 5 }, /* x */
@@ -50,6 +52,15 @@ static const uint8_t MOD_PLATE_GLYPHS[9][5] = {
 	{ 7, 2, 2, 2, 2 }, /* T */
 	{ 2, 5, 7, 5, 5 }, /* A */
 	{ 4, 6, 7, 6, 4 }, /* > (fast forward) */
+	{ 7, 5, 5, 5, 7 }, /* 0 */
+	{ 7, 1, 3, 1, 7 }, /* 3 */
+	{ 5, 5, 7, 1, 1 }, /* 4 */
+	{ 7, 4, 7, 5, 7 }, /* 6 */
+	{ 7, 1, 1, 2, 2 }, /* 7 */
+	{ 7, 5, 7, 5, 7 }, /* 8 */
+	{ 7, 5, 7, 1, 7 }, /* 9 */
+	{ 1, 1, 2, 4, 4 }, /* / */
+	{ 6, 5, 6, 5, 6 }, /* B */
 };
 
 
@@ -115,6 +126,43 @@ void modPlate(int32_t x, int32_t y, const char *text, int32_t hi, int32_t r, int
 	modPlateRect(x, y, w, 9, 0x62, 0xB4, 0xF6, 6);
 	modPlateRect(x + 1, y + 1, w - 2, 7, 0x18, 0x18, 0x18, 5);
 	modPlateText(x + 3, y + 2, text, hi, r, g, b);
+}
+
+/* s049-49/script.py pays by shop_hi = profit / 256: <=6, <=11, else recruit. */
+#define MOD_SHOP_MIDDLE 1792
+#define MOD_SHOP_RECRUIT 3072
+#define MOD_SHOP_PLATE_OBJECT 0x1fb3
+
+static void modShopPlateRender(int32_t instanceId)
+{
+	char text[20];
+	int32_t customer = readPStat(123);
+	int32_t profit = SHOP_VARIABLE;
+	int32_t w, x, fill;
+
+	if (CURRENT_SCREEN_ID != 49) {
+		removeObject(MOD_SHOP_PLATE_OBJECT, 0);
+		return;
+	}
+	if (customer > 20) customer = 20;
+	sprintf(text, "%d B  %d/20", profit, customer);
+	w = modPlateWidth(text);
+	/* UI primitives use a screen-centred origin. */
+	x = 320 - w - 8 - 160;
+	modPlate(x, 10 - 120, text, 0, 0xF0, 0xF0, 0xF0);
+	fill = profit < MOD_SHOP_RECRUIT ? (w - 2) * profit / MOD_SHOP_RECRUIT : w - 2;
+	modPlateRect(x, 18 - 120, w, 6, 0x62, 0xB4, 0xF6, 6);
+	modPlateRect(x + 1, 19 - 120, w - 2, 4, 0x18, 0x18, 0x18, 5);
+	if (fill > 0) modPlateRect(x + 1, 19 - 120, fill, 4, 0x2E, 0x6C, 0xD8, 4);
+	modPlateRect(x + 1 + (w - 2) * MOD_SHOP_MIDDLE / MOD_SHOP_RECRUIT,
+		     18 - 120, 1, 6, 0xF0, 0xF0, 0xF0, 3);
+}
+
+void modShopPlateAdd(void)
+{
+	/* The object is the arm: p123 also stays at 20 between shifts. */
+	removeObject(MOD_SHOP_PLATE_OBJECT, 0);
+	addObject(MOD_SHOP_PLATE_OBJECT, 0, NULL, modShopPlateRender);
 }
 
 /* the evolution's skip hint: a line of the game's font (in the language shown), drawn into a row of the text area,
