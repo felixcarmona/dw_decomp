@@ -4060,6 +4060,14 @@ int32_t tickSelectSlotInput(MenuCursor *cursor, int32_t which)
 	return 0;
 }
 
+/* MOD (new game as data): written by tools/balance.py from content/tables/new-game.json; -1 = the rule does not exist */
+int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+int32_t modNewGame(int32_t slot)
+{
+	return MOD_NEWGAME[slot] > 0 ? MOD_NEWGAME[slot] : 0;
+}
+
 void initializeDefaultSavegame(void)
 {
 	resetSpeciesFlags(); /* MOD (scale) */
@@ -4087,17 +4095,17 @@ void initializeDefaultSavegame(void)
 		savegame->worldPoop[i].y = 0xFF;
 		savegame->worldPoop[i].size = 0;
 	}
-	savegame->money = 50000;
+	savegame->money = modNewGame(MOD_NG_MONEY); /* MOD (new game as data) */
 	savegame->tamerLevel = 0;
 	savegame->raisedCount = 1;
 	savegame->year = 0;
 	savegame->day = 0;
-	savegame->hour = 8;
-	savegame->minute = 0;
-	savegame->lastHandledFrame = savegame->currentFrame = 0x2580;
-	savegame->partnerLives = 3;
-	savegame->partnerPara.remainingLifetime = 0x120;
-	savegame->partnerPara.age = 3;
+	savegame->hour = modNewGame(MOD_NG_START_HOUR);
+	savegame->minute = modNewGame(MOD_NG_START_MINUTE);
+	savegame->lastHandledFrame = savegame->currentFrame = modNewGame(MOD_NG_START_HOUR) * 1200 + modNewGame(MOD_NG_START_MINUTE) * 20;
+	savegame->partnerLives = modNewGame(MOD_NG_LIVES);
+	savegame->partnerPara.remainingLifetime = modNewGame(MOD_NG_FIRST_LIFETIME);
+	savegame->partnerPara.age = modNewGame(MOD_NG_FIRST_AGE);
 	for (i = 0; i < 6; i++) {
 		savegame->scriptState[i] = 0x3A + i;
 	}
