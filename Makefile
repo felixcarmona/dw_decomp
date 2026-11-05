@@ -62,8 +62,8 @@ $(shell mkdir -p $(GEN_DIR); printf '#define FONT_%s 1\n' '$(shell echo $(FONT) 
 # MOD (language): the language the executable's own strings are in at boot (docs/mods/language.md): en or es. A
 # two-language disc carries the other one as a patch (LANGEN.BIN / LANGES.BIN) and OPTIONS (LANGUAGE) switches.
 LANG_BASE ?= en
-ifeq ($(filter $(LANG_BASE),en es pt-br),)
-$(error LANG_BASE=$(LANG_BASE): en, es or pt-br)
+ifeq ($(filter $(LANG_BASE),en es pt-br fr de it ja),)
+$(error LANG_BASE=$(LANG_BASE): en, es, pt-br, fr, de, it or ja)
 endif
 # LANG_BUILD: the language of this build's strings and language tables (tools/build-full.sh builds the tree twice, once
 # per language; the two builds differ only in data, tools/langpatch.py checks it). Default: LANG_BASE.

@@ -1303,6 +1303,26 @@ GlyphData CELL_GLYPH_DATA[NUM_GLYPHS] = {
 #else
 #include "font_extra.h"
 #endif
+
+/* Japanese glyphs share a dictionary of ten-pixel rows in every font.
+ * Nine-bit indices keep the full font within the console's memory budget. */
+static uint16_t *japaneseGlyph(int32_t index, int32_t pixel)
+{
+	static GlyphData cached;
+	static int32_t previous = -1;
+	int32_t row;
+	if (index != previous) {
+		for (row = 0; row < 10; row++) {
+			int32_t bit = index * 90 + row * 9;
+			uint16_t pair = (JAPANESE_GLYPH_INDICES[bit >> 3] << 8) | JAPANESE_GLYPH_INDICES[(bit >> 3) + 1];
+			cached.pixelData[row] = JAPANESE_GLYPH_ROWS[(pair >> (7 - (bit & 7))) & 511];
+		}
+		cached.pixelData[10] = 0xffff;
+		previous = index;
+	}
+	cached.width = pixel ? 11 | (12 << 8) : 12;
+	return cached.pixelData;
+}
 #endif
 
 // clang-format off
@@ -1403,11 +1423,14 @@ static uint16_t *lookupGlyph(uint16_t code, const GlyphData *glyphs, const Glyph
 {
 	int32_t n;
 
-	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	n = ((code >> 8) - EXTRA_GLYPH_LEAD) * 188 + (code & 0xff) - EXTRA_GLYPH_FIRST;
 	if ((code & 0xff) > 0x7f) {
 		n--;
 	}
-	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		if (n >= NUM_LATIN_GLYPHS) {
+			return japaneseGlyph(n - NUM_LATIN_GLYPHS, glyphs != ORIGINAL_GLYPH_DATA);
+		}
 		return (uint16_t *)extras[n].pixelData;
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
@@ -1860,12 +1883,12 @@ int32_t drawGlyph(codepoint, x, y)
 
 #if VERSION_IS(US)
 	/* MOD: F040-F07E, F080-F0FC index EXTRA_GLYPH_DATA directly */
-	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	n = ((code >> 8) - EXTRA_GLYPH_LEAD) * 188 + (code & 0xff) - EXTRA_GLYPH_FIRST;
 	if ((code & 0xff) > 0x7f) {
 		n--;
 	}
-	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-		p = (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData;
+	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		p = n < NUM_LATIN_GLYPHS ? (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
 	} else
 #endif
 	{
@@ -2185,12 +2208,12 @@ static uint16_t *nextGlyph(char **str, int32_t mode)
 	if (mode == FIT_CONDENSED && code >= 0x8281 && code <= 0x829a && CONDENSED_GLYPH_DATA[code - 0x8281].width != 0) {
 		return (uint16_t *)CONDENSED_GLYPH_DATA[code - 0x8281].pixelData;
 	}
-	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	n = ((code >> 8) - EXTRA_GLYPH_LEAD) * 188 + (code & 0xff) - EXTRA_GLYPH_FIRST;
 	if ((code & 0xff) > 0x7f) {
 		n--;
 	}
-	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-		return (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData;
+	if ((code >> 8) >= EXTRA_GLYPH_LEAD && (code >> 8) <= 0xf9 && (code & 0xff) >= 0x40 && (code & 0xff) <= 0xfc && (code & 0xff) != 0x7f && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		return n < NUM_LATIN_GLYPHS ? (uint16_t *)CELL_EXTRA_GLYPH_DATA[n].pixelData : japaneseGlyph(n - NUM_LATIN_GLYPHS, 0);
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
