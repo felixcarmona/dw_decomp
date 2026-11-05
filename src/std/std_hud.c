@@ -17,6 +17,7 @@
 #include <dw/input.h>
 #include <dw/math.h>
 #include <dw/memmap.h>
+#include <dw/mod_present.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -141,6 +142,9 @@ uint8_t *STD_DRAW_TMD;
 int32_t MAIN_D_801351AC;
 uint8_t *STD_DAI_TMD;
 uint8_t STD_CHAMPION_SCENE_STATE;
+/* MOD (fps): the start text object (0x1a6) exists; its pieces are rolled back
+ * around the extra render passes (std_main.c) */
+int8_t STD_START_TEXT_ACTIVE;
 
 static void *std_hud_sbss_order[] = {
 	&STD_CHAMPION_SCENE_STATE,
@@ -444,7 +448,13 @@ void STD_renderFinisherChargeup(void)
 	}
 
 	if (COMBAT_DATA_PTR->player.remainingChargeupTime[0] == 0) {
-		STD_removeFinisherChargeup();
+		/* MOD (fps): the other render passes of this tick still draw it */
+		if (MOD_RENDER_MULTIPASS) {
+			removeObjectAfterRender(0x19a, 0);
+			COMBAT_DATA_PTR->player.remainingChargeupTime[0] = -1;
+		} else {
+			STD_removeFinisherChargeup();
+		}
 	}
 }
 
@@ -572,6 +582,7 @@ void STD_initializeBattleStartText(void)
 	}
 
 	addObject(0x1a6, 0, NULL, (RenderFunction)STD_renderBattleStartText);
+	STD_START_TEXT_ACTIVE = 1;
 }
 
 void STD_renderBattleStartText(void)
@@ -713,12 +724,14 @@ void STD_renderBattleStartText(void)
 void STD_removeBattleStartText(void)
 {
 	removeObject(0x1a6, 0);
+	STD_START_TEXT_ACTIVE = 0;
 }
 
 void STD_initializeBattleStartTextBurst(void)
 {
 	STD_BATTLE_TEXT_FINISHED = 0;
 	addObject(0x1a6, 0, NULL, (RenderFunction)STD_renderBattleStartTextBurst);
+	STD_START_TEXT_ACTIVE = 1;
 }
 
 void STD_renderBattleStartTextBurst(void)
@@ -832,6 +845,7 @@ void STD_renderBattleStartTextBurst(void)
 void STD_removeBattleStartTextBurst(void)
 {
 	removeObject(0x1a6, 0);
+	STD_START_TEXT_ACTIVE = 0;
 }
 
 int32_t STD_isBattleStartTextFinished(void)
