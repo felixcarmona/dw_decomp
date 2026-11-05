@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <inline_n.h>
 
 #include <dw/anim.h>
@@ -1139,12 +1140,14 @@ void loadMapDigimon(int16_t *data, int16_t mapId)
 
 void loadNPCModel(DigimonId digimonId) /* MOD: was u8 */
 {
+	digimonId = npcSpeciesType(digimonId, 0);
 	thunkLoadMMD(digimonId, 0);
 }
 
 int32_t scriptSetDigimon(DigimonId type, uint8_t slot, uint8_t autotalk) /* MOD: type was u8 */
 {
-	if (type != MAP_DIGIMON_TABLE[slot].typeId) {
+	type = npcSpeciesType(type, 0);
+	if (type != npcSpeciesType(MAP_DIGIMON_TABLE[slot].typeId, 0)) {
 		return 0;
 	}
 	if (ENTITY_TABLE[slot + 2] != NULL) {
