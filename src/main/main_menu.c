@@ -2249,7 +2249,7 @@ void drawMainMenuStrings(int32_t menu)
 	case 18:
 		drawString(MAIN_D_80131568, 0, 0);
 		DrawSync(0);
-		drawString(STR_YES_NO_SPACED, 0, 0xC);
+		DRAW_STRING_CELLS(STR_YES_NO_SPACED, 0, 0xC); /* MOD (font): cut into Yes and No */
 		break;
 	case 19:
 		strcpy(buf, PARTNER_ENTITY.name);
@@ -2277,7 +2277,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801315EC, 0, 0x18);
 		DrawSync(0);
-		drawString(STR_YES_NO, 0, 0x24);
+		DRAW_STRING_CELLS(STR_YES_NO, 0, 0x24); /* MOD (font): cut into Yes and No */
 		break;
 	}
 #endif
