@@ -4000,6 +4000,8 @@ void initializeLoadedMap(void)
 }
 
 #if VERSION_EQUAL_OR_NEWER(US)
+extern const uint8_t CITY_RESIDENTS[14]; /* generated from the owned roster by the balance build */
+
 void recalculateProsperity(void)
 {
 	uint8_t pp;
@@ -4008,7 +4010,8 @@ void recalculateProsperity(void)
 	pp = 0;
 	/* Original story counts only ids 3..58, including after a Continue changes stories. */
 	for (i = 3; i < (MOD_OPT_STORY ? NUM_RECRUITABLE_DIGIMON : 59); i++) {
-		if ((DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
+		if ((!MOD_OPT_STORY || (CITY_RESIDENTS[i >> 3] & (1 << (i & 7)))) &&
+		    (DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
 			} else {
