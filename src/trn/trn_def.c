@@ -2,6 +2,7 @@
 #include <dw/entity.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -119,7 +120,7 @@ int16_t instanceId;
 	case 2:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, 0x32, 0, TRN_D_8008F368[0] + 0x64, 0);
 		if (done == 1) {
@@ -133,7 +134,7 @@ int16_t instanceId;
 	case 3:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		loc->vx += 0x64;
 		PARTNER_ENTITY.digimonEntity.entity.posData->rotation.vy = 0x400;
@@ -150,7 +151,7 @@ int16_t instanceId;
 	case 4:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		loc->vx += 0x64;
 		PARTNER_ENTITY.digimonEntity.entity.posData->rotation.vy = 0x400;
@@ -167,7 +168,7 @@ int16_t instanceId;
 	case 5:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, -0x1e, 0, TRN_D_8008F368[0] + 0x3c, 0);
 		if (done == 1) {
@@ -177,7 +178,7 @@ int16_t instanceId;
 	case 6:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, 0x14, 0, TRN_D_8008F368[0] + 0x5a, 0);
 		if (done == 1) {
@@ -187,7 +188,7 @@ int16_t instanceId;
 	case 7:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, -0xa, 0, TRN_D_8008F368[0] + 0x46, 0);
 		if (done == 1) {
@@ -197,7 +198,7 @@ int16_t instanceId;
 	case 8:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, 5, 0, TRN_D_8008F368[0] + 0x5a, 0);
 		if (done == 1) {
@@ -207,7 +208,7 @@ int16_t instanceId;
 	case 9:
 		MAIN_D_8013537A++;
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		done = moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, -4, 0, TRN_D_8008F368[0], 0);
 		if (done == 1) {
@@ -218,14 +219,14 @@ int16_t instanceId;
 		break;
 	case 10:
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_8013537A = 0x4b0;
+			MAIN_D_8013537A = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
 		if (tickEntityWalkTo(0xfc, 0xff, TRN_D_8008F320.vx, TRN_D_8008F320.vz, 0) == 1) {
 			r = 10;
 			if (MAIN_D_80135370 == 1) {
 				r = TRN_getSlotSessionResult();
 			}
-			if (((MAIN_D_8013537A >= 0x4b0) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
+			if (((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 				TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
 				startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 				playSound(8, 0xa);
