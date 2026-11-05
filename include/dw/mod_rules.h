@@ -158,6 +158,16 @@ static inline const int16_t *trainGainRow(int16_t rows[][MOD_TG_WIDTH], int32_t 
 	return any;
 }
 
+/* MOD (species rules as data): the few things the game does for a species by number, MOD_MODEL_SCALE[] rows {species, percent} (the model is drawn at that
+ * percent of its size; a species without a row is drawn at 100) and MOD_ANIM_TEXTURE[] rows {species, width} (the species whose texture is animated, the
+ * flames, and the width of the strip that moves). A row with species -1 is empty; written by tools/balance.py from content/tables/species-rules.json. */
+#define MOD_MODEL_SCALE_ROWS	8
+#define MOD_ANIM_TEXTURE_ROWS	16
+extern int16_t MOD_MODEL_SCALE[MOD_MODEL_SCALE_ROWS][2];
+extern int16_t MOD_ANIM_TEXTURE[MOD_ANIM_TEXTURE_ROWS][2];
+int32_t modModelScale(int32_t type);			/* the scale as GsCOORDINATE scale (0x1000 = 100 percent) */
+int32_t modAnimatedTextureWidth(int32_t type);	/* 0 = the species has no animated texture */
+
 /* the game clock: how many real seconds one game day lasts (MOD_CLOCK[0], -1: game time does not run). A frame of CURRENT_FRAME is
  * 1/20 of a game minute (3 game seconds) whatever the screen's frame rate; the logic runs at 20 ticks a second. */
 #define MOD_CLOCK_SIZE		1
