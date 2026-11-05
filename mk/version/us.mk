@@ -77,6 +77,7 @@ MAIN_C_SRC := \
 	src/main/mod_screen.c \
 	src/main/mod_options.c \
 	src/main/mod_feed.c \
+	src/main/mod_qol.c \
 	src/main/tfs_stream.c \
 	src/main/npc_anim_trim.c \
 	src/main/npc_anim_keep.c \
