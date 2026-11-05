@@ -28,6 +28,7 @@
 #define SAVE_TAG_POOP_MAPS		0x0006 /* i16[n] screens of the poop in the world, -1 = none (authoritative since screens beyond 255; the v1 byte is 0xFF for a screen >= 255) */
 #define SAVE_TAG_SPECIES_RAISED		0x0007 /* bit array: species the tamer has raised */
 #define SAVE_TAG_SPECIES_RECRUITED	0x0008 /* bit array: species the tamer has recruited */
+#define SAVE_TAG_OPTIONS		0x0009 /* u8[n] the title menu's OPTIONS: [0] button layout (0 US, 1 Japanese) */
 #define SAVE_TAG_REQUIRED		0x8000
 /* engine tier 2 */
 #define SAVE_TAG_STORY_FLAGS		0x8001 /* bit array: story flag n = trigger 800 + n */
