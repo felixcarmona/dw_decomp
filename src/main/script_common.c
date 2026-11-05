@@ -810,7 +810,7 @@ void tickItemMenu(void)
 			SCRIPT_STATE_2 = 0xa;
 		} else if (ITEM_MENU_TYPE == 5) {
 			if (isTriggerSet(3) != 0) {
-				writePStat(0xfe, 0xff);
+				scriptSetChosenItem(0xff); /* MOD: also w62 */
 				unsetTrigger(3);
 				SCRIPT_STATE_2 = 4;
 			}
@@ -1069,7 +1069,7 @@ void tickSingleCardShop(void)
 				SCRIPT_STATE_2 = 4;
 				playShopSoundOnlyInSavannah();
 			} else {
-				writePStat(0xfe, SHOP_ITEM_TYPE);
+				scriptSetChosenItem(SHOP_ITEM_TYPE); /* MOD: also w62 */
 				unsetTrigger(3);
 				SCRIPT_STATE_2 = 4;
 				playSound(0, 3);
@@ -1782,7 +1782,7 @@ void openDiscardItem(void)
 		}
 
 		setTrigger(3);
-		writePStat(0xfe, 0xff);
+		scriptSetChosenItem(0xff); /* MOD: also w62 */
 		SCRIPT_STATE_2 = 2;
 		SCRIPT_TEXTBOX_MODE = 0;
 	case 1:
