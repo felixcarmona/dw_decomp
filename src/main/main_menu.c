@@ -44,24 +44,14 @@ void modMenuVsBattle(int32_t trial); /* MOD (menu overlay) */
 #define NO_TEXT_U 0xc
 #define NO_TEXT_W 0x24
 #else
-int16_t YES_NO_CROPS[3] = {
-#if MOD_LANG_BUILD == MOD_LANG_PT_BR
-    0x24, 0x24, 0x24,
-#else
-    0x1c, 0x1c, 0x1c,
-#endif
-};
-#define YES_TEXT_W YES_NO_CROPS[0]
-#define NO_TEXT_U YES_NO_CROPS[1]
-#define NO_TEXT_W YES_NO_CROPS[2]
+/* Each answer owns a separate 48-pixel crop, in every language and font. */
+#define YES_TEXT_W 0x30
+#define NO_TEXT_U 0x30
+#define NO_TEXT_W 0x30
 #endif
 
 uint16_t YES_NO_PIECES[3] = {
-#if MOD_LANG_BUILD == MOD_LANG_PT_BR
-    0, 0x24 | PIECE_LEFT, PIECES_END,
-#else
-    0, 0x1c | PIECE_LEFT, PIECES_END,
-#endif
+	PIECE_WORDS, 0x30 | PIECE_LEFT, PIECES_END,
 };
 
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
@@ -2182,7 +2172,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801312E4, 0, 0x30);
 		DrawSync(0);
-		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 7:
 		/* MOD (language): the title of slot 2 drawn whole (the original drew a "2" at the x of the US title's "1") */
@@ -2270,7 +2260,7 @@ void drawMainMenuStrings(int32_t menu)
 			drawString(MEMORY_CARD_ERROR_MESSAGES[MEMORY_CARD_ERROR], 0, 0x30);
 			DrawSync(0);
 		}
-		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
@@ -2282,7 +2272,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		modDrawSlot2(MAIN_D_8013141C, 0, 0x24, VS_PLAYER_INDEX == 1);
 		DrawSync(0);
-		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 14:
 		drawString(SLOT_ACTION_TITLES[6], 0, 0);
@@ -2396,7 +2386,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801315EC, 0, 0x18);
 		DrawSync(0);
-		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0x24, YES_NO_PIECES); /* MOD (font): cut into Yes and No */
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0x24, YES_NO_PIECES); /* MOD (font): cut into Yes and No */
 		break;
 	}
 #endif

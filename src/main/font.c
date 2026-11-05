@@ -1673,7 +1673,8 @@ static int32_t pieceOf(const uint16_t *pieces, int32_t cell)
  * centred in the span its original cells took (PIECE_CENTRE), or starting as far into its crop as the row's first piece
  * (PIECE_LEFT). A piece's leading spaces only move its start. `glyphs`: drawGlyph's codes, `cells`: each one's original
  * advance; `pieces`: the crops' offsets in pixels from x, ascending, the first 0, ending with PIECES_END
- * (DRAW_STRING_PIECES, TEXTBOX_ROW_PIECES, dw/mod_font.h).
+ * PIECE_WORDS assigns each whole whitespace-separated answer to the next crop, so translated
+ * advances cannot split a word between crops (DRAW_STRING_PIECES, TEXTBOX_ROW_PIECES, dw/mod_font.h).
  */
 const uint8_t *PIECE_COLORS; /* MOD (language): each glyph's colour (setTextColor) for drawGlyphPieces, or NULL */
 
@@ -1692,21 +1693,39 @@ void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, in
 	int32_t w;
 	int32_t ink;
 	int32_t span;
+	int32_t words;
+	int32_t nextPiece;
 
+	words = pieces[0] & PIECE_WORDS;
+	nextPiece = -1;
 	pos = 0;
 	pen = 0;
 	piece = -1;
 	lead = -1;
 	for (i = 0; i < n; i++) {
 		cp = glyphs[i];
-		if (pieceOf(pieces, pos & ~3) != piece) {
+		if (words) {
+			if (cp == 0x4081) {
+				continue;
+			}
+			if (i == 0 || glyphs[i - 1] == 0x4081) {
+				nextPiece++;
+				if (pieces[nextPiece] == PIECES_END) {
+					break;
+				}
+				pos = pieces[nextPiece] & ~PIECE_FLAGS;
+			}
+		} else {
+			nextPiece = pieceOf(pieces, pos & ~3);
+		}
+		if (nextPiece != piece) {
 			if (cp == 0x4081) {
 				pos += cells[i]; /* a piece's leading space: it starts further */
 				continue;
 			}
-			piece = pieceOf(pieces, pos & ~3);
+			piece = nextPiece;
 			start = pieces[piece] & ~PIECE_FLAGS;
-			pen = pos + (cells[i] - glyphWidth(cp) + 1) / 2; /* the first glyph where the cells put it (its ink centred) */
+			pen = pos + (cells[i] - (FONT_PROPORTIONAL ? glyphWidth(cp) : cells[i]) + 1) / 2; /* the first glyph where the cells put it (its ink centred) */
 			if ((pieces[piece] & PIECE_CENTRE) != 0) {
 				/* the piece's width as this font draws it (to its last ink) and the span of its original cells */
 				w = 0;
@@ -1714,12 +1733,12 @@ void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, in
 				span = 0;
 				prev = 0;
 				p2 = pos;
-				for (j = i; j < n && pieceOf(pieces, p2 & ~3) == piece; j++) {
+				for (j = i; j < n && (words ? glyphs[j] != 0x4081 : pieceOf(pieces, p2 & ~3) == piece); j++) {
 #ifdef FONT_KERN
 					w += kernOf(prev, swapShortBytes(glyphs[j]));
 					prev = swapShortBytes(glyphs[j]);
 #endif
-					w += glyphWidth(glyphs[j]);
+					w += FONT_PROPORTIONAL ? glyphWidth(glyphs[j]) : cells[j];
 					p2 += cells[j];
 					if (glyphs[j] != 0x4081) {
 						ink = w - 1;
