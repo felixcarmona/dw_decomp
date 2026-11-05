@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
@@ -205,8 +206,8 @@ int32_t c;
 		y = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN_saveBaseStats();
@@ -376,8 +377,8 @@ int32_t c;
 		y = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN_saveBaseStats();
@@ -476,8 +477,8 @@ int32_t c;
 		y = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN_saveBaseStats();
@@ -549,12 +550,12 @@ int32_t c;
 		brains = 1;
 	}
 
-	if (mp >= 1000) {
-		mp = 999;
+	if (mp > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		mp = STAT_CAP;
 	}
 
-	if (brains >= 1000) {
-		brains = 999;
+	if (brains > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		brains = STAT_CAP;
 	}
 
 	TRN_saveBaseStats();
@@ -606,7 +607,7 @@ int32_t c;
 		drawString(TRN_D_8008F140, 0, y);
 		createMenuBox(2, -0x58, 0x12, 0xb0, 0x30, 2, 0, TRN_renderNewOrdersBox);
 		MAIN_D_80135388 = 1;
-	} else if (((base < 0x96) && (total >= 0x96)) || ((base < 0xfa) && (total >= 0xfa)) || ((base < 0x15e) && (total >= 0x15e)) || ((base < 0x1c2) && (total >= 0x1c2)) || ((base < 0x226) && (total >= 0x226)) || ((base < 0x28a) && (total >= 0x28a)) || ((base < 0x2ee) && (total >= 0x2ee)) || ((base < 0x320) && (total >= 0x320)) || ((base < 0x352) && (total >= 0x352)) || ((base < 0x384) && (total >= 0x384)) || ((base < 0x3b6) && (total >= 0x3b6)) || (total == 999)) {
+	} else if (((base < 0x96) && (total >= 0x96)) || ((base < 0xfa) && (total >= 0xfa)) || ((base < 0x15e) && (total >= 0x15e)) || ((base < 0x1c2) && (total >= 0x1c2)) || ((base < 0x226) && (total >= 0x226)) || ((base < 0x28a) && (total >= 0x28a)) || ((base < 0x2ee) && (total >= 0x2ee)) || ((base < 0x320) && (total >= 0x320)) || ((base < 0x352) && (total >= 0x352)) || ((base < 0x384) && (total >= 0x384)) || ((base < 0x3b6) && (total >= 0x3b6)) || ((base < 999) && (total >= 999))) { /* MOD (caps): reaching 999 (was total == 999) */
 		TRN_tryLearnMove(a);
 	}
 }
