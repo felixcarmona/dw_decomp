@@ -284,9 +284,12 @@ static void modDrawLanguagePicker(void);
 static void modTickLanguagePicker(void);
 static void modRenderLanguagePicker(void);
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
-#define MOD_OPT_BYTES	13 /* SAVE_TAG_OPTIONS; header stores the first 12 and packs CHEATS into its count byte */
+#define MOD_OPT_BYTES	14 /* byte 13: inverted enemy HUD flags; absent/zero = both ON */
 #define MOD_OPT_HEADER_BYTES 12
 #define MOD_OPT_HEADER_CHEATS 0x80
+#define MOD_OPT_HEADER_OLD_BARS 0x40
+#define MOD_OPT_HEADER_HIDE_BARS 0x20
+#define MOD_OPT_HEADER_COUNT 0x1f
 #define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
 #define MOD_OPT_SHORTCUTS_BIT 2
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
@@ -295,17 +298,18 @@ static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen i
 #define MOD_OPT_ROW_QUICK	7 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
 #define MOD_OPT_ROW_FPS	8
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	13 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROWS	14 /* MOD (options): and FONT, in a build with both fonts */
 #define MOD_OPT_ROW_FONT	9
 #define MOD_OPT_ROW_LANG	10
 #else
-#define MOD_OPT_ROWS	12
+#define MOD_OPT_ROWS	13
 #define MOD_OPT_ROW_LANG	9
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
-#define MOD_OPT_ROW_CHEATS (MOD_OPT_ROWS - 1)
+#define MOD_OPT_ROW_CHEATS (MOD_OPT_ROWS - 2)
+#define MOD_OPT_ROW_ENEMY (MOD_OPT_ROWS - 1)
 static int32_t modOptionValue(int32_t row);
 static int32_t modOptionCount(int32_t row);
 static void modSetOption(int32_t row, int32_t value);
@@ -3826,6 +3830,8 @@ void tickMainMenu(void)
 				MEMORY_CARD_ID = -1;
 				MEMORY_CARD_SLOT = -1;
 				initializeDefaultSavegame();
+				/* No options record (original cards too): explicit upgrade defaults. */
+				modApplyOptions(NULL, 0);
 				loadSavegame(&SAVE_FILE.saves[0]);
 				break;
 			case 1:
@@ -3952,6 +3958,8 @@ void tickMainMenu(void)
 			if (result == 0) {
 				if (SAVE_FILE.saves[0].checksum ==
 				    createSavegameChecksum(0)) {
+					/* No options record (original cards too): explicit upgrade defaults. */
+					modApplyOptions(NULL, 0);
 					loadSavegame(&SAVE_FILE.saves[0]);
 					TARGET_MENU = 0x4F;
 					MEMORY_CARD_OPERATION = 1;
@@ -3961,6 +3969,8 @@ void tickMainMenu(void)
 				    createSavegameChecksum(1)) {
 					SAVE_FILE.saves[0] =
 						SAVE_FILE.saves[1];
+					/* No options record (original cards too): explicit upgrade defaults. */
+					modApplyOptions(NULL, 0);
 					loadSavegame(&SAVE_FILE.saves[0]);
 					TARGET_MENU = 0x4F;
 					MEMORY_CARD_OPERATION = 1;
@@ -4748,6 +4758,7 @@ static void modOptionBytes(uint8_t *d)
 	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
 	d[11] = MOD_OPT_QUICK_BATTLE;
 	d[12] = (MOD_OPT_CHEATS ? MOD_OPT_CHEATS_BIT : 0) | (MOD_OPT_SHORTCUTS ? MOD_OPT_SHORTCUTS_BIT : 0);
+	d[13] = (!MOD_OPT_ENEMY_BARS ? 1 : 0) | (!BATTLE_TOGGLE_LIFEBAR ? 2 : 0);
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
@@ -4755,9 +4766,11 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 {
 	/* not a row of OPTIONS: a save always decides it. Old saves and the card header: OFF */
 	MOD_OPT_SHORTCUTS = len >= 13 && (d[12] & MOD_OPT_SHORTCUTS_BIT) != 0;
+	BATTLE_TOGGLE_LIFEBAR = len < 14 || !(d[13] & 2);
 	if (MOD_OPT_TOUCHED) {
 		return;
 	}
+	MOD_OPT_ENEMY_BARS = len < 14 || !(d[13] & 1);
 	if (len >= 1) {
 		modSetButtons(d[0]);
 	}
@@ -4813,7 +4826,9 @@ static void modTitleOptions(void)
 	memset(p, 0, sizeof(SAVE_FILE.pocketStation));
 	MOD_SAVE_NUMBER = (MOD_SAVE_NUMBER + 1) & 0xffff;
 	p[0] = 'O';
-	p[1] = MOD_OPT_HEADER_BYTES | (MOD_OPT_CHEATS ? MOD_OPT_HEADER_CHEATS : 0);
+	p[1] = MOD_OPT_HEADER_BYTES | (MOD_OPT_CHEATS ? MOD_OPT_HEADER_CHEATS : 0) |
+	       (!MOD_OPT_ENEMY_BARS ? MOD_OPT_HEADER_OLD_BARS : 0) |
+	       (!BATTLE_TOGGLE_LIFEBAR ? MOD_OPT_HEADER_HIDE_BARS : 0);
 	p[2] = MOD_SAVE_NUMBER;
 	p[3] = MOD_SAVE_NUMBER >> 8;
 	modOptionBytes(options);
@@ -4823,8 +4838,8 @@ static void modTitleOptions(void)
 /* MOD (options): the save number in a save's header (modTitleOptions), -1 without one */
 static int32_t modHeaderSaveNumber(const uint8_t *header)
 {
-	if (header[0x50] != 'O' || (header[0x51] & ~MOD_OPT_HEADER_CHEATS) == 0 ||
-	    (header[0x51] & ~MOD_OPT_HEADER_CHEATS) > MOD_OPT_HEADER_BYTES) {
+	if (header[0x50] != 'O' || (header[0x51] & MOD_OPT_HEADER_COUNT) == 0 ||
+	    (header[0x51] & MOD_OPT_HEADER_COUNT) > MOD_OPT_HEADER_BYTES) {
 		return -1;
 	}
 	return header[0x52] | header[0x53] << 8;
@@ -4881,10 +4896,12 @@ static void modCardOptions(void)
 			number = modHeaderSaveNumber(data);
 			if (number > bestNumber) {
 				bestNumber = number;
-				bestLen = data[0x51] & ~MOD_OPT_HEADER_CHEATS;
+				bestLen = data[0x51] & MOD_OPT_HEADER_COUNT;
 				memcpy(best, &data[0x54], bestLen);
 				if (bestLen == MOD_OPT_HEADER_BYTES) {
 					best[12] = (data[0x51] & MOD_OPT_HEADER_CHEATS) != 0;
+					best[13] = ((data[0x51] & MOD_OPT_HEADER_OLD_BARS) ? 1 : 0) |
+					           ((data[0x51] & MOD_OPT_HEADER_HIDE_BARS) ? 2 : 0);
 					bestLen = MOD_OPT_BYTES;
 				}
 			}
@@ -5397,6 +5414,8 @@ static int32_t loadSaveCopy(int32_t copy)
 	    hasUnreadableRecord(saveExtOf(0))) {
 		return 0; /* it holds something this build would silently drop */
 	}
+	/* No options record (original cards too): explicit upgrade defaults. */
+	modApplyOptions(NULL, 0);
 	loadSavegame(&SAVE_FILE.saves[0]);
 	for (i = 0; i < SCRIPT_NUM_WREGS; i++) {
 		SCRIPT_STATE_PTR->wregs[i] = 0;
@@ -5909,6 +5928,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 	{ MOD_OPT_STR_CHEATS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_ENEMY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 };
 /* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
  * drawn once (drawOptionsText) */
@@ -5963,6 +5983,8 @@ static int32_t modOptionValue(int32_t row)
             }
             return 0;
         }
+	case MOD_OPT_ROW_ENEMY:
+		return MOD_OPT_ENEMY_BARS != 0;
 	case MOD_OPT_ROW_CHEATS:
 		return MOD_OPT_CHEATS != 0;
 	case MOD_OPT_ROW_SIGNS:
@@ -6013,6 +6035,9 @@ static void modSetOption(int32_t row, int32_t value)
 #endif
 	case MOD_OPT_ROW_LANG: /* MOD (language) */
 		modSetLanguage(modLanguageAt(value));
+		break;
+	case MOD_OPT_ROW_ENEMY:
+		MOD_OPT_ENEMY_BARS = value != 0;
 		break;
 	case MOD_OPT_ROW_CHEATS:
 		MOD_OPT_CHEATS = value != 0;

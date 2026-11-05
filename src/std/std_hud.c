@@ -1962,6 +1962,8 @@ void STD_addFighterStatusBars(id)
 	addObject(0x19c, id, NULL, (RenderFunction)STD_renderFighterStatusBars);
 }
 
+#include <dw/enemy_bars.h>
+
 // clang-format off
 void STD_renderFighterStatusBars(id)
 	int16_t id;
@@ -1999,7 +2001,16 @@ void STD_renderFighterStatusBars(id)
 		*mpPtr = 0;
 	}
 
+	if (id == 1) {
+		PlayerDataSub *spr = &COMBAT_DATA_PTR->player.unk1[id];
+		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && !fighter->hpDamageBuffer && spr->unk25 < 21) spr->unk25++;
+		if (MOD_OPT_ENEMY_BARS && (BATTLE_TOGGLE_LIFEBAR || spr->unk25 < 21))
+			renderEnemyHeadHP((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[id]], fighter, 4);
+	}
+
 	for (bar = 0; bar < 2; bar++) {
+		/* Select controls opponent life bars in the arena as well. Keep finisher state ticking below. */
+		if (id == 1 && !BATTLE_TOGGLE_LIFEBAR && COMBAT_DATA_PTR->player.unk1[id].unk25 >= 21) break;
 		p = &STD_STATUS_BAR_SPRITES[bar * 3 + 2];
 		if (bar == 0) {
 			if (id == 0) {
