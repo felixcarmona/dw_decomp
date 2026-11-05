@@ -22,6 +22,7 @@
 #include <dw/utils.h>
 #include <dw/version.h>
 #include <dw/mod_rules.h>
+#include <dw/screen.h>
 
 extern int32_t HAS_BUTTERFLY;
 extern int32_t BUTTERFLY_ID;
@@ -527,21 +528,21 @@ void partnerTickFeedItem(void)
 void tickPartnerToilet(void)
 {
 	VECTOR *location;
-	int16_t toiletId;
+	ToiletData *toilet;
 
 	location = &PARTNER_ENTITY.digimonEntity.entity.posData->location;
-	toiletId = MAP_ENTRIES[CURRENT_SCREEN].toiletId - 1;
+	toilet = getScreenToilet(CURRENT_SCREEN); /* MOD (screens beyond 255): TOILET_DATA[toiletId - 1] or the record's */
 
 	switch (PARTNER_SUB_STATE) {
 	case 0:
 		tamerSetState(6);
 		unsetCameraFollowPlayer();
-		TOILET_TARGET_POS1.vx = TOILET_DATA[toiletId].posX1;
+		TOILET_TARGET_POS1.vx = toilet->posX1;
 		TOILET_TARGET_POS1.vy = location->vy;
-		TOILET_TARGET_POS1.vz = TOILET_DATA[toiletId].posY1;
-		TOILET_TARGET_POS2.vx = TOILET_DATA[toiletId].posX2;
+		TOILET_TARGET_POS1.vz = toilet->posY1;
+		TOILET_TARGET_POS2.vx = toilet->posX2;
 		TOILET_TARGET_POS2.vy = location->vy;
-		TOILET_TARGET_POS2.vz = TOILET_DATA[toiletId].posY2;
+		TOILET_TARGET_POS2.vz = toilet->posY2;
 		createCameraMovement(&TOILET_TARGET_POS2, 20);
 		startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 4);
 		PARTNER_SUB_STATE = 1;

@@ -22,11 +22,13 @@ typedef struct {
 	int16_t viewZ;
 } RaiseData;
 
+/* MOD (screens beyond 255): the screen is a ScreenId, -1 = none (the save keeps SavedPoopPile, main_menu.c) */
 typedef struct {
-	uint8_t map;
+	ScreenId map;
 	uint8_t x;
 	uint8_t y;
 	int8_t size;
+	uint8_t pad;
 } PoopPile;
 
 /*
