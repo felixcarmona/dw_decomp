@@ -1,0 +1,121 @@
+#ifndef DW_MOD_BATTLE_H
+#define DW_MOD_BATTLE_H
+
+#include <dw/types.h>
+
+/* MOD (battle as data): the numbers of the fight (damage, hit chance, blocks, buffs, status, MP, speed, senility, setup), MOD_BATTLE[]
+ * (16-bit slots, -1 = the rule does not exist), written by tools/balance.py from content/tables/battle-formulas.json.
+ * One table in the executable serves the BTL, STD and VS overlays. A slot left out reads as 0 (a divisor or a die span as 1 / no division). */
+enum {
+	MOD_BT_GUARD_PCT = 0,
+	MOD_BT_DMG_DIV,
+	MOD_BT_DIFF_CLAMP,
+	MOD_BT_DIFF_DIV,
+	MOD_BT_NEUTRAL_MULT,
+	MOD_BT_RAND_MIN,
+	MOD_BT_RAND_SPAN,
+	MOD_BT_ENEMY_FIN_MIN,
+	MOD_BT_ENEMY_FIN_SPAN,
+	MOD_BT_CHARGE_FROM,
+	MOD_BT_CHARGE_DIV,
+	MOD_BT_DMG_MIN,
+	MOD_BT_HIT_AUTO_LEVEL,
+	MOD_BT_HIT_SPEED_DIV,
+	MOD_BT_HIT_SPEED_CLAMP,
+	MOD_BT_HIT_ACC_DIV,
+	MOD_BT_HIT_SPEED_NORM,
+	MOD_BT_HIT_MOVING_PCT,
+	MOD_BT_BLOCK_MIN_MP,
+	MOD_BT_BLOCK_DMG_MIN,
+	MOD_BT_BLOCK_DMG_SPAN,
+	MOD_BT_BLOCK_INVULN,
+	MOD_BT_BLOCK_GAIN_DEF,
+	MOD_BT_BLOCK_GAIN_ATK,
+	MOD_BT_BIGHIT_PCT,
+	MOD_BT_BUFF_MOVE0,
+	MOD_BT_BUFF_MOVE1,
+	MOD_BT_BUFF_MOVE2,
+	MOD_BT_BUFF_MOVE3,
+	MOD_BT_BUFF_MOVE4,
+	MOD_BT_BUFF_OFF0,
+	MOD_BT_BUFF_OFF1,
+	MOD_BT_BUFF_OFF2,
+	MOD_BT_BUFF_OFF3,
+	MOD_BT_BUFF_OFF4,
+	MOD_BT_BUFF_DEF0,
+	MOD_BT_BUFF_DEF1,
+	MOD_BT_BUFF_DEF2,
+	MOD_BT_BUFF_DEF3,
+	MOD_BT_BUFF_DEF4,
+	MOD_BT_BUFF_SPD0,
+	MOD_BT_BUFF_SPD1,
+	MOD_BT_BUFF_SPD2,
+	MOD_BT_BUFF_SPD3,
+	MOD_BT_BUFF_SPD4,
+	MOD_BT_POISON_FRAMES,
+	MOD_BT_POISON_MIN,
+	MOD_BT_POISON_SPAN,
+	MOD_BT_CONF_BASE,
+	MOD_BT_CONF_SPAN,
+	MOD_BT_STUN_BASE,
+	MOD_BT_STUN_SPAN,
+	MOD_BT_MP_MULT,
+	MOD_BT_MP_COND_PCT,
+	MOD_BT_MP_BRAIN0,
+	MOD_BT_MP_BRAIN1,
+	MOD_BT_MP_BRAIN2,
+	MOD_BT_MP_BRAIN3,
+	MOD_BT_MP_DISC0,
+	MOD_BT_MP_DISC1,
+	MOD_BT_MP_DISC2,
+	MOD_BT_MP_DISC3,
+	MOD_BT_SPEED_MAX,
+	MOD_BT_SPEED_DIV,
+	MOD_BT_SPEED_PLUS,
+	MOD_BT_SPEED_FLOOR,
+	MOD_BT_SPEED_START,
+	MOD_BT_CD_ATTACK,
+	MOD_BT_CD_IDLE,
+	MOD_BT_SEN_BRAIN,
+	MOD_BT_SEN_PARTNER,
+	MOD_BT_SEN_ENEMY,
+	MOD_BT_SEN_ENEMY_DIV,
+	MOD_BT_SEN_FRAMES,
+	MOD_BT_SEN_INT_DIV,
+	MOD_BT_SEN_INT_MULT,
+	MOD_BT_FIN_ATTACK_PCT,
+	MOD_BT_FIN_GOAL,
+	MOD_BT_COND_STAT_PCT,
+	MOD_BT_BUFFUSE_DIV,
+	MOD_BT_BUFFUSE_T1,
+	MOD_BT_BUFFUSE_T2,
+	MOD_BT_BUFFUSE_N1,
+	MOD_BT_BUFFUSE_N2,
+	MOD_BT_PRIO_DIV,
+	MOD_BT_PRIO_BASE,
+	MOD_BT_IDLE_STOP_PCT,
+	MOD_BT_FLAT_BASE,
+	MOD_BT_FLAT_SPAN,
+	MOD_BT_FLEE_IGNORE,
+	MOD_BT_FLEE_LOCK,
+	MOD_BT_CONF_NOTARGET,
+	MOD_BT_WEAKEST_BRAIN,
+	MOD_BT_ENEMY_AIM,
+	MOD_BT_LOWHP_DIV,
+	MOD_BT_SIZE
+};
+
+extern int16_t MOD_BATTLE[MOD_BT_SIZE];
+
+static inline int32_t modBtVal(int32_t slot) { return MOD_BATTLE[slot] > 0 ? MOD_BATTLE[slot] : 0; }
+static inline int32_t modBtSpan(int32_t slot) { return MOD_BATTLE[slot] > 1 ? MOD_BATTLE[slot] : 1; }
+static inline int32_t modBtDiv(int32_t a, int32_t slot) { return MOD_BATTLE[slot] > 0 ? a / MOD_BATTLE[slot] : 0; }
+int32_t modBtBrainDiscount(int32_t brain);
+
+#define BM(X) modBtVal(MOD_BT_##X)
+#define BMS(X) modBtSpan(MOD_BT_##X)
+#define BMD(a, X) modBtDiv((a), MOD_BT_##X)
+#define BMV(X) ((int32_t)MOD_BATTLE[MOD_BT_##X])
+#define BMBRAIN(brain) modBtBrainDiscount(brain)
+
+#endif
