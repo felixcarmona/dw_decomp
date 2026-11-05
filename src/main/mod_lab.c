@@ -251,3 +251,19 @@ int32_t modRosterTick(void)
 	modRosterShowCaption(type);
 	return 1;
 }
+
+/* The synchronous UI shares MENU's battle slot. The world is paused; sound
+ * staging stays below the slot. Card menus reload the same overlay at the same
+ * addresses, while all live state remains resident or on the stack. */
+void loadMenuOverlay(void);
+void closeMenuOverlay(void);
+void tickFileReadQueue(int32_t unused);
+void modLabMenu(uint32_t *input, uint32_t *previous)
+{
+    if (!MOD_OPT_CHEATS || IS_SCRIPT_PAUSED != 1) return;
+    while (isFileReadQueueBusy()) tickFileReadQueue(0);
+    DrawSync(0);
+    loadMenuOverlay();
+    modLabMenuLoaded(input, previous);
+    closeMenuOverlay();
+}
