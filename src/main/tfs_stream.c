@@ -184,6 +184,14 @@ void tfsStreamCheckTarget(void *buffer, int32_t bytes)
 {
 	uint32_t a = (uint32_t)buffer;
 
+	/*
+	 * A synchronous read must not cut short the queue's read in flight: a
+	 * second CdRead aborts it, the queue's next CdReadSync sees the newer read
+	 * complete and the request ends with only its first sectors (load_ending's
+	 * ENDI_REL at 0x80060000 kept BTL_REL's code above 0x80060800, and the
+	 * ending jumped through it: farewell at 237, 2026-10-24).
+	 */
+	waitQueueRead();
 	tfsStreamWaitIdle();
 	if ((a < TFS_RING_END) && (a + bytes > TFS_HEADER_ADDR)) {
 		tfsStreamInvalidate();
@@ -342,7 +350,13 @@ static int32_t victimSlot(int8_t *protect, int32_t count, int32_t avoid)
  */
 static int32_t ringMayReopen(void)
 {
-	if (GAME_STATE == 0) {
+	/*
+	 * Not while the game's queue holds a request either: it may target the
+	 * load area (a sound bank at GENERAL_BUFFER, an overlay), and its read
+	 * would land over the header and tiles read now (the cell keeps what VRAM
+	 * holds, as in a battle).
+	 */
+	if ((GAME_STATE == 0) && isFileReadQueueIdle()) {
 		return 1;
 	}
 	MOD_TFS_STATS.refused++;
