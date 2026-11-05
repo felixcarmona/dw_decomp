@@ -3,6 +3,7 @@
  * docs/mods/ids.md "Species beyond 180").
  */
 #include <string.h>
+#include <dw/entity.h>
 #include <dw/file.h>
 #include <dw/main.h>
 #include <dw/memmap.h>
@@ -684,4 +685,38 @@ int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t
 		}
 	}
 	return n;
+}
+
+/*
+ * MOD (cold animations): see COLD_ANIM_FLAG in species.h. Returns where the animation's first word is, or NULL when it cannot
+ * be played (not the partner, a model not in DIGI.DAT, a bad entry): the caller then starts nothing, as for a missing slot.
+ */
+uint8_t COLD_ANIM_BUFFER[COLD_ANIM_MAX];
+
+uint8_t *loadColdAnimation(void *ent, uint32_t entry)
+{
+	Entity *entity = ent;
+	char *file;
+	int32_t sector;
+	int32_t size;
+	int32_t first;
+	int32_t count;
+	int32_t offset;
+	int32_t length;
+
+	if (entity != (Entity *)&PARTNER_ENTITY.digimonEntity.entity) {
+		return NULL;
+	}
+	if (!getDigimonModelRef(entity->type, &file, &sector, &size) || file == NULL) {
+		return NULL;
+	}
+	offset = (entry & 0xFFFF) * 4;
+	length = ((entry >> 16) & 0x7FFF) * 4;
+	count = ((offset & 0x7FF) + length + 0x7FF) >> 11;
+	if (length == 0 || (count << 11) > COLD_ANIM_MAX) {
+		return NULL;
+	}
+	first = sector + ((size + 0x7FF) >> 11) + (offset >> 11);
+	readFileSectors(file, COLD_ANIM_BUFFER, first, count);
+	return COLD_ANIM_BUFFER + (offset & 0x7FF);
 }
