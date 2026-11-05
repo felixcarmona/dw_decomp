@@ -62,6 +62,7 @@ typedef struct {
 	uint32_t totalSectors;
 	uint32_t indexSector;	/* MOD (scale): SpeciesPartnerList, then SpeciesLinks in the next sector */
 	uint32_t fallbackPortrait; /* MOD (portraits): SPECIES_PORTRAIT_REF of the icon of a species without one (0: none) */
+	uint32_t chartSector;	/* MOD (chart): the first sector of the chart block (0: none) */
 } SpeciesHeader;
 
 /*
@@ -173,7 +174,7 @@ SPECIES_LAYOUT_CHECK(evoPaths, __builtin_offsetof(SpeciesRecord, evoPaths) == 0x
 SPECIES_LAYOUT_CHECK(item, __builtin_offsetof(SpeciesRecord, itemTakeDistance) == 0x130);
 SPECIES_LAYOUT_CHECK(condfx, __builtin_offsetof(SpeciesRecord, conditionFx) == 0x136);
 SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) == 0x140);
-SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x1C);
+SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x20);
 SPECIES_LAYOUT_CHECK(portrait, __builtin_offsetof(SpeciesRecord, portrait) == 0x1C0);
 SPECIES_LAYOUT_CHECK(effectDefault, __builtin_offsetof(SpeciesRecord, effectDefault) == 0x1C4);
 SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
@@ -205,6 +206,20 @@ int32_t getSpeciesPortrait(int32_t type, void *dest);
 /* uploads the icon of `type` to VRAM: its top `rows` (16 or 32) pixel rows at (x, y) in halfwords/rows
  * (a 32-pixel strip is 8 halfwords wide) and its CLUT at (clutX, clutY) */
 void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32_t clutX, int32_t clutY);
+/*
+ * MOD (chart): the evolution chart's block, written by tools/species.py (chart_tabs, chart_block). Its first sector
+ * holds the number of species of each tab (CHART_TABS: Fresh and In-Training, Rookie, Champion, Ultimate, Mega) and
+ * their ids, tab after tab, in the chart's order; the sectors after it the icons in the same order,
+ * SPECIES_CHART_ICONS_PER_SECTOR to a sector: a 16-colour CLUT and the 16x16 4 bpp idle frame (blank for the species
+ * of the chart sheet, which keep their hand-drawn icon).
+ */
+#define SPECIES_CHART_TABS		5
+#define SPECIES_CHART_ICON_SIZE		0xA0
+#define SPECIES_CHART_ICONS_PER_SECTOR	12
+/* the sector `k` of the chart block (0: the counts and ids, 1.. the icons) read into the species sector buffer, which
+ * the next read of DIGI.DAT reuses; NULL when the file has no chart block */
+uint8_t *readSpeciesChart(int32_t k);
+
 /* the partner species of DIGI.DAT whose level is lo..hi: writes their ids to `out` (at most `max`), returns how many */
 int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t max);
 
