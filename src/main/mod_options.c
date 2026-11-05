@@ -270,7 +270,7 @@ int32_t modFileOnDisc(char *name)
 	FileEntry *entry;
 
 	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
-		if (!strcmp(name, entry->filename)) {
+		if (fileEntryIs(entry, name)) {
 			return entry->sector != 0;
 		}
 	}
@@ -294,6 +294,8 @@ static LangFileRow LANG_FILE_TABLE[] = {
 	{ 0, { 0xFFFF, 0xFFFF } },
 };
 
+static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entry's has no NUL at 12 letters) */
+
 static uint32_t modNameHash(char *name)
 {
 	uint32_t h = 0x811C9DC5;
@@ -310,7 +312,6 @@ char *modLangFile(char *name)
 	uint32_t hash;
 	int32_t tfs;
 	int32_t copy;
-	char *file;
 
 	hash = modNameHash(name);
 	for (i = 0; i < sizeof(LANG_FILE_TABLE) / sizeof(LangFileRow) - 1; i++) {
@@ -325,8 +326,8 @@ char *modLangFile(char *name)
 		if (copy == 0xFFFF || (!tfs && MOD_LANG != MOD_LANG_ES)) {
 			return name;
 		}
-		file = FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].filename;
-		return modFileOnDisc(file) ? file : name;
+		memcpy(MOD_LANG_NAME, FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].filename, FILE_NAME_MAX);
+		return FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].sector != 0 ? MOD_LANG_NAME : name;
 	}
 	return name;
 }

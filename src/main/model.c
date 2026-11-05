@@ -3474,7 +3474,7 @@ static char *getPartnerModelName(int32_t type)
 		}
 		concatStrings(file, p->name, MAIN_D_801340E4);
 		for (f = FILE_OFFSET_TABLE; f->size != 0; f++) {
-			if (f->sector != 0 && strcmp(f->filename, file) == 0) {
+			if (f->sector != 0 && fileEntryIs(f, file)) {
 				return p->name;
 			}
 		}
