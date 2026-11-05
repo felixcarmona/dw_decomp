@@ -765,6 +765,15 @@ SECTIONS
 			. = ALIGN(., 4);
 			BUILD_DIR/src/vs/vs_select.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
+			/* MOD (heap): read-only tables and paths that only this overlay reaches (tools/xref.py classes) */
+			BUILD_DIR/src/vs/vs_select.c.o(
+				.data.MAIN_D_8012F590 .data.DIGIMON_SPRITE_CLUT .data.MODE_SELECT_SPRITES .data.MAP_SELECT_SPRITES
+				.data.VS__ROW_PANELS .data.STAT_OFFSETS .data.STAT_LIMITS .data.VS__PATH_STDDAT_TAISEN_F_TIM
+				.data.VS__PATH_STDDAT_16TAISEN_TIM .data.VS__PATH_ETCDAT_SYSTEM_W_TIM .data.VS__PATH_STDDAT_TAISEN2_TIM
+				.data.VS__PATH_STDDAT_TAISEN1_TIM .data.VS__PATH_ETCDAT_ETCTIM_BIN .data.VS__PATH_ETCNA_TITLE2_TIM
+				.data.VS__PATH_STDDAT_TIME_TIM);
+			BUILD_DIR/src/vs/vs_intro.c.o(.data.VS__INTRO_NAME_COLORS .data.VS__STAT_BAR_LIMITS);
+			. = ALIGN(., 4);
 
 			/* Trailer */
 			LONG(0);
