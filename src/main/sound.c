@@ -136,6 +136,9 @@ uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON 
 	[DIGIMON_WARUMONZAEMON] = 0x0f, /* MOD (partners-npc-b): Monzaemon's partner sounds */
 	[DIGIMON_MYOTISMON] = 0x03,     /* MOD (partners-npc-b): Devimon's partner sounds */
 	[DIGIMON_SHOGUNGEKOMON] = 0x05, /* MOD (partners-npc-b): Whamon's partner sounds */
+	[DIGIMON_MACHINEDRAMON] = 0x0a, /* MOD (machinedramon): MetalGreymon's partner sounds */
+	[DIGIMON_JIJIMON] = 0x03, /* MOD (jijimon): Ogremon's partner sounds */
+	[DIGIMON_ANALOGMAN] = 0x0a, /* MOD (analogman): Andromon's partner sounds */
 };
 
 uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {
@@ -255,8 +258,8 @@ uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {
 	0x3a,	/* Meteormon */
 	0x46,	/* ? */
 	0x30,	/* Machinedramon */
-	0x00,	/* Analogman */
-	0x00,	/* Jijimon */
+	0x24,	/* Analogman; MOD (analogman): Andromon's voice (was 0x00; his NPC animations use no voice) */
+	0x1e,	/* Jijimon; MOD (jijimon): Ogremon's voice (was 0x00; his NPC animations use no voice) */
 	0x00,	/* Market Manager */
 	0x43,	/* ShogunGekomon; MOD (partners-npc-b): Gekomon's voice (was 0x00) */
 	0x23,	/* King of Sukamon; MOD (partners-npc-a): Sukamon's voice (was 0x00) */
