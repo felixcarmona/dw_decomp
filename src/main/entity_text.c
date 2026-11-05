@@ -145,7 +145,7 @@ void addEntityText(Entity *entity, int16_t slotId, int16_t color, int32_t value,
 
 	if (slot->activeElements == 0) {
 		MOD_ENTITY_TEXT_DRAW_COUNT[slotId] = 0;
-		addObjectLate(0x192, slotId, 0, lateTickEntityText, renderEntityText);
+		addObjectLate(OBJECT_ID_ENTITY_TEXT, slotId, 0, lateTickEntityText, renderEntityText);
 	}
 	slot->activeElements += 1;
 }
@@ -219,7 +219,7 @@ void lateTickEntityText(int32_t instanceId)
 	if (i == 8) {
 		/* removeEntityText, keeping the object for this tick's render */
 		if (slot->activeElements != 0) {
-			removeObjectAfterRender(0x192, instanceId);
+			removeObjectAfterRender(OBJECT_ID_ENTITY_TEXT, instanceId);
 			slot->activeElements = 0;
 			i = 0;
 			while (i < 8) {
@@ -277,7 +277,7 @@ void removeEntityText(int32_t id)
 
 	slot = &ENTITY_TEXT_DATA[id];
 	if (slot->activeElements != 0) {
-		removeObject(0x192, id);
+		removeObject(OBJECT_ID_ENTITY_TEXT, id);
 		slot->activeElements = 0;
 		i = 0;
 		while (i < 8) {
