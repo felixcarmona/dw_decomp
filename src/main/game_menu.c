@@ -412,6 +412,24 @@ RECT EVO_CHART_NAME_AREA = { 0, 48, 200, 12 }; /* MOD (long names): was 120 wide
 #define STATUS_NAME_W	0x78
 #define CHART_NAME_W	0x88
 
+#if VERSION_IS(US)
+/* MOD (long names): the width copied from the text area for a name drawn into the status screen's field: a name that
+ * fits is copied as the original did (len * 10 pixels, cut at 0x78); a longer one was drawn tighter and is copied whole */
+static int32_t modStatusNameWidth(char *name)
+{
+	int32_t fit;
+	int32_t w;
+
+	fit = fitStringMode(name, STATUS_NAME_W);
+	if (fit == FIT_VANILLA) {
+		w = strlen(name) * 10;
+		return w >= 0x79 ? 0x78 : w;
+	}
+	w = measureStringMode(name, fit);
+	return w > STATUS_NAME_W ? STATUS_NAME_W : w; /* never over the SPECIAL icons */
+}
+#endif
+
 /* MOD (mega): the level name of the Megas, drawn into the text area with the
  * chart's other level names (row 0x3C holds "Ultimate"; 0x48 is free) */
 #define EVO_CHART_MEGA_ROW	0x48
@@ -2475,9 +2493,6 @@ void renderDigimonStatsView(void)
 	int16_t special;
 	int16_t clut;
 	uint8_t frame;
-#if VERSION_IS(US)
-	int32_t fit; /* MOD (long names) */
-#endif
 
 	cluts = STATS_VIEW_ELEMENT_CLUT;
 	switch (MENU_STATE) {
@@ -2497,26 +2512,16 @@ void renderDigimonStatsView(void)
 			renderRectPolyFT4(icon->posX, icon->posY, icon->width, icon->height, icon->texX,
 			                  icon->texY + 0x80, 5, GetClut(0x60, cluts.v[j] + 0x1e8), 5, 0);
 		}
+#if !VERSION_IS(US)
 		renderString(0, -0x6d, -0x42, 0x48, 0xc, 0, 0x3c, 5, 0);
 		w = strlen(DIGIMON_NAME(ENTITY_TABLE[1]->type));
-#if !VERSION_IS(US)
 		renderString(0, -0x6d, -0x33, (w / 2) * 12, 0xc, 0x9c, 0x24, 5, 0);
 #else
-		/* MOD (long names): a name that fits the field is copied as the original did (len * 10 pixels, cut at
-		 * 0x78); a longer one was drawn tighter (drawDigimonStatsStrings) and is copied whole */
-		fit = fitStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), STATUS_NAME_W);
-		if (fit == FIT_VANILLA) {
-			w = w * 10;
-			if (w >= 0x79) {
-				w = 0x78;
-			}
-		} else {
-			w = measureStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), fit);
-			if (w > STATUS_NAME_W) {
-				w = STATUS_NAME_W; /* never over the SPECIAL icons */
-			}
-		}
-		renderString(0, -0x6c, -0x32, w, 0xc, 0, 0x48, 5, 0);
+		/* MOD (optional name): an unnamed partner's name is its species', as long as the species row's */
+		renderString(0, -0x6d, -0x42, modPartnerNameIsSpecies(ENTITY_TABLE[1]->type) ? modStatusNameWidth(PARTNER_ENTITY.name) : 0x48,
+			     0xc, 0, 0x3c, 5, 0);
+		/* MOD (long names): drawn tighter by drawDigimonStatsStrings when it does not fit */
+		renderString(0, -0x6c, -0x32, modStatusNameWidth(DIGIMON_NAME(ENTITY_TABLE[1]->type)), 0xc, 0, 0x48, 5, 0);
 #endif
 		renderNumber(0, -0x6d, -0x22, 2, PARTNER_PARA.age, 5);
 #if !VERSION_IS(US)
@@ -4872,6 +4877,9 @@ int32_t drawDigimonStatsStrings(void)
 		/* MOD (long names): drawn tighter when it does not fit the field */
 		drawStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0, 0x48,
 			       fitStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), STATUS_NAME_W));
+		if (modPartnerNameIsSpecies(ENTITY_TABLE[1]->type)) { /* MOD (optional name): the species' name, as above */
+			drawStringMode(PARTNER_ENTITY.name, 0, 0x3c, fitStringMode(PARTNER_ENTITY.name, STATUS_NAME_W));
+		} else
 #endif
 		drawString(PARTNER_ENTITY.name, 0, 0x3c);
 		MENU_SUB_STATE = 2;

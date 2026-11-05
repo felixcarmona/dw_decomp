@@ -1503,6 +1503,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	removeEntity(PARTNER_ENTITY.digimonEntity.entity.type, 1);
 	ENTITY_TABLE[1] = NULL;
 	thunkUnloadModel(oldType, 3);
+	modPartnerNameFollow(oldType, newId); /* MOD (optional name) */
 	initializeEvolvedPartner(newId, x, y, z, rx, ry, rz);
 	setDigimonRaised((uint16_t)newId);
 	if (oldLevel != DIGI_PARA(newId).level) {
