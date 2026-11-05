@@ -36,6 +36,9 @@
  * one: the files the mods change are read from their copies as the original story has them (modStoryFile); the script
  * text is read again at once, the maps when they are next entered. A disc built without a story mod has no copies and
  * no choice.
+ *
+ * DIFFICULTY. EASY doubles the damage the partner deals and halves the damage it takes in the battles and tournaments
+ * (MOD_DIFF_DAMAGE, applied by BTL_calculateDamage and STD_calculateDamage, and to the poison); NORMAL is the original.
  */
 #include <dw/mod_options.h>
 #include <dw/species.h>
@@ -66,6 +69,7 @@ int32_t MOD_OPT_TOUCHED = 0;
 int32_t MOD_LANG = MOD_LANG_BASE;
 int32_t MOD_OPT_SIGNS = 1;
 int32_t MOD_OPT_STORY = 1;
+int32_t MOD_OPT_DIFFICULTY = MOD_DIFF_NORMAL;
 int32_t MOD_STORY_ARRIVE = 0;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */
