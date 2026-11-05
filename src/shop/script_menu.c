@@ -72,7 +72,6 @@ void renderInsetWithoutBox(uint8_t boxId, int16_t x, int16_t y, int16_t w, int16
 void updateItemMenuSubTextboxLine(void);
 void itemMenuCursorUp(ItemMenuBox *box, int32_t style);
 void itemMenuCursorDown(ItemMenuBox *box, int32_t style);
-static void openAmountBox(int32_t kind);
 static uint8_t MOJYA_GOT; /* the item the trade under the cursor gives */
 static void openPackResults(void);
 void itemMenuCursorTop(ItemMenuBox *box, int32_t startRow, int32_t style);
@@ -917,50 +916,33 @@ void openMeritShop(void)
 		SCRIPT_NEXT_STATE_2 = 2;
 		SCRIPT_TEXTBOX_MODE = 1;
 		break;
-	case 7:
-		setInputRepeatMask(0);
-		showMapheadSelection(2, 0xfd, 2, &selection, 0x4d4);
-		SCRIPT_STATE_2 = 1;
-		SCRIPT_NEXT_STATE_2 = 8;
-		SCRIPT_TEXTBOX_MODE = 2;
-		break;
 	case 8:
-		triggerBoxCloseFlag(1);
-		MERIT += SHOP_VARIABLE;
+		/* MOD (amounts): the card list stays open and refreshed, so the next trade is one button away */
+		MERIT += SHOP_ITEM_PRICE * SHOP_AMOUNT;
 		if (MERIT > econCap(MOD_ECON_MERIT_CAP, 32767)) { /* MOD (economy as data) */
 			MERIT = econCap(MOD_ECON_MERIT_CAP, 32767);
 		}
 		UPDATE_SHOP_BIT_BOX = 1;
-		owner = getCardAmount(SHOP_ITEM_TYPE);
-		owner -= 1;
-		setCardAmount(SHOP_ITEM_TYPE, owner);
-		SCRIPT_STATE_2 = 3;
-		SCRIPT_TEXTBOX_MODE = 0;
+		setCardAmount(SHOP_ITEM_TYPE, getCardAmount(SHOP_ITEM_TYPE) - SHOP_AMOUNT);
+		shopFillSellCardList();
+		updateItemMenuStrings(getItemMenuFromType(), 9, 1);
+		SCRIPT_STATE_2 = 1;
 		playShopSoundOnlyInSavannah();
-		return;
+		break;
 	case 10:
 		setInputRepeatMask(0);
-		/* fall through */
-	case 9:
-	case 0xd:
 		triggerBoxCloseFlag(1);
 		SCRIPT_STATE_2 = 3;
 		SCRIPT_TEXTBOX_MODE = 0;
-		break;
-	case 0xb:
-		setInputRepeatMask(0);
-		showMapheadSelection(3, 0xfd, 2, &selection, 0x4d4);
-		SCRIPT_STATE_2 = 1;
-		SCRIPT_NEXT_STATE_2 = 0xc;
-		SCRIPT_TEXTBOX_MODE = 2;
 		break;
 	case 0xc:
-		triggerBoxCloseFlag(1);
-		MERIT -= SHOP_VARIABLE;
+		/* MOD (amounts): as case 8; the rows the merit no longer pays for go dim */
+		MERIT -= SHOP_ITEM_PRICE * SHOP_AMOUNT;
 		UPDATE_SHOP_BIT_BOX = 1;
-		giveItem(SHOP_ITEM_TYPE, 1);
-		SCRIPT_STATE_2 = 3;
-		SCRIPT_TEXTBOX_MODE = 0;
+		giveItem(SHOP_ITEM_TYPE, SHOP_AMOUNT);
+		shopFillMeritItemList();
+		updateItemMenuStrings(getItemMenuFromType(), 9, 0);
+		SCRIPT_STATE_2 = 1;
 		playShopSoundOnlyInSavannah();
 		break;
 	}
@@ -2024,26 +2006,26 @@ draw:
 	renderItemMenuItemList(box, x, y, x2, y2, 1);
 }
 
+/* MOD (amounts): how many copies of the card under the cursor, never more than the merit cap can take */
 int32_t createMeritCardTradeDialogue(void)
 {
 	ItemMenuBox *box;
 	int32_t off;
-	uint8_t kind;
+	int32_t most;
 
 	box = getItemMenuFromType();
 	off = (box->topRow + box->cursor) * 2;
 	SHOP_ITEM_TYPE = box->buf[off];
 
-	if (SHOP_ITEM_TYPE != 0xff) {
-		kind = box->buf[off + 1];
-		if (kind != 0) {
-			SHOP_VARIABLE = CARD_DATA[SHOP_ITEM_TYPE].meritValue;
-			kind = CARD_DATA[SHOP_ITEM_TYPE].spriteId + 7;
-			showMapHeadTextbox(kind, readPStat(0xfe), 0, 0x4d4);
-			SCRIPT_STATE_2 = 1;
-			SCRIPT_NEXT_STATE_2 = 7;
-			SCRIPT_TEXTBOX_MODE = 1;
-			playSound(0, 3);
+	if (SHOP_ITEM_TYPE != 0xff && box->buf[off + 1] != 0) {
+		SHOP_ITEM_PRICE = CARD_DATA[SHOP_ITEM_TYPE].meritValue;
+		most = (econCap(MOD_ECON_MERIT_CAP, 32767) - MERIT + SHOP_ITEM_PRICE - 1) / SHOP_ITEM_PRICE;
+		if (most > box->buf[off + 1]) {
+			most = box->buf[off + 1];
+		}
+		if (most > 0) {
+			MAX_SHOP_AMOUNT = most;
+			openAmountBox(3);
 
 			return 1;
 		}
@@ -3433,10 +3415,14 @@ void renderNamingUnderscore(uint8_t boxId, int16_t x, int16_t y, int16_t w)
  *   1, Mojyamon's trades (openMojyamonShop): the item given and its name, the item got and its name, the amount;
  *      ✕ goes to case 5 (the trade), △ to case 6 (his goodbye, as the original's No)
  *   2, card packs (rollCardPack): "Card pack", the price, the amount and what they cost; ✕ goes to case 9, △ to 8
+ *   3, cards for merit and 4, items for merit (openMeritShop): as 2 with the card or the item; ✕ goes to case 8 or 0xc,
+ *      △ back to the list, which stays open behind the box
  * The text is one row (ITEM_MENU_SUB_TEXTBOX_LINE: the dialogue box's spare page, row 17 for a trade), in columns: names at 0 and
  * 0x60, the trade's amount at 0xc0; the pack's price at 0x60, amount at 0x9c and cost at 0xb4 (as the shop's).
  */
 static uint8_t AMOUNT_KIND;
+static const uint8_t AMOUNT_CONFIRM_STATE[] = { 0, 5, 9, 8, 0xc };
+static const uint8_t AMOUNT_CANCEL_STATE[] = { 0, 6, 8, 1, 1 };
 
 static uint8_t *amountName(uint8_t *out, char *name)
 {
@@ -3465,7 +3451,13 @@ static void amountBoxString(void)
 		*out++ = TEXT_COLUMN;
 		*out++ = 0xc0;
 	} else {
-		out = amountName(out, isTriggerSet(TRIGGER_CARD_MACHINE) ? STR_CARD_ONE : STR_CARD_PACK);
+		if (AMOUNT_KIND == 2) {
+			out = amountName(out, isTriggerSet(TRIGGER_CARD_MACHINE) ? STR_CARD_ONE : STR_CARD_PACK);
+		} else if (AMOUNT_KIND == 3) {
+			out = amountName(out, DIGIMON_NAME(CARD_DATA[SHOP_ITEM_TYPE].digimonId));
+		} else {
+			out = amountName(out, ITEM_NAME(SHOP_ITEM_TYPE));
+		}
 		*out++ = 0x18;
 		*out++ = 0;
 		out = intToStringSJIS(out, SHOP_ITEM_PRICE, 5, 0);
@@ -3507,10 +3499,10 @@ static void tickAmountBox(void)
 	}
 
 	if (isKeyDown(CONFIRM_BUTTON)) {
-		SCRIPT_STATE_2 = AMOUNT_KIND == 1 ? 5 : 9;
+		SCRIPT_STATE_2 = AMOUNT_CONFIRM_STATE[AMOUNT_KIND];
 		playSound(0, 3);
 	} else if (isKeyDown(CANCEL_BUTTON)) {
-		SCRIPT_STATE_2 = AMOUNT_KIND == 1 ? 6 : 8;
+		SCRIPT_STATE_2 = AMOUNT_CANCEL_STATE[AMOUNT_KIND];
 		playSound(0, 4);
 	} else {
 		return;
@@ -3537,14 +3529,20 @@ static void renderAmountBox(void)
 		renderString(0, x + 0x59, y + 0x2b, 0x18, 0xc, 0xc0, v, 3, 1);
 	} else {
 		renderHorizontalLine(3, 0xc, 0x3c, 0x6a);
-		renderCardSprite(0, x + 10, y + 7, 3);
+		if (AMOUNT_KIND == 2) {
+			renderCardSprite(0, x + 10, y + 7, 3);
+		} else if (AMOUNT_KIND == 3) {
+			renderCardSprite(CARD_DATA[SHOP_ITEM_TYPE].spriteId, x + 10, y + 7, 3);
+		} else {
+			renderItemSprite(SHOP_ITEM_TYPE, x + 8, y + 5, 3);
+		}
 		renderString(0, x + 0x4a, y + 0x1b, 0x3c, 0xc, 0x60, v, 3, 1);
 		renderString(0, x + 0x59, y + 0x2b, 0x18, 0xc, 0x9c, v, 3, 1);
 		renderString(0, x + 0x40, y + 0x41, 0x48, 0xc, 0xb4, v, 3, 1);
 	}
 }
 
-static void openAmountBox(int32_t kind)
+void openAmountBox(int32_t kind)
 {
 	RECT rect;
 	RECT origin;

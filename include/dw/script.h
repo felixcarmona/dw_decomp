@@ -311,6 +311,7 @@ extern char NAMING_BUFFER[20];
 extern int32_t UPDATE_SHOP_BIT_BOX;
 /* MOD (amounts): the amount boxes step by this rule (script_common.c); the card list shows a purchase of packs (script_menu.c) */
 int32_t modAmountStep(void);
+void openAmountBox(int32_t kind);
 extern uint8_t MOD_PACK_RESULTS;
 extern uint8_t ACTIVE_INSTRUCTION;
 extern uint8_t ITEM_MENU_TYPE;
