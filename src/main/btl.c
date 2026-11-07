@@ -19,6 +19,7 @@
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/sound_async.h>
+#include <dw/tfs_stream.h> /* MOD (post-battle stall) */
 #include <dw/types.h>
 #include <dw/utils.h>
 #include <dw/version.h>
@@ -387,6 +388,13 @@ void modBtlPreloadTick(void)
 		return;
 	}
 	if (GAME_STATE != 0 || IS_SCRIPT_PAUSED != 1 || !isFileReadQueueIdle()) {
+		return;
+	}
+	/*
+	 * MOD (post-battle stall): nor while a background tile is being read: queueing waits for that read (tfsStreamCheckTarget),
+	 * and the first one after a battle seeks from the music font, up to 0.7 s with the picture standing still
+	 */
+	if (tfsStreamBusy()) {
 		return;
 	}
 	MOD_BTL_PRELOAD = 1;
