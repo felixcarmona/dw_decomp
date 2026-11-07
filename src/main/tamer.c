@@ -15,6 +15,7 @@
 #include <dw/fade.h>
 #include <dw/font.h>
 #include <dw/ids.h>
+#include <dw/level.h>
 #include <dw/tournament.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -1278,6 +1279,17 @@ uint8_t checkChestCollision(void)
 }
 
 // clang-format off
+/* MOD (tamer level as data): the chances come from MOD_TAMER_LEVEL (-1 = the event does not exist), tools/balance.py build writes them
+ * from content/tables/tamer-level.json */
+int16_t MOD_TAMER_LEVEL[MOD_TAMER_LEVEL_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+void modTamerLevelEvent(int32_t slot, int32_t amount)
+{
+	if (MOD_TAMER_LEVEL[slot] >= 0) {
+		addTamerLevel(MOD_TAMER_LEVEL[slot], amount);
+	}
+}
+
 void addTamerLevel(chance, amount)
 	int16_t chance;
 	int8_t amount;
