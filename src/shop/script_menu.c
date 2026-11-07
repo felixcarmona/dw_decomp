@@ -1306,7 +1306,7 @@ int32_t newGameStateMachine(void)
 		showNewGameSelection(0x1c, 0x18);
 		break;
 	case 0x18:
-		showNewGameDialogue(0x1d, 0x1a);
+		showNewGameDialogue(0x21, 0x20); /* MOD (optional name): was 0x1d -> 0x1a; first, does the player name it? */
 		break;
 	case 0x19:
 		SCRIPT_STATE_2 = 0x13;
@@ -1332,6 +1332,19 @@ int32_t newGameStateMachine(void)
 		closeBox(0);
 		unsetTrigger(TRIGGER_49);
 		return 1;
+	/* MOD (optional name): "Do you want to give your Digimon a name?" (MAPHEAD 1238 lines 0x21 and 0x22, text/en.json
+	 * name.*). Yes: the original's question and keyboard; No: the species' name, and on to Jijimon's last words */
+	case 0x20:
+		showNewGameSelection(0x22, 0x21);
+		break;
+	case 0x21:
+		showNewGameDialogue(0x1d, 0x1a);
+		break;
+	case 0x22:
+		NAMING_BOX_FLAG |= 1;
+		modPartnerNameSetSpecies(modNewGame(readPStat(PSTAT_254) == 0 ? MOD_NG_STARTER0 : MOD_NG_STARTER1));
+		SCRIPT_STATE_2 = 0x1e;
+		break;
 	}
 
 	return 0;
