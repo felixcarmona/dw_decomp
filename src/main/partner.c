@@ -1100,6 +1100,18 @@ void updateConditionAnimation(void)
 
 void setPartnerIdle(void)
 {
+	Entity *wolf = &PARTNER_ENTITY.digimonEntity.entity;
+	/* Finish a braking step selected from the moving paw phase. These eight
+	 * resident programs are specific to the armoured wolf's field overlay. */
+	if (wolf->type == 191 && !(PARTNER_PARA.condition & 0x63) &&
+	    (wolf->anim.animId == 2 || wolf->anim.animId == 4)) {
+		static const uint8_t stops[8] __attribute__((section(".rodata.modWolfStops"))) = {6, 20, 26, 28, 29, 30, 31, 32};
+		int32_t period = wolf->anim.animId == 2 ? 18 : 14;
+		int32_t phase = ((wolf->anim.animFrame * 4 + period / 2) / period) & 3;
+		PARTNER_ANIMATION = stops[phase + (wolf->anim.animId == 4 ? 4 : 0)];
+		startAnimation(wolf, (uint8_t)PARTNER_ANIMATION);
+		return;
+	}
 	if (((PARTNER_ANIMATION != 1) &&
 	     (PARTNER_ANIMATION != 0))
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
