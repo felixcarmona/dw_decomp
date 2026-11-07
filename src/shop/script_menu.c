@@ -739,7 +739,7 @@ void rollCardPack(void)
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
-		SHOP_ITEM_PRICE = econAmt(MOD_ECON_PACK_PRICE);
+		SHOP_ITEM_PRICE = econAmt(isTriggerSet(TRIGGER_CARD_MACHINE) ? MOD_ECON_MACHINE_PRICE : MOD_ECON_PACK_PRICE);
 		n = SHOP_ITEM_PRICE > 0 ? MONEY / SHOP_ITEM_PRICE : 99;
 		if (n == 0) {
 			playSound(0, 0xb);
@@ -763,7 +763,7 @@ void rollCardPack(void)
 			SCRIPT_STATE_2 = 1;
 			break;
 		}
-		SCRIPT_STATE_2 = 5;
+		SCRIPT_STATE_2 = isTriggerSet(TRIGGER_CARD_MACHINE) ? 7 : 5; /* the machine's one card: one box */
 		/* fallthrough */
 	case 5:
 	case 6:
@@ -1534,15 +1534,19 @@ uint8_t rollCard(void)
 	uint8_t i;
 	uint8_t rarity;
 
-	/* MOD (economy as data): the rarity is the first whose "below" mark the roll (of 100) is under */
+	int32_t *cut;
+
+	/* MOD (economy as data): the rarity is the first whose "below" mark the roll (of 100) is under; the card
+	 * machine's marks (TRIGGER_CARD_MACHINE) or the packs' */
+	cut = &MOD_ECON[isTriggerSet(TRIGGER_CARD_MACHINE) ? MOD_ECON_MACHINE_CUT0 : MOD_ECON_CARD_CUT0];
 	rarity = randomLimit(100);
-	if (rarity < MOD_ECON[MOD_ECON_CARD_CUT0]) {
+	if (rarity < cut[0]) {
 		rarity = 0;
-	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT1]) {
+	} else if (rarity < cut[1]) {
 		rarity = 1;
-	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT2]) {
+	} else if (rarity < cut[2]) {
 		rarity = 2;
-	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT3]) {
+	} else if (rarity < cut[3]) {
 		rarity = 3;
 	} else {
 		rarity = 4;
@@ -3465,7 +3469,7 @@ static void amountBoxString(void)
 		*out++ = TEXT_COLUMN;
 		*out++ = 0xc0;
 	} else {
-		out = amountName(out, STR_CARD_PACK);
+		out = amountName(out, isTriggerSet(TRIGGER_CARD_MACHINE) ? STR_CARD_ONE : STR_CARD_PACK);
 		*out++ = 0x18;
 		*out++ = 0;
 		out = intToStringSJIS(out, SHOP_ITEM_PRICE, 5, 0);
@@ -3686,6 +3690,7 @@ static void openPackResults(void)
 	int32_t r;
 	int32_t n;
 	int32_t fresh;
+	int32_t per;
 
 	/* the list first: the arrays are a stack (allocateArray), got is freed above it */
 	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1c, 6, 0x56);
@@ -3694,7 +3699,8 @@ static void openPackResults(void)
 		got[i] = 0;
 		got[NUM_CARDS + i] = getCardAmount(i);
 	}
-	for (i = SHOP_AMOUNT * 3; i > 0; i--) {
+	per = isTriggerSet(TRIGGER_CARD_MACHINE) ? 1 : 3; /* cards a unit: the machine's one, a pack's three */
+	for (i = SHOP_AMOUNT * per; i > 0; i--) {
 		r = rollCard();
 		if (got[r] < 99) {
 			got[r]++;
@@ -3723,7 +3729,7 @@ static void openPackResults(void)
 	/* the head: row 9 of both pages, the box's first, before the rows of cards (drawn from it on, a row ends at 0xd) */
 	for (r = 9; r < 9 + 2 * 6; r += 6) {
 		out = TEXTBOX_LINES_PTR + (r << 6);
-		out = intToStringSJIS(out, SHOP_AMOUNT * 3, 3, 1);
+		out = intToStringSJIS(out, SHOP_AMOUNT * per, 3, 1);
 		strcpy(out, STR_PACK_CARDS);
 		out += strlen(STR_PACK_CARDS);
 		out = intToStringSJIS(out, fresh, 2, 1);
