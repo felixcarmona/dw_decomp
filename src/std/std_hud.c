@@ -48,7 +48,6 @@ typedef struct {
 extern GsOT *ACTIVE_ORDERING_TABLE;
 extern uint32_t POLLED_INPUT;
 extern uint32_t POLLED_INPUT_PREVIOUS;
-extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int8_t GAME_STATE;
 extern GsRVIEW2 GS_VIEWPOINT;
 extern int32_t ACTIVE_FRAMEBUFFER;
@@ -1616,9 +1615,6 @@ void STD_handleCommands(void)
 
 void STD_tickTamerTournament(int32_t instanceId)
 {
-	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x100) {
-		BATTLE_TOGGLE_LIFEBAR = (BATTLE_TOGGLE_LIFEBAR + 1) & 1;
-	}
 	if (GAME_STATE == 4) {
 		STD_handleCommands();
 	}
@@ -2158,15 +2154,10 @@ void STD_renderFighterStatusBars(id)
 	}
 
 	if (id == 1) {
-		PlayerDataSub *spr = &COMBAT_DATA_PTR->player.unk1[id];
-		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && !fighter->hpDamageBuffer && spr->unk25 < 21) spr->unk25++;
-		if (MOD_OPT_ENEMY_BARS && (BATTLE_TOGGLE_LIFEBAR || spr->unk25 < 21))
-			renderEnemyHeadHP((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[id]], fighter, 4);
+		renderEnemyHeadHP((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[id]], fighter, 4);
 	}
 
 	for (bar = 0; bar < 2; bar++) {
-		/* Select controls opponent life bars in the arena as well. Keep finisher state ticking below. */
-		if (id == 1 && !BATTLE_TOGGLE_LIFEBAR && COMBAT_DATA_PTR->player.unk1[id].unk25 >= 21) break;
 		p = &STD_STATUS_BAR_SPRITES[bar * 3 + 2];
 		if (bar == 0) {
 			if (id == 0) {

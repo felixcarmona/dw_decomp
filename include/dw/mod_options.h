@@ -17,9 +17,6 @@
 #define MOD_BUTTONS_JP	1	/* JAPANESE CONTROLS: ○ confirms, × cancels, △ is the third button (input.h) */
 
 extern int32_t MOD_OPT_BUTTONS;	/* JAPANESE CONTROLS: MOD_BUTTONS_JP (input.h reads it) */
-extern int32_t MOD_OPT_CLOCK;	/* DIGITAL CLOCK: the hour in digits under the clock (clock.c), 1 = shown */
-extern int32_t MOD_OPT_ENEMY_BARS; /* NEW ENEMY BARS: 0 keeps the original renderer */
-extern uint8_t BATTLE_TOGGLE_LIFEBAR; /* Select: 1 shown continuously, 0 briefly after damage */
 extern int32_t MOD_OPT_EVO_GUIDE; /* EVOLUTION GUIDE: the evolution chart's requirement card and lit lines (patch 0176), 0 = the original chart */
 extern int32_t MOD_OPT_NEW_DIGIMON; /* NEW DIGIMON: the species the mod made raisable; 0 = the original's only */
 extern int32_t MOD_OPT_CHEATS; /* CHEATS: lab menu, off by default */
