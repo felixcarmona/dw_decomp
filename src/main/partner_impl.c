@@ -2289,8 +2289,8 @@ void tickConditions(void)
 	}
 	if (!isInDaytimeTransition())
 		return;
-	if (HAS_IMMORTAL_HOUR == 1 && IMMORTAL_HOUR == HOUR)
-		return;
+	/* Loading and waking grace protects against death, not a due evolution.
+	 * The death and sickness checks enforce their own grace period. */
 	if (HAS_IMMORTAL_HOUR == 1 && IMMORTAL_HOUR != HOUR) {
 		HAS_IMMORTAL_HOUR = 0;
 		IMMORTAL_HOUR = -1;
