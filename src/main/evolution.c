@@ -1176,68 +1176,73 @@ int32_t handleSpecialEvolutions(mode, entity)
   return evoTarget;
 }
 
-int8_t calculateRequirementScore(int32_t current, DigimonId target,
-                                 int8_t isMaxCM, int8_t isMaxBattles,
-                                 DigimonId currentBest) {
-  EvoRequirements *reqs;
+/* MOD (chart): the partner's highest stat for a Rookie target's requirement (HP and MP divided; a tie goes to the later
+ * stat: Brn > Spd > Def > Off > MP > HP), 0..5 */
+int32_t evoPartnerTopStat(void)
+{
   BaseStats *partnerEntity;
-  PartnerPara *partner;
-  int32_t isTargetRaised;
-  int32_t isCurrentBestRaised;
   int16_t statsArray[6];
-  int16_t statsArray2[6];
-  int16_t reqArray[6];
   int32_t i;
   int32_t j;
   int32_t isHighestStat;
   int32_t highestStat;
-  int8_t reqPoints;
+
+  partnerEntity = &PARTNER_ENTITY.digimonEntity.stats.base;
+  statsArray[0] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->hp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
+  statsArray[1] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->mp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
+  statsArray[2] = partnerEntity->off;
+  statsArray[3] = partnerEntity->def;
+  statsArray[4] = partnerEntity->speed;
+  statsArray[5] = partnerEntity->brain;
+  highestStat = 0;
+  for (i = 0; i < 6; i++) {
+    isHighestStat = 1;
+    for (j = 0; j < 6; j++) {
+      if (statsArray[i] < statsArray[j])
+        isHighestStat = 0;
+    }
+    if (isHighestStat == 1)
+      highestStat = i;
+  }
+  return highestStat;
+}
+
+/* MOD (chart): which of the four scored requirements of `target` the partner meets (EVO_MET_CARE, _WEIGHT, _STATS,
+ * _BONUS); calculateRequirementScore turns them into points, the chart's tree shows them */
+int32_t evoRequirementsMet(int32_t current, DigimonId target, int8_t isMaxCM, int8_t isMaxBattles)
+{
+  EvoRequirements *reqs;
+  BaseStats *partnerEntity;
+  PartnerPara *partner;
+  int16_t reqArray[6];
+  int32_t met;
   int8_t numMoves;
-  int8_t isBonusFulfilled;
 
   reqs = &EVO_REQ_ROW(target);
   partnerEntity = &PARTNER_ENTITY.digimonEntity.stats.base;
   partner = &PARTNER_PARA;
-  reqPoints = 0;
+  met = 0;
 
-  /* MOD (evolution formulas as data): the points and tolerances are MOD_EVO_FORMULA's */
   if (isMaxCM == 0) {
     if (partner->careMistakes >= reqs->care)
-      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_CARE);
+      met |= EVO_MET_CARE;
   } else if (partner->careMistakes <= reqs->care) {
-    reqPoints += evoAmt(MOD_EVF_SCORE_POINT_CARE);
+    met |= EVO_MET_CARE;
   }
 
   if (reqs->weight - evoAmt(MOD_EVF_SCORE_WEIGHT_TOL) <= partner->weight &&
       partner->weight <= reqs->weight + evoAmt(MOD_EVF_SCORE_WEIGHT_TOL))
-    reqPoints += evoAmt(MOD_EVF_SCORE_POINT_WEIGHT);
+    met |= EVO_MET_WEIGHT;
 
   if (DIGI_PARA(target).level == 3U) {
-    statsArray[0] = statsArray2[0] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->hp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
-    statsArray[1] = statsArray2[1] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->mp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
-    statsArray[2] = statsArray2[2] = partnerEntity->off;
-    statsArray[3] = statsArray2[3] = partnerEntity->def;
-    statsArray[4] = statsArray2[4] = partnerEntity->speed;
-    statsArray[5] = statsArray2[5] = partnerEntity->brain;
     reqArray[0] = reqs->hp;
     reqArray[1] = reqs->mp;
     reqArray[2] = reqs->offense;
     reqArray[3] = reqs->defense;
     reqArray[4] = reqs->speed;
     reqArray[5] = reqs->brain;
-
-    for (i = 0; i < 6; i++) {
-      isHighestStat = 1;
-      for (j = 0; j < 6; j++) {
-        if (statsArray[i] < statsArray[j])
-          isHighestStat = 0;
-      }
-      if (isHighestStat == 1)
-        highestStat = i;
-    }
-    if (reqArray[highestStat] == 1) {
-      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_STATS);
-    }
+    if (reqArray[evoPartnerTopStat()] == 1)
+      met |= EVO_MET_STATS;
   } else {
     if ((evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->hp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0) >= reqs->hp &&
         (evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->mp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0) >= reqs->mp &&
@@ -1245,32 +1250,58 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
         partnerEntity->def >= reqs->defense &&
         partnerEntity->speed >= reqs->speed &&
         partnerEntity->brain >= reqs->brain) {
-      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_STATS);
+      met |= EVO_MET_STATS;
     }
   }
 
-  isBonusFulfilled = 0;
   if (reqs->digimon != -1 && current == reqs->digimon)
-    isBonusFulfilled = 1;
+    met |= EVO_MET_BONUS;
   if (reqs->discipline != -1 && partner->discipline >= reqs->discipline)
-    isBonusFulfilled = 1;
+    met |= EVO_MET_BONUS;
   if (reqs->happiness != -1 && partner->happiness >= reqs->happiness)
-    isBonusFulfilled = 1;
+    met |= EVO_MET_BONUS;
   if (reqs->battles != -1) {
     if (isMaxBattles == 0) {
       if (partner->battles >= reqs->battles)
-        isBonusFulfilled = 1;
+        met |= EVO_MET_BONUS;
     } else if (partner->battles <= reqs->battles) {
-      isBonusFulfilled = 1;
+      met |= EVO_MET_BONUS;
     }
   }
   if (reqs->techs != -1) {
     numMoves = getNumMasteredMoves();
     if (numMoves >= reqs->techs)
-      isBonusFulfilled = 1;
+      met |= EVO_MET_BONUS;
   }
+  return met;
+}
 
-  reqPoints += isBonusFulfilled * evoAmt(MOD_EVF_SCORE_POINT_BONUS);
+/* MOD (chart): the points of the requirements in `met` (evoRequirementsMet) */
+int32_t evoRequirementPoints(int32_t met)
+{
+  int32_t points;
+
+  points = 0;
+  if (met & EVO_MET_CARE)
+    points += evoAmt(MOD_EVF_SCORE_POINT_CARE);
+  if (met & EVO_MET_WEIGHT)
+    points += evoAmt(MOD_EVF_SCORE_POINT_WEIGHT);
+  if (met & EVO_MET_STATS)
+    points += evoAmt(MOD_EVF_SCORE_POINT_STATS);
+  if (met & EVO_MET_BONUS)
+    points += evoAmt(MOD_EVF_SCORE_POINT_BONUS);
+  return points;
+}
+
+int8_t calculateRequirementScore(int32_t current, DigimonId target,
+                                 int8_t isMaxCM, int8_t isMaxBattles,
+                                 DigimonId currentBest) {
+  int32_t isTargetRaised;
+  int32_t isCurrentBestRaised;
+  int8_t reqPoints;
+
+  /* MOD (chart): the requirements are evoRequirementsMet's (shared with the chart), their points evoRequirementPoints' */
+  reqPoints = evoRequirementPoints(evoRequirementsMet(current, target, isMaxCM, isMaxBattles));
 
   if (reqPoints >= evoPassPoints() && currentBest != -1) {
     isTargetRaised = hasDigimonRaised(EVO_GAINS_ROW(target).targetDigimon);
