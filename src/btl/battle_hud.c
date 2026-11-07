@@ -1301,7 +1301,7 @@ void BTL_initializePartnerStatusBars(void)
 	BTL_FINISHER_READY = 0;
 	BTL_HP_BAR_STEP = BTL_MP_BAR_STEP = 0;
 	addObject(0x19c, 0, (TickFunction)BTL_tickPartnerStatusBars, (RenderFunction)BTL_renderPartnerStatusBars);
-	addObject(0x19b, 0, NULL, (RenderFunction)BTL_renderSpeedPlate); /* MOD (battle speed) */
+	modSpeedPlateAdd(); /* MOD (battle speed, mod_qol.c) */
 }
 
 void BTL_tickPartnerStatusBars(void)
@@ -1404,13 +1404,12 @@ void BTL_renderPartnerStatusBars(int16_t idx)
 void BTL_removePartnerStatusBars(void)
 {
 	removeObject(0x19c, 0);
-	removeObject(0x19b, 0); /* MOD (battle speed) */
+	modSpeedPlateRemove(); /* MOD (battle speed) */
 }
 
 /* MOD (battle speed): R2 switches the fight between x1 and x2 (MOD_BATTLE_FAST, main.c). The fight is held at x1
  * while the item menu is open or an item is in hand, and while the defeat countdown runs (its seconds stay real).
- * A plate in the bottom right corner (modPlate, mod_qol.c) shows "R2 x1" (white) or "R2 x2" (yellow; grey while
- * held). */
+ * The switch and its plate are mod_qol.c's (modSpeedInput, modSpeedPlateAdd), shared with STD and VS. */
 extern int32_t IS_INVENTORY_INITIALIZED;
 extern int16_t DEATH_COUNTDOWN;
 
@@ -1419,28 +1418,8 @@ static int32_t BTL_modSpeedHeld(void)
 	return IS_INVENTORY_INITIALIZED == 1 || TAMER_ITEM.worldItem.type != ITEM_NONE || DEATH_COUNTDOWN != 0;
 }
 
-void BTL_renderSpeedPlate(void)
-{
-	if (!MOD_BATTLE_FAST) {
-		modPlate(0x80, 0x60, "R2 x1", 3, 0xF0, 0xF0, 0xF0);
-	} else if (BTL_modSpeedHeld()) {
-		modPlate(0x80, 0x60, "R2 x2", 3, 0x80, 0x80, 0x80);
-	} else {
-		modPlate(0x80, 0x60, "R2 x2", 3, 0xF8, 0xD8, 0x30);
-	}
-}
-
 /* before each tick of the battle's loops: whether it may run fast */
 void BTL_modSpeedBeforeTick(void)
 {
-	MOD_BATTLE_FAST_TICK = MOD_BATTLE_FAST && !BTL_modSpeedHeld();
-}
-
-/* after the pad is read: R2 switches the speed */
-void BTL_modSpeedInput(void)
-{
-	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 2) {
-		MOD_BATTLE_FAST ^= 1;
-		playSound(0, 2);
-	}
+	modSpeedBeforeTick(BTL_modSpeedHeld());
 }
