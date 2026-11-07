@@ -50,7 +50,7 @@ int32_t entityGetTechFromAnim(Entity *entity, int32_t anim);
 void scriptLoadModel(int32_t modelId);
 void swapByte(uint8_t *a, uint8_t *b);
 void STD_loadTIMToVRAM(char *path);
-void STD_setupParticipants(uint8_t *out, uint8_t *arg);
+void STD_setupParticipants(uint16_t *out, uint16_t *arg);
 void STD_initializeCamera(void);
 void STD_renderArena1(void);
 void STD_freeArenaModel(void);
@@ -60,7 +60,7 @@ void STD_addArenaRenderer(int32_t which);
 #else
 void STD_addArenaRenderer(int16_t which);
 #endif
-int16_t STD_tournamentMain(uint8_t *arg);
+int16_t STD_tournamentMain(uint16_t *arg);
 int16_t STD_runMatch(Entity *opponent, int16_t b);
 void STD_runIntro(int32_t arg);
 int32_t STD_combatMain(Entity *entity, Entity *other);
@@ -81,7 +81,7 @@ void STD_battleTickFrame(void);
 int32_t loadTIMFile(char *path, void *buffer);
 void removeMapEntities(void);
 void STD_loadWinLoseModel(void);
-void STD_initializeTournament(int32_t arena, uint8_t *arg);
+void STD_initializeTournament(int32_t arena, uint16_t *arg);
 void STD_removeVSPhase(void);
 void fadeToBlack(int16_t mode);
 void STD_deinitializeTournament(void);
@@ -227,7 +227,7 @@ char STD_PATH_STDDAT_TIME_TIM[] = "\\STDDAT\\TIME.TIM";
 char STD_PATH_ETCDAT_SBOY_TIM[] = "\\ETCDAT\\SBOY.TIM";
 // clang-format on
 
-void STD_initializeTournament(int32_t arena, uint8_t *arg)
+void STD_initializeTournament(int32_t arena, uint16_t *arg)
 {
 	if (arena == 0) {
 		STD_MUSIC = 0x1e;
@@ -505,11 +505,11 @@ void STD_loadTIMToVRAM(char *path)
 	}
 }
 
-int16_t STD_tournamentMain(uint8_t *arg)
+int16_t STD_tournamentMain(uint16_t *arg)
 {
 	int32_t j;
 	int32_t m;
-	uint8_t local[4];
+	uint16_t local[4]; /* MOD (portraits): was u8 */
 	int16_t arena;
 	long n;
 	long i;
