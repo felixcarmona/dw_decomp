@@ -245,6 +245,7 @@ Entity *VS_D_80071A18[6] = {
 	(Entity *)0x000016d7,
 };
 
+#ifdef __MWERKS__
 int32_t VS_D_80071A30[4] = {
 	0x4f6e0038, 0x6e656666, 0x55006573, 0x23000600,
 };
@@ -256,6 +257,26 @@ int32_t VS_D_80071A40[18] = {
 	0x000d0000, 0x171f0012, 0x00380000, 0x6f72576e,
 	0x5500676e, 0x23000600,
 };
+#else
+/*
+ * MOD: the camera code uses VS_D_80071A30 as one 22-entry spline table
+ * (processSomeArenaArrays/initializeSomeArenaArrays with count 0x16 and
+ * VS_D_80071A30[i] for i up to 21); the original relies on VS_D_80071A40 coming
+ * right after it. GCC orders the data differently, so make it one array
+ * and alias the tail.
+ */
+int32_t VS_D_80071A30[4 + 18] = {
+	0x4f6e0038, 0x6e656666, 0x55006573, 0x23000600,
+	0x04000600, 0x00000640, 0x00002507, 0x12000d00,
+	0x0016fc00, 0x6e003800, 0x65666544, 0x0065736e,
+	0x00060055, 0x00060023, 0x00064204, 0x00230700,
+	0x000d0000, 0x171f0012, 0x00380000, 0x6f72576e,
+	0x5500676e, 0x23000600,
+};
+extern int32_t VS_D_80071A40[];
+__asm__(".globl VS_D_80071A40\n"
+	"\t.set VS_D_80071A40, VS_D_80071A30 + 16");
+#endif
 
 int32_t VS_D_80071A88[22] = {
 	0x04000600, 0x00000644, 0x00002407, 0x12000d00,
@@ -266,6 +287,7 @@ int32_t VS_D_80071A88[22] = {
 	0x0d000000, 0x88001200,
 };
 
+#ifdef __MWERKS__
 int32_t VS_D_80071AE0[4] = {
 	0x38000017, 0x6d697400, 0x00720065, 0x000014d2,
 };
@@ -277,6 +299,26 @@ int32_t VS_D_80071AF0[18] = {
 	0x00260700, 0x000d0000, 0x17d60012, 0x00380000,
 	0x7478656e, 0x00646d43,
 };
+#else
+/*
+ * MOD: the camera code uses VS_D_80071AE0 as one 22-entry spline table
+ * (processSomeArenaArrays/initializeSomeArenaArrays with count 0x16 and
+ * VS_D_80071AE0[i] for i up to 21); the original relies on VS_D_80071AF0 coming
+ * right after it. GCC orders the data differently, so make it one array
+ * and alias the tail.
+ */
+int32_t VS_D_80071AE0[4 + 18] = {
+	0x38000017, 0x6d697400, 0x00720065, 0x000014d2,
+	0x00060023, 0x00064a04, 0x00280700, 0x000d0000,
+	0x17b00012, 0x00380000, 0x79616c70, 0x6d437265,
+	0x00720064, 0x000014f2, 0x00060023, 0x00064e04,
+	0x00260700, 0x000d0000, 0x17d60012, 0x00380000,
+	0x7478656e, 0x00646d43,
+};
+extern int32_t VS_D_80071AF0[];
+__asm__(".globl VS_D_80071AF0\n"
+	"\t.set VS_D_80071AF0, VS_D_80071AE0 + 16");
+#endif
 
 uint8_t VS_BATTLE_START_TEXT_PIECES[155][20] = {
 	{

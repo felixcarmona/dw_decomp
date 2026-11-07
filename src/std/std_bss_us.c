@@ -261,6 +261,7 @@ StdUnkB9D0 STD_D_8007B9D0 = {
 	},
 };
 
+#ifdef __MWERKS__
 int32_t STD_D_8007B9EC[4] = {
 	0x00008782, 0x00190000, 0x00001c40, 0x00000000,
 };
@@ -272,6 +273,26 @@ int32_t STD_D_8007B9FC[18] = {
 	0x000024a5, 0x20210c00, 0x00000000, 0x00000c00,
 	0x00000000, 0x0000a780,
 };
+#else
+/*
+ * MOD: the camera code uses STD_D_8007B9EC as one 22-entry spline table
+ * (processSomeArenaArrays/initializeSomeArenaArrays with count 0x16 and
+ * STD_D_8007B9EC[i] for i up to 21); the original relies on STD_D_8007B9FC coming
+ * right after it. GCC orders the data differently, so make it one array
+ * and alias the tail.
+ */
+int32_t STD_D_8007B9EC[4 + 18] = {
+	0x00008782, 0x00190000, 0x00001c40, 0x00000000,
+	0x00000c00, 0x00000000, 0x00010c00, 0x00002404,
+	0x00010c00, 0x00002404, 0x00003c04, 0x00003c05,
+	0x00008786, 0x00008787, 0x00002484, 0x00000c00,
+	0x000024a5, 0x20210c00, 0x00000000, 0x00000c00,
+	0x00000000, 0x0000a780,
+};
+extern int32_t STD_D_8007B9FC[];
+__asm__(".globl STD_D_8007B9FC\n"
+	"\t.set STD_D_8007B9FC, STD_D_8007B9EC + 16");
+#endif
 
 int32_t STD_D_8007BA44[22] = {
 	0x0faba380, 0x00002404, 0x28210c00, 0x00010200,
@@ -282,6 +303,7 @@ int32_t STD_D_8007BA44[22] = {
 	0x00000043, 0x00008c42,
 };
 
+#ifdef __MWERKS__
 int32_t STD_D_8007BA9C[4] = {
 	0x00080000, 0x00000040, 0x00000000, 0x00080c00,
 };
@@ -293,6 +315,26 @@ int32_t STD_D_8007BAAC[18] = {
 	0x00090c00, 0x00012405, 0x00002404, 0x0000a780,
 	0x0000a384, 0x00000c00,
 };
+#else
+/*
+ * MOD: the camera code uses STD_D_8007BA9C as one 22-entry spline table
+ * (processSomeArenaArrays/initializeSomeArenaArrays with count 0x16 and
+ * STD_D_8007BA9C[i] for i up to 21); the original relies on STD_D_8007BAAC coming
+ * right after it. GCC orders the data differently, so make it one array
+ * and alias the tail.
+ */
+int32_t STD_D_8007BA9C[4 + 18] = {
+	0x00080000, 0x00000040, 0x00000000, 0x00080c00,
+	0x00002404, 0x000a0c00, 0x00002404, 0x00003c04,
+	0x00002484, 0x00020c00, 0x00002405, 0x00003c04,
+	0x00002484, 0x000a0c00, 0x00082405, 0x00002404,
+	0x00090c00, 0x00012405, 0x00002404, 0x0000a780,
+	0x0000a384, 0x00000c00,
+};
+extern int32_t STD_D_8007BAAC[];
+__asm__(".globl STD_D_8007BAAC\n"
+	"\t.set STD_D_8007BAAC, STD_D_8007BA9C + 16");
+#endif
 
 StdUnkBAF4 STD_BRACKET_SLOTS[8] = {
 	{
