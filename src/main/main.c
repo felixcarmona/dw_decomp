@@ -28,6 +28,7 @@
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/partner.h>
+#include <dw/memmap.h>
 #include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/types.h>
@@ -3375,7 +3376,11 @@ GsRVIEW2 GS_VIEWPOINT;
 GsRVIEW2 GS_VIEWPOINT_COPY;
 MomentumData PARTNER_MOMENTUM_DATA[34];
 PositionData PARTNER_POSITION_DATA[34];
+#ifdef __MWERKS__
 uint8_t PARTNER_MODEL_BUFFER[0x18800];
+#else
+uint8_t PARTNER_MODEL_BUFFER[PARTNER_MMD_MAX]; /* MOD (scale): sized by the build (memmap.h) */
+#endif
 MomentumData TAMER_MOMENTUM_DATA[22];
 PositionData TAMER_POSITION_DATA[22];
 #ifdef __MWERKS__

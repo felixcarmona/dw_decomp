@@ -129,6 +129,8 @@ void initializeSpecies(void);
 SpeciesRecord *getSpeciesRecord(int32_t type);
 /* 1 if a model can be loaded for the type */
 int32_t isValidDigimonType(int32_t type);
+/* 1 if the type's partner model fits PARTNER_MODEL_BUFFER (memmap.h PARTNER_MMD_MAX) */
+int32_t isPartnerModelFit(int32_t type);
 
 SkeletonBone *getDigimonSkeleton(int32_t type);
 /* the 4-letter model name (CHDAT\MMDn\NAME.MMD); empty for a model inside DIGI.DAT */
