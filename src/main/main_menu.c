@@ -259,17 +259,19 @@ int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
-#define MOD_OPT_BYTES	10 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes) */
+#define MOD_OPT_BYTES	11 /* MOD (options): SAVE_TAG_OPTIONS's bytes (modOptionBytes); the header's copy (modTitleOptions)
+			     * holds 12 after its 4: one more option fits there */
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
 #define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
-#define MOD_OPT_ROW_FPS	6
+#define MOD_OPT_ROW_DIFF	6 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
+#define MOD_OPT_ROW_FPS	7
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	10 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	7
-#define MOD_OPT_ROW_LANG	8
+#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	8
+#define MOD_OPT_ROW_LANG	9
 #else
-#define MOD_OPT_ROWS	9
-#define MOD_OPT_ROW_LANG	7
+#define MOD_OPT_ROWS	10
+#define MOD_OPT_ROW_LANG	8
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4658,6 +4660,7 @@ static void modOptionBytes(uint8_t *d)
 	d[7] = MOD_LANG; /* MOD (language) */
 	d[8] = MOD_OPT_SIGNS;
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
+	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
@@ -4697,6 +4700,9 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	}
 	if (len >= 10) { /* MOD (story) */
 		modSetStory(d[9]);
+	}
+	if (len >= 11) { /* MOD (difficulty) */
+		MOD_OPT_DIFFICULTY = d[10] == MOD_DIFF_EASY ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
 	}
 }
 
@@ -5758,7 +5764,8 @@ void renderInitialMenu(void)
  * and 61 for "20 FPS"): a row then shows its chosen value only, as the original game's own settings do.
  */
 #define MOD_OPT_VALUES	3	/* the most values a row has */
-#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, one row each */
+#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, two values a row */
+#define MOD_OPT_VALUE_U	0x80	/* the second value of a row (the area's 256 rows hold 11 labels and 12 values no other way) */
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
@@ -5769,6 +5776,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
+	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL }, /* MOD (difficulty) */
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
@@ -5776,7 +5784,8 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 };
-/* the text area row of each value: a value two rows share (OFF, ON, ORIGINAL) is drawn once (drawOptionsText) */
+/* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
+ * drawn once (drawOptionsText) */
 static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
@@ -5807,6 +5816,8 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_NEW_DIGIMON != 0;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		return MOD_OPT_STORY != 0;
+	case MOD_OPT_ROW_DIFF: /* MOD (difficulty): EASY, NORMAL */
+		return MOD_OPT_DIFFICULTY == MOD_DIFF_EASY ? 0 : 1;
 #if FONT_SWITCH
 	case MOD_OPT_ROW_FONT: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
@@ -5845,6 +5856,9 @@ static void modSetOption(int32_t row, int32_t value)
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		modSetStory(value);
 		break;
+	case MOD_OPT_ROW_DIFF: /* MOD (difficulty) */
+		MOD_OPT_DIFFICULTY = value == 0 ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
+		break;
 	case MOD_OPT_ROW_FPS:
 		modSetFrameRate(value ? 60 : 20);
 		break;
@@ -5879,7 +5893,7 @@ static void drawOptionsText(void)
 
 	MOD_OPT_LABEL_W = 0;
 	MOD_OPT_VALUE_W = 0;
-	y = MOD_OPT_VALUE_Y;
+	y = MOD_OPT_VALUE_Y << 1; /* the value's place times two, its half in the low bit */
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		for (k = 0; k <= modOptionCount(r); k++) {
 			if (k > 0) { /* MOD (language): a value an earlier row has is drawn once */
@@ -5890,9 +5904,9 @@ static void drawOptionsText(void)
 						}
 					}
 				}
-				MOD_OPT_V[r][k - 1] = y;
-				drawString(MOD_OPT_TEXT[r][k], 0, y);
-				y += 0xC;
+				MOD_OPT_V[r][k - 1] = (y >> 1) + ((y & 1) << 8);
+				drawString(MOD_OPT_TEXT[r][k], (y & 1) * MOD_OPT_VALUE_U, y >> 1);
+				y += (y & 1) ? 0xC * 2 - 1 : 1;
 				goto drawn;
 			shared:
 				MOD_OPT_V[r][k - 1] = MOD_OPT_V[r2][k2 - 1];
@@ -5937,11 +5951,13 @@ static void renderOptionsMenu(void)
 		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_LABEL_W, 0xC, 0);
 		x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
 		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the first one, grey, when none is) */
-			renderText(cur++, x, y, 0, MOD_OPT_V[r][value > 0 ? value : 0], MOD_OPT_VALUE_W, 0xC, value >= 0 ? 2 : 1);
+			k = MOD_OPT_V[r][value > 0 ? value : 0];
+			renderText(cur++, x, y, (k >> 8) * MOD_OPT_VALUE_U, k & 0xFF, MOD_OPT_VALUE_W, 0xC, value >= 0 ? 2 : 1);
 			continue;
 		}
 		for (k = 0; k < modOptionCount(r); k++) {
-			renderText(cur++, x, y, 0, MOD_OPT_V[r][k], MOD_OPT_VALUE_W, 0xC, value == k ? 2 : 1);
+			renderText(cur++, x, y, (MOD_OPT_V[r][k] >> 8) * MOD_OPT_VALUE_U, MOD_OPT_V[r][k] & 0xFF, MOD_OPT_VALUE_W,
+				   0xC, value == k ? 2 : 1);
 			x += MOD_OPT_VALUE_W + MOD_OPT_GAP;
 		}
 	}
