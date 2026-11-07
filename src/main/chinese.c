@@ -1,7 +1,11 @@
 /* Loaded only for Chinese on an 8 MB console; code, font and work buffers stay above 2 MB. */
 #include <libcd.h>
 #include <libgpu.h>
+#include <libgs.h>
+#include <dw/main.h>
+#include <dw/btl.h>
 #include <dw/chinese.h>
+#include <dw/chinese_vs.h>
 #include <dw/file_table.h>
 #include <dw/mod_options.h>
 #include <dw/mod_font.h>
@@ -56,7 +60,9 @@ int32_t zhStart(void)
     for (i = 32; i < ZH_PREFIX_SIZE; i++) hash = (hash ^ bytes[i]) * 0x01000193;
     if (hash != h[7] || font[0] != 0x485A5744 || font[1] != 1 || font[2] != 12 || font[3] != 12 ||
         font[4] != 26 || font[5] != 95 || font[6] > 12032 || 32 + (font[5] + font[6]) * 26 != h[4] ||
-        patch[0] != 0x504C5744) return 0;
+        patch[0] != 0x504C5744 || ((uint32_t *)(ZH_BASE+0x60000))[0] != 0x385A5744 ||
+        ((uint32_t *)(ZH_BASE+0x60000))[1] != 1 || ((uint32_t *)(ZH_BASE+0x60000))[2] != 95+font[6] ||
+        ((uint32_t *)(ZH_BASE+0x60000))[3] != 18) return 0;
     entry = findFileEntry("LANGZH.BIN");
     if (!entry || !entry->sector) return 0;
     /* Validate all writes before changing the active language's resident data. */
@@ -78,6 +84,7 @@ int32_t zhStart(void)
         modPartnerNameSetSpecies(type);
         MOD_LANG = previous;
     }
+    zhVsReset();
     ZH_PREVIOUS_FONT = MOD_FONT;
     ZH_SECTOR = entry->sector;
     ZH_SLOT = 0;
@@ -175,4 +182,88 @@ int32_t zhPreviousFont(void)
         MOD_LANG = MOD_LANG_ZH;
     }
     return ZH_PREVIOUS_FONT;
+}
+
+/* The VS screens use eight-pixel cells. Their atlas occupies unused text rows
+ * 128..215: digits at 240 and command labels at 216 stay separate. */
+#define ZH_COMPACT ((uint16_t *)(ZH_BASE + 0x60000 + 32))
+#define ZH_EN_NAMES ((char *)(ZH_BASE + 0x35000))
+static uint16_t ZH_VS_CODES[352];
+static uint8_t ZH_VS_UPLOAD[4][32] __attribute__((aligned(4)));
+static int32_t ZH_VS_COUNT, ZH_VS_SLOT;
+void initStringFT4(POLY_FT4 *prim);
+void setUVDataPolyFT4(POLY_FT4 *prim, int32_t x, int32_t y, int32_t w, int32_t h);
+void setPosDataPolyFT4(POLY_FT4 *prim, int32_t x, int32_t y, int32_t w, int32_t h);
+
+void zhVsReset(void) { ZH_VS_COUNT = 0; }
+
+char *zhVsName(RegisteredDigimon *rec)
+{
+    int32_t type = registeredSpecies(rec), i = 0;
+    if ((uint32_t)type >= NUM_DIGIMON) return rec->name;
+    while (i < 13 && (uint8_t)(rec->name[i] - 0x20) < 0x5f) i++;
+    if ((uint8_t)(rec->name[i] - 0xA0) < 0x40 ||
+        !strncmp(rec->name, ZH_EN_NAMES + type * 20, 13))
+        return (char *)ZH_NAMES + type * 20;
+    return rec->name;
+}
+
+void zhRegisterName(char *name, int32_t type)
+{
+    if ((uint32_t)type < NUM_DIGIMON &&
+        !strcmp(PARTNER_ENTITY.name, (char *)ZH_NAMES + type * 20))
+        memcpy(name, ZH_EN_NAMES + type * 20, 14);
+}
+
+static int32_t zhVsCell(uint16_t code)
+{
+    int32_t cell, index, row, x;
+    uint16_t *glyph, ink;
+    uint8_t *upload;
+    RECT rect;
+    for (cell = 0; cell < ZH_VS_COUNT; cell++) if (ZH_VS_CODES[cell] == code) return cell;
+    if (cell == 352) return -1;
+    index = zhIndex(code);
+    if (index < 0) index = '?' - 32;
+    glyph = ZH_COMPACT + index * 9;
+    ZH_VS_CODES[ZH_VS_COUNT++] = code;
+    if (++ZH_VS_SLOT == 4) { ZH_VS_SLOT = 0; DrawSync(0); }
+    upload = ZH_VS_UPLOAD[ZH_VS_SLOT];
+    for (row = 0; row < 8; row++) {
+        ink = ~glyph[row + 1];
+        for (x = 0; x < 4; x++) upload[row * 4 + x] =
+            ((ink & (0x8000 >> (x * 2))) ? 1 : 0) |
+            ((ink & (0x4000 >> (x * 2))) ? 16 : 0);
+    }
+    setRECT(&rect, TEXT_VRAM_X + cell % 32 * 2, TEXT_VRAM_Y + 128 + cell / 32 * 8, 2, 8);
+    LoadImage(&rect, (u_long *)upload);
+    return cell;
+}
+
+POLY_FT4 *zhVsText(POLY_FT4 *prim, char *text, int32_t x, int32_t y, int32_t columns,
+                   int32_t scroll, int32_t height, int32_t depth)
+{
+    uint16_t code;
+    int32_t n = 0, top, bottom, local, cell;
+    while (*text) {
+        if (isAsciiEncoded(text)) {
+            code = convertAsciiToJis((uint8_t)*text++);
+            code = (code >> 8) | (code << 8);
+        } else { code = (uint8_t)text[0] | (uint8_t)text[1] << 8; text += 2; }
+        local = n / columns * 10 - scroll;
+        top = local < 0 ? -local : 0;
+        bottom = local + 8 > height ? height - local : 8;
+        if (bottom > top) {
+            cell = zhVsCell(code);
+            if (cell >= 0) {
+                initStringFT4(prim);
+                setRGB0(prim, 0x80, 0x80, 0x80);
+                setUVDataPolyFT4(prim, cell % 32 * 8, 128 + cell / 32 * 8 + top, 8, bottom - top);
+                setPosDataPolyFT4(prim, x + n % columns * 8, y + local + top, 8, bottom - top);
+                AddPrim(ACTIVE_ORDERING_TABLE->org + depth, prim++);
+            }
+        }
+        n++;
+    }
+    return prim;
 }

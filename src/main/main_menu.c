@@ -5785,6 +5785,7 @@ static void setRegisteredSpecies(RegisteredDigimon *rec, int32_t type)
 	rec->wideCheck = rec->digimonId;
 	rec->wideTag = REGISTERED_WIDE_TAG;
     memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
+    if (MOD_LANG == MOD_LANG_ZH) zhRegisterName(rec->name, type);
     rec->name[0xd] = '\0';
     /* The fixed 13-byte nickname field must end on a whole character. */
     {
