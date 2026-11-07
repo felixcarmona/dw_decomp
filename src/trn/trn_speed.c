@@ -2,6 +2,7 @@
 #include <dw/entity.h>
 #include <dw/input.h>
 #include <dw/model.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -100,7 +101,7 @@ void TRN_tickSpeedTraining(int32_t instanceId)
 		if (MAIN_D_80135370 == 1) {
 			r = TRN_getSlotSessionResult();
 		}
-		if ((((MAIN_D_8013537A >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
+		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 			TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			playSound(8, 0xa);

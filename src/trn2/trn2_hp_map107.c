@@ -9,6 +9,7 @@
 #include <dw/trn2.h>
 #include <dw/types.h>
 #include <dw/world_object.h>
+#include <dw/mod_rules.h>
 
 extern int32_t TRAINING_COMPLETE;
 extern uint32_t POLLED_INPUT;
@@ -60,7 +61,7 @@ int16_t instanceId;
 		break;
 	case 2:
 		PARTNER_ENTITY.digimonEntity.entity.anim.animFlag |= 2;
-		if (((MAIN_D_801353C2 % 0x78) == 0) && (MAIN_D_801353C2 < 0x4b1)) {
+		if (((MAIN_D_801353C2 % TRN_STEP_OF(MOD_TRAIN2_RULES)) == 0) && (MAIN_D_801353C2 <= TRN_SESSION_OF(MOD_TRAIN2_RULES))) {
 			PARTNER_ENTITY.digimonEntity.entity.anim.animFlag &= 0xfd;
 			moveMapObjectsWithLimit(MAIN_D_801353B4, MAIN_D_801353B6, 0, -1, 0, 0);
 		}
@@ -77,10 +78,10 @@ int16_t instanceId;
 		if (MAIN_D_801353BC == 1) {
 			r = TRN2_getSlotSessionResult();
 		}
-		if ((((MAIN_D_801353C2 >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (0 <= r))) {
-			MAIN_D_801353C2 %= 0x4b0;
+		if ((((MAIN_D_801353C2 >= TRN_SESSION_OF(MOD_TRAIN2_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (0 <= r))) {
+			MAIN_D_801353C2 %= TRN_SESSION_SPAN_OF(MOD_TRAIN2_RULES);
 			playSound(8, 0xa);
-			MAIN_D_801353C2 /= 120;
+			MAIN_D_801353C2 /= TRN_STEP_OF(MOD_TRAIN2_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
