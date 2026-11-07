@@ -7,6 +7,7 @@
 #include <libgte.h>
 
 #include <dw/caps.h> /* MOD (caps) */
+#include <dw/mod_battle.h>
 #include <dw/aabb.h>
 #include <dw/anim.h>
 #include <dw/battle.h>
@@ -397,7 +398,7 @@ char STD_PATH_STDDAT_T_DAI_TMD[] = "\\STDDAT\\T_DAI.TMD";
 void STD_initializeFinisherChargeup(int16_t tech)
 {
 	COMBAT_DATA_PTR->player.finisherChargeup[0] = 0;
-	COMBAT_DATA_PTR->player.remainingChargeupTime[0] = 0x50;
+	COMBAT_DATA_PTR->player.remainingChargeupTime[0] = BMS(CHG_WINDOW);
 	COMBAT_DATA_PTR->fighter[0].finisherProgress = 0;
 	if (COMBAT_DATA_PTR->player.hoveredCommand[0] == 0) {
 		COMBAT_DATA_PTR->player.hoveredCommand[0] = COMBAT_DATA_PTR->player.numCommands[0] - 1;
@@ -423,8 +424,8 @@ void STD_tickFinisherChargeup(void)
 		up = 1;
 	}
 
-	if ((COMBAT_DATA_PTR->player.finisherChargeup[0] < 0x50) && (up != 0)) {
-		COMBAT_DATA_PTR->player.finisherChargeup[0] += 2;
+	if ((COMBAT_DATA_PTR->player.finisherChargeup[0] < BM(CHG_MAX)) && (up != 0)) {
+		COMBAT_DATA_PTR->player.finisherChargeup[0] += BM(CHG_PRESS);
 	}
 }
 

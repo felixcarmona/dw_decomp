@@ -159,9 +159,7 @@ static void *vs_main_functions[] = {
 	VS_getAttackTech,
 };
 
-uint8_t VS_YOUR_CALL_POWER_PRIO[4] = { 50, 20, 5, 0 };
-uint8_t VS_YOUR_CALL_MP_PRIO[4] = { 50, 20, 10, 0 };
-uint8_t VS_YOUR_CALL_WIDE_PRIO[4] = { 10, 5, 0, 0 };
+/* MOD (battle as data): the three "Your call" priority rows (power, MP, wide) are MOD_BT_PRIO_POWER0.. / _MP0.. / _WIDE0.. */
 int8_t MAIN_D_80134AC8[2] = { -1, -1 };
 
 COMMANDS_TEXT
@@ -777,12 +775,12 @@ void VS_applyChargeRequirement(DigimonEntity *digimon, FighterData *fighter, int
 		}
 		break;
 	case 1:
-		if ((fighter->speedBuffer != 100) && (fighter->speedBuffer < MOVE_DATA[tech].power)) {
+		if ((fighter->speedBuffer < BM(SPEED_MAX)) && (fighter->speedBuffer < MOVE_DATA[tech].power)) {
 			fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 		}
 		break;
 	case 2:
-		if (fighter->speedBuffer < 100) {
+		if (fighter->speedBuffer < BM(SPEED_MAX)) {
 			fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 		}
 		break;
@@ -813,8 +811,8 @@ void VS_startFighterMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 			entityLookAtLocation(&digimon->entity, &target->entity.posData->location);
 			startAnimation(&digimon->entity, fighter->queuedAnim);
 			digimon->entity.anim.animFlag &= 0xfe;
-			VS_ACTIVE_FINISHER_AURA_ID = VS_addFinisherAura(&digimon->entity, 0x50);
-			VS_FINISHER_TIMER = 0x50;
+			VS_ACTIVE_FINISHER_AURA_ID = VS_addFinisherAura(&digimon->entity, BM(FIN_HOLD));
+			VS_FINISHER_TIMER = BM(FIN_HOLD);
 			return;
 		}
 	}
@@ -845,7 +843,7 @@ void VS_startFighterMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 		VS_playMoveEffect(digimon, target, fighter);
 		return;
 	}
-	fighter->flatAttackTimer = 0x1e;
+	fighter->flatAttackTimer = BM(T_FLAT_ATTACK);
 }
 
 int32_t VS_selectMoveTarget(Entity *entity, FighterData *fighter)
@@ -1632,19 +1630,19 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 		VS_sortScoresDescending(values, keys, groups, 3);
 		for (i = 0; i < 3; i++) {
 			if (stats->base.moves[keys[i]] == 0xff) {
-				weights[keys[i]] += 5;
+				weights[keys[i]] += BM(AI_EMPTY_WEIGHT);
 			} else if (flags[keys[i]] != 0) {
-				weights[keys[i]] = VS_YOUR_CALL_POWER_PRIO[groups[i]];
+				weights[keys[i]] = BM(PRIO_POWER0 + groups[i]);
 			}
 		}
 		break;
 	case 1:
 		for (i = 0; i < 3; i++) {
 			if (stats->base.moves[i] == 0xff) {
-				weights[i] += 5;
+				weights[i] += BM(AI_EMPTY_WEIGHT);
 			}
 			if (flags[i] != 0) {
-				weights[i] += 0x14;
+				weights[i] += BM(AI_MODE1_WEIGHT);
 			}
 		}
 		break;
@@ -1660,9 +1658,9 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 		VS_sortScoresAscending(values, keys, groups, 3);
 		for (i = 0; i < 3; i++) {
 			if (stats->base.moves[keys[i]] == 0xff) {
-				weights[keys[i]] += 5;
+				weights[keys[i]] += BM(AI_EMPTY_WEIGHT);
 			} else if (flags[keys[i]] != 0) {
-				weights[keys[i]] = VS_YOUR_CALL_MP_PRIO[groups[i]];
+				weights[keys[i]] = BM(PRIO_MP0 + groups[i]);
 			}
 		}
 		break;
@@ -1688,19 +1686,19 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 		count = VS_countLivingEnemies();
 		switch (digimon->stats.current.chargeMode) {
 		case 0:
-			if ((stats->base.brain >= 0xc8) && (count >= 2)) {
-				weights[i] += count * 10;
+			if ((stats->base.brain >= BM(AI_GROUP_BRAIN)) && (count >= 2)) {
+				weights[i] += count * BM(AI_GROUP_BONUS0);
 			}
 			break;
 		case 1:
-			if ((stats->base.brain >= 0xc8) && (count >= 2)) {
-				weights[i] += count * 15;
+			if ((stats->base.brain >= BM(AI_GROUP_BRAIN)) && (count >= 2)) {
+				weights[i] += count * BM(AI_GROUP_BONUS1);
 			}
 			break;
 		case 2:
-			if ((stats->base.brain >= 0xc8) && (count >= 2)) {
-				weights[i] += count * 15;
-			} else if ((stats->current.currentHP * 100 / stats->base.hp) < 0x1f) {
+			if ((stats->base.brain >= BM(AI_GROUP_BRAIN)) && (count >= 2)) {
+				weights[i] += count * BM(AI_GROUP_BONUS2);
+			} else if ((stats->current.currentHP * 100 / stats->base.hp) < BM(AI_LOWHP_PCT)) {
 				for (j = 0; j < 3; j++) {
 					if (flags[i] == 0) {
 						values[i] = -1;
@@ -1717,7 +1715,7 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 					if (flags[i] == 0) {
 						continue;
 					}
-					weights[keys[i]] = VS_YOUR_CALL_WIDE_PRIO[groups[i]];
+					weights[keys[i]] = BM(PRIO_WIDE0 + groups[i]);
 				}
 			}
 			break;
@@ -1752,16 +1750,17 @@ int16_t VS_calculateElementBonus(int16_t arg0, int16_t arg1)
 {
 	switch (TYPE_FACTORS[arg0][arg1]) {
 	case 20:
-		return 10;
+		return BM(ELEM0);
 	case 15:
-		return 7;
+		return BM(ELEM1);
 	case 10:
-		return 5;
+		return BM(ELEM2);
 	case 5:
-		return 3;
+		return BM(ELEM3);
 	case 2:
-		return 1;
+		return BM(ELEM4);
 	}
+	return 0;
 }
 
 int32_t VS_countLivingEnemies(void)
