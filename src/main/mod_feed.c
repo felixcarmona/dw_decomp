@@ -1,22 +1,8 @@
 /*
- * MOD (care menu): X in front of the partner opens a list of what answers its needs.
- *
- * On the map, with the tamer facing the partner (within 45 degrees) and close enough (its item take distance plus
- * FEED_SLACK, as checkEatDistance measures), X opens a box laid out as the inventory's (two columns of icon, name
- * and amount, the description box under it) with what the partner needs now and nothing else, every need at once,
- * most urgent first with the cursor on it: Scold when a scolding is fair (ITEM_SCOLD_FLAG 1: it refused an item out
- * of indiscipline, it pooped on the ground), what cures an injury or a sickness it has (handleStatusItems with a
- * cure in its effect row: Medicine before Bandage), the Port. potty when it needs to go, food when it is hungry (its
- * favourite first, its name in gold), what restores HP or MP short of the maximum (the items the field can use),
- * Sleep when it is sleepy (the triangle menu's commands, with their icons). The description box adds a line when
- * there is something to know: its favourite food, a cure that may not work. X gives the chosen item as Items > Use
- * does (startFeedingItem: the partner comes, takes it or refuses it, one unit is used), a command does what the
- * triangle menu's does (Scold: discipline up and the next item taken; Sleep), triangle closes the box. When the
- * partner refuses the item this menu gave and a scolding is fair, the menu opens again on its own with Scold under
- * the cursor. With nothing to offer X does nothing here. While the box is open the clock stops, as with the triangle
- * menu. While X would open it, an X button is drawn beside the condition bubbles (bubble.c).
- * Hooked from tamerTickWalkingState() (tamer.c), after checkMapInteraction(): talking to an NPC, a chest or a
- * press tile take the X first.
+ * Field quick care: Square opens the ranked needs list from any partner distance or facing.
+ * Confirm/Cancel inside the list keep the selected control layout. Giving an item uses the normal
+ * feeding/refusal flow; opening the list never consumes it. Field Confirm belongs to map interaction.
+ * The Square badge keeps the condition ring's original position, scale and animation.
  */
 #include <libgs.h>
 
@@ -40,8 +26,6 @@
 #define FEED_LIST_BOX	0	/* box 0: the game reads it as "a menu is open" (the triangle menu, the inventory) */
 #define FEED_DESC_BOX	1
 #define FEED_ROWS_SHOWN	5	/* rows of two items, as the 10-slot inventory */
-#define FEED_SLACK	12	/* added to the item take distance (x 20 units in checkEatDistance) */
-#define FEED_FACING	0x200	/* 45 degrees either side */
 #define PARTNER_NORMAL	1	/* PARTNER_STATE */
 #define PARTNER_SLEEP	3	/* PARTNER_STATE: partnerTickSleep, as the triangle menu's Sleep */
 #define PORT_POTTY	0x20
@@ -57,8 +41,7 @@
 #define FEED_DESC_V	0xC0	/* text area rows of the description and the note: under the 16 rows of names */
 #define FEED_NOTE_V	0xCC
 
-/* 1 for a tick in which X would open the menu: bubble.c (tickConditionRingObject) reads it and clears it, and
- * draws an X badge beside the condition bubbles while it comes */
+/* One tick of care availability; bubble.c clears it after updating the existing badge animation. */
 int32_t MOD_FEED_HINT = 0;
 
 enum { FEED_OPENING, FEED_OPEN, FEED_CLOSING, FEED_GIVING, FEED_WATCHING };
@@ -76,14 +59,13 @@ extern int32_t POLLED_INPUT_PREVIOUS;
 extern uint32_t CHANGED_INPUT;
 extern int32_t IS_IN_MENU;
 extern int8_t TAMER_STATE;
+extern int8_t GAME_STATE;
 extern int8_t PARTNER_STATE;
 extern int8_t ITEM_SCOLD_FLAG;
 extern uint8_t INVENTORY_POINTER;
 extern TamerEntity TAMER_ENTITY;
 extern char *ITEM_DESCS[];
 
-int32_t _atan(int32_t dy, int32_t dx);
-int32_t checkEatDistance(int32_t distance);
 void tamerSetState(int32_t state);
 void startAnimation(Entity *entity, int32_t animId);
 void setPartnerIdling(void);
@@ -256,25 +238,6 @@ static char *feedName(int32_t i)
 {
 	return IS_COMMAND(feedSlots[i]) ? FEED_COMMANDS[feedSlots[i] - FEED_SCOLD].name
 	                                : ITEM_NAME(INVENTORY.types.array[feedSlots[i]]);
-}
-
-/* the partner is within FEED_FACING of where the tamer looks, and close enough to take an item */
-static int32_t feedPartnerAhead(void)
-{
-	VECTOR *t = &TAMER_ENTITY.entity.posData->location;
-	VECTOR *p = &PARTNER_ENTITY.digimonEntity.entity.posData->location;
-	int32_t diff;
-	int32_t reach;
-
-	reach = getItemTakeDistance(PARTNER_ENTITY.digimonEntity.entity.type) + FEED_SLACK;
-	if (reach > 127) {
-		reach = 127;
-	}
-	if (checkEatDistance(reach) == 0) {
-		return 0;
-	}
-	diff = (_atan(p->vz - t->vz, p->vx - t->vx) - TAMER_ENTITY.entity.posData->rotation.vy) & 0xFFF;
-	return diff <= FEED_FACING || diff >= 0x1000 - FEED_FACING;
 }
 
 static int32_t feedRows(void)
@@ -530,20 +493,19 @@ static int32_t feedOpen(void)
 	return 1;
 }
 
-/* from tamerTickWalkingState: 1 when X opened the menu. Any other use of X there comes first: an NPC talked to, a
- * press tile or a warp (a script started: IS_SCRIPT_PAUSED 0), a chest (TAMER_STATE 14), an item on the ground
- * (checkItemPickup: TAMER_STATE 7) */
+/* Only ordinary field walking calls this, after map interaction has taken priority. */
 int32_t modFeedTick(void)
 {
-	if (TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
+	if (GAME_STATE != 0 || IS_IN_MENU != 0 || TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
 	    UI_BOX_DATA[FEED_LIST_BOX].state != 0 || UI_BOX_DATA[FEED_LIST_BOX].frame != 0 ||
 	    UI_BOX_DATA[FEED_DESC_BOX].state != 0 || UI_BOX_DATA[FEED_DESC_BOX].frame != 0 ||
-	    PARTNER_STATE != PARTNER_NORMAL || TAMER_ITEM.worldItem.type != ITEM_NONE || !feedPartnerAhead() ||
+	    PARTNER_STATE != PARTNER_NORMAL || TAMER_ITEM.worldItem.type != ITEM_NONE ||
 	    feedCollect() == 0) {
 		return 0;
 	}
-	MOD_FEED_HINT = 1; /* X would open the menu: bubble.c draws the X badge */
-	if ((CHANGED_INPUT & CONFIRM_BUTTON) == 0 || !feedOpen()) {
+	MOD_FEED_HINT = 1;
+	/* A simultaneous Confirm goes to talking/training, never to both actions. */
+	if ((CHANGED_INPUT & CONFIRM_BUTTON) != 0 || (CHANGED_INPUT & 0x80) == 0 || !feedOpen()) {
 		return 0;
 	}
 	addObject(FEED_OBJECT_ID, 0, feedTick, NULL);
