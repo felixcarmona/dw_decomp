@@ -191,7 +191,7 @@ void VS__addIntroText(entity, id)
 	VS__INTRO_DATA_FRAME_COUNT = 4;
 	VS__INTRO_DATA_RENDERED_CHARACTERS = 0;
 
-	switch (DIGIMON_DATA[entity->type].special[0]) {
+	switch (DIGI_PARA(entity->type).special[0]) {
 	case 0:
 		VS__INTRO_DATA_COLOR = 3;
 		break;

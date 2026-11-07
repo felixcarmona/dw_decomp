@@ -27,6 +27,7 @@
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/partner.h>
+#include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/types.h>
 #include <dw/ui.h>
@@ -3365,6 +3366,7 @@ int32_t main(void)
 	initializeMedalModel();
 	initializeClockData();
 	initializeStatusObjects();
+	initializeSpecies(); /* MOD (species): DIGI.DAT */
 	loadTIMFile(MAIN_D_8012CE64, GENERAL_BUFFER_PTR);
 
 	for (;;) {
@@ -3859,11 +3861,11 @@ void recalculatePPandArena(void)
 
 	pp = 0;
 	for (i = 3; i < 0x3b; i++) {
-		if ((DIGIMON_DATA[i].level >= 3) && (isTriggerSet((uint16_t)(TRIGGER_RECRUITED_BASE + i)) != 0)) {
+		if ((DIGI_PARA(i).level >= 3) && (isTriggerSet((uint16_t)(TRIGGER_RECRUITED_BASE + i)) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
 			} else {
-				pp += (uint8_t)(DIGIMON_DATA[i].level - 2);
+				pp += (uint8_t)(DIGI_PARA(i).level - 2);
 			}
 		}
 	}
@@ -4394,7 +4396,7 @@ static int32_t modAbs(int32_t v)
 static void modClearBoneFlags(Entity *entity)
 {
 	PositionData *pd = entity->posData;
-	int32_t n = DIGIMON_DATA[entity->type].boneCount;
+	int32_t n = DIGI_PARA(entity->type).boneCount;
 	int32_t i;
 
 	for (i = 0; i < n; i++, pd++) {
@@ -4462,7 +4464,7 @@ static void modInterpSnapshotBones(int32_t snap)
 		    !(modBonePrevAnimFlag[i] & 1)) {
 			continue;
 		}
-		n = DIGIMON_DATA[e->type].boneCount;
+		n = DIGI_PARA(e->type).boneCount;
 		pd = e->posData + 1;
 		pb = modBonePrev[i];
 		mask = 0;
@@ -4570,7 +4572,7 @@ static void modInterpKeepBones(void)
 		    modRootOwnRender[i]) {
 			continue;
 		}
-		n = DIGIMON_DATA[e->type].boneCount;
+		n = DIGI_PARA(e->type).boneCount;
 		if (n - 1 > MOD_BONES_MAX) {
 			continue;
 		}
@@ -5038,7 +5040,7 @@ static void modInterpEndTick(void)
 		}
 		e = ENTITY_TABLE[i];
 		pd = e->posData;
-		n = DIGIMON_DATA[e->type].boneCount;
+		n = DIGI_PARA(e->type).boneCount;
 		for (b = 0; b < n; b++, pd++) {
 			if (pd->obj.tmd != NULL) {
 				GsGetLws(pd->obj.coord2, &lw, &ls);

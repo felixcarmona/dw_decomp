@@ -421,7 +421,7 @@ void BTL_tickPartnerAI(void)
 			if ((((DigimonEntity *)partner)->stats.base.moves[COMBAT_DATA_PTR->player.currentCommand[0] - 8] != fighter->queuedAnim) || (fighter->moveRange <= 0)) {
 				BTL_setupQueuedMove((DigimonEntity *)partner, fighter, 0, COMBAT_DATA_PTR->player.currentCommand[0] - 8);
 			}
-			BTL_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGIMON_DATA[partner->type].moves[fighter->queuedAnim - 0x2e]);
+			BTL_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGI_PARA(partner->type).moves[fighter->queuedAnim - 0x2e]);
 			return;
 		case 11:
 			if ((fighter->targetId != 0) && (BTL_isFighterDefeated(fighter->targetId) != 0)) {
@@ -974,7 +974,7 @@ void BTL_tickAttackState(Entity *entity, DigimonEntity *target, int32_t id)
 			for (i = 0; i <= ENEMY_COUNT; ++i) {
 				if (i != id) {
 					other = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
-					if (DIGIMON_DATA[other->type].moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
+					if (DIGI_PARA(other->type).moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
 						if (id == COMBAT_DATA_PTR->fighter[i].targetId) {
 							return;
 						}
@@ -1194,7 +1194,7 @@ void BTL_tickQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterDa
 			break;
 		case 2:
 		case 3:
-			BTL_tickRangedAttack(digimon, target, fighter, DIGIMON_DATA[digimon->entity.type].moves[fighter->queuedAnim - 0x2e]);
+			BTL_tickRangedAttack(digimon, target, fighter, DIGI_PARA(digimon->entity.type).moves[fighter->queuedAnim - 0x2e]);
 			break;
 		case 4:
 			handleBattleIdle(digimon, &digimon->stats, fighter->flags);
@@ -1263,7 +1263,7 @@ int32_t BTL_tickMeleeAttack(DigimonEntity *digimon, DigimonEntity *target, Fight
 	orig = *rot;
 	if (target != NULL) {
 		dist = BTL_getDistanceSquared(&digimon->entity, &target->entity);
-		radius = DIGIMON_DATA[digimon->entity.type].radius + DIGIMON_DATA[target->entity.type].radius;
+		radius = DIGI_PARA(digimon->entity.type).radius + DIGI_PARA(target->entity.type).radius;
 		radius = radius * radius;
 		if (dist <= radius) {
 			handleBattleIdle(digimon, &digimon->stats, fighter->flags);
@@ -1347,7 +1347,7 @@ void BTL_tickRangedAttack(DigimonEntity *digimon, DigimonEntity *target, Fighter
 	}
 
 	dist = BTL_getDistanceSquared(&digimon->entity, &target->entity);
-	total = DIGIMON_DATA[digimon->entity.type].radius + DIGIMON_DATA[target->entity.type].radius;
+	total = DIGI_PARA(digimon->entity.type).radius + DIGI_PARA(target->entity.type).radius;
 	total = *(uint32_t *)&MOVE_DATA[move].distance + (total * total);
 	if (dist > (total + (total * 3 / 10))) {
 		BTL_setWalking(&digimon->entity, &digimon->stats, fighter->flags);
@@ -1632,7 +1632,7 @@ int32_t BTL_getContactRangeSquared(int32_t *a, int32_t *b)
 {
 	int32_t reach;
 
-	reach = DIGIMON_DATA[*a].radius + DIGIMON_DATA[*b].radius + 0xc8;
+	reach = DIGI_PARA(*a).radius + DIGI_PARA(*b).radius + 0xc8;
 
 	return reach * reach;
 }
@@ -1925,7 +1925,7 @@ int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender,
 	int32_t x;
 	int16_t result;
 
-	if (DIGIMON_DATA[defender->entity.type].level < 3) {
+	if (DIGI_PARA(defender->entity.type).level < 3) {
 		return 100;
 	}
 
@@ -1996,8 +1996,8 @@ int32_t BTL_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	int16_t def;
 
 	for (i = 0; i < 3; i++) {
-		if (DIGIMON_DATA[defender->entity.type].special[i] != 0xff) {
-			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGIMON_DATA[defender->entity.type].special[i]];
+		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
+			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
 			mult[i] = 10;
 		}
@@ -2114,7 +2114,7 @@ void BTL_tickAttackHits(void)
 		}
 		entity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		tech = BTL_getAttackTech(&attack);
-		if (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
+		if (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
 			if (COMBAT_DATA_PTR->player.entityIds[fighter->targetId] == attack.casterId) {
 				((DigimonEntity *)entity)->stats.current.isHit = 0;
 				continue;
@@ -2161,14 +2161,14 @@ void BTL_tickAttackHits(void)
 			continue;
 		}
 		handled = 0;
-		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
+		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
 				if (((DigimonEntity *)entity)->stats.current.currentMP < 0xa5) {
 					break;
 				}
-				if ((moves[j] != 0xff) && (DIGIMON_DATA[entity->type].moves[moves[j] - 0x2e] == 0x2d)) {
-					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGIMON_DATA[entity->type].level)) {
+				if ((moves[j] != 0xff) && (DIGI_PARA(entity->type).moves[moves[j] - 0x2e] == 0x2d)) {
+					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGI_PARA(entity->type).level)) {
 						fighter->queuedAnim = moves[j];
 						fighter->targetId = BTL_getFighterSlot(attack.casterId);
 						fighter->moveRange = 1;
@@ -3143,7 +3143,7 @@ int16_t BTL_getMostEffectiveMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGIMON_DATA[target->type].special[0]];
+			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGI_PARA(target->type).special[0]];
 		} else {
 			score[i] = -1;
 		}
@@ -3409,8 +3409,8 @@ int16_t BTL_calculateTargetScore(DigimonEntity *self, DigimonEntity *other)
 	int16_t mult;
 
 	st = &self->stats;
-	mult = TYPE_FACTORS[DIGIMON_DATA[self->entity.type].special[0]]
-			      [DIGIMON_DATA[other->entity.type].special[0]];
+	mult = TYPE_FACTORS[DIGI_PARA(self->entity.type).special[0]]
+			      [DIGI_PARA(other->entity.type).special[0]];
 	switch (mult) {
 	case 20:
 		mult = 2;
@@ -3561,10 +3561,10 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
 		if (MOVE_DATA[tech].range == 4) {
-			weights[i] += fighter->buffPrioTimer + BTL_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[digimon->entity.type].special[0]);
+			weights[i] += fighter->buffPrioTimer + BTL_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
-		weights[i] += BTL_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type].special[0]);
+		weights[i] += BTL_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
 		if (MOVE_DATA[tech].range != 3) {
 			continue;
 		}

@@ -1198,7 +1198,7 @@ void renderDirtCartModel(int32_t instanceId)
 	location = &PARTNER_ENTITY.digimonEntity.entity.posData->location;
 	translation.vx = 0;
 	translation.vy = 0;
-	translation.vz = DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].radius + 100;
+	translation.vz = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).radius + 100;
 
 	RotMatrix(&PARTNER_ENTITY.digimonEntity.entity.posData->rotation,
 		  &matrix);

@@ -5,6 +5,7 @@
 #include <dw/main.h>
 #include <dw/sound.h>
 #include <dw/sound_async.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/version.h>
 
@@ -224,7 +225,7 @@ int32_t readVBALLSection(int32_t vabId, int32_t idx)
 		sb->vabId = -1;
 	}
 
-	soundId = DIGIMON_VBALL_SOUND_ID[idx];
+	soundId = getDigimonVballId(idx); /* MOD (species) */
 	loadVHBFile(vabId, "VBALL", GENERAL_BUFFER, soundId * 7, 7);
 
 	return vabId;
@@ -278,7 +279,7 @@ int32_t loadVLALL(int32_t idx, uint8_t *buffer)
 
 	readVBALLSection(4, idx);
 
-	if ((idx >= 1) && (idx <= 0x41)) {
+	if ((idx >= 1) && (idx < NUM_DIGIMON)) { /* MOD: was idx <= 0x41 */
 		soundId = DIGIMON_VLALL_SOUND_ID[idx];
 	} else {
 		soundId = 0xf;

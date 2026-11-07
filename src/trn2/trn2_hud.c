@@ -216,11 +216,11 @@ int16_t TRN2_calculateTrainingMultiplier(type, mode)
 	}
 
 	den = 10;
-	if ((DIGIMON_DATA[type].level == 1) || (DIGIMON_DATA[type].level == 2)) {
+	if ((DIGI_PARA(type).level == 1) || (DIGI_PARA(type).level == 2)) {
 		num = num * 9;
-	} else if (DIGIMON_DATA[type].level == 3) {
+	} else if (DIGI_PARA(type).level == 3) {
 		num = num * 10;
-	} else if (DIGIMON_DATA[type].level == 4) {
+	} else if (DIGI_PARA(type).level == 4) {
 		num = num * 11;
 	} else {
 		num = num * 12;

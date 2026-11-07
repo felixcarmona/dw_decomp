@@ -469,8 +469,8 @@ void VS_updateCameraLerp(int32_t t, int8_t flip)
 
 	off = VS_INTRO_CAMERA_STAGE2_POS;
 	rot = VS_INTRO_CAMERA_STAGE2_ROT;
-	base = ((((DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height +
-	           DIGIMON_DATA[VS_FOCUSED_ENTITY->type].radius) /
+	base = ((((DIGI_PARA(VS_FOCUSED_ENTITY->type).height +
+	           DIGI_PARA(VS_FOCUSED_ENTITY->type).radius) /
 	          2) *
 	         0x62c) /
 	        450);
@@ -489,7 +489,7 @@ void VS_updateCameraLerp(int32_t t, int8_t flip)
 	}
 
 	rot.vy += VS_FOCUSED_ENTITY->posData->rotation.vy;
-	off.vy = (-DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height * 2) / 3;
+	off.vy = (-DIGI_PARA(VS_FOCUSED_ENTITY->type).height * 2) / 3;
 	VS_setViewpointFromBone(VS_FOCUSED_ENTITY, &off, &rot, dist);
 }
 
@@ -566,8 +566,8 @@ void VS_tickCameraChase(void)
 				rot.vy = lerp(0x638, 0x293, 0, 0x23, dist);
 			}
 			rot.vy += VS_FOCUSED_ENTITY->posData->rotation.vy;
-			off.vy = (-DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height * 7) / 10;
-			d2 = (((DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height + DIGIMON_DATA[VS_FOCUSED_ENTITY->type].radius) / 2) * 0x5aa) / 450;
+			off.vy = (-DIGI_PARA(VS_FOCUSED_ENTITY->type).height * 7) / 10;
+			d2 = (((DIGI_PARA(VS_FOCUSED_ENTITY->type).height + DIGI_PARA(VS_FOCUSED_ENTITY->type).radius) / 2) * 0x5aa) / 450;
 			VS_setViewpointFromBone(VS_FOCUSED_ENTITY, &off, &rot, d2);
 			GS_VIEWPOINT.vpy = (off.vy * 7) / 10;
 			if (GS_VIEWPOINT.vpy > -0xb4) {
@@ -623,8 +623,8 @@ void VS_startCameraChase(entity, dx, side)
 		rot.vy = 0x638;
 	}
 	rot.vy += VS_FOCUSED_ENTITY->posData->rotation.vy;
-	off.vy = (-DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height * 2) / 3;
-	dist = (((DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height + DIGIMON_DATA[VS_FOCUSED_ENTITY->type].radius) / 2) * 0x5aa) / 450;
+	off.vy = (-DIGI_PARA(VS_FOCUSED_ENTITY->type).height * 2) / 3;
+	dist = (((DIGI_PARA(VS_FOCUSED_ENTITY->type).height + DIGI_PARA(VS_FOCUSED_ENTITY->type).radius) / 2) * 0x5aa) / 450;
 	VS_setViewpointFromBone(VS_FOCUSED_ENTITY, &off, &rot, dist);
 	GS_VIEWPOINT.vpy = (off.vy * 3) / 10;
 	if (GS_VIEWPOINT.vpy > -0xb4) {
@@ -658,7 +658,7 @@ void VS_tickCameraIntro(void)
 	 * VS_D_80071A18[0], which follows it there; GCC places other data next. */
 	VS_setViewpointFromBone(VS_D_80071A18[0], &off, &rot, VS_D_80071A0C[2]);
 #endif
-	GS_VIEWPOINT.vry = (-DIGIMON_DATA[VS_D_80071A18[0]->type].height * 2) / 3;
+	GS_VIEWPOINT.vry = (-DIGI_PARA(VS_D_80071A18[0]->type).height * 2) / 3;
 	GS_VIEWPOINT.vpy = -processSomeArenaArrays(0x16, p[0], VS_D_800706C8, VS_D_80071AE0, VS_D_80071A88);
 	p[0]++;
 }
@@ -697,19 +697,19 @@ void VS_startCameraIntro(Entity *target, Entity *entity)
 	}
 	VS_setViewpointFromBone(target, &off, &rot, VS_D_80071A0C[2]);
 
-	VS_D_80071A0C[3] = DIGIMON_DATA[target->type].radius * 3 * 2;
-	GS_VIEWPOINT.vry = (-DIGIMON_DATA[target->type].height * 2) / 3;
-	GS_VIEWPOINT.vpy = -DIGIMON_DATA[entity->type].height;
+	VS_D_80071A0C[3] = DIGI_PARA(target->type).radius * 3 * 2;
+	GS_VIEWPOINT.vry = (-DIGI_PARA(target->type).height * 2) / 3;
+	GS_VIEWPOINT.vpy = -DIGI_PARA(entity->type).height;
 	VS_D_80071A0C[4] = GS_VIEWPOINT.vpy;
 	VS_D_80071A0C[5] = GS_VIEWPOINT.vpy * 250 / 100;
-	VS_D_80071AE0[0] = DIGIMON_DATA[entity->type].height;
-	VS_D_80071AE0[1] = DIGIMON_DATA[entity->type].height;
-	VS_D_80071AE0[2] = DIGIMON_DATA[entity->type].height * 200 / 100;
-	VS_D_80071AE0[3] = DIGIMON_DATA[target->type].height * 380 / 100;
-	VS_D_80071AF0[0] = DIGIMON_DATA[target->type].height * 250 / 100;
+	VS_D_80071AE0[0] = DIGI_PARA(entity->type).height;
+	VS_D_80071AE0[1] = DIGI_PARA(entity->type).height;
+	VS_D_80071AE0[2] = DIGI_PARA(entity->type).height * 200 / 100;
+	VS_D_80071AE0[3] = DIGI_PARA(target->type).height * 380 / 100;
+	VS_D_80071AF0[0] = DIGI_PARA(target->type).height * 250 / 100;
 	for (i = 5; i < 0x16; i++) {
 		VS_D_80071AE0[i] =
-			customRandom(0x50, DIGIMON_DATA[target->type].height * 180 / 100);
+			customRandom(0x50, DIGI_PARA(target->type).height * 180 / 100);
 	}
 	initializeSomeArenaArrays(0x16, (int32_t)VS_D_800706C8, (int32_t)VS_D_80071AE0, VS_D_80071A88);
 
@@ -743,7 +743,7 @@ void VS_applyEntityViewpoint(void)
 	GsSetProjection(VIEWPORT_DISTANCE);
 	m = &VS_FOCUSED_ENTITY->posData->posMatrix.workm;
 	GS_VIEWPOINT.vrx = m->t[0];
-	GS_VIEWPOINT.vry = -DIGIMON_DATA[VS_FOCUSED_ENTITY->type].height * 2 / 3;
+	GS_VIEWPOINT.vry = -DIGI_PARA(VS_FOCUSED_ENTITY->type).height * 2 / 3;
 	GS_VIEWPOINT.vrz = m->t[2];
 	GsSetRefView2(&GS_VIEWPOINT);
 }

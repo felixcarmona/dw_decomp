@@ -356,9 +356,9 @@ int32_t MURD_isDigimonLargerThanIris(Entity *entity, int32_t start, int32_t end,
 	int32_t result;
 
 	pos.vx = entity->posData->location.vx;
-	pos.vy = entity->posData->location.vy - (DIGIMON_DATA[entity->type].height / 2);
+	pos.vy = entity->posData->location.vy - (DIGI_PARA(entity->type).height / 2);
 	pos.vz = entity->posData->location.vz;
-	size = getDistance(DIGIMON_DATA[entity->type].radius * 2, DIGIMON_DATA[entity->type].height, DIGIMON_DATA[entity->type].radius * 2);
+	size = getDistance(DIGI_PARA(entity->type).radius * 2, DIGI_PARA(entity->type).height, DIGI_PARA(entity->type).radius * 2);
 	radius = (lerp(0xc8, 0, start, end, t) << 12) / 128;
 
 	z = worldPosToScreenPos(&pos, &screen);
@@ -501,7 +501,7 @@ void MURD_renderDigimon(Entity *entity, int32_t depth)
 	type = entity->type;
 	animId = entity->anim.animId;
 	pos = entity->posData;
-	count = DIGIMON_DATA[type].boneCount;
+	count = DIGI_PARA(type).boneCount;
 	location = pos->location;
 	rotation = pos->rotation;
 	m = GsWSMATRIX;
@@ -560,9 +560,9 @@ int32_t MURD_renderIris(Entity *entity, int32_t start, int32_t end, int32_t t)
 	int32_t right;
 
 	pos.vx = entity->posData->location.vx;
-	pos.vy = entity->posData->location.vy - (DIGIMON_DATA[entity->type].height / 2);
+	pos.vy = entity->posData->location.vy - (DIGI_PARA(entity->type).height / 2);
 	pos.vz = entity->posData->location.vz;
-	size = getDistance(DIGIMON_DATA[entity->type].radius * 2, DIGIMON_DATA[entity->type].height, DIGIMON_DATA[entity->type].radius * 2);
+	size = getDistance(DIGI_PARA(entity->type).radius * 2, DIGI_PARA(entity->type).height, DIGI_PARA(entity->type).radius * 2);
 	radius = (lerp(0xc8, 0, start, end, t) << 12) / 128;
 	z = worldPosToScreenPos(&pos, &screen);
 	if (z <= 0) {

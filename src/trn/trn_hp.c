@@ -53,7 +53,7 @@ int16_t arg;
 		MAIN_D_8013536E = 0x10;
 		addObject(0xfab, 0, (TickFunction)TRN_tickHpTraining, NULL);
 		MAIN_D_80135370 = readPStat(0xf6);
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeHPcounter++;
 		}
 		TRAINING_COMPLETE = 0;
