@@ -1246,6 +1246,8 @@ int32_t BTL_handlePartnerMoveCommand(DigimonEntity *digimon, DigimonEntity *targ
 	return 0;
 }
 
+extern int8_t MOD_BATTLE_LOADING; /* MOD (quick battle start), btl.c */
+
 int32_t BTL_tickMeleeAttack(DigimonEntity *digimon, DigimonEntity *target, FighterData *fighter, int16_t arg3)
 {
 	int16_t *rot;
@@ -1265,6 +1267,11 @@ int32_t BTL_tickMeleeAttack(DigimonEntity *digimon, DigimonEntity *target, Fight
 		radius = radius * radius;
 		if (dist <= radius) {
 			handleBattleIdle(digimon, &digimon->stats, fighter->flags);
+			/* Melee starts its animation and effect here, bypassing BTL_startQueuedMove.
+			 * Keep the queued move until the sounds and effects have finished loading. */
+			if (MOD_BATTLE_LOADING) {
+				return 0;
+			}
 			if (NO_AI_FLAG != 0) {
 				if (FINISHING_ENTITY != &digimon->entity) {
 					return 0;
@@ -1303,6 +1310,9 @@ int32_t BTL_tickMeleeAttack(DigimonEntity *digimon, DigimonEntity *target, Fight
 			BTL_setWalking(&digimon->entity, &digimon->stats, fighter->flags);
 			entityLookAtLocation(&digimon->entity, &target->entity.posData->location);
 			goto check;
+		}
+		if (MOD_BATTLE_LOADING) {
+			return 0;
 		}
 		if (FINISHING_ENTITY != &digimon->entity) {
 			return 0;
@@ -2469,8 +2479,6 @@ void BTL_applyChargeRequirement(DigimonEntity *digimon, FighterData *fighter, in
 		break;
 	}
 }
-
-extern int8_t MOD_BATTLE_LOADING; /* MOD (quick battle start), btl.c */
 
 void BTL_startQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterData *fighter)
 {
