@@ -4416,6 +4416,8 @@ void loadSavegame(SavegamePayload *savegame)
 {
 	int32_t i;
 
+	modForgetGroundPicked(); /* A missing new record, in any old layout, means no pickups today. */
+
 	SAVED_STATE.playerPos = savegame->tamerPosition;
 	SAVED_STATE.money = savegame->money;
 	SAVED_STATE.partnerPos = savegame->partnerPosition;
@@ -4957,7 +4959,9 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_VANILLA_SWAP, swap, sizeof(swap));
 	}
 	if (fromRam) { /* MOD (ground items a day) */
-		p = putRecord(p, SAVE_TAG_GROUND_PICKED, MOD_GROUND_PICKED, sizeof(MOD_GROUND_PICKED));
+		/* Retain the old tag's meaning (an empty location list) for older readers. */
+		p = putRecord(p, SAVE_TAG_GROUND_PICKED, 0, 0);
+		p = putRecord(p, SAVE_TAG_GROUND_PICKUP_BITS, MOD_GROUND_PICKED, sizeof(MOD_GROUND_PICKED));
 	}
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
@@ -5231,6 +5235,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_OPTIONS:
 	case SAVE_TAG_VANILLA_SWAP:
 	case SAVE_TAG_GROUND_PICKED:
+	case SAVE_TAG_GROUND_PICKUP_BITS:
 		return 1;
 	}
 	return 0;
@@ -5263,7 +5268,6 @@ static void applyRecords(uint8_t *e)
 	int32_t tag, len, i, n;
 	uint8_t *d;
 
-	modForgetGroundPicked(); /* MOD (ground items a day): a save without the record picked nothing today */
 	for (;;) {
 		tag = e[at] | (e[at + 1] << 8);
 		len = e[at + 2] | (e[at + 3] << 8);
@@ -5313,16 +5317,11 @@ static void applyRecords(uint8_t *e)
 				MOD_SWAP_TO = readRecord16(d + 2);
 			}
 			break;
-		case SAVE_TAG_GROUND_PICKED:
-			n = len / 4 < MOD_GROUND_PICKED_MAX ? len / 4 : MOD_GROUND_PICKED_MAX;
+		case SAVE_TAG_GROUND_PICKUP_BITS:
+			n = len < sizeof(MOD_GROUND_PICKED) ? len : sizeof(MOD_GROUND_PICKED);
 			for (i = 0; i < n; i++) {
-				MOD_GROUND_PICKED[i].screen = readRecord16(d + 4 * i);
-				MOD_GROUND_PICKED[i].tileX = d[4 * i + 2];
-				MOD_GROUND_PICKED[i].tileY = d[4 * i + 3];
+				MOD_GROUND_PICKED[i] = d[i];
 			}
-			for (i = 0; i < MOD_GROUND_PICKED_MAX && MOD_GROUND_PICKED[i].screen != -1; i++) {
-			}
-			MOD_GROUND_NEXT = i % MOD_GROUND_PICKED_MAX; /* the first free spot (a full ring: the first) */
 			break;
 		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
 			MOD_SAVE_STORY = len >= 10 ? d[9] != 0 : 1;

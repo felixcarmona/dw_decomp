@@ -146,6 +146,7 @@
 #define SCRIPT_OP_ADD_W				0x91	/* wreg, u16 value; saturates at 0xFFFF */
 #define SCRIPT_OP_SUB_W				0x92	/* wreg, u16 value; stops at 0 */
 #define SCRIPT_OP_SWITCH_W			0x93	/* wreg, u16 count, u16 offsets[count] */
+#define SCRIPT_OP_SPAWN_ITEM_DAILY		0x9F	/* _, u16 item, s16 x, s16 z, u16 stable pickup ID, u16 screen */
 #define SCRIPT_OP_WIDE_END			0xA0	/* first opcode after the wide block */
 #define SCRIPT_OP_SET_SCRIPT			0xFB	/* _, u16 script, u16 map */
 #define SCRIPT_OP_UNUSED_FC			0xFC
