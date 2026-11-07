@@ -21,8 +21,11 @@
  *                      Machinedramon" (115; MOD machinedramon), "To Jijimon"
  *                      (117), "To Analogman" (116), and the species imported
  *                      from other games, Veemon (182), Puppetmon (183),
- *                      Kimeramon (184) (MOD dcb-import); a species the disc's
- *                      DIGI.DAT does not define is skipped
+ *                      Kimeramon (184) (MOD dcb-import), and "To Mega <name>"
+ *                      (MOD mega: the Mega the partner, an Ultimate, evolves
+ *                      to, otherwise the first Mega species in DIGI.DAT,
+ *                      docs/mods/mega.md); a species the disc's DIGI.DAT
+ *                      does not define is skipped
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -39,11 +42,13 @@
 #include <dw/btl.h>
 #include <dw/entity.h>
 #include <dw/ids.h>
+#include <dw/level.h>
 #include <dw/params.h>
 #include <dw/species.h>
 #include <dw/font.h>
 #include <dw/script.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/ui.h>
 
@@ -52,7 +57,7 @@
 #define MOD_LAB_TEXT_Y	0x90	/* text area rows we use: 0x90..0xEF (0xF0 is the pause label) */
 #define MOD_LAB_OPTIONS	6
 #define MOD_LAB_OPT_FPS	3	/* the frame rate option */
-#define MOD_LAB_OPT_EVOLVE	4	/* MOD (master-tyrannomon) */
+#define MOD_LAB_OPT_EVOLVE	4	/* MOD (master-tyrannomon, mega) */
 #define ITEM_MEAT	38
 
 #define PAD_SELECT	0x100
@@ -100,6 +105,9 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
  * MOD (partners-npc-c): the count follows the arrays, so new targets are
  * only appended to both.
  */
+/* MOD (mega): the entry whose target is modLabMegaTarget() */
+#define MOD_LAB_EVO_MEGA	-2
+
 static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_MASTER_TYRANNOMON,
 	DIGIMON_CHERRYMON,
@@ -118,6 +126,7 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 	182,
 	183,
 	184,
+	MOD_LAB_EVO_MEGA, /* MOD (mega): "To Mega <name>" */
 };
 
 static char *MOD_LAB_EVO_TEXT[] = {
@@ -135,21 +144,9 @@ static char *MOD_LAB_EVO_TEXT[] = {
 	"To Veemon",        /* MOD (dcb-import) */
 	"To Puppetmon",
 	"To Kimeramon",
+	NULL, /* MOD (mega): modLabMegaText */
 };
 #define MOD_LAB_EVO_COUNT ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
-
-/* MOD (dcb-import): next target (step 1 or COUNT-1) whose species exists */
-static void modLabStepEvoChoice(int32_t step)
-{
-	int32_t i;
-
-	for (i = 0; i < MOD_LAB_EVO_COUNT; i++) {
-		modLabEvoChoice = (modLabEvoChoice + step) % MOD_LAB_EVO_COUNT;
-		if (isValidDigimonType(MOD_LAB_EVO_TARGETS[modLabEvoChoice])) {
-			break;
-		}
-	}
-}
 
 static char *MOD_LAB_FPS_TEXT[3] = {
 	"Frame rate  20 fps",
@@ -172,6 +169,58 @@ static char *appendStr(char *dst, char *src)
 	}
 	*dst = '\0';
 	return dst;
+}
+
+/* MOD (mega): the Mega the partner evolves to if it is an Ultimate with one in
+ * its paths, otherwise the first Mega species (-1: none on the disc) */
+static int32_t modLabMegaTarget(void)
+{
+	EvolutionPath *path;
+	int32_t type;
+	int32_t i;
+
+	type = PARTNER_ENTITY.digimonEntity.entity.type;
+	if (DIGI_PARA(type).level == LEVEL_ULTIMATE) {
+		path = getEvolutionPath(type);
+		for (i = 0; i < 6; i++) {
+			if (path->to[i] > 0 && DIGI_PARA(path->to[i]).level == LEVEL_MEGA) {
+				return path->to[i];
+			}
+		}
+	}
+	for (type = NUM_ORIGINAL_DIGIMON; type < SPECIES_COUNT; type++) {
+		if (DIGI_PARA(type).level == LEVEL_MEGA) {
+			return type;
+		}
+	}
+	return -1;
+}
+
+static char modLabMegaText[32];
+
+/* MOD (integration): the species of the current evolve entry, -1 when the disc has none */
+static int32_t modLabEvoTarget(void)
+{
+	int32_t t;
+
+	t = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
+	if (t == MOD_LAB_EVO_MEGA) {
+		return modLabMegaTarget();
+	}
+	return isValidDigimonType(t) ? t : -1;
+}
+
+/* MOD (dcb-import): next target (step 1 or COUNT-1) whose species exists */
+static void modLabStepEvoChoice(int32_t step)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_LAB_EVO_COUNT; i++) {
+		modLabEvoChoice = (modLabEvoChoice + step) % MOD_LAB_EVO_COUNT;
+		if (modLabEvoTarget() >= 0) {
+			break;
+		}
+	}
 }
 
 /* Layout copied from the game's own menus (inventory option boxes): text 12 px
@@ -201,6 +250,7 @@ static void modLabDrawText(void)
 	char num[12];
 	char *p;
 	int32_t i;
+	int32_t mega;
 	Stats *stats = &PARTNER_ENTITY.digimonEntity.stats;
 
 	for (i = 0; i < ROW_COUNT; i++) {
@@ -224,7 +274,16 @@ static void modLabDrawText(void)
 		if (i == MOD_LAB_OPT_FPS) {
 			drawString(MOD_LAB_FPS_TEXT[modLabFpsMode()], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		} else if (i == MOD_LAB_OPT_EVOLVE) {
-			drawString(MOD_LAB_EVO_TEXT[modLabEvoChoice], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+			mega = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
+			if (mega == MOD_LAB_EVO_MEGA) {
+				/* MOD (mega): "To Mega <name>" */
+				p = appendStr(modLabMegaText, "To Mega ");
+				mega = modLabMegaTarget();
+				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
+				drawString(modLabMegaText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+			} else {
+				drawString(MOD_LAB_EVO_TEXT[modLabEvoChoice], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+			}
 		} else {
 			drawString(MOD_LAB_OPTION_TEXT[i], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		}
@@ -277,6 +336,7 @@ static void modLabSetFps(int32_t step)
 static void modLabApply(void)
 {
 	Stats *stats = &PARTNER_ENTITY.digimonEntity.stats;
+	int32_t mega;
 
 	switch (modLabCursor) {
 	case 0:
@@ -301,15 +361,17 @@ static void modLabApply(void)
 		modLabSetFps(1);
 		break;
 	case MOD_LAB_OPT_EVOLVE:
-		/* MOD (master-tyrannomon): as handleEvoItems does, with natural gains */
-		if (!isValidDigimonType(MOD_LAB_EVO_TARGETS[modLabEvoChoice])) {
-			modLabShowMessage("Not on this disc");
-		} else if (PARTNER_ENTITY.digimonEntity.entity.type == MOD_LAB_EVO_TARGETS[modLabEvoChoice]) {
+		/* MOD (master-tyrannomon, mega): as handleEvoItems does, with natural gains */
+		mega = modLabEvoTarget();
+		if (mega < 0) {
+			modLabShowMessage(MOD_LAB_EVO_TARGETS[modLabEvoChoice] == MOD_LAB_EVO_MEGA ? "No Mega on this disc"
+												 : "Not on this disc");
+		} else if (PARTNER_ENTITY.digimonEntity.entity.type == mega) {
 			modLabShowMessage("Already evolved");
 		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
 			modLabShowMessage("Not now, try later");
 		} else {
-			EVOLUTION_TARGET = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
+			EVOLUTION_TARGET = mega;
 			HAS_USED_EVOITEM = 0;
 			tamerSetState(6);
 			partnerSetState(13);
