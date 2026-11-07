@@ -273,6 +273,12 @@ int32_t MEMORY_CARD_SLOT;
 int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
+static int32_t MOD_BOOT_LANGUAGE;
+static int32_t MOD_BOOT_LANGUAGE_CURSOR;
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS];
+static void modDrawLanguagePicker(void);
+static void modTickLanguagePicker(void);
+static void modRenderLanguagePicker(void);
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 #define MOD_OPT_BYTES	13 /* SAVE_TAG_OPTIONS; header stores the first 12 and packs CHEATS into its count byte */
 #define MOD_OPT_HEADER_BYTES 12
@@ -1840,6 +1846,10 @@ void drawMainMenuStrings(int32_t menu)
 	SAVE_SLOT_SCROLL_TENTHS = 0;
 	NEW_CARDS = 0;
 	clearTextArea();
+	if (view == 0 && MOD_BOOT_LANGUAGE) {
+		modDrawLanguagePicker();
+		return;
+	}
 #if !VERSION_IS(US)
 	switch (view) {
 	case 0:
@@ -2662,6 +2672,10 @@ void tickMainMenu(void)
 		drawMainMenuStrings(TARGET_MENU);
 	}
 	MAIN_MENU_TICKS++;
+	if (MOD_BOOT_LANGUAGE && CURRENT_MENU == 0) {
+		modTickLanguagePicker();
+		return;
+	}
 
 	switch (CURRENT_MENU) {
 	case 0:
@@ -4825,6 +4839,7 @@ static void modCardOptions(void)
 		MOD_SAVE_NUMBER = bestNumber;
 	}
 	if (bestNumber >= 0) {
+		MOD_BOOT_LANGUAGE = 0;
 		modApplyOptions(best, bestLen);
 	}
 }
@@ -4856,6 +4871,8 @@ void modBootOptions(void)
 		}
 	}
 	modButtonsBoot(); /* MOD (options): the Japanese disc starts with JAPANESE CONTROLS on, the saves' options win */
+	MOD_BOOT_LANGUAGE = modLanguageCount() > 1;
+	MOD_BOOT_LANGUAGE_CURSOR = 0;
 	modCardOptions();
 }
 
@@ -5504,6 +5521,10 @@ int32_t countRegisteredDigimon(RegisteredDigimon *p)
 void renderMainMenu(void)
 {
 	int32_t menu;
+	if (MOD_BOOT_LANGUAGE && CURRENT_MENU == 0) {
+		modRenderLanguagePicker();
+		return;
+	}
 
 	if (CURRENT_MENU >= 0) {
 		menu = MENU_VIEWS[CURRENT_MENU];
@@ -5841,7 +5862,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
 /* the pixels of each label and value as the font draws them (drawOptionsText) */
 static uint8_t MOD_OPT_W[MOD_OPT_ROWS][1 + MOD_OPT_VALUES];
-static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE };
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN };
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
  * width, a value's, how many values a row shows (all, or 1 with the original font, 0 for 1 at the right edge: above)
@@ -6069,4 +6090,110 @@ static void renderOptionsMenu(void)
 	renderMenuBox(MOD_OPT_TEXT_X - MOD_OPT_MARGIN, 0x32,
 		      MOD_OPT_TEXT_W + 2 * MOD_OPT_MARGIN,
 		      0x16 + (MOD_OPT_ROWS - 1) * 0xC);
+}
+
+/* First boot: native language names and small procedural flags. Preferences are
+ * remembered by the existing save-header options, with no extra card writes. */
+static void modDrawLanguagePicker(void)
+{
+	int32_t i;
+	clearTextArea();
+	drawString("LANGUAGE - IDIOMA", 0, 0);
+	DrawSync(0);
+	for (i = 0; i < modLanguageCount(); i++) {
+		drawString(MOD_LANGUAGE_NAMES[modLanguageAt(i)], 0, 16 + i * 20);
+		DrawSync(0);
+	}
+	drawString("START", 0, 188);
+	DrawSync(0);
+}
+
+static void modTickLanguagePicker(void)
+{
+	int32_t count = modLanguageCount();
+	int32_t chosen;
+	if (CHANGED_INPUT & 0x1000) {
+		MOD_BOOT_LANGUAGE_CURSOR = (MOD_BOOT_LANGUAGE_CURSOR + count - 1) % count;
+		playSound(0, 2);
+	} else if (CHANGED_INPUT & 0x4000) {
+		MOD_BOOT_LANGUAGE_CURSOR = (MOD_BOOT_LANGUAGE_CURSOR + 1) % count;
+		playSound(0, 2);
+	} else if (CHANGED_INPUT & (CONFIRM_BUTTON | 0x800)) {
+		chosen = modLanguageAt(MOD_BOOT_LANGUAGE_CURSOR);
+		modSetLanguage(chosen);
+		if (MOD_LANG != chosen) return;
+		MOD_OPT_TOUCHED = 1;
+		MOD_BOOT_LANGUAGE = 0;
+		playSound(0, 3);
+		drawMainMenuStrings(0);
+	}
+}
+
+static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb)
+{
+	TILE *tile = (TILE *)GsGetWorkBase();
+	setTile(tile);
+	setRGB0(tile, rgb >> 16, (rgb >> 8) & 255, rgb & 255);
+	setXY0(tile, x - 160, y - 120);
+	setWH(tile, w, h);
+	AddPrim(ACTIVE_ORDERING_TABLE->org, tile++);
+	GsSetWorkBase((PACKET *)tile);
+}
+
+static uint32_t modFlagPixel(int32_t lang, int32_t x, int32_t y)
+{
+	int32_t dx = x - 12;
+	int32_t dy = y - 8;
+	int32_t diagonal = 2*x - 3*y;
+	int32_t other = 2*(23-x) - 3*y;
+	if (diagonal < 0) diagonal = -diagonal;
+	if (other < 0) other = -other;
+	switch (lang) {
+	case MOD_LANG_EN: /* United Kingdom */
+		if ((x >= 11 && x <= 12) || (y >= 7 && y <= 8)) return 0xd82038;
+		if ((x >= 9 && x <= 14) || (y >= 5 && y <= 10)) return 0xffffff;
+		if (diagonal < 2 || other < 2) return 0xd82038;
+		return diagonal < 5 || other < 5 ? 0xffffff : 0x163478;
+	case MOD_LANG_ES: return y < 4 || y >= 12 ? 0xc82030 : 0xffcf30;
+	case MOD_LANG_PT_BR:
+		if (dx*dx + dy*dy < 19) return dy == 0 ? 0xffffff : 0x16449a;
+		if (dx < 0) dx = -dx;
+		if (dy < 0) dy = -dy;
+		return dx*7 + dy*10 < 70 ? 0xffd632 : 0x129044;
+	case MOD_LANG_FR: return x < 8 ? 0x19489c : x < 16 ? 0xffffff : 0xe83040;
+	case MOD_LANG_DE: return y < 5 ? 0x101010 : y < 11 ? 0xd82430 : 0xffce30;
+	case MOD_LANG_IT: return x < 8 ? 0x15945a : x < 16 ? 0xffffff : 0xda3042;
+	case MOD_LANG_JA: return dx*dx + dy*dy < 21 ? 0xc82042 : 0xffffff;
+	case MOD_LANG_CA: return (y >= 1 && y <= 2) || (y >= 5 && y <= 6) || (y >= 9 && y <= 10) || (y >= 13 && y <= 14) ? 0xda2430 : 0xffd23a;
+	}
+	return 0xffffff;
+}
+
+static void modRenderLanguagePicker(void)
+{
+	POLY_FT4 *text;
+	MenuHighlight selected = {0};
+	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 20;
+	int32_t i, x, y, end;
+	uint32_t colour;
+	text = (POLY_FT4 *)GsGetWorkBase();
+	renderText(text++, 68, 22, 0, 0, 216, 12, 0);
+	for (i = 0; i < modLanguageCount(); i++) {
+		renderText(text++, 108, 46 + i*20, 0, 16 + i*20, 144, 12, i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
+	}
+	renderText(text++, 132, 210, 0, 188, 80, 12, 0);
+	GsSetWorkBase((PACKET *)text);
+	for (i = 0; i < modLanguageCount(); i++) {
+		for (y = 0; y < 16; y++) {
+			for (x = 0; x < 24; x = end) {
+				colour = modFlagPixel(modLanguageAt(i), x, y);
+				for (end = x + 1; end < 24 && modFlagPixel(modLanguageAt(i), end, y) == colour; end++);
+				modFlagRect(76+x, 44+i*20+y, end-x, 1, colour);
+			}
+		}
+		modFlagRect(75, 43+i*20, 26, 18, 0x080808);
+	}
+	selected.pos = MOD_BOOT_LANGUAGE_CURSOR;
+	renderMenuSelector(&selected);
+	renderMenuBox(56, 12, 216, 218);
 }
