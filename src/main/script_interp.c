@@ -2723,15 +2723,15 @@ void getTriggerOffset(trigger, outPtr, outMask)
 	uint8_t *outMask;
 // clang-format on
 {
-	uint8_t bit;
-
-	bit = trigger % 8;
-	*outPtr = &SCRIPT_STATE_PTR->triggers[trigger / 8];
-	*outMask = 1;
-	while (bit != 0) {
-		*outMask <<= 1;
-		bit--;
+	/* The legacy recruited triggers stop at 311. Never alias story flags 312+
+	 * or raised flags: all species 112+ use the existing saved recruit bits. */
+	if ((uint16_t)(trigger - (TRIGGER_SPECIES_RECRUITED_BASE + NUM_RECRUITABLE_DIGIMON)) <
+	    NUM_DIGIMON - NUM_RECRUITABLE_DIGIMON) {
+		*outPtr = &SPECIES_RECRUITED_BITS[(trigger - TRIGGER_SPECIES_RECRUITED_BASE) / 8];
+	} else {
+		*outPtr = &SCRIPT_STATE_PTR->triggers[trigger / 8];
 	}
+	*outMask = 1 << (trigger & 7);
 }
 
 // clang-format off
