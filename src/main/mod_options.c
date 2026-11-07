@@ -352,14 +352,8 @@ void modSetFrameRate(int32_t fps)
 /* MOD (language): the disc has the file (its FILE_OFFSET_TABLE entry got a sector: build-disc.py wrote it) */
 int32_t modFileOnDisc(char *name)
 {
-	FileEntry *entry;
-
-	for (entry = FILE_OFFSET_TABLE; entry->sizeCode != 0; ++entry) {
-		if (fileEntryIs(entry, name)) {
-			return entry->sector != 0;
-		}
-	}
-	return 0;
+    FileEntry *entry = findFileEntry(name);
+    return entry && entry->sector;
 }
 
 /*
@@ -382,15 +376,6 @@ static LangFileRow LANG_FILE_TABLE[] = {
 
 static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entry's has no NUL at 12 letters) */
 
-static uint32_t modNameHash(char *name)
-{
-	uint32_t h = 0x811C9DC5;
-
-	while (*name != '\0') {
-		h = (h ^ (uint8_t)*name++) * 0x01000193;
-	}
-	return h & 0xFFFFFF;
-}
 
 char *modLangFile(char *name)
 {
@@ -401,7 +386,7 @@ char *modLangFile(char *name)
 	int32_t digit;
 	uint32_t key;
 
-	hash = modNameHash(name);
+	hash = fileNameHash(name);
 	for (i = 0; i < sizeof(LANG_FILE_TABLE) / sizeof(LangFileRow) - 1; i++) {
 		if (LANG_FILE_TABLE[i].hash != hash) {
 			continue;
