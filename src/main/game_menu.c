@@ -47,7 +47,7 @@ typedef struct {
 } DigimonTabs;
 
 typedef struct {
-	int8_t tab[4];
+	int8_t tab[5];
 } PlayerTabs;
 
 typedef struct {
@@ -391,7 +391,7 @@ YEAR_DAY_TEXT
 
 DigimonTabs DIGIMON_MENU_VIEWS = { { 0x01, 0x01 } };
 
-PlayerTabs MAIN_D_801342A4 = { { 0x01, 0x01, 0x01, 0x01 } };
+PlayerTabs MAIN_D_801342A4 = { { 1, 1, 1, 1, 1 } };
 
 LEVEL_TITLES_TEXT
 
@@ -1308,26 +1308,76 @@ LabelCrop DIGIMON_TAB_CROPS[2] = {
 #endif
 };
 
-/* the player screen's tabs ("Player  Chart  Med. Card Fish"): Cartas takes the whole tab, Fish (never shown) is left out */
-LabelCrop PLAYER_TAB_CROPS[4] = {
-#if MOD_LANG_BUILD != MOD_LANG_EN
-	{ -0x89, 0x00, 0x3c },
-	{ -0x3e, 0x3c, 0x3c },
-	{ 0x0d, 0x78, 0x24 },
-	{ 0x38, 0x9c, 0x34 },
-#else
-	{ -0x89, 0x00, 0x3c },
-	{ -0x3e, 0x3c, 0x3c },
-	{ 0x0d, 0x78, 0x24 },
-	{ 0x40, 0x9c, 0x24 },
+/* Five Player tabs, measured in both fonts in every language. */
+LabelCrop PLAYER_TAB_CROPS[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_EN
+	{ -134, 0, 48 },
+	{ -69, 48, 44 },
+	{ -12, 92, 32 },
+	{ 37, 124, 44 },
+	{ 102, 168, 36 },
+#elif MOD_LANG_BUILD == MOD_LANG_ES
+	{ -140, 0, 60 },
+	{ -67, 60, 40 },
+	{ -12, 100, 32 },
+	{ 33, 132, 52 },
+	{ 94, 184, 52 },
+#elif MOD_LANG_BUILD == MOD_LANG_PT_BR
+	{ -140, 0, 60 },
+	{ -63, 60, 32 },
+	{ -12, 92, 32 },
+	{ 33, 124, 52 },
+	{ 94, 176, 52 },
+#elif MOD_LANG_BUILD == MOD_LANG_FR
+	{ -136, 0, 52 },
+	{ -67, 52, 40 },
+	{ -12, 92, 32 },
+	{ 33, 124, 52 },
+	{ 102, 176, 36 },
+#elif MOD_LANG_BUILD == MOD_LANG_DE
+	{ -136, 0, 52 },
+	{ -67, 52, 40 },
+	{ -12, 92, 32 },
+	{ 33, 124, 52 },
+	{ 96, 176, 48 },
+#elif MOD_LANG_BUILD == MOD_LANG_IT
+	{ -136, 0, 52 },
+	{ -67, 52, 40 },
+	{ -12, 92, 32 },
+	{ 37, 124, 44 },
+	{ 98, 168, 44 },
+#elif MOD_LANG_BUILD == MOD_LANG_JA
+	{ -122, 0, 24 },
+	{ -65, 24, 36 },
+	{ -14, 60, 36 },
+	{ 41, 96, 36 },
+	{ 108, 132, 24 },
+#elif MOD_LANG_BUILD == MOD_LANG_CA
+	{ -140, 0, 60 },
+	{ -67, 60, 40 },
+	{ -12, 100, 32 },
+	{ 33, 132, 52 },
+	{ 94, 184, 52 },
 #endif
 };
 
 uint16_t PLAYER_TAB_PIECES[6] = {
-#if MOD_LANG_BUILD != MOD_LANG_EN
-	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xd4 | PIECE_CENTRE, PIECES_END,
-#else
-	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xc0 | PIECE_CENTRE, PIECES_END,
+#if MOD_LANG_BUILD == MOD_LANG_EN
+	0 | PIECE_CENTRE, 48 | PIECE_CENTRE, 92 | PIECE_CENTRE, 124 | PIECE_CENTRE, 168 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 60 | PIECE_CENTRE, 100 | PIECE_CENTRE, 132 | PIECE_CENTRE, 184 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_PT_BR
+	0 | PIECE_CENTRE, 60 | PIECE_CENTRE, 92 | PIECE_CENTRE, 124 | PIECE_CENTRE, 176 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_FR
+	0 | PIECE_CENTRE, 52 | PIECE_CENTRE, 92 | PIECE_CENTRE, 124 | PIECE_CENTRE, 176 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_DE
+	0 | PIECE_CENTRE, 52 | PIECE_CENTRE, 92 | PIECE_CENTRE, 124 | PIECE_CENTRE, 176 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_IT
+	0 | PIECE_CENTRE, 52 | PIECE_CENTRE, 92 | PIECE_CENTRE, 124 | PIECE_CENTRE, 168 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_JA
+	0 | PIECE_CENTRE, 24 | PIECE_CENTRE, 60 | PIECE_CENTRE, 96 | PIECE_CENTRE, 132 | PIECE_CENTRE, PIECES_END,
+#elif MOD_LANG_BUILD == MOD_LANG_CA
+	0 | PIECE_CENTRE, 60 | PIECE_CENTRE, 100 | PIECE_CENTRE, 132 | PIECE_CENTRE, 184 | PIECE_CENTRE, PIECES_END,
 #endif
 };
 
@@ -2422,8 +2472,8 @@ void tickPlayerMenu(void)
 		}
 		if (CHANGED_INPUT & 0x2000) {
 			PLAYER_MENU_STATE++;
-			if (PLAYER_MENU_STATE >= 4) {
-				PLAYER_MENU_STATE = 3;
+			if (PLAYER_MENU_STATE >= 5) {
+				PLAYER_MENU_STATE = 4;
 			} else {
 				MENU_STATE = 0;
 				MENU_SUB_STATE = 0;
@@ -2445,7 +2495,7 @@ void tickPlayerMenu(void)
 			playSound(0, 4);
 		}
 		if ((isKeyDown(CONFIRM_BUTTON) != 0) && (MENU_STATE == 1) &&
-		    (PLAYER_MENU_STATE != 0) && (PLAYER_MENU_STATE != 4)) {
+		    (PLAYER_MENU_STATE != 0)) {
 			MENU_STATE = 2;
 			playSound(0, 3);
 			MEDAL_SELECTOR_INDEX = SELECTED_MEDAL = 0;
@@ -2458,6 +2508,9 @@ void tickPlayerMenu(void)
 			CHART_SELECTED_DIGIMON = -1;
 		}
 
+		if (PLAYER_MENU_STATE == 4 && MENU_STATE == 2) {
+			chartOverviewInput(1);
+		}
 		if (PLAYER_MENU_STATE == 1) {
 			if (MENU_STATE == 2) {
 				/* MOD (chart): the tabs, pages and grid of every partner species (chartOverviewInput) */
@@ -2606,6 +2659,7 @@ void renderPlayerMenu(void)
 		renderPlayerInfoView();
 		break;
 	case 1:
+	case 4:
 		renderEvoChartView();
 		break;
 	case 2:
@@ -2616,13 +2670,15 @@ void renderPlayerMenu(void)
 		break;
 	}
 	tabs.tab[PLAYER_MENU_STATE] = 0;
-	for (i = 0; i < 4; i++) { /* MOD (language): PLAYER_TAB_CROPS */
+	for (i = 0; i < 5; i++) {
 		renderString(tabs.tab[i], PLAYER_TAB_CROPS[i].x, -0x65, PLAYER_TAB_CROPS[i].w, 0xc, PLAYER_TAB_CROPS[i].u, 0, 5, 1);
 	}
-	renderMenuTab(-0x91, 0x4c, tabs.tab[0]);
-	renderMenuTab(-0x46, 0x4c, tabs.tab[1]);
-	renderMenuTab(5, 0x34, tabs.tab[2]);
-	renderMenuTab(0x38, 0x34, tabs.tab[3]);
+	renderMenuTab(-145, 70, tabs.tab[0]);
+	renderMenuTab(-76, 58, tabs.tab[1]);
+	renderMenuTab(-19, 46, tabs.tab[2]);
+	renderMenuTab(26, 66, tabs.tab[3]);
+	renderMenuTab(91, 58, tabs.tab[4]);
+
 }
 
 void handleGameMenuSelection(int32_t selection)
@@ -3877,6 +3933,9 @@ static int32_t chartDetailInput(void)
  * ring by the species' place in the tab, so a scroll reads only the row that comes in. The bottom row names the raised
  * species under the cursor and counts the tab's raised species.
  */
+void recalculateProsperity(void);
+#define CITY_VIEW (PLAYER_MENU_STATE == 4)
+
 #define CHART_COLS		14
 #define CHART_ROWS		7
 #define CHART_PAGE_SIZE		(CHART_COLS * CHART_ROWS)
@@ -3936,13 +3995,34 @@ static int32_t chartSlot(int32_t k)
 /* the icon's top-left corner of a grid box, screen pixels (its border is one pixel out) */
 static void chartBoxXY(int32_t col, int32_t row, int16_t *x, int16_t *y)
 {
-	if (!MOD_OPT_NEW_DIGIMON) { /* MOD (options): the original sheet's columns (chartVanillaInput) */
+	if (!CITY_VIEW && !MOD_OPT_NEW_DIGIMON) { /* MOD (options): the original sheet's columns (chartVanillaInput) */
 		*x = (col < 3 ? col * 0x25 + 0x1c : col < 7 ? (col - 3) * 0x18 + 0x8b : (col - 7) * 0x18 + 0xf8) + 2;
 		*y = row * 0x13 + 0x2b;
 		return;
 	}
 	*x = CHART_GRID_X + 1 + col * CHART_PITCH;
 	*y = CHART_GRID_Y + 1 + row * CHART_PITCH;
+}
+
+/* City uses luminance CLUTs, preserving transparent entries and opaque dark outlines. */
+static void cityGreyClut(uint16_t *palette, int32_t slot)
+{
+	RECT rect;
+	int32_t i;
+	int32_t c;
+	int32_t grey;
+
+	for (i = 0; i < 16; i++) {
+		c = palette[i];
+		if (c != 0) {
+			grey = ((c & 31) * 77 + ((c >> 5) & 31) * 150 + ((c >> 10) & 31) * 29) >> 8;
+			if (grey == 0) grey = 1;
+			palette[i] = (c & 0x8000) | grey | (grey << 5) | (grey << 10);
+		}
+	}
+	setRECT(&rect, CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4, 16, 1);
+	LoadImage(&rect, (u_long *)palette);
+	DrawSync(0);
 }
 
 /* reads the shown rows: the tab's counts and ids, the raised count, and the icons of the species past the sheet, of
@@ -3958,25 +4038,38 @@ static void chartLoadPage(int32_t row)
 	int32_t last;
 	int32_t slot;
 	RECT rect;
+	uint16_t palette[16];
+	int32_t id;
+	int32_t clut;
 
 	CHART_PAGE_COUNT = 0;
 	CHART_RAISED = 0;
 	CHART_TEXT_ID = -2;
-	s = readSpeciesChart(0);
+	s = readSpeciesChart(0, CITY_VIEW);
 	if (s == NULL) {
 		return;
 	}
 	ids = (uint16_t *)s;
 	first = 0;
-	for (k = 0; k < SPECIES_CHART_TABS; k++) {
+	for (k = 0; k < (CITY_VIEW ? 1 : SPECIES_CHART_TABS); k++) {
 		CHART_TAB_COUNT[k] = ids[k];
 		if (k < CHART_TAB) {
 			first += ids[k];
 		}
 	}
-	ids += SPECIES_CHART_TABS;
+	ids += CITY_VIEW ? 1 : SPECIES_CHART_TABS;
+	if (CITY_VIEW && !MOD_OPT_STORY) {
+		g = 0;
+		for (k = 0; k < CHART_TAB_COUNT[0]; k++) {
+			if ((ids[k] & 0x7fff) < 59) {
+				ids[g++] = ids[k];
+			}
+		}
+		CHART_TAB_COUNT[0] = g;
+	}
 	for (k = 0; k < CHART_TAB_COUNT[(int32_t)CHART_TAB]; k++) {
-		if (hasDigimonRaised(ids[first + k]) != 0) {
+		g = ids[first + k] & 0x7fff;
+		if (CITY_VIEW ? isDigimonRecruited(g) : hasDigimonRaised(g)) {
 			CHART_RAISED++;
 		}
 	}
@@ -3993,19 +4086,33 @@ static void chartLoadPage(int32_t row)
 	}
 	last = -1;
 	for (k = 0; k < CHART_PAGE_COUNT; k++) {
-		if (CHART_PAGE_IDS[k] <= NUM_EVO_CHART_DIGIMON || (row >= 0 && k / CHART_COLS != row)) {
+		id = CHART_PAGE_IDS[k] & 0x7fff;
+		if (row >= 0 && k / CHART_COLS != row) continue;
+		slot = chartSlot(k);
+		if (id <= NUM_EVO_CHART_DIGIMON) {
+			if (CITY_VIEW && !isDigimonRecruited(id)) {
+				clut = EVO_CHART_VIEW_COLORS.m[EVO_CHART_BOXES[id - 1].clut];
+				setRECT(&rect, (clut & 63) * 16, clut >> 6, 16, 1);
+				StoreImage(&rect, (u_long *)palette);
+				DrawSync(0);
+				cityGreyClut(palette, slot);
+			}
 			continue;
 		}
 		g = first + k;
 		sector = 1 + g / SPECIES_CHART_ICONS_PER_SECTOR;
 		if (sector != last) {
 			DrawSync(0); /* the uploads read the sector buffer */
-			s = readSpeciesChart(sector);
+			s = readSpeciesChart(sector, CITY_VIEW);
 			last = sector;
 		}
 		slot = chartSlot(k);
 		setRECT(&rect, CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4, 16, 1);
-		LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE));
+		if (CITY_VIEW && !isDigimonRecruited(id)) {
+			cityGreyClut((uint16_t *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE), slot);
+		} else {
+			LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE));
+		}
 		setRECT(&rect, CHART_ICON_X + (slot % 16) * 4, CHART_ICON_Y + (slot / 16) * 16, 4, 16);
 		LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE + 0x20));
 	}
@@ -4045,7 +4152,15 @@ static void chartDrawLabels(void)
 	int32_t pad;
 	int32_t mode;
 	int32_t w;
+	char buf[16];
 
+	if (CITY_VIEW) {
+		CHART_TAB_LABEL_W[0] = drawStringMode(CITY_STR_PROSPERITY, 0, CHART_LABEL_ROW, FIT_VANILLA);
+		CHART_TAB_LABEL_W[1] = drawStringMode(CITY_STR_RESIDENTS, 128, CHART_LABEL_ROW, FIT_VANILLA);
+		chartDigits(buf, readPStat(1));
+		CHART_KEY_W[0] = drawStringMode(buf, 0, CHART_KEYS_ROW, FIT_VANILLA);
+		return;
+	}
 	CHART_KEY_W[0] = measureStringMode("L1", FIT_VANILLA);
 	CHART_KEY_W[1] = measureStringMode("R1", FIT_VANILLA);
 	drawString("L1", 0, CHART_KEYS_ROW);
@@ -4093,8 +4208,8 @@ static void chartDrawStatus(void)
 	char *p;
 	int32_t id;
 
-	id = (MENU_STATE >= 2 && CHART_SELECTED_DIGIMON > 0 && hasDigimonRaised((uint16_t)CHART_SELECTED_DIGIMON) != 0)
-		     ? CHART_SELECTED_DIGIMON : -1;
+	id = MENU_STATE >= 2 ? CHART_SELECTED_DIGIMON : -1;
+	if (!CITY_VIEW && (id <= 0 || !hasDigimonRaised(id))) id = -1;
 	if (id == CHART_TEXT_ID) {
 		return;
 	}
@@ -4112,8 +4227,16 @@ static void chartDrawStatus(void)
 	clearTextSubArea(&rect);
 	CHART_SHOWN_NAME_W = 0;
 	if (id > 0) {
-		CHART_SHOWN_NAME_W = measureStringMode((char *)digimonPara(id), FIT_VANILLA);
-		drawString((char *)digimonPara(id), 0, CHART_NAME_ROW);
+		CHART_SHOWN_NAME_W = drawStringMode(CITY_VIEW &&
+			(CHART_PAGE_IDS[CHART_SELECTED_ROW * CHART_COLS + CHART_SELECTED_COLUMN] & 0x8000) && !isDigimonRecruited(id)
+			? "?????" : (char *)digimonPara(id), 0, CHART_NAME_ROW, FIT_VANILLA);
+	}
+	if (CITY_VIEW) {
+		setRECT(&rect, 80, CHART_KEYS_ROW, 64, 12);
+		clearTextSubArea(&rect);
+		buf[0] = '+';
+		chartDigits(buf + 1, id == 11 || id == 39 || id == 53 ? 1 : id > 0 ? DIGI_PARA(id).level - 2 : 0);
+		CHART_KEY_W[1] = drawStringMode(buf, 80, CHART_KEYS_ROW, FIT_VANILLA);
 	}
 	CHART_TEXT_ID = id;
 }
@@ -4129,7 +4252,7 @@ static void chartSelect(void)
 		CHART_SELECTED_ROW = k / CHART_COLS;
 		CHART_SELECTED_COLUMN = k % CHART_COLS;
 	}
-	CHART_SELECTED_DIGIMON = k < CHART_PAGE_COUNT ? CHART_PAGE_IDS[k] : -1;
+	CHART_SELECTED_DIGIMON = k < CHART_PAGE_COUNT ? (CHART_PAGE_IDS[k] & 0x7fff) : -1;
 }
 
 static void chartOverviewInput(int32_t grid)
@@ -4143,9 +4266,9 @@ static void chartOverviewInput(int32_t grid)
 	top = CHART_TOP;
 	row = CHART_SELECTED_ROW;
 	col = CHART_SELECTED_COLUMN;
-	if (CHANGED_INPUT & 0x4) { /* L1, R1: the tab before or after, wrapping */
+	if (!CITY_VIEW && (CHANGED_INPUT & 0x4)) { /* L1, R1: the tab before or after, wrapping */
 		CHART_TAB = (CHART_TAB + SPECIES_CHART_TABS - 1) % SPECIES_CHART_TABS;
-	} else if (CHANGED_INPUT & 0x8) {
+	} else if (!CITY_VIEW && (CHANGED_INPUT & 0x8)) {
 		CHART_TAB = (CHART_TAB + 1) % SPECIES_CHART_TABS;
 	} else if (!grid) { /* the focus on the menu's tab: the D-pad is the menu's, the grid stays */
 	} else if (CHANGED_INPUT & 0x8000) { /* left, right: within the row */
@@ -4327,7 +4450,7 @@ void renderEvoChartView(void)
 	int32_t slot;
 	EvoClutTable cluts;
 
-	if (!MOD_OPT_NEW_DIGIMON) {
+	if (!CITY_VIEW && !MOD_OPT_NEW_DIGIMON) {
 		renderEvoChartViewVanilla();
 		return;
 	}
@@ -4335,6 +4458,12 @@ void renderEvoChartView(void)
 	switch (MENU_STATE) {
 	case 0:
 		if (drawEvoChartStrings(0) == 1) {
+			if (CITY_VIEW) {
+				CHART_TAB = CHART_TOP = 0;
+				/* Wild recruits add nothing at once, and some scripts add more than the rule:
+				 * show what the next save would write, without tournament cleanup. */
+				recalculateProsperity();
+			}
 			chartDrawLabels();
 			chartLoadPage(-1);
 			chartSelect();
@@ -4350,8 +4479,8 @@ void renderEvoChartView(void)
 	case 1:
 		chartDrawStatus();
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
-			id = CHART_PAGE_IDS[k];
-			if (hasDigimonRaised((uint16_t)id) == 0) {
+			id = CHART_PAGE_IDS[k] & 0x7fff;
+			if (CITY_VIEW ? ((CHART_PAGE_IDS[k] & 0x8000) && !isDigimonRecruited(id)) : !hasDigimonRaised(id)) {
 				continue;
 			}
 			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
@@ -4360,13 +4489,29 @@ void renderEvoChartView(void)
 			if (id <= NUM_EVO_CHART_DIGIMON) {
 				renderRectPolyFT4(bx - 0xa0, by - 0x78, 0x10, 0x10,
 				                  (uint8_t)((shift ? 0x10 : 0) + EVO_CHART_BOXES[id - 1].u),
-				                  EVO_CHART_BOXES[id - 1].v, 0x18, cluts.m[EVO_CHART_BOXES[id - 1].clut], 5, 0);
+				                  EVO_CHART_BOXES[id - 1].v, 0x18, (CITY_VIEW && !isDigimonRecruited(id))
+				                  ? GetClut(CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4)
+				                  : cluts.m[EVO_CHART_BOXES[id - 1].clut], 5, 0);
 			} else {
 				renderRectPolyFT4(bx - 0xa0, by - 0x78 - shift, 0x10, 0x10, (slot % 16) * 16,
 				                  CHART_ICON_Y - 256 + (slot / 16) * 16, CHART_ICON_TPAGE,
 				                  GetClut(CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4), 5, 0);
 			}
 		}
+		if (CITY_VIEW) {
+			x = 22 + CHART_TAB_LABEL_W[0] + 6;
+			renderString(4, 22 - 160, 40 - 120, CHART_TAB_LABEL_W[0], 12, 0, CHART_LABEL_ROW, 5, 1);
+			renderString(0, x + 27 - CHART_KEY_W[0] - 160, 40 - 120, CHART_KEY_W[0], 12, 0, CHART_KEYS_ROW, 5, 1);
+			renderInsetBox(x, 38, 30, 12, 5);
+			renderString(4, 293 - CHART_COUNT_W - CHART_TAB_LABEL_W[1] - 5 - 160, 40 - 120,
+			             CHART_TAB_LABEL_W[1], 12, 128, CHART_LABEL_ROW, 5, 1);
+			renderString(0, 297 - CHART_COUNT_W - 160, 40 - 120, CHART_COUNT_W, 12, 0, CHART_COUNT_ROW, 5, 1);
+			if (CHART_SHOWN_NAME_W > 0) {
+				id = CHART_SELECTED_DIGIMON;
+				renderString(isDigimonRecruited(id) ? 0 : 9, 22 - 160, 0x52, CHART_SHOWN_NAME_W, 12, 0, CHART_NAME_ROW, 5, 1);
+				if (isDigimonRecruited(id)) renderString(7, 297 - CHART_KEY_W[1] - 160, 0x52, CHART_KEY_W[1], 12, 80, CHART_KEYS_ROW, 5, 1);
+			}
+		} else {
 		/* the texts: the tab names on their chips, the keys, the name and the counters on the bottom row */
 		renderString(9, 20 - 0xa0, 40 - 0x78, CHART_KEY_W[0], 0xc, 0, CHART_KEYS_ROW, 5, 1);
 		x = 20 + CHART_KEY_W[0] + 4;
@@ -4381,6 +4526,7 @@ void renderEvoChartView(void)
 			renderString(0, 22 - 0xa0, 0x52, CHART_SHOWN_NAME_W, 0xc, 0, CHART_NAME_ROW, 5, 1);
 		}
 		renderString(0, 297 - CHART_COUNT_W - 0xa0, 0x52, CHART_COUNT_W, 0xc, 0, CHART_COUNT_ROW, 5, 1);
+		}
 		/* the scroll bar when the tab has more rows than are shown: its thumb, then its track */
 		if (chartRows() > CHART_ROWS) {
 			w = CHART_SCROLL_H * CHART_ROWS / chartRows();
@@ -4393,9 +4539,19 @@ void renderEvoChartView(void)
 		/* the boxes, the tab's band, the chips */
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
 			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
-			renderBorderBox(bx - 1, by - 1, 0x12, 0x12, 0xbebebe, 0x3c3c3c, 0x87, 0x87, 0x87, 5);
+			id = CHART_PAGE_IDS[k] & 0x7fff;
+			x = CITY_VIEW ? DIGI_PARA(id).level - 2 : 0;
+			w = CITY_VIEW && !isDigimonRecruited(id) ? 2 : 1;
+			renderBorderBox(bx - 1, by - 1, 0x12, 0x12, 0xbebebe, 0x3c3c3c,
+			                CITY_VIEW ? CHART_TAB_FILL[x][0] / w : 0x87,
+			                CITY_VIEW ? CHART_TAB_FILL[x][1] / w : 0x87,
+			                CITY_VIEW ? CHART_TAB_FILL[x][2] / w : 0x87, 5);
 		}
 		k = CHART_TAB;
+		if (CITY_VIEW) {
+			renderBorderBox(20, 53, CHART_BAND_W, 143, 0x3c3c3c, 0x788c96, 0x28, 0x3c, 0x46, 5);
+			break;
+		}
 		renderBorderBox(20, 53, CHART_BAND_W, 143, CHART_TAB_EDGES[k][0], CHART_TAB_EDGES[k][1], CHART_TAB_FILL[k][0],
 		                CHART_TAB_FILL[k][1], CHART_TAB_FILL[k][2], 5);
 		x = 20 + CHART_KEY_W[0] + 4;

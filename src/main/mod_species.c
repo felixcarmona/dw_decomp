@@ -44,6 +44,7 @@ static int32_t SPECIES_LAST_SLOT;
 static uint32_t SPECIES_SECTOR[0x800 / 4];
 static SVECTOR CONDITION_FX_COPY __attribute__((aligned(4)));
 static uint32_t SPECIES_FALLBACK_PORTRAIT;
+static uint32_t SPECIES_CITY_SECTOR; /* optional header extension at 0x38 */
 static uint32_t SPECIES_CHART_SECTOR; /* MOD (chart) */
 static uint8_t SPECIES_PORTRAIT_BUFFER[SPECIES_PORTRAIT_SIZE] __attribute__((aligned(4)));
 static EvolutionPath NO_EVOLUTION_PATH;
@@ -313,6 +314,7 @@ void initializeSpecies(void)
 	SPECIES_INDEX_SECTOR = 0;
 	SPECIES_FALLBACK_PORTRAIT = 0;
 	SPECIES_CHART_SECTOR = 0;
+	SPECIES_CITY_SECTOR = 0;
 	SPECIES_PARTNER_COUNT = 0;
 	SPECIES_FIRST_MEGA = 0;
 	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
@@ -366,6 +368,7 @@ void initializeSpecies(void)
 	}
 	SPECIES_FALLBACK_PORTRAIT = header->fallbackPortrait;
 	SPECIES_CHART_SECTOR = header->chartSector;
+	SPECIES_CITY_SECTOR = ((uint32_t *)header)[14];
 	SPECIES_RECORDS_SECTOR = header->recordsSector;
 	SPECIES_INDEX_SECTOR = header->indexSector;
 	SPECIES_COUNT = count;
@@ -695,12 +698,15 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
 	DrawSync(0);
 }
 
-uint8_t *readSpeciesChart(int32_t k)
+uint8_t *readSpeciesChart(int32_t k, int32_t city)
 {
-	if (SPECIES_INDEX_SECTOR == 0 || SPECIES_CHART_SECTOR == 0) {
+	uint32_t sector;
+
+	sector = city ? SPECIES_CITY_SECTOR : SPECIES_CHART_SECTOR;
+	if (SPECIES_INDEX_SECTOR == 0 || sector == 0) {
 		return NULL;
 	}
-	readSpeciesSector(SPECIES_CHART_SECTOR + k);
+	readSpeciesSector(sector + k);
 	return (uint8_t *)SPECIES_SECTOR;
 }
 
