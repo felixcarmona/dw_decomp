@@ -1395,6 +1395,7 @@ void dailyPStatTrigger(void)
 	/* MOD (rules as data): MOD_DAILY says how many cards, from what pool, which one never comes up, and the counters.
 	 * (The original compared the new card with the slot it was filling, so a card could repeat; it is compared with the earlier ones now.) */
 	st = SCRIPT_STATE_PTR;
+	modForgetGroundPicked(); /* MOD (ground items a day) */
 	for (i = 0; i < 6; i++) {
 		st->smth[i] = 0xff;
 	}
