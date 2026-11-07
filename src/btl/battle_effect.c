@@ -41,6 +41,7 @@ extern int16_t MAIN_D_80134CDC;
 extern int32_t VIEWPORT_DISTANCE;
 extern int32_t UNKNOWN_MODEL_TAKEN[16];
 extern uint8_t *BUFF_MODEL[];
+extern int8_t MOD_BATTLE_LOADING;
 
 void setRotTransMatrix(MATRIX *m);
 void setMapLayerEnabled(int32_t enabled);
@@ -2325,8 +2326,6 @@ char *BTL_initializeParticleEmitters(char *base)
 	return base + 0x23c4;
 }
 
-extern int8_t MOD_BATTLE_LOADING; /* btl.c */
-
 void BTL_tickEFEEngine(void)
 {
 	int32_t n;
@@ -2334,10 +2333,11 @@ void BTL_tickEFEEngine(void)
 	int32_t j;
 	EfeSound *p;
 
-	/* The incremental init script owns the shared EFE interpreter until
-	 * quick-battle loading finishes. Even visiting an inactive slot changes
-	 * its context, so neither ticking nor rendering may interleave it. */
-	if (MOD_BATTLE_LOADING) return;
+	/* The asynchronous loader resumes its init script through these same
+	 * interpreter globals. Do not replace its context with a live effect. */
+	if (MOD_BATTLE_LOADING) {
+		return;
+	}
 
 	setMapLayerEnabled(1);
 
@@ -2443,7 +2443,9 @@ void BTL_renderEFEEngine(void)
 	int32_t hit;
 	int32_t section;
 
-	if (MOD_BATTLE_LOADING) return;
+	if (MOD_BATTLE_LOADING) {
+		return;
+	}
 
 	target = EFE_TARGET_ENTITY_INDEX;
 	hit = EFE_HIT_ENTITY_INDEX;
