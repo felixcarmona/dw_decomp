@@ -65,6 +65,14 @@ int32_t isVanillaSpecies(int32_t type)
 	return (uint32_t)type < NUM_DIGIMON && ((SPECIES_VANILLA[type >> 3] >> (type & 7)) & 1);
 }
 
+int32_t getSpeciesVanillaAs(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? rec->vanillaAs : 0;
+}
+
 int32_t isRecordOriginal(int32_t type)
 {
 	if ((uint32_t)type >= NUM_ORIGINAL_DIGIMON) {
