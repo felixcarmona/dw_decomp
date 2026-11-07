@@ -368,12 +368,12 @@ int32_t modFileOnDisc(char *name)
  */
 typedef struct {
 	uint32_t hash;
-	uint16_t copy[3]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
+	uint16_t copy[MOD_LANGS]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
 } LangFileRow;
 
 static LangFileRow LANG_FILE_TABLE[] = {
 #include <lang_files.h>
-	{ 0, { 0xFFFF, 0xFFFF, 0xFFFF } },
+	{ 0, { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF } },
 };
 
 static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entry's has no NUL at 12 letters) */
@@ -404,7 +404,7 @@ char *modLangFile(char *name)
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_PT_BR ? 2 : 1];
+		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_EN ? 1 : MOD_LANG];
 		if (copy == 0xFFFF || (!tfs && MOD_LANG == MOD_LANG_EN)) {
 			return name;
 		}
@@ -439,7 +439,7 @@ int32_t modStoryChoice(void)
 }
 
 /* MOD (language): the patch that turns the executable's strings into each language */
-static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN" };
+static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN", "LANGFR.BIN", "LANGDE.BIN", "LANGIT.BIN", "LANGJA.BIN" };
 int32_t modLanguageAt(int32_t index)
 {
     int32_t lang;
