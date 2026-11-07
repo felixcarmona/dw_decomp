@@ -28,6 +28,7 @@ void modCheatsCleanup(void);
 #include <dw/map_object.h>
 #include <dw/mod_fps.h>
 #include <dw/mod_options.h>
+#include <dw/mod_version.h>
 #include <dw/mod_rules.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -3702,6 +3703,7 @@ void runLandingScreen(void)
 	SECRET_CODE = -1;
 #endif
 	addObject(0xfa3, 0, NULL, (RenderFunction)renderPressStartToContinue);
+	modVersionDraw(); /* MOD (version) */
 	FADE_OUT_CURRENT = 0;
 	fadeFromBlack(0x28);
 
@@ -5717,6 +5719,35 @@ void renderPressStartToContinue(void)
 	setClut(prim, 0, 480);
 	AddPrim(ot + 30, prim++);
 	GsSetWorkBase((PACKET *)prim);
+	modVersionRender(); /* MOD (version) */
+}
+
+/*
+ * MOD (version): the release's version ("v0.1.0", the project's tools/version.py through the Makefile's MOD_VERSION) in
+ * the bottom left corner of the title screen and of the title menu's first view, small and dim. It is drawn once into
+ * the text area's row MOD_VERSION_ROW (free on the title screen; on the menu, the row under OPTIONS: drawMainMenuStrings
+ * draws it with the view's own strings) and shown from there with a drop shadow (renderString). Empty: nothing.
+ */
+char MOD_VERSION_TEXT[32] = MOD_VERSION_STRING;
+
+void modVersionDraw(void)
+{
+	RECT rect;
+
+	if (MOD_VERSION_TEXT[0] == '\0') {
+		return;
+	}
+	setRECT(&rect, 0, MOD_VERSION_ROW, 0x100, 0xC);
+	clearTextSubArea(&rect);
+	drawString(MOD_VERSION_TEXT, 0, MOD_VERSION_ROW);
+}
+
+void modVersionRender(void)
+{
+	if (MOD_VERSION_TEXT[0] != '\0') {
+		renderString(MOD_VERSION_COLOR, MOD_VERSION_LEFT - 0xA0, MOD_VERSION_TOP - 0x78, MOD_VERSION_W, 0xC, 0,
+			     MOD_VERSION_ROW, 0, 1);
+	}
 }
 
 void renderMainMenuBackground(void)
