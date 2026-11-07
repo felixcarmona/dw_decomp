@@ -4023,7 +4023,7 @@ void recalculateProsperity(void)
 		     i >= NUM_RECRUITABLE_DIGIMON ||
 #endif
 		     (CITY_RESIDENTS[i >> 3] & (1 << (i & 7)))) &&
-		    (DIGI_PARA(type).level >= 3) && (isDigimonRecruited(type) != 0)) {
+		    (isDigimonRecruited(type) != 0) && (DIGI_PARA(type).level >= 3)) {
 			if ((type == 0xb) || (type == 0x27) || (type == 0x35)) {
 				pp++;
 			} else {
