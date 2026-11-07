@@ -74,7 +74,7 @@ extern char MAIN_D_80124C0C[];
 extern char MAIN_D_80124C54[];
 extern uint8_t GAME_STATE;
 
-int8_t STAT_GAIN_ENEMY_FACTORS[4] = { 10, 12, 16, 0 };
+int8_t STAT_GAIN_ENEMY_FACTORS[4] = { 10, 12, 16, 100 };
 
 BITS_LABELS_TEXT
 
@@ -150,6 +150,20 @@ void battleStatsGainsAndDrops(uint8_t *droppedItems)
 			chance = ((enemyStat * STAT_GAIN_ENEMY_FACTORS[ENEMY_COUNT - 1]) * 100) / den;
 			if (randomLimit(100) < chance) {
 				STATS_GAINS[stat] = 1;
+			}
+		}
+
+		/* MOD (battle gains): a win is worth at least this part of the
+		 * strongest enemy's stat, however strong the partner already is:
+		 * E * factor / (last factor * 10), so 1 % against one enemy; the
+		 * original's gain stays when it is larger. Last factor 0: rule off */
+		if (STAT_GAIN_ENEMY_FACTORS[3] > 0) {
+			chance = (enemyStat * STAT_GAIN_ENEMY_FACTORS[ENEMY_COUNT - 1]) / (STAT_GAIN_ENEMY_FACTORS[3] * 10);
+			if (chance > CAP_OF_STAT_INDEX(stat)) {
+				chance = CAP_OF_STAT_INDEX(stat);
+			}
+			if (chance > STATS_GAINS[stat]) {
+				STATS_GAINS[stat] = chance;
 			}
 		}
 	}
