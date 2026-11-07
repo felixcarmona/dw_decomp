@@ -117,7 +117,17 @@ uint8_t CLOUD_FX_COLOR[16] = {
 	0x80, 0x80, 0x80, 0x80, 0x79, 0x73, 0x6c, 0x66,
 	0x60, 0x59, 0x53, 0x4c, 0x46, 0x40, 0x00, 0x00,
 };
+#ifdef __MWERKS__
 char MAIN_D_8012342C[16] = "ETCHI\\EFEDAT.EFE";
+#else
+/*
+ * 16 characters in 16 bytes: no NUL. findEFEDATFile strcpy()s it, and the
+ * original only works because EFEDAT_CD_LOCATION (still 0) comes next.
+ * GCC places CLOUD_FX_COLOR there, CdSearchFile fails, and every move EFE
+ * is read from a garbage sector (the first battle hangs in CdControl).
+ */
+char MAIN_D_8012342C[] = "ETCHI\\EFEDAT.EFE";
+#endif
 uint32_t EFEDAT_CD_LOCATION[4] = {0};
 
 static void *efe_data_order[] = {
@@ -166,7 +176,11 @@ void modifySomeImage(long dim);
 #endif
 void findEFEDATFile(void);
 void initializeEFE();
+#ifdef __MWERKS__
 void getEFEDATEntry();
+#else
+CdlLOC *getEFEDATEntry(int32_t id);
+#endif
 void renderParticleFlash();
 
 extern GsOT *ACTIVE_ORDERING_TABLE;
@@ -1000,6 +1014,7 @@ void initializeEFE(void)
 	findEFEDATFile();
 }
 
+#ifdef __MWERKS__
 void getEFEDATEntry(int32_t id)
 {
 	int32_t sector;
@@ -1009,6 +1024,25 @@ void getEFEDATEntry(int32_t id)
 	sector = EFEDAT_CD_LOCATION[0] + (id * 0xA);
 	CdIntToPos(sector, &loc);
 }
+#else
+/*
+ * The callers (BTL/STD/VS *_loadNextEFEFile) declare this as returning
+ * CdlLOC * and copy through the result. The original works because v0 still
+ * holds CdIntToPos's return value, a pointer to the dead stack local `loc`,
+ * which the caller copies at once. GCC copies it with a call to the BIOS
+ * memcpy; the first three bytes survived, the fourth did not. Return a
+ * pointer to static storage so it does not depend on that.
+ */
+CdlLOC *getEFEDATEntry(int32_t id)
+{
+	static CdlLOC loc;
+	int32_t sector;
+
+	id -= 0x100;
+	sector = EFEDAT_CD_LOCATION[0] + (id * 0xA);
+	return CdIntToPos(sector, &loc);
+}
+#endif
 
 void renderParticleFlash(ParticleFlashData *params)
 {
