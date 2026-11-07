@@ -10,6 +10,8 @@
 #include <dw/item.h>
 #include <dw/font.h>
 #include <dw/mod_battle.h>
+#include <dw/mod_fish.h>
+#include <dw/mod_kar.h>
 #include <dw/main.h>
 #include <dw/map.h>
 #include <dw/math.h>
@@ -3185,3 +3187,9 @@ int32_t modBtBrainDiscount(int32_t brain)
 	}
 	return pct;
 }
+
+/* MOD (fishing as data): written by tools/balance.py from content/tables/fishing-rules.json; -1 = the rule does not exist */
+int16_t MOD_FISH[MOD_FS_SIZE] = { [0 ... MOD_FS_SIZE - 1] = -1 };
+
+/* MOD (curling as data): written by tools/balance.py from content/tables/curling.json; -1 = the rule does not exist */
+int16_t MOD_KAR[MOD_KR_SIZE] = { [0 ... MOD_KR_SIZE - 1] = -1 };
