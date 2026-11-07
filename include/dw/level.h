@@ -30,6 +30,61 @@
 #define MOD_EVO_FALLBACK_HOURS	9
 #define MOD_EVO_FALLBACK_TARGET	10
 extern int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE];
+
+/*
+ * MOD (evolution rules as data): the special evolutions that were if-chains. All of them start empty (-1) in the C;
+ * tools/balance.py build writes them from content/tables/evolution-rules.json.
+ *   MOD_EVO_FRESH[]     a Fresh (Baby I) becomes the Baby II of the pair {from, to}
+ *   MOD_EVO_ULTIMATE[]  an Ultimate {from, to} looks for `to` when its requirements score 3
+ *   MOD_EVO_RULES[]     rules checked after waking (mode 2) and after praise or scolding (mode 3)
+ *   MOD_EVO_SPECIAL[]   the virus-bar evolution (threshold, target, two species it does not apply to), the Champion hour
+ *                       that triggers the mode 3 check (level, hours), the scolding that arms the flag (level,
+ *                       discipline, happiness before it)
+ */
+#define MOD_EVO_PAIR_MAX	8
+#define MOD_EVO_RULES_MAX	10
+#define MOD_EVO_COND_MAX	4
+#define MOD_EVO_SPECIAL_SIZE	9
+#define MOD_SPECIAL_VIRUS_THRESHOLD	0
+#define MOD_SPECIAL_VIRUS_TARGET	1
+#define MOD_SPECIAL_VIRUS_IMMUNE_A	2
+#define MOD_SPECIAL_VIRUS_IMMUNE_B	3
+#define MOD_SPECIAL_CHECK_LEVEL		4
+#define MOD_SPECIAL_CHECK_HOURS		5
+#define MOD_SPECIAL_SCOLD_LEVEL		6
+#define MOD_SPECIAL_SCOLD_DISCIPLINE	7
+#define MOD_SPECIAL_SCOLD_HAPPINESS	8
+
+/* condition stats of a rule */
+#define MOD_STAT_DISCIPLINE	0
+#define MOD_STAT_HAPPINESS	1
+#define MOD_STAT_TIREDNESS	2
+#define MOD_STAT_BATTLES	3
+#define MOD_STAT_DEFENSE	4
+#define MOD_STAT_EVOTIMER	5
+#define MOD_STAT_SCREEN		6
+#define MOD_STAT_SCOLD_FLAG	7
+
+typedef struct {
+	int8_t stat;  /* MOD_STAT_*, -1 = no more conditions */
+	int8_t op;    /* 0: ==, 1: >= */
+	int16_t value;
+} ModEvoCond;
+
+typedef struct {
+	int16_t target;  /* -1 = unused row */
+	int16_t from[4]; /* the species it applies to (-1 = end; the first -1 = any species) */
+	int8_t mode;     /* 2 after waking, 3 after praise or scolding */
+	int8_t chance;   /* percent of the roll that passes (100 = always) */
+	int8_t level;    /* -1 = any level */
+	int8_t flags;    /* 1: clears the scold flag when it matches */
+	ModEvoCond cond[MOD_EVO_COND_MAX];
+} ModEvoRule;
+
+extern int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2];
+extern int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2];
+extern ModEvoRule MOD_EVO_RULES[MOD_EVO_RULES_MAX];
+extern int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE];
 /* lifetime added on reaching Mega naturally (Ultimate: +96) */
 #define MEGA_LIFETIME_BONUS	120
 
