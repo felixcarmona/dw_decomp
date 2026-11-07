@@ -84,14 +84,21 @@ int16_t instanceId;
 			MAIN_D_801353C2 /= TRN_STEP_OF(MOD_TRAIN2_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRN2_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
-			} while (TRN2_modBlockNext());
+			TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			TRN2_modBlockNext();
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			MAIN_D_801353BD = 3;
 		}
 		break;
 	case 3:
+		if (TRN2_MOD_QUIET) {
+			if (!TRN2_modBlockWait()) {
+				TRN2_saveTrainingStartTime();
+				TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, 10);
+				TRN2_modBlockNext();
+			}
+			break;
+		}
 		if (TRN2_statGainsAreZero() == 1) {
 			MAIN_D_801353C4 = 0;
 			MAIN_D_801353BD = 4;
@@ -146,7 +153,7 @@ int16_t arg;
 		TRN2_D_8008DC1C.vx = 0x6f8;
 		TRN2_D_8008DC1C.vy = 0;
 		TRN2_D_8008DC1C.vz = 0x1d2;
-		addObject(0xfaf, 8, (TickFunction)TRN2_tickMpTraining, NULL);
+		addObject(0xfaf, 8, (TickFunction)TRN2_tickMpTraining, (RenderFunction)TRN2_renderCareHUD);
 	}
 
 	TRAINING_COMPLETE = 0;

@@ -38,13 +38,13 @@ int16_t arg;
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeSpeedCounter++;
 		}
-		addObject(0xfad, 0, (TickFunction)TRN_tickSpeedTraining, NULL);
+		addObject(0xfad, 0, (TickFunction)TRN_tickSpeedTraining, (RenderFunction)TRN_renderCareHUD);
 		break;
 	case 0x4e:
 		TRN_D_8008F320.vx = 0x32;
 		TRN_D_8008F320.vy = 0;
 		TRN_D_8008F320.vz = -0x11f;
-		addObject(0xfad, 6, (TickFunction)TRN_tickSpeedTraining, NULL);
+		addObject(0xfad, 6, (TickFunction)TRN_tickSpeedTraining, (RenderFunction)TRN_renderCareHUD);
 		break;
 	}
 
@@ -103,9 +103,8 @@ void TRN_tickSpeedTraining(int32_t instanceId)
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
-			} while (TRN_modBlockNext());
+			TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			TRN_modBlockNext();
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			playSound(8, 0xa);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
@@ -113,6 +112,14 @@ void TRN_tickSpeedTraining(int32_t instanceId)
 		}
 		break;
 	case 3:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
 			TRAINING_STATE = 4;
@@ -134,7 +141,7 @@ void TRN_tickSpeedTraining(int32_t instanceId)
 			setCameraFollowPlayer();
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfad, instanceId, TRN_tickSpeedTraining, NULL);
+			removeObject(0xfad, instanceId, TRN_tickSpeedTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;

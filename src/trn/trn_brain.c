@@ -40,7 +40,7 @@ int16_t arg;
 		TRN_D_8008F320.vx = -0x4e1;
 		TRN_D_8008F320.vy = 0;
 		TRN_D_8008F320.vz = 0x3f3;
-		addObject(0xfb0, 0, (TickFunction)TRN_tickBrainsTraining, NULL);
+		addObject(0xfb0, 0, (TickFunction)TRN_tickBrainsTraining, (RenderFunction)TRN_renderCareHUD);
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeBrainCounter++;
 		}
@@ -53,7 +53,7 @@ int16_t arg;
 		TRN_D_8008F320.vx = -0x5e3;
 		TRN_D_8008F320.vy = 0;
 		TRN_D_8008F320.vz = 0x2ce;
-		addObject(0xfb0, 9, (TickFunction)TRN_tickBrainsTraining, NULL);
+		addObject(0xfb0, 9, (TickFunction)TRN_tickBrainsTraining, (RenderFunction)TRN_renderCareHUD);
 		TRAINING_COMPLETE = 0;
 		break;
 	}
@@ -136,9 +136,8 @@ void TRN_tickBrainsTraining(int32_t instanceId)
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardBrainsTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
-			} while (TRN_modBlockNext());
+			TRN_awardBrainsTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockNext();
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			startAnimation(&NPC_ENTITIES[0].digimonEntity.entity, 0);
@@ -147,6 +146,14 @@ void TRN_tickBrainsTraining(int32_t instanceId)
 		}
 		break;
 	case 4:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardBrainsTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
 			TRAINING_STATE = 5;
@@ -166,7 +173,7 @@ void TRN_tickBrainsTraining(int32_t instanceId)
 			partnerSetState(1);
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfb0, instanceId, TRN_tickBrainsTraining, NULL);
+			removeObject(0xfb0, instanceId, TRN_tickBrainsTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;

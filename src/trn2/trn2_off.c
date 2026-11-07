@@ -101,7 +101,7 @@ int16_t arg;
 		MAIN_D_801353BA = 3;
 		MAIN_D_801353BE = 0xf;
 		MAIN_D_801353C0 = 1;
-		addObject(0xfac, 1, (TickFunction)TRN2_tickOffenseTraining, NULL);
+		addObject(0xfac, 1, (TickFunction)TRN2_tickOffenseTraining, (RenderFunction)TRN2_renderCareHUD);
 	}
 
 	TRAINING_COMPLETE = 0;
@@ -176,15 +176,22 @@ int16_t instanceId;
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_801353B4, MAIN_D_801353B6, 1);
 			TRN2_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN2_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
-			} while (TRN2_modBlockNext());
+			TRN2_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			TRN2_modBlockNext();
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			MAIN_D_801353BD = 4;
 		}
 		break;
 	case 4:
+		if (TRN2_MOD_QUIET) {
+			if (!TRN2_modBlockWait()) {
+				TRN2_saveTrainingStartTime();
+				TRN2_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, 10);
+				TRN2_modBlockNext();
+			}
+			break;
+		}
 		if (TRN2_statGainsAreZero() == 1) {
 			MAIN_D_801353C4 = 0;
 			MAIN_D_801353BD = 5;
@@ -234,7 +241,7 @@ int16_t arg;
 		MAIN_D_801353BA = 3;
 		MAIN_D_801353BE = 7;
 		MAIN_D_801353C0 = 0x31;
-		addObject(0xfae, 1, (TickFunction)TRN2_tickDefenseTrainingMap108, NULL);
+		addObject(0xfae, 1, (TickFunction)TRN2_tickDefenseTrainingMap108, (RenderFunction)TRN2_renderCareHUD);
 		break;
 	case 0x63:
 		TRN2_D_8008DC1C.vx = 0x63e;
@@ -249,7 +256,7 @@ int16_t arg;
 		MAIN_D_801353BA = 1;
 		MAIN_D_801353BE = 0x21;
 		MAIN_D_801353C0 = 1;
-		addObject(0xfae, 3, (TickFunction)TRN2_tickDefenseTrainingMap99, NULL);
+		addObject(0xfae, 3, (TickFunction)TRN2_tickDefenseTrainingMap99, (RenderFunction)TRN2_renderCareHUD);
 		break;
 	}
 

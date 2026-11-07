@@ -106,14 +106,21 @@ int16_t instanceId;
 			MAIN_D_801353C2 /= TRN_STEP_OF(MOD_TRAIN2_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRN2_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 3, r);
-			} while (TRN2_modBlockNext());
+			TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 3, r);
+			TRN2_modBlockNext();
 			setMapObjectsFlag(MAIN_D_801353B8, MAIN_D_801353BA, 1);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 		}
 		break;
 	case 3:
+		if (TRN2_MOD_QUIET) {
+			if (!TRN2_modBlockWait()) {
+				TRN2_saveTrainingStartTime();
+				TRN2_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 3, 10);
+				TRN2_modBlockNext();
+			}
+			break;
+		}
 		if (TRN2_statGainsAreZero() == 1) {
 			MAIN_D_801353C4 = 0;
 			MAIN_D_801353BD = 4;
