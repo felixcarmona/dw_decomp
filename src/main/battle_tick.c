@@ -230,6 +230,9 @@ void handleFleeing(void)
 	}
 }
 
+extern int8_t MOD_BATTLE_LOADING; /* MOD (quick battle start), btl.c */
+void modBattleLoadStep(void);
+
 // clang-format off
 void tamerTickBattle(instanceId)
 	int16_t instanceId;
@@ -241,11 +244,12 @@ void tamerTickBattle(instanceId)
 
 	tamer = ENTITY_TABLE[instanceId];
 
+	modBattleLoadStep(); /* MOD (quick battle start), btl.c */
 	if (GAME_STATE == 1) {
 		if (COMBAT_DATA_PTR->player.currentCommand[0] != 1) {
 			partner = ENTITY_TABLE[1];
 
-			if (IS_TAMERLESS_BATTLE == 0) {
+			if ((IS_TAMERLESS_BATTLE == 0) && (MOD_BATTLE_LOADING == 0)) { /* MOD (quick battle start): no items while loading */
 				if (((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x10) != 0) {
 					addInventoryUI();
 				}
