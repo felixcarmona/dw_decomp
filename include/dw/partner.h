@@ -59,5 +59,9 @@ int32_t partnerGetState(void);
 void partnerStartAnimation(int32_t animId);
 void callDigimonRoutine(int32_t routine);
 int32_t getScriptSyncBit(void);
+/* MOD (optional name): an unnamed partner is called by its species, partner_impl.c */
+int32_t modPartnerNameIsSpecies(int32_t type);
+void modPartnerNameSetSpecies(int32_t type);
+void modPartnerNameFollow(int32_t from, int32_t to);
 
 #endif
