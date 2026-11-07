@@ -2302,7 +2302,7 @@ SkeletonBone SKELETON_ANALOGMAN[18] = {
 	{ 0x0e, 0x10 },
 };
 
-SkeletonBone *DIGIMON_SKELETONS[180] = {
+SkeletonBone *DIGIMON_SKELETONS[NUM_DIGIMON] = {
 	SKELETON_HIRO,
 	SKELETON_BOTAMON,
 	SKELETON_KOROMON,
@@ -2500,7 +2500,7 @@ int8_t WIREFRAME_RNG_TABLE[16] = {
 
 char MAIN_D_8011D190[] = "ALLTIM.TIM";
 
-char *PTR_DIGIMON_FILE_NAMES[180] = {
+char *PTR_DIGIMON_FILE_NAMES[NUM_DIGIMON] = {
 	STR_DIGIMON_FILE_NAME_BOYS,
 	STR_DIGIMON_FILE_NAME_BOTA,
 	STR_DIGIMON_FILE_NAME_KORO,
@@ -3352,7 +3352,7 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	if (modelType == 1) {
 		return m;
 	}
-	if (digiType < 0 || digiType >= 0xB4) {
+	if (digiType < 0 || digiType >= NUM_DIGIMON) {
 		return 0;
 	}
 	if (modelType == 0) {
@@ -3492,7 +3492,7 @@ ModelComponent *getEntityModelComponent(int32_t instance, int32_t type)
 	} else if (type == 3) {
 		p = &PARTNER_MODEL;
 	} else if (type == 0) {
-		if ((instance < 0) || (instance >= 0xb4)) {
+		if ((instance < 0) || (instance >= NUM_DIGIMON)) {
 			return NULL;
 		}
 		for (p = NPC_MODELS, i = 0; i < 5; p++, i++) {
@@ -3573,7 +3573,7 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	int32_t slot;
 	char tim[32];
 
-	if (digimonType < 0 || digimonType >= 0xB4) {
+	if (digimonType < 0 || digimonType >= NUM_DIGIMON) {
 		return 0;
 	}
 	if (entityType == 0) {
@@ -3636,7 +3636,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 	RECT rect;
 	int32_t k;
 
-	if (digimonType < 0 || digimonType >= 0xB4) {
+	if (digimonType < 0 || digimonType >= NUM_DIGIMON) {
 		return 0;
 	}
 	if (entityType == 0) {

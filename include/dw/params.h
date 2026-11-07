@@ -1,11 +1,9 @@
 #ifndef DW_PARAMS_H
 #define DW_PARAMS_H
 
+#include <dw/ids.h>
 #include <dw/types.h>
 #include <dw/version.h>
-
-#define NUM_DIGIMON		180
-#define NUM_PARTNER_DIGIMON	66
 
 #define CONDITION_SLEEPY	(1 << 0)
 #define CONDITION_TIRED		(1 << 1)
