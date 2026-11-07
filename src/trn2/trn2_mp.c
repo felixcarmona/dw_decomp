@@ -62,7 +62,10 @@ int16_t instanceId;
 		}
 		if ((((MAIN_D_801353C2 >= TRN_SESSION_OF(MOD_TRAIN2_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (r >= 0))) {
 			playSound(8, 0xa);
-			TRN2_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 8, r);
+			TRN2_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN2_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 8, r);
+			} while (TRN2_modBlockNext());
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 2);
 			MAIN_D_801353BD = 4;

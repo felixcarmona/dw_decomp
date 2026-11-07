@@ -175,7 +175,10 @@ int16_t instanceId;
 			playSound(8, 0xa);
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_801353B4, MAIN_D_801353B6, 1);
-			TRN2_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			TRN2_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN2_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 1, r);
+			} while (TRN2_modBlockNext());
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			MAIN_D_801353BD = 4;

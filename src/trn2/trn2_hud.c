@@ -18,6 +18,7 @@
 #include <dw/types.h>
 #include <dw/ui.h>
 #include <dw/version.h>
+#include <text/trn2/trn2_hud.h> /* MOD (training block) */
 
 extern int16_t STATS_GAINS[6];
 extern int16_t INITIAL_COMBAT_STATS[][6];
@@ -201,6 +202,13 @@ int16_t TRN2_calculateTrainingMultiplier(type, mode)
 	return (num * 10) / den;
 }
 
+/* MOD (training block) */
+#define TB(name) TRN2_##name
+#define TB_SLOT MAIN_D_801353BC
+#define TB_RULES MOD_TRAIN2_RULES
+#define TB_START_MIN (MAIN_D_801353D0 * 60 + MAIN_D_801353D2)
+#include "../trn/trn_block.h"
+
 void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happyLoss)
 {
 	int16_t clockHour;
@@ -298,7 +306,17 @@ void TRN2_applyBaseStats(void)
 	PARTNER_ENTITY.digimonEntity.stats.base.brain = INITIAL_COMBAT_STATS[0][5];
 }
 
+/* MOD (training block, src/trn/trn_block.h): a block opens the box once, after its last session */
 void TRN2_createPostTrainingStatsBox(void)
+{
+	if (TRN2_MOD_QUIET) {
+		return;
+	}
+	clearTextArea();
+	TRN2_modOpenStatsBox();
+}
+
+void TRN2_modOpenStatsBox(void)
 {
 	int32_t i;
 	DVECTOR screenPos;
@@ -306,7 +324,6 @@ void TRN2_createPostTrainingStatsBox(void)
 	RECT startPos;
 
 	MAIN_D_801353D4 = 0;
-	clearTextArea();
 
 	for (i = 0; i < 6; i++) {
 		if (STATS_GAINS[i] == 0) {

@@ -27,3 +27,30 @@ MASTERED:
     TRN_D_8008F19C:
       ja: をおぼえた。
       en_us: was mastered!
+
+# MOD (training block): the box under the stats box when a block of sessions stops early (src/trn/trn_block.h).
+# The 0 of TRN_BLOCK_DONE is replaced by the number of sessions done.
+TRN_BLOCK_DONE:
+  ja: 5回中0回 トレーニングした
+  en_us: Trained 0 of 5 sessions.
+TRN_BLOCK_HUNGRY:
+  ja: おなかが すいている
+  en_us: It is hungry.
+TRN_BLOCK_TOILET:
+  ja: トイレに 行きたがっている
+  en_us: It needs the toilet.
+TRN_BLOCK_SLEEPY:
+  ja: ねむそうだ
+  en_us: It is sleepy.
+TRN_BLOCK_TIRED:
+  ja: つかれている
+  en_us: It is tired.
+TRN_BLOCK_UNWELL:
+  ja: ぐあいが わるい
+  en_us: It is not well.
+TRN_BLOCK_EVOLVE:
+  ja: 進化しそうだ！
+  en_us: It is about to digivolve!
+TRN_BLOCK_LIFE:
+  ja: 寿命が つきかけている
+  en_us: Its life is ending.
