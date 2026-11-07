@@ -409,7 +409,7 @@ RECT MAIN_D_801342F0 = { 0, 24, 256, 200 };
 RECT PLAYER_INFO_TEXT_AREA = { 0, 12, 256, 200 };
 
 #if VERSION_IS(US)
-char FMT_PLAYTIME[8] = "%d : %d";
+char FMT_PLAYTIME[8] = "%d:%02d"; /* MOD: the minutes keep two digits; the array holds no longer format */
 #endif
 
 RECT EVO_CHART_TEXT_AREA = { 0, 12, 256, 200 };
