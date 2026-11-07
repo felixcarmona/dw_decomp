@@ -347,9 +347,27 @@ MOD_OPTIONS:
     MOD_OPT_STR_OPTIONS:
       ja: "OPTIONS"
       en_us: "OPTIONS"
-    MOD_OPT_STR_JP_OFF:
-      ja: "JAPANESE CONTROLS   OFF"
-      en_us: "JAPANESE CONTROLS   OFF"
-    MOD_OPT_STR_JP_ON:
-      ja: "JAPANESE CONTROLS   ON"
-      en_us: "JAPANESE CONTROLS   ON"
+    MOD_OPT_STR_JP:
+      ja: "JAPANESE CONTROLS"
+      en_us: "JAPANESE CONTROLS"
+    MOD_OPT_STR_CLOCK:
+      ja: "DIGITAL CLOCK"
+      en_us: "DIGITAL CLOCK"
+    MOD_OPT_STR_OFF:
+      ja: "OFF"
+      en_us: "OFF"
+    MOD_OPT_STR_ON:
+      ja: "ON"
+      en_us: "ON"
+    MOD_OPT_STR_BARS:
+      ja: "NEW STATUS BARS"
+      en_us: "NEW STATUS BARS"
+    MOD_OPT_STR_FPS:
+      ja: "FRAME RATE"
+      en_us: "FRAME RATE"
+    MOD_OPT_STR_30:
+      ja: "30 FPS"
+      en_us: "30 FPS"
+    MOD_OPT_STR_60:
+      ja: "60 FPS"
+      en_us: "60 FPS"
