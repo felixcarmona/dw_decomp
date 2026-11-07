@@ -245,6 +245,7 @@ void createCloudFX(SVECTOR *pos);
 int32_t addEntityParticleFX(Entity *owner, int32_t timer);
 int32_t lerp(int32_t start, int32_t end, int32_t t0, int32_t t1, int32_t t);
 int32_t getOriginalType(int32_t type);
+int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed); /* MOD (dcb-import) */
 int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
 void calculateBoneMatrix(Entity *entity, int32_t boneId, MATRIX *out);
 void entityLookAtLocation(Entity *entity, VECTOR *pos);
@@ -4306,6 +4307,11 @@ void VS_checkTechCompatibility(void)
 	}
 
 	EFE_BONE_OFFSET = &entry->offset;
+	/* MOD (dcb-import): a new species with its own skeleton moves the borrowed origin */
+	if (entry->type >= 0) {
+		EFE_BONE_OFFSET = (EfeBoneOffset *)getSpeciesEffectOrigin(EFE_SCRIPT_CONTEXT->sourceEntity->type,
+									  (int16_t *)&entry->offset);
+	}
 	EFE_SCRIPT_CONTEXT->boneOffset = EFE_BONE_OFFSET;
 }
 
