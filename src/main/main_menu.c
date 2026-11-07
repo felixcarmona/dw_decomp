@@ -26,6 +26,7 @@
 #include <dw/version.h>
 #include <dw/vs.h>
 #include <dw/world_object.h>
+#include <dw/screen.h>
 #include <text/main/main_menu.h>
 
 #include "common.h"
@@ -85,11 +86,19 @@ typedef struct {
 	char location[24];
 } SaveSlotPreview;
 
+/* a WORLD_POOP pile in the v1 save: the screen's low byte, 0xFF = none */
+typedef struct {
+	uint8_t map;
+	uint8_t x;
+	uint8_t y;
+	int8_t size;
+} SavedPoopPile;
+
 typedef struct {
 	int32_t mainState;
 	VECTOR tamerPosition;
 	VECTOR partnerPosition;
-	PoopPile worldPoop[100];
+	SavedPoopPile worldPoop[100]; /* MOD (screens beyond 255): the v1 bytes; WORLD_POOP is wider */
 	int32_t money;
 	int32_t partnerType;
 	uint8_t partnerData[16];
@@ -190,7 +199,7 @@ typedef struct {
 	int32_t partnerType;		/* the same as the v1 field (already 32-bit) */
 	uint16_t wregs[SAVE_EXT_SAVED_WREGS];
 	DigimonId registeredTypes[40];	/* battle registration ids (u8 in RAM for now) */
-	ScreenId poopMaps[100];		/* WORLD_POOP screens (u8 in RAM for now) */
+	ScreenId poopMaps[100];		/* WORLD_POOP screens (the v2 file: the v1 bytes) */
 	uint8_t speciesRaised[NUM_DIGIMON / 8];	/* MOD (scale): SPECIES_RAISED_BITS, one bit per type */
 	uint8_t speciesRecruited[NUM_DIGIMON / 8]; /* SPECIES_RECRUITED_BITS */
 	uint8_t reserved[0x1000 - 0x188 - 4 - 2 * (NUM_DIGIMON / 8)];
@@ -4248,7 +4257,12 @@ void loadSavegame(SavegamePayload *savegame)
 		SAVED_STATE.npcMaps[i] = savegame->npcMaps[i];
 	}
 	memcpy(DIGIMON_NAME(0), savegame->playerName, 0x14);
-	memcpy(WORLD_POOP, savegame->worldPoop, 0x190);
+	for (i = 0; i < 100; i++) { /* MOD (screens beyond 255): SAVE_TAG_POOP_MAPS gives the wide screens (applyRecords) */
+		WORLD_POOP[i].map = savegame->worldPoop[i].map == 0xFF ? -1 : savegame->worldPoop[i].map;
+		WORLD_POOP[i].x = savegame->worldPoop[i].x;
+		WORLD_POOP[i].y = savegame->worldPoop[i].y;
+		WORLD_POOP[i].size = savegame->worldPoop[i].size;
+	}
 	SAVED_STATE.partnerPara = savegame->partnerPara;
 	SAVED_STATE.lives = savegame->partnerLives;
 	SAVED_STATE.currentScreen = savegame->currentScreen;
@@ -4311,7 +4325,12 @@ void writeSavegame(SavegamePayload *savegame)
 		savegame->npcMaps[i] = NPC_ENTITIES[i].digimonEntity.entity.isOnMap;
 	}
 	memcpy(savegame->playerName, DIGIMON_NAME(0), 0x14);
-	memcpy(savegame->worldPoop, WORLD_POOP, 0x190);
+	for (i = 0; i < 100; i++) { /* MOD (screens beyond 255): a screen the v1 byte cannot name is 0xFF (none) there */
+		savegame->worldPoop[i].map = (uint32_t)WORLD_POOP[i].map < NUM_ORIGINAL_SCREENS ? WORLD_POOP[i].map : 0xFF;
+		savegame->worldPoop[i].x = WORLD_POOP[i].x;
+		savegame->worldPoop[i].y = WORLD_POOP[i].y;
+		savegame->worldPoop[i].size = WORLD_POOP[i].size;
+	}
 	savegame->partnerPara = PARTNER_PARA;
 	/* MOD: the v1 save keeps the low byte (exact while ids are < 255) */
 	savegame->currentScreen = (uint8_t)CURRENT_SCREEN;
@@ -4393,7 +4412,8 @@ static int32_t needsNewExecutable(int32_t partnerType, int32_t currentScreen, in
 {
 	int32_t i;
 
-	if ((uint32_t)partnerType >= NUM_ORIGINAL_DIGIMON || currentScreen >= NUM_SCREENS || previousScreen >= NUM_SCREENS) {
+	if ((uint32_t)partnerType >= NUM_ORIGINAL_DIGIMON || (uint32_t)currentScreen >= NUM_ORIGINAL_SCREENS ||
+	    (uint32_t)previousScreen >= NUM_ORIGINAL_SCREENS) {
 		return 1;
 	}
 	for (i = 0; i < 30; i++) {
@@ -4534,8 +4554,8 @@ static void prepareSaveFile(int32_t fromRam)
 		words[i] = savegame->battleRegistrationData[i].digimonId;
 	}
 	p = putRecord(p, SAVE_TAG_REGISTERED, words, 2 * 40);
-	for (i = 0; i < 100; i++) {
-		words[i] = savegame->worldPoop[i].map == 0xFF ? -1 : savegame->worldPoop[i].map;
+	for (i = 0; i < 100; i++) { /* MOD (screens beyond 255): from RAM the wide screen */
+		words[i] = fromRam ? WORLD_POOP[i].map : savegame->worldPoop[i].map == 0xFF ? -1 : savegame->worldPoop[i].map;
 	}
 	p = putRecord(p, SAVE_TAG_POOP_MAPS, words, 2 * 100);
 	if (fromRam) {
@@ -4746,6 +4766,11 @@ static void applyRecords(uint8_t *e)
 		case SAVE_TAG_WREGS:
 			for (i = 0; i < len / 2 && i < SAVE_EXT_SAVED_WREGS; i++) {
 				SCRIPT_STATE_PTR->wregs[i] = readRecord16(d + 2 * i);
+			}
+			break;
+		case SAVE_TAG_POOP_MAPS: /* MOD (screens beyond 255): authoritative (was kept for the tools) */
+			for (i = 0; i < len / 2 && i < 100; i++) {
+				WORLD_POOP[i].map = readRecord16(d + 2 * i);
 			}
 			break;
 		case SAVE_TAG_SPECIES_RAISED:

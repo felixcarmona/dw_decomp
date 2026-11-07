@@ -25,7 +25,7 @@
 #define SAVE_TAG_PARTNER_TYPE		0x0003 /* i32 species of the partner */
 #define SAVE_TAG_WREGS			0x0004 /* u16[n] the script registers w0.. */
 #define SAVE_TAG_REGISTERED		0x0005 /* i16[n] species of the registered Digimon of the VS mode (kept for reading tools) */
-#define SAVE_TAG_POOP_MAPS		0x0006 /* i16[n] screens of the poop in the world, -1 = none (kept for reading tools) */
+#define SAVE_TAG_POOP_MAPS		0x0006 /* i16[n] screens of the poop in the world, -1 = none (authoritative since screens beyond 255; the v1 byte is 0xFF for a screen >= 255) */
 #define SAVE_TAG_SPECIES_RAISED		0x0007 /* bit array: species the tamer has raised */
 #define SAVE_TAG_SPECIES_RECRUITED	0x0008 /* bit array: species the tamer has recruited */
 #define SAVE_TAG_REQUIRED		0x8000

@@ -825,6 +825,9 @@ FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + par
 	/* MOD (species): new species (tools/species.py); build-disc.py --relayout
 	 * writes its sector and size. Without the file the header check fails. */
 	{ 0x00000000, 0x00000800, "DIGI.DAT" },
+	/* MOD (screens beyond 255): the screens >= 255 (tools/screens.py, include/dw/screen.h); build-disc.py
+	 * --relayout --add writes its sector and size. Without the file sector 0 of the disc is read: no record. */
+	{ 0x00000000, 0x00000800, "SCRN.DAT" },
 	/*
 	 * MOD (partners-npc-c): partner-only models (model.c). Sector 0 until
 	 * build-disc.py --relayout --add writes the real one; without the file
