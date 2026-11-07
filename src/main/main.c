@@ -4118,7 +4118,7 @@ static void modPerfReset(void)
  * although no code reads it */
 const int32_t MOD_FPS_BUILD __attribute__((used, retain)) = FPS;
 #if FPS != 20
-int32_t MOD_FPS_MODE_RUN = FPS == 60 ? 2 : 1; /* MOD (options): FRAME RATE, 30 or 60 */
+int32_t MOD_FPS_MODE_RUN = FPS == 60 ? 2 : 1; /* MOD (options): FRAME RATE, 20, 30 or 60 */
 #endif
 /* test switch (state checks with the slow interpreter CPU, where the extra
  * passes rarely fit): with N > 0 every tick lasts N refreshes instead of 3,
