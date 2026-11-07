@@ -295,4 +295,7 @@ SVECTOR *getConditionFxOffset(int32_t type);
 /* a training animation row (TRN/TRN2 tables live in the overlays) */
 int8_t *getTrainingAnimRow(int8_t (*table)[2], int32_t type, int32_t which);
 
+/* Field NPC twins; reverse maps an entity back to its script identity. */
+int32_t npcSpeciesType(int32_t type, int32_t reverse);
+
 #endif
