@@ -4794,6 +4794,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	}
 	if (len >= 7) {
 		MOD_OPT_NEW_DIGIMON = d[6] != 0;
+		modApplySpeciesLevels(); /* MOD (canon levels) */
 	}
 	if (len >= 8) { /* MOD (language) */
 		modSetLanguage(d[7]);
@@ -6105,6 +6106,7 @@ static void modSetOption(int32_t row, int32_t value)
 		break;
 	case 4:
 		MOD_OPT_NEW_DIGIMON = value;
+		modApplySpeciesLevels(); /* MOD (canon levels) */
 		break;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		modSetStory(value);

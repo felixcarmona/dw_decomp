@@ -5,6 +5,7 @@
 #include <libgs.h>
 
 #include <dw/mod_options.h>
+#include <dw/species.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -2209,7 +2210,7 @@ void handleEvoItems(int16_t item)
 		}
 		EVOLUTION_TARGET = modItem->target;
 	} else {
-		level = DIGI_PARA(EVOLUTION_ITEM_TARGET[item - 0x47]).level - 1;
+		level = modOriginalLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* MOD (canon levels): the original game's level */
 		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
 			return;
 		}

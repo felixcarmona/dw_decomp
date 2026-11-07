@@ -19,6 +19,7 @@
 #include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/level.h>
+#include <dw/species.h>
 #include <dw/mod_rules.h>
 #include <dw/map.h>
 #include <dw/map_object.h>
@@ -1657,15 +1658,19 @@ int32_t partnerWillRefuseItem(void)
 			/* MOD (evolution rules as data): the level the partner must have is MOD_EVO_ITEMS'; an item without a row does nothing */
 			ModEvoItem *modItem = getModEvoItem(item);
 
+			/* MOD (canon levels): an item whose target is a Mega asks for an Ultimate (Metalbanana -> MetalEtemon) */
 			if (modItem == NULL ||
-			    DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != modItem->level)
+			    DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level !=
+			    (DIGI_PARA(modItem->target).level == LEVEL_MEGA ? LEVEL_ULTIMATE : modItem->level))
 				return 1;
 		} else if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level ==
-			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level) ||
+			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) ||
 			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level + 2 ==
-			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level) ||
+			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) ||
 			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level - 1 ==
-			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level)) {
+			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item)))) {
+			/* MOD (canon levels): the original items keep the original game's levels (Red Ruby and Beetlepearl on a
+			 * Champion, as the disc's routes to Phoenixmon and HerculesKabuterimon) */
 			return 1;
 		}
 	}
