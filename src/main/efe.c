@@ -1308,8 +1308,9 @@ void renderParticleFlash(ParticleFlashData *params)
  *      on the same bone;
  *   7. MOD_DONOR_FALLBACK: the entry's fallback point;
  *   8. otherwise the next entry is tried.
- * Returns NULL when no entry gives an origin (the effect is dropped, as
- * before). The result lives in a small ring because the effect keeps the
+ * When no entry gives an origin, a species listed in EFFECT_FALLBACK_SPECIES
+ * (MOD effect fallback, below: data of the species files) starts from
+ * EFFECT_FALLBACK_ORIGIN; otherwise NULL (the effect is dropped, as before). The result lives in a small ring because the effect keeps the
  * pointer while it runs.
  */
 #define MOD_ORIGIN_ANY_BONE   -2
@@ -1428,25 +1429,6 @@ static ModTechDonor MOD_TECH_DONORS[] = {
 	  MOD_COUNT(MOD_TECH_BONES_JIJIMON) },
 	{ DIGIMON_ANALOGMAN, DIGIMON_ANDROMON, 7, 8, 0, 0, NULL, { 0 }, MOD_TECH_BONES_ANALOGMAN,
 	  MOD_COUNT(MOD_TECH_BONES_ANALOGMAN) },
-	/* MOD (provisional finishers, docs/mods/species-identity.md): the DW1 enemies made partners (species 337..372)
-	 * borrow a DW1 finisher of their element, and no finisher's effect has a row for their type (the effect would be
-	 * dropped: the clip plays, nothing hits). Their origin is the Digimon itself, bone 0 (0, 0, 0), where the
-	 * area finishers start. The first column is the type getOriginalType returns for them (effects_like); the donor 0x7FFF
-	 * is a type no table has (not -1: the end of a table is negative), so the fallback is used. */
-	{ 111, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },  /* Tentomon */
-	{ 110, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },  /* Gekomon */
-	{ 68, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },   /* Gotsumon */
-	{ 69, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },   /* Flarerizamon */
-	{ 109, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },  /* Otamamon */
-	{ 80, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },   /* Goburimon */
-	{ 67, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },   /* Yanmamon */
-	/* SnowAgumon, Psychemon, Saberdramon and Gururumon use their donors' types (Agumon, Gabumon, Birdramon,
-	 * Garurumon): the fallback applies to a technique of those four that has no row for the type, which dropped
-	 * its effect before. */
-	{ 3, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },
-	{ 17, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },
-	{ 21, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },
-	{ 22, 0x7FFF, 1, 1, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS, 0, NULL, { 0, 0, 0, 0 }, NULL, 0 },
 };
 
 static int32_t modOriginMatches(EfeBoneOffset *from, EfeBoneOffset *row)
@@ -1460,6 +1442,17 @@ static int32_t modOriginMatches(EfeBoneOffset *from, EfeBoneOffset *row)
 	return from->positionX == row->positionX && from->positionY == row->positionY &&
 	       from->positionZ == row->positionZ;
 }
+
+/*
+ * MOD (effect fallback): the species (ids, -1 after the last) whose techniques without an origin row for their
+ * effects type start from EFFECT_FALLBACK_ORIGIN instead of being dropped: written by tools/balance.py build from
+ * the species files ("effect_origin_fallback", docs/mods/species.md); the initializer is what content/species
+ * has. Today: the 11 DW1 enemies made partners whose provisional finisher has no row (docs/mods/species-identity.md).
+ */
+int16_t EFFECT_FALLBACK_SPECIES[EFFECT_FALLBACK_MAX] = {
+	67, 68, 69, 71, 80, 82, 105, 106, 109, 110, 111, -1, -1, -1, -1, -1,
+};
+EfeBoneOffset EFFECT_FALLBACK_ORIGIN = { 0, 0, 0, 0 }; /* bone 0, the Digimon itself, (0, 0, 0) */
 
 EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 {
@@ -1520,6 +1513,17 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 			return out;
 		}
 		/* a donor bone with no counterpart: try the next entry */
+	}
+	/* MOD (effect fallback): a species that has no row for a technique and is listed starts it from the shared
+	 * origin (never a type: a vanilla species with the same effects type is not affected) */
+	type = EFE_SCRIPT_CONTEXT->sourceEntity->type;
+	for (i = 0; i < EFFECT_FALLBACK_MAX && EFFECT_FALLBACK_SPECIES[i] >= 0; i++) {
+		if (EFFECT_FALLBACK_SPECIES[i] == type) {
+			out = &ring[next];
+			*out = EFFECT_FALLBACK_ORIGIN;
+			next = (next + 1) & 7;
+			return out;
+		}
 	}
 	return NULL;
 }
