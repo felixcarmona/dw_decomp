@@ -1307,8 +1307,16 @@ void clearTextArea(void)
 	clearTextSubArea(&rect);
 }
 
+/* MOD (fps): text drawn into VRAM from a render (menus) is uploaded on the
+ * first render pass of a tick only; the other passes find it there already
+ * (dw/mod_fps.h) */
+extern int32_t MOD_RENDER_PASS;
+
 void clearTextSubArea(RECT *rect)
 {
+	if (MOD_RENDER_PASS != 0) {
+		return;
+	}
 	rect->x = (rect->x / 4) + TEXT_VRAM_X;
 	rect->y = rect->y + TEXT_VRAM_Y;
 	rect->w >>= 2;
@@ -1494,6 +1502,9 @@ void drawString(str, x, y)
 	uint16_t hi;
 	uint16_t lo;
 
+	if (MOD_RENDER_PASS != 0) {
+		return;
+	}
 	while (*str != '\0') {
 		if (isAsciiEncoded(str) != 0) {
 			if (*str == '.') {
