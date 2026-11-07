@@ -453,12 +453,19 @@ void handleBattleEndBox(void)
 void tickBitBox(instanceId)
 	int16_t instanceId;
 {
-	if (UI_BOX_DATA[2].state != 1) {
+	int32_t step;
+
+	/* Count bits alongside stats, inside the original mandatory wait.
+	 * The balance box still opens afterwards to show the final wallet. */
+	if ((UI_BOX_DATA[0].state != 1) && (UI_BOX_DATA[2].state != 1)) {
 		return;
 	}
 
 	if (BITS_TO_GAIN == 0) {
-		BTL_tickBattleEndText(instanceId);
+		/* Keep the later text wait separate from reward absorption. */
+		if (UI_BOX_DATA[2].state == 1) {
+			BTL_tickBattleEndText(instanceId);
+		}
 		return;
 	}
 
@@ -468,13 +475,18 @@ void tickBitBox(instanceId)
 	}
 
 	if (SHOULD_SKIP_BIT_COUNTING == 1) {
-		MONEY += BITS_TO_GAIN;
-		BITS_TO_GAIN = 0;
+		step = BITS_TO_GAIN;
 	} else {
+		if (POST_BATTLE_STATS_TIMER >= 20) {
+			return;
+		}
+		/* Finish by the stat deadline whichever box ticks first. */
+		step = POST_BATTLE_STATS_TIMER > 0 ?
+			(BITS_TO_GAIN + POST_BATTLE_STATS_TIMER - 1) / POST_BATTLE_STATS_TIMER : BITS_TO_GAIN;
 		playSound(0, 0x16);
-		--BITS_TO_GAIN;
-		MONEY += 1;
 	}
+	MONEY += step;
+	BITS_TO_GAIN -= step;
 
 	if (MONEY >= 1000000) {
 		MONEY = 999999;
@@ -586,18 +598,31 @@ void tickPostBattleStatsBox(void)
 		POST_BATTLE_STATS_TIMER--;
 	}
 
-	for (i = 0; i < 6; i++) {
-		if (STATS_GAINS[i] != 0) {
-			break;
-		}
-	}
-
 	/* A face-button edge on pad 1 still counts with other buttons or pad 2 held. */
 	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & (CONFIRM_BUTTON | CANCEL_BUTTON)) {
 		SHOULD_SKIP_BIT_COUNTING = 1;
 	}
 
 	if (SHOULD_SKIP_BIT_COUNTING != 1) {
+		/* Fit every reward, including the battle-gain floor, inside the
+		 * original 100-tick pause. Animate all rows over its final 20 ticks.
+		 * Counting belongs to the tick, never an interpolated render pass. */
+		if (POST_BATTLE_STATS_TIMER < 20) {
+			int32_t changed = 0;
+			for (i = 0; i < 6; i++) {
+				if (STATS_GAINS[i] > 0) {
+					int32_t step = (STATS_GAINS[i] + POST_BATTLE_STATS_TIMER) /
+						      (POST_BATTLE_STATS_TIMER + 1);
+					int32_t sum = INITIAL_COMBAT_STATS[0][i] + step;
+					INITIAL_COMBAT_STATS[0][i] = sum > CAP_OF_STAT_INDEX(i) ? CAP_OF_STAT_INDEX(i) : sum;
+					STATS_GAINS[i] -= step;
+					changed = 1;
+				}
+			}
+			if (changed) {
+				playSound(0, 0x16);
+			}
+		}
 		return;
 	}
 
@@ -625,31 +650,14 @@ void renderPostBattleStatsBox(int16_t depth)
 {
 	RECT *box;
 	GsBOXF rect;
-	int32_t first;
 	int16_t y;
 	int32_t i;
 	POLY_FT4 *prim;
 
 	box = &UI_BOX_DATA[0].finalPos;
-	first = 1;
 	for (i = 0; i < 6; i++) {
 		if (STATS_GAINS[i] == 0) {
 			continue;
-		}
-
-		if ((POST_BATTLE_STATS_TIMER == 0) &&
-		    (STATS_GAINS[i] > 0) &&
-		    (first == 1)) {
-			playSound(0, 0x16);
-			STATS_GAINS[i]--;
-			INITIAL_COMBAT_STATS[0][i] += 1;
-
-			/* MOD (caps): the new limits (were 9999 / 999) */
-			if (INITIAL_COMBAT_STATS[0][i] > CAP_OF_STAT_INDEX(i)) {
-				INITIAL_COMBAT_STATS[0][i] = CAP_OF_STAT_INDEX(i);
-			}
-
-			first = 0;
 		}
 
 		if (STATS_GAINS[i] != 0) {
