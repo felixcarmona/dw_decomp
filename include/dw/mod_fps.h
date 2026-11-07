@@ -70,6 +70,9 @@ extern int32_t MOD_MIST_SHIFT[3];
 extern int32_t MOD_FPS_INTERP_BONES;
 /* startAnimation: the entity's pose jumps, its bones are not interpolated */
 void modInterpAnimStarted(void *entity);
+void modSmoothBeforeStart(void *entity, int32_t destination);
+void modSmoothForget(int32_t instance);
+void modSmoothMapReset(void);
 void modInterpUnapplyEntity(int32_t entityId);
 void modInterpInvalidate(void);
 
