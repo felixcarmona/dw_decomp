@@ -3696,6 +3696,8 @@ void newGameScene(void)
 	loadNewGameScene();
 
 	do {
+		/* MOD (fps): rendered by the shared tick / present helper */
+		modTickStart(MOD_PRESENT_BATTLE);
 		pollInputGame();
 		ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 		ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
@@ -3713,14 +3715,7 @@ void newGameScene(void)
 		}
 
 		tickObjects();
-		renderObjects();
-		applyDrawOffset(ACTIVE_FRAMEBUFFER);
-		DrawSync(0);
-		VSync(3);
-		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-		GsSwapDispBuff();
-		GsSortClear(0, 0, 0, &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
-		GsDrawOt(ACTIVE_ORDERING_TABLE);
+		modPresent(MOD_PRESENT_BATTLE, NULL);
 
 		if ((done == 1) && (FADE_OUT_CURRENT == 0)) {
 			fadeToBlack(0x28);
