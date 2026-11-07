@@ -39,4 +39,12 @@ void modRenderRollbackEnd(void);
  * the extra passes. */
 int32_t modRenderRand(void);
 
+/* Interpolation of the render passes (main.c, docs/mods/60fps.md 2.3-2.4):
+ * MOD_FPS_INTERP switches it (with more than one render per tick);
+ * MOD_INTERP_MAP_GEN is bumped when a map is set up or unloaded (a snap). */
+extern int32_t MOD_FPS_INTERP;
+extern int32_t MOD_INTERP_MAP_GEN;
+extern int32_t MOD_MIST_SHIFT[3];
+void modInterpInvalidate(void);
+
 #endif
