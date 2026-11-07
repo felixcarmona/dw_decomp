@@ -641,10 +641,11 @@ static int32_t ringStep(int32_t v, int32_t target)
 {
 	int32_t d = target - v;
 
-	if ((d / 2) == 0) {
-		return target;
+	/* a quarter of the way per tick: about half a second to settle */
+	if ((d / 4) == 0) {
+		return (d > 3 || d < -3) ? v + ((d > 0) ? 1 : -1) : target;
 	}
-	return v + d / 2;
+	return v + d / 4;
 }
 
 void renderConditionRingObject(int32_t instanceId)
