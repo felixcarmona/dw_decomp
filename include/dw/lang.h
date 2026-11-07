@@ -7,7 +7,8 @@
  */
 #define MOD_LANG_EN	0
 #define MOD_LANG_ES	1
-#define MOD_LANGS	2
+#define MOD_LANG_PT_BR	2
+#define MOD_LANGS	3
 
 #include <lang_build.h>
 
