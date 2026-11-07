@@ -878,7 +878,7 @@ void VS__renderSelectDigimonPlayer(id)
 		for (j = 0; j < 3; j++) {
 			if (fighter->moves[j] == 0xff) {
 				strcpy(buf, STR_NOT_EQUIPPED);
-				text = (uint16_t *)buf;
+				text = MOD_LANG == MOD_LANG_ZH ? NULL : (uint16_t *)buf;
 			} else {
 				moveId = DIGI_PARA(registeredSpecies(fighter)).moves[fighter->moves[j] - 0x2e];
 				text = (uint16_t *)MOVE_NAMES[moveId];

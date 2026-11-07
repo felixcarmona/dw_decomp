@@ -245,6 +245,8 @@ POLY_FT4 *zhVsText(POLY_FT4 *prim, char *text, int32_t x, int32_t y, int32_t col
 {
     uint16_t code;
     int32_t n = 0, top, bottom, local, cell;
+    /* 未装备: the legacy empty-move label has no translated text-bank entry. */
+    if (!text) text = "\xA5\x61\xA8\xAB\xA2\xD5";
     while (*text) {
         if (isAsciiEncoded(text)) {
             code = convertAsciiToJis((uint8_t)*text++);
