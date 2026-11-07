@@ -52,6 +52,7 @@
 #include <dw/main.h>
 #include <string.h>
 #include <dw/file_table.h>
+#include <dw/file.h>
 
 #include "common.h"
 
@@ -120,7 +121,11 @@ uint16_t modButtonGlyph(uint16_t code)
 
 /*
  * The button frames: u 0x4C, v 0xB7 of the UI texture page (320, 0), 4 bpp, CLUT (96, 500); in SYSTEM_W.TIM (at
- * (320, 128)) VRAM words 19..30, rows 55..66. Index 0xC is the cross's light blue, 0xD its dark blue, 3 the face.
+ * (320, 128)) VRAM words 19..30, rows 55..66. The US disc draws a × there (index 0xC its light blue, 0xD its dark blue,
+ * a 6x5 box in each frame), the Japanese disc a ○ (a flat 8x5 ellipse in its oranges 7, 0xE, 0xF); 3 is the face.
+ * The other button is made from the disc's frames: the disc's ink painted over with the face and ours drawn where it
+ * was, in indices 0xC and 0xD of a CLUT of our own (the frames' one with those two made our colours): on the US disc a
+ * red ○ ring, on the Japanese disc a blue ×. The base (which button the disc draws) is told by the frames themselves.
  */
 #define FRAMES_X	19	/* VRAM words from the TIM's left edge */
 #define FRAMES_Y	55	/* rows from its top */
@@ -131,27 +136,37 @@ uint16_t modButtonGlyph(uint16_t code)
 #define FACE		0x3
 #define FRAMES_CLUT_Y	12	/* CLUT (96, 500): row 12 of the TIM's 16 */
 /*
- * The ring's CLUT: the frames' one with the cross's two blues made the ○'s red. It lives in the page's filler (u 0x80..0xBF
- * of v 0xE6, all index 15: nothing draws it) at VRAM (352, 230); with the US layout the filler is put back.
+ * Our button's CLUT lives in the page's filler (u 0x80..0xBF of v 0xE6, all index 15: nothing draws it) at VRAM
+ * (352, 230); with the disc's button shown the filler is put back.
  */
-#define RING_CLUT_X	352
-#define RING_CLUT_Y	230
+#define MADE_CLUT_X	352
+#define MADE_CLUT_Y	230
 #define RING_LIGHT	0x359F	/* (248, 96, 104) */
 #define RING_DARK	0x1CD4	/* (160, 48, 56) */
+#define CROSS_LIGHT	0x7ECE	/* (112, 176, 248) */
+#define CROSS_DARK	0x6988	/* (64, 96, 208) */
 
-static uint16_t FRAMES_CROSS[FRAMES_ROWS * FRAMES_WORDS];
-static uint16_t FRAMES_RING[FRAMES_ROWS * FRAMES_WORDS];
+static uint16_t FRAMES_DISC[FRAMES_ROWS * FRAMES_WORDS];
+static uint16_t FRAMES_MADE[FRAMES_ROWS * FRAMES_WORDS];
 static int32_t FRAMES_READY = 0;
-static uint16_t RING_CLUT[16];
-static uint16_t RING_CLUT_FILLER[16];
+static int32_t FRAMES_BASE = MOD_BUTTONS_US; /* the layout whose button the disc draws (MOD_BUTTONS_JP: a ○) */
+static uint16_t MADE_CLUT[16];
+static uint16_t MADE_CLUT_FILLER[16];
 
-/* the ring that takes the cross's 6x5 place: L light, D dark, . the face */
+/* our buttons, 6x5 in the place of the disc's: L light, D dark, . the face */
 static const char RING[5][7] = {
 	".DLLD.",
 	"DL..LD",
 	"L....L",
 	"DL..LD",
 	".DLLD.",
+};
+static const char CROSS[5][7] = {
+	"LD..DL",
+	".LDDL.",
+	"..LL..",
+	".LDDL.",
+	"LD..DL",
 };
 
 static int32_t texel(uint16_t *f, int32_t x, int32_t y)
@@ -166,41 +181,87 @@ static void setTexel(uint16_t *f, int32_t x, int32_t y, int32_t c)
 	*w = (*w & ~(0xF << (4 * (x & 3)))) | (c << (4 * (x & 3)));
 }
 
-/* FRAMES_RING from FRAMES_CROSS; 0 when a frame's cross is not the 6x5 one this expects */
-static int32_t makeRing(void)
+/* the disc's ink in a frame: the US × (0xC, 0xD) or, with `jp`, the Japanese ○ (7, 0xE, 0xF) */
+static int32_t isInk(int32_t c, int32_t jp)
 {
-	int32_t frame, x, y, c, x0, y0, x1, y1;
+	return jp ? c == 0x7 || c == 0xE || c == 0xF : c == INK_LIGHT || c == INK_DARK;
+}
 
-	for (x = 0; x < FRAMES_ROWS * FRAMES_WORDS; x++) {
-		FRAMES_RING[x] = FRAMES_CROSS[x];
+/*
+ * Which button the frames `f` draw: MOD_BUTTONS_US (a 6x5 × in each frame), MOD_BUTTONS_JP (an 8x5 ○ in each), -1
+ * neither. With `made`, FRAMES_MADE becomes the frames with the other button: the ink painted over with the face and
+ * ours drawn in its place (the ○ ring where the × was, the × in the middle of the ○'s 8 columns).
+ */
+static int32_t framesButton(uint16_t *f, int32_t made)
+{
+	int32_t jp, frame, x, y, c, x0, y0, x1, y1;
+
+	for (jp = 0; jp < 2; jp++) {
+		for (x = 0; x < FRAMES_ROWS * FRAMES_WORDS; x++) {
+			FRAMES_MADE[x] = f[x];
+		}
+		for (frame = 0; frame < 3; frame++) {
+			x0 = y0 = 99;
+			x1 = y1 = -1;
+			for (y = 0; y < FRAMES_ROWS; y++) {
+				for (x = frame * 16; x < frame * 16 + 16; x++) {
+					c = texel(FRAMES_MADE, x, y);
+					if (isInk(c, jp)) {
+						setTexel(FRAMES_MADE, x, y, FACE);
+						x0 = x < x0 ? x : x0;
+						y0 = y < y0 ? y : y0;
+						x1 = x > x1 ? x : x1;
+						y1 = y > y1 ? y : y1;
+					} else if (isInk(c, !jp)) {
+						break;
+					}
+				}
+				if (x < frame * 16 + 16) {
+					break;
+				}
+			}
+			if (y < FRAMES_ROWS || x1 - x0 != (jp ? 7 : 5) || y1 - y0 != 4) {
+				break;
+			}
+			for (y = 0; made && y < 5; y++) {
+				for (x = 0; x < 6; x++) {
+					c = jp ? CROSS[y][x] : RING[y][x];
+					if (c != '.') {
+						setTexel(FRAMES_MADE, x0 + jp + x, y0 + y, c == 'L' ? INK_LIGHT : INK_DARK);
+					}
+				}
+			}
+		}
+		if (frame == 3) {
+			return jp ? MOD_BUTTONS_JP : MOD_BUTTONS_US;
+		}
 	}
-	for (frame = 0; frame < 3; frame++) {
-		x0 = y0 = 99;
-		x1 = y1 = -1;
-		for (y = 0; y < FRAMES_ROWS; y++) {
-			for (x = frame * 16; x < frame * 16 + 16; x++) {
-				c = texel(FRAMES_RING, x, y);
-				if (c == INK_LIGHT || c == INK_DARK) {
-					setTexel(FRAMES_RING, x, y, FACE);
-					x0 = x < x0 ? x : x0;
-					y0 = y < y0 ? y : y0;
-					x1 = x > x1 ? x : x1;
-					y1 = y > y1 ? y : y1;
-				}
-			}
-		}
-		if (x1 - x0 != 5 || y1 - y0 != 4) {
-			return 0;
-		}
-		for (y = 0; y < 5; y++) {
-			for (x = 0; x < 6; x++) {
-				if (RING[y][x] != '.') {
-					setTexel(FRAMES_RING, x0 + x, y0 + y, RING[y][x] == 'L' ? INK_LIGHT : INK_DARK);
-				}
-			}
+	return -1;
+}
+
+/* the frames of SYSTEM_W's TIM `img` (at (320, 128)) into `f`; 0 when `img` is not that TIM */
+static int32_t takeFrames(GsIMAGE *img, uint16_t *f)
+{
+	uint16_t *src;
+	int32_t x, y;
+
+	if (img->px != 320 || img->py != 128 || (img->pmode & 7) != 0 || img->pw < FRAMES_X + FRAMES_WORDS ||
+	    img->ph < FRAMES_Y + FRAMES_ROWS) {
+		return 0;
+	}
+	src = (uint16_t *)img->pixel;
+	for (y = 0; y < FRAMES_ROWS; y++) {
+		for (x = 0; x < FRAMES_WORDS; x++) {
+			f[y * FRAMES_WORDS + x] = src[(FRAMES_Y + y) * img->pw + FRAMES_X + x];
 		}
 	}
 	return 1;
+}
+
+/* the disc's button or ours: ours when the layout is not the one whose button the disc draws */
+static int32_t madeShown(void)
+{
+	return FRAMES_READY && MOD_OPT_BUTTONS != FRAMES_BASE;
 }
 
 static void uploadFrames(void)
@@ -211,15 +272,15 @@ static void uploadFrames(void)
 		return;
 	}
 	setRECT(&rect, 320 + FRAMES_X, 128 + FRAMES_Y, FRAMES_WORDS, FRAMES_ROWS);
-	LoadImage(&rect, (u_long *)(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? FRAMES_RING : FRAMES_CROSS));
-	setRECT(&rect, RING_CLUT_X, RING_CLUT_Y, 16, 1);
-	LoadImage(&rect, (u_long *)(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? RING_CLUT : RING_CLUT_FILLER));
+	LoadImage(&rect, (u_long *)(madeShown() ? FRAMES_MADE : FRAMES_DISC));
+	setRECT(&rect, MADE_CLUT_X, MADE_CLUT_Y, 16, 1);
+	LoadImage(&rect, (u_long *)(madeShown() ? MADE_CLUT : MADE_CLUT_FILLER));
 }
 
 uint16_t modButtonClut(void)
 {
-	if (FRAMES_READY && MOD_OPT_BUTTONS == MOD_BUTTONS_JP) {
-		return GetClut(RING_CLUT_X, RING_CLUT_Y);
+	if (madeShown()) {
+		return GetClut(MADE_CLUT_X, MADE_CLUT_Y);
 	}
 	return GetClut(96, 500);
 }
@@ -227,31 +288,43 @@ uint16_t modButtonClut(void)
 void modButtonsTimLoaded(GsIMAGE *img)
 {
 	uint16_t *src;
-	int32_t x, y;
+	int32_t x;
 
-	if (img->px != 320 || img->py != 128 || (img->pmode & 7) != 0 || img->pw < FRAMES_X + FRAMES_WORDS ||
-	    img->ph < FRAMES_Y + FRAMES_ROWS) {
+	if (!takeFrames(img, FRAMES_DISC)) {
 		return;
 	}
 	src = (uint16_t *)img->pixel;
-	for (y = 0; y < FRAMES_ROWS; y++) {
-		for (x = 0; x < FRAMES_WORDS; x++) {
-			FRAMES_CROSS[y * FRAMES_WORDS + x] = src[(FRAMES_Y + y) * img->pw + FRAMES_X + x];
-		}
-	}
 	FRAMES_READY = 0;
 	if (img->cw < 16 || img->ch <= FRAMES_CLUT_Y || ((img->pmode >> 3) & 1) == 0) {
 		return;
 	}
 	for (x = 0; x < 16; x++) {
-		RING_CLUT[x] = ((uint16_t *)img->clut)[FRAMES_CLUT_Y * img->cw + x];
-		RING_CLUT_FILLER[x] = src[(RING_CLUT_Y - 128) * img->pw + (RING_CLUT_X - 320) + x];
+		MADE_CLUT[x] = ((uint16_t *)img->clut)[FRAMES_CLUT_Y * img->cw + x];
+		MADE_CLUT_FILLER[x] = src[(MADE_CLUT_Y - 128) * img->pw + (MADE_CLUT_X - 320) + x];
 	}
-	RING_CLUT[INK_LIGHT] = RING_LIGHT;
-	RING_CLUT[INK_DARK] = RING_DARK;
-	FRAMES_READY = makeRing();
-	if (MOD_OPT_BUTTONS == MOD_BUTTONS_JP) {
+	FRAMES_BASE = framesButton(FRAMES_DISC, 1);
+	MADE_CLUT[INK_LIGHT] = FRAMES_BASE == MOD_BUTTONS_JP ? CROSS_LIGHT : RING_LIGHT;
+	MADE_CLUT[INK_DARK] = FRAMES_BASE == MOD_BUTTONS_JP ? CROSS_DARK : RING_DARK;
+	FRAMES_READY = FRAMES_BASE >= 0;
+	if (madeShown()) {
 		uploadFrames();
+	}
+}
+
+/*
+ * At boot, before the saved options (modBootOptions): the disc's own button tells the base. A Japanese disc (its ○ in
+ * SYSTEM_W.TIM) starts with JAPANESE CONTROLS on; a save's options still win (modCardOptions, a Continue).
+ */
+void modButtonsBoot(void)
+{
+	GsIMAGE img;
+
+	static char path[] = "\\ETCDAT\\SYSTEM_W.TIM";
+
+	readFile(path, GENERAL_BUFFER);
+	GsGetTimInfo((u_long *)GENERAL_BUFFER + 1, &img);
+	if (takeFrames(&img, FRAMES_DISC) && framesButton(FRAMES_DISC, 0) == MOD_BUTTONS_JP) {
+		MOD_OPT_BUTTONS = MOD_BUTTONS_JP;
 	}
 }
 

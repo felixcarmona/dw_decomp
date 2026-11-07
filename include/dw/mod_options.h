@@ -27,7 +27,7 @@ extern int32_t MOD_OPT_TOUCHED;	/* changed in OPTIONS since the console started:
 uint16_t modButtonGlyph(uint16_t code);
 /* the colour (setTextColor's) to draw the US layout's button glyph `code` in, given the text's colour `color` */
 int32_t modButtonColor(uint16_t code, int32_t color);
-/* the CLUT of the dialogue box's button frames (the ○ is red) */
+/* the CLUT of the dialogue box's button frames (ours: the ○ red, the × blue) */
 uint16_t modButtonClut(void);
 /* the button layout changes: the dialogue box's button in VRAM follows it */
 void modSetButtons(int32_t layout);
@@ -42,6 +42,8 @@ int32_t modFrameRate(void);
 void modSetFrameRate(int32_t fps);
 /* a TIM of ETCTIM.BIN was uploaded (loadStackedTIMFile): the SYSTEM_W page's button frames */
 void modButtonsTimLoaded(GsIMAGE *img);
+/* at boot: a disc whose dialogue box button is the Japanese ○ starts with JAPANESE CONTROLS on (saved options win) */
+void modButtonsBoot(void);
 
 /*
  * MOD (language): LANGUAGE and MAP SIGNS (docs/mods/language.md). The executable's strings and language tables are
