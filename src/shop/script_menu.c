@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <dw/mod_options.h>
 #include <dw/mod_rules.h>
 #include <dw/mod_font.h>
 #include <dw/main.h>
@@ -2150,19 +2151,21 @@ void renderKeeperBoxLeft(void)
 #endif
 }
 
+/* Headings are drawn separately. Start Chinese header rows with a break: their
+ * translated text can end before the native byte offsets used to chain list rows. */
 void updateKeeperTextbox(int32_t boxIndex)
 {
 	if (boxIndex == 0) {
 		showMapHeadTextbox(4, 0xff, 1, 0x4d5);
 		TEXTBOX_DATA.box[1].writeCount--;
-		TEXTBOX_LINES_PTR[0x246] = 0xd;
-		TEXTBOX_LINES_PTR[0x3c6] = 0xd;
+		TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x240 : 0x246] = 0xd;
+		TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x3c0 : 0x3c6] = 0xd;
 		updateItemMenuStrings(ITEM_MENU_LEFT, 0xa, 0);
 	} else {
 		showMapHeadTextbox(5, 0xff, 2, 0x4d5);
 		TEXTBOX_DATA.box[2].writeCount--;
-		TEXTBOX_LINES_PTR[0x266] = 0xd;
-		TEXTBOX_LINES_PTR[0x3e6] = 0xd;
+		TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x260 : 0x266] = 0xd;
+		TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x3e0 : 0x3e6] = 0xd;
 		updateItemMenuStrings(ITEM_MENU_RIGHT, 0xa, 0);
 	}
 }
@@ -2764,8 +2767,8 @@ void updateMojyaTradeStrings(void)
 	showMapHeadTextbox(0xf, 0xff, 1, 0x4d6);
 
 	--TEXTBOX_DATA.box[1].writeCount;
-	TEXTBOX_LINES_PTR[0x254] = 0xd;
-	TEXTBOX_LINES_PTR[0x354] = 0xd;
+	TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x240 : 0x254] = 0xd;
+	TEXTBOX_LINES_PTR[MOD_LANG == MOD_LANG_ZH ? 0x340 : 0x354] = 0xd;
 
 	updateItemMenuStrings(ITEM_MENU_LEFT, 0xa, 4);
 }
