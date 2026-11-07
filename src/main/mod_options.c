@@ -40,9 +40,9 @@
  * DIFFICULTY. EASY doubles the damage the partner deals and halves the damage it takes in the battles and tournaments
  * (MOD_DIFF_DAMAGE, applied by BTL_calculateDamage and STD_calculateDamage, and to the poison); NORMAL is the original.
  *
- * QUICK BATTLES. A field battle starts the moment it is triggered: no BATTLE letters, no bubbles over who joins and who
- * flees, BTL_REL read ahead in the world and the rest loaded while the fight runs (btl.c, docs/mods/features/
- * quick-battle-start.md); OFF is the original start.
+ * QUICK BATTLE START. A field battle starts the moment it is triggered: the BATTLE letters and the bubbles over who
+ * joins and who flees run over the fight instead of holding it, BTL_REL is read ahead in the world and the rest loads
+ * while the fight runs (btl.c, docs/mods/features/quick-battle-start.md); OFF is the original start.
  */
 #include <dw/mod_options.h>
 #include <dw/species.h>
