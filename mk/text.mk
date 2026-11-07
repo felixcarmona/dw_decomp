@@ -5,8 +5,10 @@ TEXT_SRC := $(TEXT_YAML:text/%.yaml=%)
 
 # MOD (text sources): text-bank.json (written by the project's tools/build-full.sh) replaces texts by key and encodes the
 # mod font's extra glyphs; the headers are made again when it changes
-$(GEN_DIR)/text/%.h: text/%.yaml tools/gen_text.py $(wildcard text-bank.json)
-	$(PYTHON) tools/gen_text.py $(VERSION) $< $@
+# MOD (language): text-bank-pad.json, the other language's bank of a two-language build (docs/mods/language.md): every
+# string takes the room of the longer of its two texts, so both builds have the same layout
+$(GEN_DIR)/text/%.h: text/%.yaml tools/gen_text.py $(wildcard text-bank.json text-bank-pad.json)
+	$(if $(wildcard text-bank-pad.json),TEXT_BANK_PAD=text-bank-pad.json) $(PYTHON) tools/gen_text.py $(VERSION) $< $@
 
 $(TEXT_SRC:%=$(BUILD_DIR)/src/%.c.o): $(BUILD_DIR)/src/%.c.o: \
 	$(GEN_DIR)/text/%.h

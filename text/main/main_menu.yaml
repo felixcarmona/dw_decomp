@@ -389,3 +389,18 @@ MOD_OPTIONS:
     MOD_OPT_STR_ORIGINAL:
       ja: "ORIGINAL"
       en_us: "ORIGINAL"
+    MOD_OPT_STR_LANG:
+      ja: "LANGUAGE"
+      en_us: "LANGUAGE"
+    MOD_OPT_STR_ENGLISH:
+      ja: "ENGLISH"
+      en_us: "ENGLISH"
+    MOD_OPT_STR_SPANISH:
+      ja: "ESPANOL"
+      en_us: "ESPANOL"
+    MOD_OPT_STR_SIGNS:
+      ja: "MAP SIGNS"
+      en_us: "MAP SIGNS"
+    MOD_OPT_STR_TRANSLATED:
+      ja: "TRANSLATED"
+      en_us: "TRANSLATED"

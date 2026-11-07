@@ -21,6 +21,7 @@
 #include <dw/species.h>
 #include <dw/ui.h>
 #include <dw/utils.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/screen.h>
 #include <text/main/script_common.h>
@@ -315,8 +316,19 @@ ConfirmBoxLayout CONFIRM_BOX_LAYOUT = {
 	},
 };
 
+/* MOD (language): the Spanish shop headers in SYSTEM_W.TIM's Spanish copy (tools/localize/textures/systemw/NOTES.md):
+ * OBJETO, PRECIO, PUNTOS, CANT., Nº, TÍTULO (9 rows for the accent), LUGAR */
 BoxUVTable ITEM_MENU_HEADER_UVS = {
 	{
+#if MOD_LANG_BUILD == MOD_LANG_ES
+		0x0200, 0x01a2, 0x0019, 0x0007,
+		0x0219, 0x01a2, 0x0017, 0x0007,
+		0x0250, 0x01a2, 0x001a, 0x0007,
+		0x0266, 0x01a9, 0x0014, 0x0007,
+		0x0230, 0x01a2, 0x000a, 0x0007,
+		0x0278, 0x01e0, 0x0017, 0x0009,
+		0x023a, 0x01a2, 0x0016, 0x0007,
+#else
 		0x0200, 0x01a2, 0x0014, 0x0007,
 		0x0214, 0x01a2, 0x0014, 0x0007,
 		0x0250, 0x01b0, 0x0014, 0x0007,
@@ -324,6 +336,7 @@ BoxUVTable ITEM_MENU_HEADER_UVS = {
 		0x0228, 0x01a2, 0x000c, 0x0007,
 		0x0234, 0x01a2, 0x0014, 0x0007,
 		0x0238, 0x01b0, 0x0014, 0x0007,
+#endif
 	},
 };
 

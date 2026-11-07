@@ -21,10 +21,25 @@
  * FRAME RATE. 20 (the original: one render per tick) or 60 fps (MOD_FPS_MODE, dw/mod_fps.h); the game logic runs
  * at 20 Hz in both (30 is still a mode for an FPS=30 build). A build made with FPS=20
  * keeps 20 and the option shows it without a choice.
+ *
+ * LANGUAGE. English or Spanish (docs/mods/language.md). The executable is built in both languages with every string
+ * padded to the longer of its two texts, so the two builds differ only in those bytes: the disc carries the other
+ * language's as runs (address, bytes; tools/langpatch.py), written over the strings when the language changes. The
+ * files that have a copy in the language (the script text, textures with words in them, overlays) are read from it
+ * (modLangFile); the script text is read again and FI_INFO.TIM uploaded again at once, ETCTIM.BIN is loaded
+ * after the title anyway.
+ *
+ * MAP SIGNS. The signs painted in the map backgrounds in the language (the disc's copies of the .TFS files) or as the
+ * disc has them (some still in Japanese).
  */
 #include <dw/mod_options.h>
 #include <dw/species.h>
 #include <dw/mod_fps.h>
+#include <dw/mod_font.h>
+#include <lang_base.h>
+#include <dw/main.h>
+#include <string.h>
+#include <dw/file_table.h>
 
 #include "common.h"
 
@@ -43,6 +58,8 @@ int32_t modSpeciesAllowed(int32_t type)
 	return MOD_OPT_NEW_DIGIMON || isVanillaSpecies(type);
 }
 int32_t MOD_OPT_TOUCHED = 0;
+int32_t MOD_LANG = MOD_LANG_BASE;
+int32_t MOD_OPT_SIGNS = 1;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */
 static int32_t buttonColor(uint16_t code)
@@ -238,4 +255,95 @@ void modSetFrameRate(int32_t fps)
 #if FPS != 20
 	MOD_FPS_MODE_RUN = fps == 60 ? 2 : fps == 30 ? 1 : 0;
 #endif
+}
+
+/* MOD (language): the disc has the file (its FILE_OFFSET_TABLE entry got a sector: build-disc.py wrote it) */
+int32_t modFileOnDisc(char *name)
+{
+	FileEntry *entry;
+
+	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
+		if (!strcmp(name, entry->filename)) {
+			return entry->sector != 0;
+		}
+	}
+	return 0;
+}
+
+/*
+ * MOD (language): a file's copy in the language, and a map background's with its signs translated (the Spanish copy
+ * also has them in Spanish; MAP SIGNS ORIGINAL reads the disc's .TFS), from the table tools/build-full.sh writes
+ * (LANG_FILES: the name, its Spanish copy, its copy with English signs); the file itself when the disc has no such copy
+ */
+static char *LANG_FILE_TABLE[][3] = {
+#include <lang_files.h>
+	{ NULL, NULL, NULL },
+};
+
+char *modLangFile(char *name)
+{
+	int32_t i;
+	int32_t tfs;
+	char *copy;
+
+	for (i = 0; LANG_FILE_TABLE[i][0] != NULL; i++) {
+		if (strcmp(name, LANG_FILE_TABLE[i][0])) {
+			continue;
+		}
+		tfs = strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".TFS");
+		if (tfs && !MOD_OPT_SIGNS) {
+			return name;
+		}
+		copy = LANG_FILE_TABLE[i][MOD_LANG == MOD_LANG_ES ? 1 : 2];
+		if (copy == NULL || (!tfs && MOD_LANG != MOD_LANG_ES) || !modFileOnDisc(copy)) {
+			return name;
+		}
+		return copy;
+	}
+	return name;
+}
+
+/* MOD (language): the patch that turns the executable's strings into each language */
+static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN" };
+extern char MAIN_D_8012CE64[]; /* main.c: "\\ETCDAT\\FI_INFO.TIM" */
+void tickFileReadQueue(int32_t unused);
+int32_t isFileReadQueueBusy(void);
+int32_t readFile(char *path, void *buffer);
+int32_t loadTIMFile(char *path, void *buffer);
+void modFontScriptsChanged(void);
+
+void modSetLanguage(int32_t lang)
+{
+	uint32_t *run;
+	uint32_t count;
+	uint32_t len;
+
+	lang = lang == MOD_LANG_ES ? MOD_LANG_ES : MOD_LANG_EN;
+	if (lang == MOD_LANG || !modFileOnDisc(LANG_PATCH_FILE[lang])) { /* a disc in one language: no choice */
+		return;
+	}
+	while (isFileReadQueueBusy()) {
+		tickFileReadQueue(0);
+	}
+	DrawSync(0);
+	readFile(LANG_PATCH_FILE[lang], GENERAL_BUFFER); /* free at the title: the next loads put their own files there */
+	run = (uint32_t *)GENERAL_BUFFER;
+	if (run[0] != 0x504C5744) { /* "DWLP" */
+		return;
+	}
+	count = run[1];
+	run += 2;
+	while (count-- > 0) {
+		len = run[1];
+		memcpy((void *)run[0], &run[2], len);
+		run += 2 + (len + 3) / 4;
+	}
+	MOD_LANG = lang;
+	modFontScriptsChanged(); /* the script text of the language */
+	loadTIMFile(MAIN_D_8012CE64, GENERAL_BUFFER); /* the triangle menu's labels */
+}
+
+void modSetSigns(int32_t translated)
+{
+	MOD_OPT_SIGNS = translated != 0; /* the next map reads its background */
 }
