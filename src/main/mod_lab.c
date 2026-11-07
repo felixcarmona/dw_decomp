@@ -1,18 +1,20 @@
 /*
- * MOD: menú de laboratorio.
+ * MOD: lab menu.
  *
- * Con el juego en pausa (START) y sin ningún script en marcha, SELECT abre una
- * caja con el estado del compañero y cuatro opciones (arriba/abajo para elegir,
- * X para aceptar, △ o SELECT para cerrar):
- *   - "+1000 bits"        suma 1000 al dinero
- *   - "Curar compañero"   HP y MP actuales al máximo
- *   - "Regalo (1 vez)"    mini-quest: da 1 Meat y marca el trigger MOD_LAB_TRIGGER;
- *                         las siguientes veces dice que ya se recogió
- *   - "Cerrar"
+ * With the game paused (START) and no script running, SELECT opens a box with
+ * the partner's state and four options (up/down to choose, X to accept,
+ * triangle or SELECT to close):
+ *   - "+1000 bits"     adds 1000 to the money
+ *   - "Heal partner"   current HP and MP to the maximum
+ *   - "Gift, once"     mini quest: gives 1 Meat and sets MOD_LAB_TRIGGER;
+ *                      afterwards it says the gift was already taken
+ *   - "Close"
  *
- * Se engancha desde handlePause() (utils2.c). Usa solo funciones del juego:
- * drawString/renderString (texto en el área de VRAM de texto), cajas de UI
+ * Hooked from handlePause() (utils2.c). Only uses game functions:
+ * drawString/renderString (text in the VRAM text area), UI boxes
  * (createStaticUIBox), giveItem, setTrigger/isTriggerSet, playSound.
+ * The game font has no '>', '/' or parentheses: only A-Z a-z 0-9 space
+ * . ? ! " ' , \ : ; + - = are safe.
  */
 #include <libetc.h>
 
@@ -24,9 +26,9 @@
 #include <dw/types.h>
 #include <dw/ui.h>
 
-#define MOD_LAB_TRIGGER	90	/* triggers 42-99: ningún script los usa (docs/game/03-scripts.md) */
-#define MOD_LAB_BOX	5	/* misma caja que usa la pausa */
-#define MOD_LAB_TEXT_Y	0xA0	/* filas del área de texto que usamos: 0xA0..0xEF */
+#define MOD_LAB_TRIGGER	799	/* free and saved trigger (docs/mods/scripts.md, 717-799) */
+#define MOD_LAB_BOX	5	/* same box the pause uses */
+#define MOD_LAB_TEXT_Y	0xA0	/* text area rows we use: 0xA0..0xEF */
 #define MOD_LAB_LINES	6
 #define MOD_LAB_OPTIONS	4
 #define ITEM_MEAT	38
@@ -53,9 +55,9 @@ static char *modLabMessage;
 
 static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"+1000 bits",
-	"Curar companero",
-	"Regalo (1 vez)",
-	"Cerrar",
+	"Heal partner",
+	"Gift, once",
+	"Close",
 };
 
 static char *appendStr(char *dst, char *src)
@@ -79,18 +81,18 @@ static void modLabDrawText(void)
 	setRECT(&area, 0, MOD_LAB_TEXT_Y, 0x100, MOD_LAB_LINES * 0xC);
 	clearTextSubArea(&area);
 
-	drawString("LABORATORIO", 0, MOD_LAB_TEXT_Y);
+	drawString("LAB MENU", 0, MOD_LAB_TEXT_Y);
 
 	p = appendStr(line, "Bits ");
 	p = appendStr(p, formatInteger(MONEY, num, 6));
 	p = appendStr(p, "  HP ");
 	p = appendStr(p, formatInteger(stats->current.currentHP, num, 4));
-	p = appendStr(p, "/");
+	p = appendStr(p, " of ");
 	appendStr(p, formatInteger(stats->base.hp, num, 4));
 	drawString(line, 0, MOD_LAB_TEXT_Y + 0xC);
 
 	for (i = 0; i < MOD_LAB_OPTIONS; i++) {
-		p = appendStr(line, i == modLabCursor ? "> " : "  ");
+		p = appendStr(line, i == modLabCursor ? "= " : "  ");
 		appendStr(p, MOD_LAB_OPTION_TEXT[i]);
 		drawString(line, 0, MOD_LAB_TEXT_Y + 0x18 + i * 0xC);
 	}
@@ -110,7 +112,7 @@ static void modLabRender(int32_t instanceId)
 	renderString(0, pos->x + 8, pos->y + 6, 0xB8, MOD_LAB_LINES * 0xC, 0,
 		     MOD_LAB_TEXT_Y, 0, 1);
 	if (modLabMessage != NULL) {
-		/* el mensaje va en la última fila libre del área (0xE4) */
+		/* the message goes in the last free row of the area (0xE4) */
 		renderString(3, pos->x + 8, pos->y + 6 + MOD_LAB_LINES * 0xC, 0xB8, 0xC,
 			     0, MOD_LAB_TEXT_Y + 0x44, 0, 1);
 	}
@@ -146,23 +148,23 @@ static void modLabApply(void)
 	case 1:
 		stats->current.currentHP = stats->base.hp;
 		stats->current.currentMP = stats->base.mp;
-		modLabShowMessage("Companero curado");
+		modLabShowMessage("Partner healed");
 		break;
 	case 2:
 		if (isTriggerSet(MOD_LAB_TRIGGER)) {
-			modLabShowMessage("Ya recogiste el regalo");
+			modLabShowMessage("Gift already taken");
 		} else {
 			giveItem(ITEM_MEAT, 1);
 			setTrigger(MOD_LAB_TRIGGER);
-			modLabShowMessage("Has recibido 1 Meat");
+			modLabShowMessage("You got 1 Meat");
 		}
 		break;
 	}
 }
 
 /*
- * Llamada desde el bucle de pausa con la entrada del mando ya leída. Devuelve
- * cuando el menú se cierra; la caja de pausa la recrea quien llama.
+ * Called from the pause loop with the pad input already read. Returns when
+ * the menu closes; the caller recreates the pause box.
  */
 void modLabMenu(uint32_t *input, uint32_t *previous)
 {
@@ -170,14 +172,14 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 	uint32_t pressed;
 
 	if (IS_SCRIPT_PAUSED != 1) {
-		return; /* con un diálogo en marcha el área de texto está ocupada */
+		return; /* with a dialogue running the text area is in use */
 	}
 
 	removeStaticUIBox(MOD_LAB_BOX);
 	modLabCursor = 0;
 	modLabMessage = NULL;
 	modLabDrawText();
-	setRECT(&pos, -0x60, -0x48, 0xC8, (MOD_LAB_LINES + 1) * 0xC + 0xC);
+	setRECT(&pos, -0x60, -0x48, 0xC8, (MOD_LAB_LINES + 2) * 0xC + 0xC);
 	createStaticUIBox(MOD_LAB_BOX, 1, 0, &pos, NULL, modLabRender);
 	playSound(0, 3);
 	modLabFrames(12);
