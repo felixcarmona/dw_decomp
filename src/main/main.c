@@ -4149,8 +4149,8 @@ static void modPerfReset(void)
 /* MOD (fps): fixed-timestep loop. The game logic (input, scripts,
  * tickObjects: movement, clock, timers, animation, then the late tick) runs
  * once per tick, and a tick always lasts 3 vertical refreshes (20 Hz) as in
- * the original. MOD_FPS_MODE (dw/mod_fps.h: from the build's FPS, Makefile
- * `FPS=20|30|60`, and the title's FRAME RATE option) chooses at which of the tick's 3
+ * the original. MOD_FPS_MODE (dw/mod_fps.h: fixed 20 or automatic CPU-based
+ * selection in an FPS=30|60 build) chooses at which of the tick's three
  * refreshes a new frame is shown:
  *   0 = 20 fps: the third (the original, one render per tick);
  *   1 = 30 fps: every other refresh, so the ticks alternate between one
@@ -4165,7 +4165,7 @@ static void modPerfReset(void)
  * although no code reads it */
 const int32_t MOD_FPS_BUILD __attribute__((used, retain)) = FPS;
 #if FPS != 20
-int32_t MOD_FPS_MODE_RUN = FPS == 60 ? 2 : 1; /* MOD (options): FRAME RATE, 20, 30 or 60 */
+int32_t MOD_FPS_MODE_RUN; /* Automatic presentation: safe 20 fps until the boot probe. */
 #endif
 /* test switch (state checks with the slow interpreter CPU, where the extra
  * passes rarely fit): with N > 0 every tick lasts N refreshes instead of 3,
@@ -5331,10 +5331,48 @@ int8_t MOD_LOAD_PUMP;
 int32_t isFileReadQueueBusy(void); /* file_queue.c */
 void tickFileReadQueue(int32_t unused);
 
+/* Automatic presentation. Sample only inside an existing idle wait, with
+ * at least 32 scanlines before its next vblank. The probe costs 16 lines.
+ * Two agreeing samples, two seconds apart, and separate thresholds prevent
+ * boundary noise from switching modes. Reject waits after a long stall: the
+ * SDK line count wraps at 65536, so a small value alone is not proof of slack.
+ * Unsigned elapsed time handles wrap and restored clocks. No deadlines change. */
+#if FPS != 20
+static uint32_t modCpuLastV;
+static int32_t modCpuVotes;
+
+static void modAutoFrameRateSample(int32_t spins)
+{
+	int32_t change = MOD_FPS_MODE_RUN == 0 ? spins >= MOD_CPU_SPINS_FAST : spins < MOD_CPU_SPINS_SLOW;
+
+	if (!change) {
+		modCpuVotes = 0;
+	} else if (++modCpuVotes >= 2) {
+		MOD_FPS_MODE_RUN = MOD_FPS_MODE_RUN == 0 ? 2 : 0;
+		modCpuVotes = 0;
+	}
+}
+
+static void modAutoFrameRatePoll(void)
+{
+	uint32_t now = VSync(-1);
+
+	if (!MOD_LOAD_PUMP && now - modCpuLastV >= 120 &&
+	    now - (uint32_t)modLastEndV < 120 && VSync(1) < 263 - 2 * MOD_CPU_LINES) {
+		modCpuLastV = now;
+		modAutoFrameRateSample(modCpuProbe());
+	}
+}
+#endif
+
 /* VSync(0), or with MOD_LOAD_PUMP the file queue stepped until the vblank comes (then VSync(0) once nothing is queued) */
 static void modWaitVblank(void)
 {
 	int32_t v;
+
+#if FPS != 20
+	modAutoFrameRatePoll();
+#endif
 
 	if (MOD_LOAD_PUMP) {
 		v = VSync(-1);
