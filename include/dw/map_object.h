@@ -5,6 +5,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/ids.h>
 #include <dw/types.h>
 
 #define NUM_DOOR_MAPDATA	24
@@ -24,11 +25,11 @@ typedef struct {
 	SVECTOR rotation;
 	SVECTOR trayRotation;
 	uint16_t trigger;
-	uint8_t item;
+	ItemId item; /* MOD: was u8 (ids.md step 3); ITEM_NONE = no chest */
 	uint8_t isTaken;
 	uint8_t tileX;
 	uint8_t tileY;
-	uint16_t padding;
+	uint8_t padding;
 } Chest;
 
 extern DoorStruct DOOR_MAPDATA[NUM_DOOR_MAPDATA];
@@ -50,7 +51,7 @@ void spawnGearbox(void);
 void spawnAngemonPedestal(void);
 void initializeTrainingPoop(void);
 void spawnChest(int16_t posX, int16_t posY, int16_t posZ, int16_t rotation,
-		uint8_t item, uint16_t trigger);
+		ItemId item, uint16_t trigger);
 void unloadMapParts(void);
 int32_t tickRotateDoor(int16_t instance, int8_t target);
 void drawObject(GsDOBJ2 *obj, GsOT *ot, int32_t flag);
