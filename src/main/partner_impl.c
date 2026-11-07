@@ -580,13 +580,13 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 	PARTNER_PARA.virusBar = 0;
 	PARTNER_PARA.tiredness = 0;
 #endif
-	PARTNER_PARA.discipline = 50;
-	PARTNER_PARA.happiness = 50;
-	PARTNER_PARA.unused3 = 50;
+	PARTNER_PARA.discipline = modNewGame(MOD_NG_BIRTH_DISCIPLINE);
+	PARTNER_PARA.happiness = modNewGame(MOD_NG_BIRTH_HAPPINESS);
+	PARTNER_PARA.unused3 = modNewGame(MOD_NG_BIRTH_HAPPINESS);
 	setFoodTimer(type);
 
 	PARTNER_PARA.energyLevel = RAISE_ROW(type).energyThreshold;
-	PARTNER_PARA.remainingLifetime = 360;
+	PARTNER_PARA.remainingLifetime = modNewGame(MOD_NG_BIRTH_LIFETIME);
 	PARTNER_PARA.weight = RAISE_ROW(type).defaultWeight;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 	PARTNER_PARA.trainBoostFlag = PARTNER_PARA.trainBoostValue =
@@ -597,7 +597,7 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 		PARTNER_PARA.sicknessTimer = PARTNER_PARA.injuryTimer = 0;
 #endif
 
-	PARTNER_ENTITY.lives = 3;
+	PARTNER_ENTITY.lives = modNewGame(MOD_NG_LIVES);
 	for (i = 0; i < 2; i++) {	/* MOD (species JSON): was Agumon and Gabumon by literal */
 		if (NEW_GAME_TECHNIQUES[i].type == type) {
 			PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = NEW_GAME_TECHNIQUES[i].animation;
@@ -889,11 +889,11 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 	PARTNER_PARA.tirednessSleepTimer = 0;
 	resetPartnerPara(&PARTNER_PARA, type);
 
-	PARTNER_PARA.discipline = 50;
-	PARTNER_PARA.happiness = 50;
-	PARTNER_PARA.unused3 = 50;
+	PARTNER_PARA.discipline = modNewGame(MOD_NG_BIRTH_DISCIPLINE);
+	PARTNER_PARA.happiness = modNewGame(MOD_NG_BIRTH_HAPPINESS);
+	PARTNER_PARA.unused3 = modNewGame(MOD_NG_BIRTH_HAPPINESS);
 	PARTNER_PARA.timesBeingSick = 0;
-	PARTNER_PARA.remainingLifetime = 360;
+	PARTNER_PARA.remainingLifetime = modNewGame(MOD_NG_BIRTH_LIFETIME);
 	PARTNER_PARA.age = 0;
 	PARTNER_PARA.evoTimer = 0;
 	EVOLUTION_TARGET = -1;
