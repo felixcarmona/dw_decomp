@@ -3648,7 +3648,8 @@ static void renderPackResults(void)
 	by = UI_BOX_DATA[1].finalPos.y;
 	getVRAMModeCoords(text->vramMode, &u, &w);
 	v = (9 + text->backPage * text->vramRows) * 12;
-	renderString(0, bx + (0xde - PACK_HEAD_W) / 2, by + 7, PACK_HEAD_W, 0xc, u, v, 5, 1); /* the head centred, no line */
+	renderString(0, bx + (0xde - PACK_HEAD_W) / 2, by + 5, PACK_HEAD_W, 0xc, u, v, 5, 1); /* the head centred */
+	renderHorizontalLine(1, 4, 0x15, 0xd7); /* under it, clear of the letters and of the cursor (0x19) */
 	renderItemMenuScrollBar(box);
 	count = box->itemCount;
 	if (PACK_SHOWN < count) {
