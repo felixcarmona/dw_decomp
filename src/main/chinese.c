@@ -267,3 +267,19 @@ POLY_FT4 *zhVsText(POLY_FT4 *prim, char *text, int32_t x, int32_t y, int32_t col
     }
     return prim;
 }
+
+/* Card titles remain readable with the console's built-in font and on 2 MB.
+ * The Chinese slot list resolves that stable Latin label back to its species. */
+char *zhLatinName(int32_t type)
+{
+    return (uint32_t)type < NUM_DIGIMON ? ZH_EN_NAMES + type * 20 : "?";
+}
+
+char *zhCardName(char *name)
+{
+    int32_t i;
+    for (i = 1; i < NUM_DIGIMON; i++)
+        if (ZH_EN_NAMES[i * 20] && !strcmp(name, ZH_EN_NAMES + i * 20))
+            return (char *)ZH_NAMES + i * 20;
+    return name;
+}

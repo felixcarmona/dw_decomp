@@ -830,7 +830,7 @@ SECTIONS
 				.text.modDrawSlotName
 				.text.modOptionValue
 				.text.modRegisterLong
-				.text.modTitleNameTail
+				.text.modTitleNameTail .text.modTitleNames
 				.text.modTitleOptions
 				.text.modTitlePlayerName
 				.text.pickSaveCopy
@@ -880,13 +880,13 @@ SECTIONS
 			/* MOD (heap): read-only data of the card menus that only this overlay reaches (tools/xref.py classes): their
 			 * messages, labels and the save icon. Nothing that is ever written goes here: a reload would undo it */
 			BUILD_DIR/src/main/main_menu.c.o(
-				.data.PLAIN_LETTERS .data.SAVE_ICON_FRAME_1 .data.MENU_VIEWS
-				.data.MEMORY_CARD_ERROR_MESSAGES
+				.data.PLAIN_LETTERS .data.SAVE_ICON_FRAME_1 .data.SAVE_ICON_FRAME_0 .data.MENU_VIEWS
+				.data.MEMORY_CARD_ERROR_MESSAGES .data.SAVE_ICON_CLUT .data.MAIN_D_801315A0
 				.data.MAIN_D_80131390 .data.MAIN_D_8013134C .data.MAIN_D_801311D4 .data.MAIN_D_80131580
 				.data.MAIN_D_80131500 .data.MAIN_D_801313E4 .data.MAIN_D_80131264 .data.MAIN_D_80131200
 				.data.MAIN_D_801311EC .data.MAIN_D_801315C0 .data.MAIN_D_8013154C .data.MAIN_D_801314B0
 				.data.MAIN_D_8013147C .data.MAIN_D_80131460 .data.MAIN_D_80131290 .data.MAIN_D_80131218
-				.data.MAIN_D_801315EC .data.MAIN_D_801315D0 .data.MAIN_D_80131538
+				.data.SAVE_TITLE_RESERVED .data.MAIN_D_801315EC .data.MAIN_D_801315D0 .data.MAIN_D_80131538
 				.data.MAIN_D_801314C8 .data.MAIN_D_8013141C .data.MAIN_D_80131400 .data.MAIN_D_801313B0
 				.data.MAIN_D_801312FC .data.MAIN_D_80131568 .data.MAIN_D_8013151C .data.MAIN_D_801313D0
 				.data.MAIN_D_80131278 .data.MAIN_D_8013119C .data.MAIN_D_80131150 .data.MAIN_D_801314E4
