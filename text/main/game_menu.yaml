@@ -331,3 +331,9 @@ CHART_TEXT:
     CITY_STR_RESIDENTS:
       en_us: Residents
       ja: 住人
+    STATUS_STR_TIRED:
+      en_us: Tired
+      ja: つかれ
+    STATUS_STR_DISC:
+      en_us: Disc
+      ja: しつけ度
