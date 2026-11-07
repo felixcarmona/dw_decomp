@@ -3,6 +3,7 @@
 #include <libetc.h>
 #include <libgpu.h>
 
+#include <dw/ids.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
 #include <dw/font.h>
@@ -309,7 +310,7 @@ int32_t tournamentCheckFair(uint8_t value)
 	uint8_t *jumpTable;
 	uint8_t *typePtr;
 	uint8_t type;
-	uint8_t partnerType;
+	DigimonId partnerType; /* MOD: was u8 */
 
 	jumpTable = getCupDataJumpTable(10, value);
 	typePtr = getCupDataJumpTableEntry(jumpTable, 2) + 2;
@@ -407,7 +408,7 @@ int32_t tournamentCheckEligible(uint8_t tournament)
 	uint8_t *jumpTable;
 	uint8_t *typePtr;
 	uint8_t type;
-	uint8_t partnerType;
+	DigimonId partnerType; /* MOD: was u8 */
 
 	jumpTable = getCupDataJumpTable(10, tournament);
 	typePtr = getCupDataJumpTableEntry(jumpTable, 3) + 2;
