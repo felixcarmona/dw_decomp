@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <string.h>
 
 #include <libgs.h>
@@ -264,7 +265,7 @@ void VS_randomizeDemoFighter(Entity *entity)
 		if (tech >= 0x3a && tech < 0x71) {
 			continue;
 		}
-		if (stats->base.mp / 10 < MOVE_DATA[tech].mpCost * 3) {
+		if (stats->base.mp / 10 < modSpeciesMove(entity->type, tech)->mpCost * 3) {
 			continue;
 		}
 		if (MOVE_DATA[tech].range == 4 || tech == 0x2d) {

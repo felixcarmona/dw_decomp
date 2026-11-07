@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <string.h>
 
 #include <inline_n.h>
@@ -1727,7 +1728,7 @@ void VS__tickDigimonOnChargeup(DigimonEntity *entity, DigimonEntity *other,
 			tech = (int16_t)entityGetTechFromAnim(&entity->entity,
 			                                      data->queuedAnim);
 			if (data->speedBuffer >= BM(SPEED_MAX) ||
-			    data->speedBuffer >= MOVE_DATA[tech].power) {
+			    data->speedBuffer >= modSpeciesMove(entity->entity.type, tech)->power) {
 				data->flags &= ~FIGHTER_FLAG_ON_CHARGEUP;
 			}
 			break;
