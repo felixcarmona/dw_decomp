@@ -68,7 +68,8 @@ extern unsigned long VHB_SOUNDBUFFER_START[];
 extern int32_t ACTIVE_MAP_SOUND_ID;
 extern MapSoundPara MAP_SOUND_PARA[];
 extern uint8_t DIGIMON_VBALL_SOUND_ID[];
-extern uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON];
+extern uint8_t DIGIMON_VLALL_SOUND_ID[NUM_ORIGINAL_DIGIMON];
+int32_t getPartnerVlallSoundId(int32_t type);
 
 int32_t initializeMusic(void);
 void finalizeMusic(void);
