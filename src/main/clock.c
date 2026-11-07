@@ -4,6 +4,7 @@
 #include <dw/params.h>
 #include <dw/pstat.h>
 #include <dw/script.h>
+#include <dw/mod_fps.h>
 #include <dw/world_object.h>
 
 void renderRectPolyFT4(int32_t posX, int32_t posY,
@@ -17,6 +18,7 @@ int32_t isFishing();
 void addTamerLevel(int32_t chance, int32_t amount);
 void updateBGM();
 void renderStatusBars(int32_t isGameTimeRunning);
+void tickStatusBarsSlide(int32_t isGameTimeRunning);
 
 extern uint16_t LAST_HANDLED_FRAME;
 extern int8_t GAME_STATE;
@@ -76,7 +78,7 @@ static void *clock_data_order[] = {
 
 void addClock(void)
 {
-	addObject(0xfa2, 0, tickGameClock, renderGameClock);
+	addObjectLate(0xfa2, 0, tickGameClock, lateTickGameClock, renderGameClock);
 	addObject(0xfb9, 0, tickPlaytime, 0);
 }
 
@@ -225,19 +227,11 @@ void initializeClockData(void)
 	IS_GAMETIME_RUNNING = 1;
 }
 
-void renderGameClock(int32_t instanceId)
+/* MOD (fps): the clock and the status bars slide in or out (when game time
+ * stops) once per tick, after all the object ticks, where the render used to
+ * move them. */
+void lateTickGameClock(int32_t instanceId)
 {
-	uint8_t isNight;
-	uint8_t frame;
-
-	if (HOUR >= 6 && HOUR < 17) {
-		isNight = 0;
-	} else {
-		isNight = 1;
-	}
-
-	frame = (CURRENT_FRAME % 16) / 4;
-
 	if (IS_GAMETIME_RUNNING == 0) {
 		CLOCK_OFFSET_X -= 50;
 	} else {
@@ -251,6 +245,22 @@ void renderGameClock(int32_t instanceId)
 	if (CLOCK_OFFSET_X < -220) {
 		CLOCK_OFFSET_X = -220;
 	}
+
+	tickStatusBarsSlide(IS_GAMETIME_RUNNING);
+}
+
+void renderGameClock(int32_t instanceId)
+{
+	uint8_t isNight;
+	uint8_t frame;
+
+	if (HOUR >= 6 && HOUR < 17) {
+		isNight = 0;
+	} else {
+		isNight = 1;
+	}
+
+	frame = (CURRENT_FRAME % 16) / 4;
 
 	renderRectPolyFT4(CLOCK_OFFSET_X - 2, -90, 16, 16, 192, 224,
 			  GetTPage(0, 0, 896, 448), GetClut(256, 497), 9, 0);

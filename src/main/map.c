@@ -5585,7 +5585,7 @@ void renderMapName(mapId)
 
 void reinitializeAfterTournament(void)
 {
-	addObject(0xfa2, 0, tickGameClock, renderGameClock);
+	addObjectLate(0xfa2, 0, tickGameClock, lateTickGameClock, renderGameClock);
 	addObjectLate(0xfa0, 0, NULL, lateTickMap, renderMap);
 #if VERSION_IS(JP)
 	addObject(0xfa6, 0, tickConditions, NULL);
