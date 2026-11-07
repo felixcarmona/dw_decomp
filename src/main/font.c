@@ -1431,6 +1431,12 @@ int32_t glyphWidth(uint16_t codepoint)
 	return glyphRows(codepoint)[GLYPH_HEIGHT] & 0xff;
 }
 
+/* the original glyph's width, its cell (script_textbox.c lays out a row in pieces by it) */
+int32_t glyphCell(uint16_t codepoint)
+{
+	return glyphRows(codepoint)[GLYPH_HEIGHT] >> 8;
+}
+
 /*
  * MOD (font): the original's cells. Some screens cut a row of text into pieces at offsets made for the original
  * advances (the menus' packed labels such as "YearDay", the digits row that renderNumber copies at 8-pixel steps,
@@ -1469,59 +1475,57 @@ static uint16_t nextCodepoint(char **str)
 	return swapShortBytes(codepoint);
 }
 
-/* the piece of a cut row that holds a glyph whose original cell starts at `cell` (drawStringPieces) */
+/* the piece of a cut row that holds a glyph whose original cell starts at `cell` (drawGlyphPieces) */
 static int32_t pieceOf(const uint16_t *pieces, int32_t cell)
 {
 	int32_t k;
 
-	for (k = 0; pieces[k + 1] != PIECES_END && (pieces[k + 1] & ~PIECE_CENTRE) <= cell; k++) {
+	for (k = 0; pieces[k + 1] != PIECES_END && (pieces[k + 1] & ~PIECE_FLAGS) <= cell; k++) {
 	}
 	return k;
 }
 
 /*
- * MOD (font): a C string whose row a screen copies in pieces cut at the original's offsets (the menus' packed labels:
- * "Status  Tech", "YearDay", "HPMPnight"...), laid out naturally. drawStringCells keeps every glyph in its original
- * cell, which spaces the narrower letters of a font placed to the pixel loosely ("S t a t u s"); here each piece (the
+ * MOD (font): a row that a screen copies in pieces cut at the original's offsets (the menus' packed labels: "Status
+ * Tech", "YearDay", "HPMPnight"...; the card shop's answers), laid out naturally. Drawing in the original's cells
+ * (FONT_CELLS) spaces the narrower letters of a font placed to the pixel loosely ("S t a t u s"); here each piece (the
  * glyphs whose original cell, on the 4-pixel grid, starts from one of `pieces` to the next) is drawn with the font's own
- * spacing and kerning, its first glyph where drawStringCells puts it (its ink centred in its original cell), or the
- * piece centred in the span its original cells took (PIECE_CENTRE). A piece's leading spaces only move its start. `pieces`: the crops' offsets in pixels from x,
- * ascending, the first 0, ending with PIECES_END (DRAW_STRING_PIECES, dw/mod_font.h).
+ * spacing and kerning, its first glyph where the cells put it (its ink centred in its original cell), or the piece
+ * centred in the span its original cells took (PIECE_CENTRE), or starting as far into its crop as the row's first piece
+ * (PIECE_LEFT). A piece's leading spaces only move its start. `glyphs`: drawGlyph's codes, `cells`: each one's original
+ * advance; `pieces`: the crops' offsets in pixels from x, ascending, the first 0, ending with PIECES_END
+ * (DRAW_STRING_PIECES, TEXTBOX_ROW_PIECES, dw/mod_font.h).
  */
-void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces)
+void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, int32_t x, int32_t y, const uint16_t *pieces)
 {
-	char *s;
-	char *t;
 	uint16_t cp;
-	uint16_t c2;
 	uint16_t prev;
-	int32_t cell;
+	int32_t i;
+	int32_t j;
 	int32_t pos;
 	int32_t p2;
 	int32_t pen;
 	int32_t piece;
+	int32_t start;
+	int32_t lead;
 	int32_t w;
 	int32_t ink;
 	int32_t span;
 
-	if (MOD_RENDER_PASS != 0) {
-		return;
-	}
-	s = str;
 	pos = 0;
 	pen = 0;
 	piece = -1;
-	while (*s != '\0') {
-		t = s;
-		cp = nextCodepoint(&s);
-		cell = glyphRows(cp)[GLYPH_HEIGHT] >> 8;
+	lead = -1;
+	for (i = 0; i < n; i++) {
+		cp = glyphs[i];
 		if (pieceOf(pieces, pos & ~3) != piece) {
 			if (cp == 0x4081) {
-				pos += cell; /* a piece's leading space: it starts further */
+				pos += cells[i]; /* a piece's leading space: it starts further */
 				continue;
 			}
 			piece = pieceOf(pieces, pos & ~3);
-			pen = pos + (cell - glyphWidth(cp) + 1) / 2; /* the first glyph where the cells put it (its ink centred) */
+			start = pieces[piece] & ~PIECE_FLAGS;
+			pen = pos + (cells[i] - glyphWidth(cp) + 1) / 2; /* the first glyph where the cells put it (its ink centred) */
 			if ((pieces[piece] & PIECE_CENTRE) != 0) {
 				/* the piece's width as this font draws it (to its last ink) and the span of its original cells */
 				w = 0;
@@ -1529,25 +1533,48 @@ void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces)
 				span = 0;
 				prev = 0;
 				p2 = pos;
-				while (*t != '\0' && pieceOf(pieces, p2 & ~3) == piece) {
-					c2 = nextCodepoint(&t);
+				for (j = i; j < n && pieceOf(pieces, p2 & ~3) == piece; j++) {
 #ifdef FONT_KERN
-					w += kernOf(prev, swapShortBytes(c2));
-					prev = swapShortBytes(c2);
+					w += kernOf(prev, swapShortBytes(glyphs[j]));
+					prev = swapShortBytes(glyphs[j]);
 #endif
-					w += glyphWidth(c2);
-					p2 += glyphRows(c2)[GLYPH_HEIGHT] >> 8;
-					if (c2 != 0x4081) {
+					w += glyphWidth(glyphs[j]);
+					p2 += cells[j];
+					if (glyphs[j] != 0x4081) {
 						ink = w - 1;
 						span = p2 - pos;
 					}
 				}
 				pen = pos + (span - ink) / 2;
+			} else if ((pieces[piece] & PIECE_LEFT) != 0 && lead >= 0) {
+				pen = start + lead;
+			}
+			if (lead < 0) {
+				lead = pen - start;
 			}
 		}
 		pen += drawGlyph(cp, x + pen, y);
-		pos += cell;
+		pos += cells[i];
 	}
+}
+
+#define PIECES_MAX 64 /* glyphs of a C string drawn in pieces (the longest label: 40) */
+
+/* MOD (font): a C string whose row a screen copies in pieces (drawGlyphPieces), each glyph's cell its original width */
+void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces)
+{
+	uint16_t glyphs[PIECES_MAX];
+	uint8_t cells[PIECES_MAX];
+	int32_t n;
+
+	if (MOD_RENDER_PASS != 0) {
+		return;
+	}
+	for (n = 0; *str != '\0' && n < PIECES_MAX; n++) {
+		glyphs[n] = nextCodepoint(&str);
+		cells[n] = glyphCell(glyphs[n]);
+	}
+	drawGlyphPieces(glyphs, cells, n, x, y, pieces);
 }
 
 /*
