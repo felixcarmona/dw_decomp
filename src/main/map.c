@@ -4400,6 +4400,13 @@ void setupMap(void)
 		MAP_CLUTS[i] = data;
 		data += 128;
 	}
+	/*
+	 * MOD: the time of day loads them from the resident copy (tfs_stream.h): the header is
+	 * overwritten by whatever is staged at GENERAL_BUFFER in the world (sound banks, music fonts)
+	 */
+	for (i = 0; i < 3; i++) {
+		MAP_CLUTS[i] = MOD_TFS_CLUTS[i];
+	}
 
 	updateTimeOfDay();
 
