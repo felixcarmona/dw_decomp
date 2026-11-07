@@ -20,6 +20,8 @@
 
 #include "common.h"
 
+extern uint8_t BATTLE_TOGGLE_LIFEBAR;
+
 #define VS_TMD_BUFFER	((uint8_t *)ARENA_TMD_ADDR)
 
 extern int16_t BTL_FINISHER_CHARGEUP_POS[2];
@@ -57,7 +59,7 @@ void VS_renderNumber(int32_t a, int16_t digits, int16_t x, int16_t y, int16_t va
 void VS_renderFighterHPBar(int16_t id);
 void VS_renderHPBarFill(int16_t id);
 void VS_renderHPBarDigits(int16_t i, int16_t id);
-void VS_tickFighterStatusBars(void);
+void VS_tickFighterStatusBars(int32_t id);
 void VS_renderFighterStatusBars(int32_t id);
 void VS_tickVersusModelScene(void);
 void VS_renderVersusModelScene(void);
@@ -2136,12 +2138,17 @@ void VS_addFighterStatusBars(id)
 	VS_FINISHER_SEGMENTS[id] = 0;
 	VS_FINISHER_READY[id] = 0;
 	MAIN_D_801352DA[id] = MAIN_D_801352D8[id] = 0;
+	COMBAT_DATA_PTR->player.unk1[id].unk25 = 0xff; /* brief mode starts hidden in every match */
 	addObject(0x19c, id, VS_tickFighterStatusBars, VS_renderFighterStatusBars);
 }
 
-void VS_tickFighterStatusBars(void)
+void VS_tickFighterStatusBars(int32_t id)
 {
+	if (id == 0 && GAME_STATE == 4 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x100))
+		BATTLE_TOGGLE_LIFEBAR ^= 1;
 }
+
+#include <dw/enemy_bars.h>
 
 // clang-format off
 void VS_renderFighterStatusBars(id)
@@ -2180,7 +2187,16 @@ void VS_renderFighterStatusBars(id)
 		*mpPtr = 0;
 	}
 
+	if (id == 1) {
+		PlayerDataSub *spr = &COMBAT_DATA_PTR->player.unk1[id];
+		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && !fighter->hpDamageBuffer && spr->unk25 < 21) spr->unk25++;
+		if (MOD_OPT_ENEMY_BARS && (BATTLE_TOGGLE_LIFEBAR || spr->unk25 < 21))
+			renderEnemyHeadHP((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[id]], fighter, 4);
+	}
+
 	for (bar = 0; bar < 2; bar++) {
+		/* Select controls opponent life bars in the arena as well. Keep finisher state ticking below. */
+		if (id == 1 && !BATTLE_TOGGLE_LIFEBAR && COMBAT_DATA_PTR->player.unk1[id].unk25 >= 21) break;
 		p = &VS_STATUS_BAR_SPRITES[bar * 3 + 2];
 		if (bar == 0) {
 			if (id == 0) {
