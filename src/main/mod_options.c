@@ -23,6 +23,7 @@
  * keeps 20 and the option shows it without a choice.
  */
 #include <dw/mod_options.h>
+#include <dw/species.h>
 #include <dw/mod_fps.h>
 
 #include "common.h"
@@ -33,6 +34,12 @@ int32_t MOD_OPT_BUTTONS = MOD_BUTTONS_US;
 int32_t MOD_OPT_CLOCK = 1;
 int32_t MOD_OPT_BARS = 1;
 int32_t MOD_OPT_EVO_GUIDE = 1;
+int32_t MOD_OPT_NEW_DIGIMON = 1;
+
+int32_t modSpeciesAllowed(int32_t type)
+{
+	return MOD_OPT_NEW_DIGIMON || isVanillaSpecies(type);
+}
 int32_t MOD_OPT_TOUCHED = 0;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */
