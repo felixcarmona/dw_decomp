@@ -5,6 +5,7 @@
  */
 #include <dw/file.h>
 #include <dw/main.h>
+#include <dw/mod_font.h>
 #include <dw/screen.h>
 
 #include "common.h"
@@ -13,6 +14,9 @@ extern char *MAP_NAME_PTR[];
 extern uint8_t *MAPHEAD_SCRIPT_PTR;
 void tickFileReadQueue(int32_t unused);
 int32_t isFileReadQueueBusy(void);
+
+/* MOD (font): with NEW FONT off, SCRN.DAT's copy paged for the original font (dw/mod_font.h FONT_FILE) */
+#define SCREEN_FILE FONT_FILE(SCREEN_FILE_NAME, "SCRNORIG.DAT")
 
 /* the last record read: its whole sector (the script of a new screen runs from here) */
 static uint32_t SCREEN_SECTOR[SCREEN_RECORD_SIZE / 4];
@@ -35,14 +39,14 @@ static int32_t readScreenRecord(int32_t id)
 	if (SCREEN_SECTOR_ID == id) {
 		return 1;
 	}
-	if (lookupFileTable(&lookup, SCREEN_FILE_NAME) == 0 || lookup.size < (uint32_t)(sector + 1) * SCREEN_RECORD_SIZE) {
+	if (lookupFileTable(&lookup, SCREEN_FILE) == 0 || lookup.size < (uint32_t)(sector + 1) * SCREEN_RECORD_SIZE) {
 		return 0;
 	}
 	/* never in the middle of an asynchronous read (evolution, sounds, overlays) */
 	while (isFileReadQueueBusy()) {
 		tickFileReadQueue(0);
 	}
-	readFileSectors(SCREEN_FILE_NAME, SCREEN_SECTOR, sector, 1);
+	readFileSectors(SCREEN_FILE, SCREEN_SECTOR, sector, 1);
 	SCREEN_RECORD_READS++;
 	if (rec->magic[0] != SCREEN_RECORD_MAGIC[0] || rec->magic[1] != SCREEN_RECORD_MAGIC[1] ||
 	    rec->magic[2] != SCREEN_RECORD_MAGIC[2] || rec->magic[3] != SCREEN_RECORD_MAGIC[3] || rec->id != id ||
@@ -53,6 +57,14 @@ static int32_t readScreenRecord(int32_t id)
 	SCREEN_SECTOR_ID = id;
 	return 1;
 }
+
+#if FONT_SWITCH
+/* MOD (font): the font changed: the next record is read from its file (script_interp.c modFontScriptsChanged) */
+void modScreenFileChanged(void)
+{
+	SCREEN_SECTOR_ID = -1;
+}
+#endif
 
 static ScreenRecordHead *getScreenHead(int32_t id)
 {
@@ -151,7 +163,7 @@ int32_t findNewScreen(int32_t from, int32_t step)
 	int32_t i;
 	int32_t k;
 
-	if (lookupFileTable(&lookup, SCREEN_FILE_NAME) == 0) {
+	if (lookupFileTable(&lookup, SCREEN_FILE) == 0) {
 		return -1;
 	}
 	count = lookup.size / SCREEN_RECORD_SIZE - 1;
