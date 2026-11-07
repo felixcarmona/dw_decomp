@@ -5,9 +5,11 @@
 
 /* MOD (quality of life, src/main/mod_qol.c) */
 
-/* a plate at (x, y) with text (the letters R 2 x 1 5 S T A > and spaces): the letters from index hi on in (r, g, b), the
+/* a plate at (x, y) with text (the letters R x S T A > B, digits, / and spaces): the letters from index hi on in (r, g, b), the
    others white */
 void modPlate(int32_t x, int32_t y, const char *text, int32_t hi, int32_t r, int32_t g, int32_t b);
+/* Arm only when routine 0x1e starts the screen-49 shift; removed on leaving the screen. */
+void modShopPlateAdd(void);
 /* the battle speed (BTL, STD, VS): before each tick of a battle's loop, held = the fight stays at x1; after the pad is
    read, R2 switches x1 / x2; the plate (object 0x19b) in the bottom right corner. MOD_SPEED_FIGHT: the plate is up */
 extern int8_t MOD_SPEED_FIGHT;
