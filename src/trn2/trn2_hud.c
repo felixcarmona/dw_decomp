@@ -24,7 +24,7 @@ extern char MAIN_D_80124C0C[];
 extern char MAIN_D_80124C54[];
 extern GsOT *ACTIVE_ORDERING_TABLE;
 
-int32_t getItemCount(int32_t type);
+uint8_t getItemCount(ItemId type);
 void worldPosToScreenPos(TrainingSpot *item, SVECTOR *out);
 void renderNumber(int32_t a, int32_t x, int32_t y, int32_t digits, int32_t value, int32_t layer);
 void renderString(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h, int32_t i);

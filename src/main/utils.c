@@ -5,6 +5,7 @@
 
 #include <dw/btl.h>
 #include <dw/combat.h>
+#include <dw/item.h>
 #include <dw/main.h>
 #include <dw/script.h>
 #include <dw/std.h>
@@ -19,7 +20,6 @@
 #endif
 
 void damageTick(FighterData* fighter, Stats* stats);
-void sortItemsById(uint8_t *data, long count);
 void initStringFT4(POLY_FT4* poly);
 #if !VERSION_IS(US)
 void renderNumber(int32_t color, int16_t x, int16_t y, int16_t n,
@@ -115,12 +115,12 @@ void damageTick(FighterData* fighter, Stats* stats)
 	}
 }
 
-void sortItemsById(uint8_t *data, long count)
+void sortItemsById(ItemId *data, long count) /* MOD: was u8 */
 {
 	int32_t i;
 	int32_t j;
 	int16_t minIdx;
-	uint8_t minVal;
+	ItemId minVal;
 
 	for (i = 0; i < count; i++) {
 		minVal = data[i];
@@ -133,10 +133,20 @@ void sortItemsById(uint8_t *data, long count)
 			}
 		}
 
-		swapByte(&data[i], &data[minIdx]);
+		swapItemId(&data[i], &data[minIdx]);
 	}
 
 	(void)j;
+}
+
+/* MOD: swapByte for the 16-bit item ids of the inventory */
+void swapItemId(ItemId *a, ItemId *b)
+{
+	ItemId tmp;
+
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
 }
 
 void swapByte(uint8_t *a, uint8_t *b)
