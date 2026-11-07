@@ -1303,16 +1303,26 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(MYOTISMON)
+		/*
+		 * MOD (partners-npc-b): a partner too, reached from Devimon.
+		 * Its own five techniques stay first (the boss fights equip
+		 * them by animation slot, 0x2E-0x32); after them Devimon's
+		 * Sonic Jab and Devimon's finisher Death Claw (0x3E,
+		 * animation 0x34), with Devimon's animations of them
+		 * (mods/experimental/partners-npc-b). Third specialty Ice,
+		 * like Devimon's, so it can learn its own Giga Freeze and
+		 * Aurora Freeze (was Air and Battle only).
+		 */
 		0x00000019,
 		0x00a0,
 		0x01ae,
 		0x03,
 		0x05,
-		{ 0x02, 0x01, 0xff },
+		{ 0x02, 0x01, 0x04 },
 		0x00,
 		0x00,
 		{
-			0x2e, 0x08, 0x0f, 0x10, 0x16, 0xff, 0xff, 0xff,
+			0x2e, 0x08, 0x0f, 0x10, 0x16, 0x2b, 0x3e, 0xff,
 			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		},
 		0x00,
@@ -1367,6 +1377,15 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(WARUMONZAEMON)
+		/*
+		 * MOD (partners-npc-b): a partner too, reached from Numemon.
+		 * Its own four techniques stay first (the boss fights equip
+		 * them by animation slot, 0x2E-0x31); after them the rest of
+		 * Monzaemon's list and Monzaemon's finisher Lovely Attack
+		 * (0x3C, animation 0x3B): its partner model
+		 * (mods/experimental/partners-npc-b) has Monzaemon's
+		 * animations of them, retargeted.
+		 */
 		0x0000000c,
 		0x0096,
 		0x019a,
@@ -1376,8 +1395,8 @@ DigimonPara DIGIMON_DATA[180] = {
 		0x1b,
 		0x32,
 		{
-			0x2e, 0x2f, 0x29, 0x08, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0x2e, 0x2f, 0x29, 0x08, 0x2b, 0x2c, 0x2d, 0x28,
+			0x2a, 0x0c, 0x0b, 0x0a, 0x0e, 0x3c, 0xff, 0xff,
 		},
 		0x00,
 	},
@@ -2190,17 +2209,27 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(SHOGUNGEKOMON)
+		/*
+		 * MOD (partners-npc-b): a partner. Was level 0 with no
+		 * specialty and no techniques (the Gekomon Swamp NPC). Now an
+		 * Ultimate of the Ice specialty with Whamon's Ice techniques
+		 * and Whamon's finisher Blasting Spout (0x5A, animation
+		 * 0x36), blown from its trumpets. Its model is 0.55 times the
+		 * original (TONO.MMD rebuilt by
+		 * mods/experimental/partners-npc-b/shogungekomon), so the
+		 * radius and height go from 400/800 to 220/440.
+		 */
 		0x0000001c,
-		0x0190,
-		0x0320,
+		0x00dc,
+		0x01b8,
 		0x01,
-		0x00,
-		{ 0xff, 0xff, 0xff },
+		0x05,
+		{ 0x04, 0xff, 0xff },
 		0x00,
 		0x0a,
 		{
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x17, 0x10, 0x14, 0x12, 0x13, 0x11, 0x16, 0x15,
+			0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		},
 		0x00,
 	},
