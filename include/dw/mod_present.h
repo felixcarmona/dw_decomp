@@ -27,6 +27,9 @@ typedef struct {
 /* the tick / present helper (main.c): modTickStart before the loop's logic,
  * modPresent after tickObjects instead of render + VSync + swap */
 #define MOD_PRESENT_BATTLE 1 /* origin from DRAWING_OFFSET at each swap */
+/* pauseFrame: the extra rollback set is the one of the loop that paused (the
+ * last modPresent call without this flag) */
+#define MOD_PRESENT_PAUSE 2
 void modTickStart(int32_t flags);
 void modPresent(int32_t flags, ModRollbackSet *extra);
 

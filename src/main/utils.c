@@ -7,6 +7,7 @@
 #include <dw/combat.h>
 #include <dw/item.h>
 #include <dw/main.h>
+#include <dw/mod_present.h>
 #include <dw/script.h>
 #include <dw/std.h>
 #include <dw/ui.h>
@@ -67,20 +68,17 @@ char NUMBER_FORMATS[32] = "%01d\0%02d\0%03d\0%04d\0%05d\0%06d";
 
 void pauseFrame(void)
 {
+	/* MOD (fps): rendered by the shared tick / present helper (main.c); the
+	 * origin is set after the wait, as in the battle loops, and the render
+	 * state rolled back around the extra passes is that of the loop that
+	 * paused (the story battle and the tournament pause from theirs) */
+	modTickStart(MOD_PRESENT_BATTLE);
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
 	tickObjects();
-	renderObjects();
-	AddPrim(ACTIVE_ORDERING_TABLE->org + 0x20,
-		&DR_OFFSETS[ACTIVE_FRAMEBUFFER]);
-	DrawSync(0);
-	VSync(3);
-	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-	GsSwapDispBuff();
-	GsSortClear(0, 0, 0, ACTIVE_ORDERING_TABLE);
-	GsDrawOt(ACTIVE_ORDERING_TABLE);
+	modPresent(MOD_PRESENT_BATTLE | MOD_PRESENT_PAUSE, NULL);
 }
 
 void damageTick(FighterData* fighter, Stats* stats)
