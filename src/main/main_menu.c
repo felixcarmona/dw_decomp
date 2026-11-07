@@ -2122,11 +2122,12 @@ void drawMainMenuStrings(int32_t menu)
 #else
 	switch (view) {
 	case 0:
-		drawString(TITLE_MENU_ITEMS[0], 0, 0);
-		drawString(TITLE_MENU_ITEMS[1], 0, 0xC);
+		/* MOD (language): keep complete translated labels inside the title's 176-pixel crop with either font. */
+		drawStringMode(TITLE_MENU_ITEMS[0], 0, 0, fitStringMode(TITLE_MENU_ITEMS[0], 0xB0));
+		drawStringMode(TITLE_MENU_ITEMS[1], 0, 0xC, fitStringMode(TITLE_MENU_ITEMS[1], 0xB0));
 		DrawSync(0);
-		drawString(TITLE_MENU_ITEMS[2], 0, 0x18);
-		drawString(TITLE_MENU_ITEMS[3], 0, 0x24);
+		drawStringMode(TITLE_MENU_ITEMS[2], 0, 0x18, fitStringMode(TITLE_MENU_ITEMS[2], 0xB0));
+		drawStringMode(TITLE_MENU_ITEMS[3], 0, 0x24, fitStringMode(TITLE_MENU_ITEMS[3], 0xB0));
 		DrawSync(0);
 		drawString(MOD_OPT_STR_OPTIONS, 0, 0x30); /* MOD (options) */
 		break;
