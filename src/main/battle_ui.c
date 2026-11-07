@@ -1,5 +1,6 @@
 #include <libgs.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/combat.h>
 #include <dw/entity.h>
@@ -512,7 +513,7 @@ void createPostBattleStatsBox(void)
 #if !VERSION_IS(US)
 			drawString(STR_MONEY_HELD, 0, 84);
 #endif
-			drawString(MAIN_D_80124C54, 0, 240);
+			DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 240);
 		}
 
 		DrawSync(0);

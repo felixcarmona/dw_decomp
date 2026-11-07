@@ -4,6 +4,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_font.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/entity.h>
@@ -177,7 +178,7 @@ void VS__drawStatLabelText(void)
 		DrawSync(0);
 	}
 
-	drawString(MAIN_D_80124C54, 0, 0xf0);
+	DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 }
 
 // clang-format off
