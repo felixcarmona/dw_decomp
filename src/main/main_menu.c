@@ -6305,12 +6305,13 @@ static void renderOptionsMenu(void)
  * remembered by the existing save-header options, with no extra card writes. */
 static void modDrawLanguagePicker(void)
 {
-    int32_t i;
+    int32_t i, lang;
     clearTextArea();
-    drawString("LANGUAGE - IDIOMA", 0, 0);
-    DrawSync(0);
     for (i = 0; i < modLanguageCount(); i++) {
-        modDrawLanguageName(modLanguageAt(i), (i & 1) * 128, 16 + (i / 2) * 20);
+        lang = modLanguageAt(i);
+        modDrawLanguageName(lang, (i & 1) * 128, 16 + (i / 2) * 20);
+        DrawSync(0);
+        modDrawLanguageName(lang + MOD_LANGS, (lang & 1) * 128, 120 + (lang / 2) * 12);
         DrawSync(0);
     }
     drawString("START", 0, 188);
@@ -6362,24 +6363,34 @@ static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb
 
 #include "language_flags.h"
 
-/* The two name glyphs use the licensed 12px subset, independent of active font/RAM. */
+/* Names and headings share the licensed resident 12px pairs. The heading
+ * selector is the language plus MOD_LANGS; no language bank is loaded on hover. */
 static void __attribute__((noinline)) modDrawLanguageName(int32_t lang, int32_t x, int32_t y)
 {
     uint32_t pixels[36];
     RECT rect;
     int32_t row, col;
-    if (lang != MOD_LANG_ZH) {
+    const uint16_t *glyphs = MOD_CHINESE_NAME;
+    if (lang >= MOD_LANGS) {
+        lang -= MOD_LANGS;
+        glyphs = MOD_LANGUAGE_TITLE_GLYPHS + (lang == MOD_LANG_ZH ? 24 : 0);
+        if (lang != MOD_LANG_JA && lang != MOD_LANG_ZH) {
+            drawString(MOD_LANGUAGE_TITLES[lang], x, y);
+            return;
+        }
+    } else if (lang != MOD_LANG_ZH) {
         drawString(MOD_LANGUAGE_NAMES[lang], x, y);
         return;
     }
     memset(pixels, 0, sizeof(pixels));
     for (row = 0; row < 12; row++) {
         for (col = 0; col < 24; col++) {
-            if (!(MOD_CHINESE_NAME[(col / 12) * 12 + row] & (0x8000 >> (col % 12))))
+            if (!(glyphs[(col / 12) * 12 + row] & (0x8000 >> (col % 12))))
                 pixels[row * 3 + col / 8] |= 1u << ((col % 8) * 4);
         }
     }
     setRECT(&rect, TEXT_VRAM_X + x / 4, TEXT_VRAM_Y + y, 6, 12);
+    DrawSync(0);
     LoadImage(&rect, (u_long *)pixels);
     DrawSync(0);
 }
@@ -6435,7 +6446,10 @@ static void modRenderLanguagePicker(void)
     const uint8_t *run;
     uint32_t colour;
     text = (POLY_FT4 *)GsGetWorkBase();
-    renderText(text++, (320 - measureStringMode("LANGUAGE - IDIOMA", FIT_VANILLA)) / 2, 30, 0, 0, 216, 12, 0);
+    lang = modLanguageAt(MOD_BOOT_LANGUAGE_CURSOR);
+    renderText(text++, (320 - (lang == MOD_LANG_JA || lang == MOD_LANG_ZH ? 24 :
+               measureStringMode(MOD_LANGUAGE_TITLES[lang], FIT_VANILLA))) / 2,
+               30, (lang & 1) * 128, 120 + (lang / 2) * 12, 112, 12, 0);
     for (i = 0; i < modLanguageCount(); i++) {
         renderText(text++, 48 + (i & 1) * 152, 68 + (i / 2) * 26,
                    (i & 1) * 128, 16 + (i / 2) * 20, 112, 12, i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
