@@ -21,12 +21,15 @@
 #include <dw/evolution.h>
 #include <dw/font.h>
 #include <dw/level.h>
+#include <dw/line.h>
+#include <dw/mod_options.h>
 #include <dw/mod_qol.h>
 #include <dw/mod_present.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/sound.h>
 #include <dw/script.h>
+#include <dw/sjis.h>
 #include <dw/world_object.h>
 
 #include <text/main/mod_qol.h>
@@ -35,6 +38,8 @@
 
 extern GsOT *ACTIVE_ORDERING_TABLE;
 void initStringFT4(POLY_FT4 *p);
+void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h, uint8_t u, uint8_t v, long layer,
+		  int32_t shadow);
 void setUVDataPolyFT4(POLY_FT4 *prim, int16_t xPos, int16_t yPos, int16_t width, int16_t height);
 void setPosDataPolyFT4(POLY_FT4 *prim, int16_t posX, int16_t posY, int16_t width, int16_t height);
 extern uint32_t POLLED_INPUT;
@@ -230,6 +235,51 @@ void modSkipPlate(void)
 				modSkipLine(x + dx, y + dy, 0, 0, 0, 5);
 			}
 		}
+	}
+}
+
+/* the tallies' skip hint (patch 0333): "Press × to skip" in a row of its own at the bottom of the box that counts (the
+   gym's stats box, the battle's bits box), under a divider like the battle box's. The line is drawn once into a row of
+   the text area when the box opens (the evolution's row: never on screen together), its button in the colour of the
+   button that confirms: × blue (6), with JAPANESE CONTROLS the font draws it as ○ (modButtonGlyph), red (3) */
+#define MOD_COUNT_ROW 0xD8
+#define MOD_COUNT_MAX_W 168
+static int16_t MOD_COUNT_W;
+
+void modCountHintDraw(void)
+{
+	RECT area;
+	char *text = QOL_STR_SKIP_COUNT;
+	uint8_t colors[48];
+	char *s;
+	int32_t n;
+	int32_t mode;
+
+	for (s = text, n = 0; *s != '\0' && n < 48; n++) {
+		if (isAsciiEncoded(s)) {
+			colors[n] = 1;
+			s++;
+		} else {
+			colors[n] = ((uint8_t)s[0] == 0x81 && (uint8_t)s[1] == 0xA2) ? (MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? 3 : 6) : 1;
+			s += 2;
+		}
+	}
+	setRECT(&area, 0, MOD_COUNT_ROW, 256, 12);
+	clearTextSubArea(&area);
+	mode = fitStringMode(text, MOD_COUNT_MAX_W);
+	if (mode == FIT_VANILLA) {
+		mode = FIT_TIGHT; /* drawString would take the text's colour: the strip takes one per glyph */
+	}
+	MOD_COUNT_W = drawFittedRow(text, MOD_COUNT_ROW, mode, colors);
+	setTextColor(1);
+}
+
+void modCountHintRow(int32_t x, int32_t w, int32_t y, int32_t show, int32_t layer)
+{
+	drawLine2P(0x8e8e8e, x + 2, y, x + w - 4, y, layer, 0);
+	drawLine2P(0x121212, x + 3, y + 1, x + w - 3, y + 1, layer, 0);
+	if (show) {
+		renderString(0, x + (w - MOD_COUNT_W) / 2, y + 4, MOD_COUNT_W, 12, 0, MOD_COUNT_ROW, layer, 0);
 	}
 }
 
