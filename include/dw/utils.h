@@ -22,6 +22,7 @@ typedef enum Overlay
     MURD_REL = 14,
     ENDI_REL = 15,
     EAB_REL  = 16,
+    MENU_REL = 17, /* MOD (menu overlay): the title and card menus (main_menu.c), loaded where they open */
     OFFSET   = -1,
 } Overlay;
 
