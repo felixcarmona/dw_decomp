@@ -294,6 +294,24 @@ SECTIONS
             BUILD_DIR/src/main/script_interp.c.o(.text.forceUpdateBGM);
             . = ALIGN(., 4);
 
+            /* Title-only UI: unused during evolution, above MENU's rounded read.
+             * Language-dependent names remain resident; popup text stays in MENU.
+             * Reload both overlays on return from VS, which replaces this slot. */
+            title_ui_START = .;
+            BUILD_DIR/src/main/main_menu.c.o(
+                .text.modDrawLanguagePicker* .text.modTickLanguagePicker*
+                .text.modRenderLanguagePicker* .text.modDrawLanguageName*
+                .text.modShowLanguageError* .text.modRenderLanguageError*
+                .text.modFlagRect*
+                .rodata.modDrawLanguagePicker* .rodata.modTickLanguagePicker*
+                .rodata.modRenderLanguagePicker*
+                .rodata.MOD_FLAG_PALETTE .rodata.MOD_FLAG_OFFSET .rodata.MOD_FLAG_RUNS
+                .rodata.MOD_CHINESE_NAME .rodata.MOD_LANGUAGE_TITLES
+                .rodata.MOD_LANGUAGE_TITLE_GLYPHS
+            );
+            . = ALIGN(., 4);
+            title_ui_END = .;
+
 		}
 	}
 
@@ -874,8 +892,7 @@ SECTIONS
 			. = ALIGN(., 4);
 			/* their switch tables and literals, which only they read */
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
-				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue
-                .rodata.MOD_FLAG_PALETTE .rodata.MOD_FLAG_OFFSET .rodata.MOD_FLAG_RUNS);
+				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue);
 			. = ALIGN(., 4);
 			/* MOD (heap): read-only data of the card menus that only this overlay reaches (tools/xref.py classes): their
 			 * messages, labels and the save icon. Nothing that is ever written goes here: a reload would undo it */
@@ -968,7 +985,7 @@ SECTIONS
 			LONG(0);
 			. = ALIGN(., 4);
             /* Resident helpers reached only by this loaded overlay (xref). */
-            BUILD_DIR/src/main/main_menu.c.o(.text.modFlagPixel);
+            BUILD_DIR/src/main/main_menu.c.o(.text.modOptionBytes .text.modOptionText .text.modOptionCount*);
             BUILD_DIR/src/main/main_menu.c.o(.text.setRegisteredSpecies*);
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
             BUILD_DIR/src/main/mod_options.c.o(.text.modFrameRate);
