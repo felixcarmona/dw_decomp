@@ -27,7 +27,10 @@ CPPFLAGS := -DLANGUAGE_C -D$(VERSION_MACRO) $(INC)
 DEPFLAGS = -MM -MF $(@:.o=.d) -MT $@
 LDFLAGS := -g $(addprefix -T ,$(CPPLDSCRIPT) $(UNDEFINED_SYMS)) -static \
 	   -Wl,--no-check-sections -Wl,-Map=% -Wl,--build-id=none \
-	   -Wl,--gc-sections -Wl,--print-gc-sections
+	   -Wl,--gc-sections -Wl,--print-gc-sections \
+	   -Wl,--emit-relocs
+# MOD (--emit-relocs): the ELF keeps the link's relocations, so tools/xref.py can list who references what
+# (docs/mods/memory.md "Code out of the executable"); the executable and the overlays are the same bytes.
 
 LINKER_SCRIPTS := $(addprefix $(GEN_DIR)/,\
 		  $(addsuffix .ld, main \
