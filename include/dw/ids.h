@@ -104,11 +104,39 @@ typedef uint16_t CardId;
  */
 #define DIGIMON_WHAMON			24
 #define DIGIMON_SHOGUNGEKOMON		119
+/*
+ * MOD (machinedramon): Machinedramon (the final boss) is a partner too,
+ * reached from Megadramon or Gigadramon (an Ultimate that evolves again,
+ * evolution.c) or the lab menu. Its partner model is a separate file
+ * (MUGP.MMD, model.c), so the boss keeps MUGE.MMD. Its per-partner rows are
+ * at index 115; its "raised" flag is trigger 0x200 + 115 = 627, free.
+ */
+#define DIGIMON_METALGREYMON		12
+#define DIGIMON_MEGADRAMON		54
+/* DIGIMON_GIGADRAMON (64): above */
+#define DIGIMON_MACHINEDRAMON		115
+/*
+ * MOD (jijimon): Jijimon, the File City elder, is a partner too (lab menu
+ * only), with a partner-only model (JIJP.MMD: Ogremon's motion set) and
+ * Ogremon's technique effect origins (efe.c). Rows at index 117; "raised"
+ * flag trigger 0x200 + 117 = 629, free.
+ */
+#define DIGIMON_OGREMON			34
+#define DIGIMON_JIJIMON			117
+/*
+ * MOD (analogman): Analogman, the human villain, is a partner too (lab menu
+ * only), with a partner-only model (ANLP.MMD: Andromon's motion set) and
+ * Andromon's technique effect origins (efe.c). Rows at index 116; "raised"
+ * flag trigger 0x200 + 116 = 628, free.
+ */
+#define DIGIMON_ANDROMON		40
+#define DIGIMON_ANALOGMAN		116
 #define HAS_RAISED_FLAG(type)                                                 \
 	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_CHERRYMON || \
 	 (type) == DIGIMON_MASTER_TYRANNOMON || (type) == DIGIMON_KING_SUKAMON ||  \
 	 (type) == DIGIMON_WARUMONZAEMON || (type) == DIGIMON_MYOTISMON ||         \
-	 (type) == DIGIMON_SHOGUNGEKOMON)
+	 (type) == DIGIMON_SHOGUNGEKOMON || (type) == DIGIMON_MACHINEDRAMON ||     \
+	 (type) == DIGIMON_JIJIMON || (type) == DIGIMON_ANALOGMAN)
 /* the trigger of a type's raised flag (only for HAS_RAISED_FLAG types) */
 #define RAISED_TRIGGER(type) \
 	((type) == DIGIMON_MYOTISMON ? TRIGGER_RAISED_MYOTISMON : (type) + TRIGGER_RAISED_BASE)

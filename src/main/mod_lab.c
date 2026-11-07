@@ -17,8 +17,10 @@
  *                      the target: "To MasterTyrannomon", "To Cherrymon"
  *                      (type 121; MOD cherrymon), "To King of Sukamon"
  *                      (type 120; MOD partners-npc-a), "To Icemon" (94),
- *                      "To Meteormon" (113), or one of the partners of
- *                      MOD partners-npc-b
+ *                      "To Meteormon" (113), the partners of MOD
+ *                      partners-npc-b, "To Machinedramon" (type 115; MOD
+ *                      machinedramon), "To Jijimon" (117), "To Analogman"
+ *                      (116)
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -90,7 +92,11 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"Close",
 };
 
-/* MOD (cherrymon): the evolve option cycles through these targets */
+/*
+ * MOD (cherrymon): the evolve option cycles through these targets.
+ * MOD (partners-npc-c): the count follows the arrays, so new targets are
+ * only appended to both.
+ */
 static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_MASTER_TYRANNOMON,
 	DIGIMON_CHERRYMON,
@@ -100,6 +106,9 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_WARUMONZAEMON, /* MOD (partners-npc-b) */
 	DIGIMON_MYOTISMON,
 	DIGIMON_SHOGUNGEKOMON,
+	DIGIMON_MACHINEDRAMON, /* MOD (machinedramon) */
+	DIGIMON_JIJIMON,       /* MOD (jijimon) */
+	DIGIMON_ANALOGMAN,     /* MOD (analogman) */
 };
 
 static char *MOD_LAB_EVO_TEXT[] = {
@@ -111,6 +120,9 @@ static char *MOD_LAB_EVO_TEXT[] = {
 	"To WaruMonzaemon", /* MOD (partners-npc-b) */
 	"To Myotismon",
 	"To ShogunGekomon",
+	"To Machinedramon", /* MOD (machinedramon) */
+	"To Jijimon",       /* MOD (jijimon) */
+	"To Analogman",     /* MOD (analogman) */
 };
 #define MOD_LAB_EVO_COUNT ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
 
