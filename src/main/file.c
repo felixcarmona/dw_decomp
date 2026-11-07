@@ -8,6 +8,7 @@
 #include <dw/main.h>
 #include <dw/mod_font.h>
 #include <dw/mod_options.h>
+#include <dw/chinese.h>
 #include <dw/tfs_stream.h>
 
 #include "common.h"
@@ -73,6 +74,7 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	} else {
 		++filename;
 	}
+    if (MOD_LANG == MOD_LANG_ZH && zhLookupFile(lookup, filename)) return 1;
 	filename = modStoryFile(modLangFile(filename)); /* MOD (language, story): the language's copy, then its story's */
 
 	entry = findFileEntry(filename);
