@@ -5,6 +5,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/battle.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -1098,15 +1099,27 @@ void BTL_renderNumber(int32_t a, int16_t digits, int16_t x, int16_t y, int16_t v
 	POLY_FT4 *prim;
 	int32_t i;
 	int32_t count;
-	int32_t buf[4];
+	int32_t buf[6]; /* MOD (caps): was 4 */
+	int32_t adv;
 
 	prim = (POLY_FT4 *)GsGetWorkBase();
+	/* MOD (caps): a fifth digit (HP/MP past 9999) has no room in the
+	 * HUD's number box: the digits are packed 6 px apart instead of 7
+	 * (their 1-px outlines overlap) and the number grows 3 px to the
+	 * left, keeping its right edge and clear of the bar's end. The
+	 * original drew only the first four digits. */
+	adv = 7;
+	if (CAPS_DIGITS(digits, value) > digits) {
+		adv = 6;
+		x -= (CAPS_DIGITS(digits, value) - 1) * adv + 7 - digits * 7;
+		digits = CAPS_DIGITS(digits, value);
+	}
 	convertValueToDigits(digits, value, &count, buf);
 	for (i = count - 1; i >= 0; i--) {
 		setEntityTextDigit(prim, 256, 492);
 		setRGB0(prim, 0x80, 0x80, 0x80);
 		setUVDataPolyFT4(prim, buf[i] * 7, 172, 7, 11);
-		setPosDataPolyFT4(prim, x + ((digits - 1) - i) * 7, y, 7, 11);
+		setPosDataPolyFT4(prim, x + ((digits - 1) - i) * adv, y, 7, 11);
 		AddPrim(ACTIVE_ORDERING_TABLE->org + layer, prim++);
 	}
 	GsSetWorkBase((PACKET *)prim);

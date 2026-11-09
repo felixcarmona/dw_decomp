@@ -1,3 +1,4 @@
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/attack_object.h>
 #include <dw/btl.h>
@@ -112,8 +113,12 @@ void BTL_initializeCombat(void)
 		} else {
 			f->buffsRemaining = 5;
 		}
-		f->buffPrioTimer = (stats->base.brain / 10) + 5;
-		f->finisherGoal = 0xbb8 - stats->base.speed;
+		/* MOD (caps): brains and speed past the old 999 limit do not
+		 * make buffs win every draw or the finisher goal reach 0:
+		 * the goal keeps falling, ten times slower (1101 at 9999) */
+		f->buffPrioTimer = (CAPS_OLD_STAT(stats->base.brain) / 10) + 5;
+		f->finisherGoal = 0xbb8 - CAPS_OLD_STAT(stats->base.speed) -
+		                  (stats->base.speed - CAPS_OLD_STAT(stats->base.speed)) / 10;
 		for (j = 0; j < 0x96; j++) {
 			f->table1[j] = -1;
 			f->table2[i] = -1;
