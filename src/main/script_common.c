@@ -3,6 +3,7 @@
 #include <libgs.h>
 
 #include <dw/mod_font.h>
+#include <dw/level.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -2480,7 +2481,12 @@ void lostAllLives(void)
 		i++;
 	}
 
-	n = (10 - TAMER_ENTITY.tamerLevel) * 2 * (n * 100) / 100;
+	/* MOD (tamer level as data): (base - level) * step percent, from MOD_TAMER_LEVEL (-1: no moves are forgotten) */
+	if (MOD_TAMER_LEVEL[MOD_TL_FORGET_BASE] < 0 || MOD_TAMER_LEVEL[MOD_TL_FORGET_STEP] < 0) {
+		n = 0;
+	} else {
+		n = (MOD_TAMER_LEVEL[MOD_TL_FORGET_BASE] - TAMER_ENTITY.tamerLevel) * MOD_TAMER_LEVEL[MOD_TL_FORGET_STEP] * (n * 100) / 100;
+	}
 	if (n % 100 >= 0x32) {
 		n += 100;
 	}
