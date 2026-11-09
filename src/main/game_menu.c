@@ -5854,6 +5854,7 @@ int8_t entityId;
 {
 	MATRIX m;
 	VECTOR savedPos;
+	SpeciesRecord *record;
 	SVECTOR savedRot;
 	GsF_LIGHT lights[3];
 	PositionData *pos;
@@ -5903,6 +5904,21 @@ int8_t entityId;
 	setupEntityMatrix(entityId);
 	startAnimation(entity, 0);
 	tickAnimation(entity);
+	/* A travelling partner can use a bone as its Status camera anchor.
+	 * Move the whole portrait, retaining its pose and field animation. */
+	if (type >= NUM_ORIGINAL_DIGIMON) {
+		record = getSpeciesRecord(type);
+		if (record != NULL && record->statusAnchorBone > 0 && record->statusAnchorBone < count) {
+			GsGetLw(&pos[record->statusAnchorBone].posMatrix, &m);
+			pos->location.vx += pos->location.vx - m.t[0];
+			pos->location.vy += pos->location.vy - m.t[1];
+			pos->location.vz += pos->location.vz - m.t[2];
+			setupEntityMatrix(entityId);
+			for (bone = 0; bone < count; bone++) {
+				pos[bone].posMatrix.flg = 0;
+			}
+		}
+	}
 	m = GsWSMATRIX;
 
 	for (bone = 0; bone < count; pos++, bone++) {
