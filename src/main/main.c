@@ -5273,6 +5273,31 @@ void modTickStart(int32_t flags)
 	MOD_TICK_PRIM_MERAMON = 0;
 }
 
+/* MOD (quick battle start): set while a battle's data loads (loadBattleData). The loads are file queue requests and
+ * the queue takes one step per tick (start a read, see it end, one stage of its callback), so at 20 ticks a second
+ * the steps were most of the wait, not the disc: the waits for a vblank step the queue again and again instead, and
+ * a request starts the moment the one before it ends. */
+int8_t MOD_LOAD_PUMP;
+int32_t isFileReadQueueBusy(void); /* file_queue.c */
+void tickFileReadQueue(int32_t unused);
+
+/* VSync(0), or with MOD_LOAD_PUMP the file queue stepped until the vblank comes (then VSync(0) once nothing is queued) */
+static void modWaitVblank(void)
+{
+	int32_t v;
+
+	if (MOD_LOAD_PUMP) {
+		v = VSync(-1);
+		while (isFileReadQueueBusy()) {
+			tickFileReadQueue(0);
+			if (VSync(-1) != v) {
+				return;
+			}
+		}
+	}
+	VSync(0);
+}
+
 void modPresent(int32_t flags, ModRollbackSet *extra)
 {
 	int32_t n;
@@ -5442,7 +5467,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			MOD_PERF_LATE++;
 		}
 		do {
-			VSync(0); /* like VSync(3): always swap on a vertical blank */
+			modWaitVblank(); /* like VSync(3): always swap on a vertical blank */
 		} while (VSync(-1) < endV);
 		vLast = VSync(-1);
 		GsSwapDispBuff();
@@ -5457,7 +5482,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
 	}
 	while (!discard && VSync(-1) < tickV + period) {
-		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
+		modWaitVblank(); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
 	MOD_RENDER_PASS = 0;
 	MOD_RENDER_MULTIPASS = 0;

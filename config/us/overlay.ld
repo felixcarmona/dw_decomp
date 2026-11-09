@@ -89,6 +89,7 @@ SECTIONS
 			LONG(0);
 
 			. = ALIGN(., 4);
+			btl_END = .; /* MOD (quick battle start): the preload checksum covers the whole overlay */
 		}
 	}
 
