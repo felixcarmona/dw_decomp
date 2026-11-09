@@ -292,6 +292,10 @@ extern uint32_t MOD_COLD_PENDING;
 int32_t modProbeRam(void);
 void refreshColdCache(void);	/* with 8 MB of RAM the partner's cold part stays in memory (mod_species.c) */
 int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t *sectors);
+/* MOD (flat sprites): a texture slot's flattened frames, (u, v) of idle, idle 2, attack, hurt and their CLUT row;
+ * read from its texture when it is uploaded (mod_species.c) */
+uint8_t *getFlatSprite(ModelComponent *model);
+void loadFlatSprite(void *textureData, ModelComponent *model);
 /* the evolution paths of a type (EVOLUTION_PATHS covers types 1..62, new
  * species have their own rows; any other type has none) */
 EvolutionPath *getEvolutionPath(int32_t type);
