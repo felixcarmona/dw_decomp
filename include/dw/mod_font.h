@@ -52,11 +52,13 @@ extern uint8_t TEXTBOX_CELLS;
  * a C string whose row a screen copies in pieces (the crops' offsets in pixels from x: 0, then each next crop's srcX - x;
  * PIECE_CENTRE marks a piece centred in its original span, PIECE_LEFT one that starts as far into its crop as the row's
  * first piece, for crops shown one under the other such as Yes / No): each piece drawn with the font's spacing (font.c
- * drawStringPieces); the original font draws it as drawString
+ * drawStringPieces); PIECE_WORDS assigns whitespace-separated answers to successive crops
+ * instead of cutting by cell advances. The original font also uses that layout.
  */
 #define PIECE_CENTRE 0x8000
 #define PIECE_LEFT   0x4000
-#define PIECE_FLAGS  (PIECE_CENTRE | PIECE_LEFT)
+#define PIECE_WORDS  0x2000 /* whitespace-separated answers, independent of translated cell widths */
+#define PIECE_FLAGS  (PIECE_CENTRE | PIECE_LEFT | PIECE_WORDS)
 #define PIECES_END   0xffff
 #if FONT_SWITCH
 void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
@@ -65,7 +67,7 @@ extern const uint8_t *PIECE_COLORS; /* MOD (language): each glyph's colour for d
 #define DRAW_STRING_PIECES(str, x, y, ...)                                         \
 	do {                                                                       \
 		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \
-		if (FONT_PROPORTIONAL) {                                           \
+		if (FONT_PROPORTIONAL || (PIECES_[0] & PIECE_WORDS)) {                \
 			drawStringPieces(str, x, y, PIECES_);                      \
 		} else {                                                           \
 			drawString(str, x, y);                                     \
@@ -74,7 +76,7 @@ extern const uint8_t *PIECE_COLORS; /* MOD (language): each glyph's colour for d
 /* the same with the crops' offsets in a table (PIECES_END at its end): a language's own (dw/lang.h) */
 #define DRAW_STRING_PIECES_AT(str, x, y, pieces)                                   \
 	do {                                                                       \
-		if (FONT_PROPORTIONAL) {                                           \
+		if (FONT_PROPORTIONAL || ((pieces)[0] & PIECE_WORDS)) {               \
 			drawStringPieces(str, x, y, pieces);                       \
 		} else {                                                           \
 			drawString(str, x, y);                                     \
@@ -106,7 +108,7 @@ void textboxRowPieces(int32_t boxId, int32_t row, const uint16_t *pieces);
 #define TEXTBOX_ROW_PIECES(boxId, row, ...)                                        \
 	do {                                                                       \
 		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \
-		if (FONT_PROPORTIONAL) {                                           \
+		if (FONT_PROPORTIONAL || (PIECES_[0] & PIECE_WORDS)) {                \
 			textboxRowPieces(boxId, row, PIECES_);                     \
 		} else {                                                           \
 			TEXTBOX_IN_CELLS(boxId);                                   \
