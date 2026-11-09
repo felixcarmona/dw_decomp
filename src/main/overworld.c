@@ -1197,7 +1197,23 @@ void NPCEntityTick(int32_t instanceId)
 void scriptUnloadEntity(uint8_t scriptId)
 {
 	Entity *entity;
+	int32_t i;
 
+	/* MOD (absent NPC): getEntityFromScriptId returns an undefined value when no
+	 * placed Digimon has this script id (a story .leave() on an NPC that the
+	 * map's presence rules never spawned, or that already left). Freeing the
+	 * garbage entity corrupted the heap, and a later big load hung. Unload only
+	 * an entity that exists; the tamer and partner ids keep their old path. */
+	if (scriptId != 0xfd && scriptId != 0xfc) {
+		for (i = 0; i < 8; i++) {
+			if ((ENTITY_TABLE[i + 2] != NULL) && (scriptId == NPC_ENTITIES[i].scriptId)) {
+				break;
+			}
+		}
+		if (i == 8) {
+			return;
+		}
+	}
 	entity = getEntityFromScriptId(&scriptId);
 	entity->isOnMap = 0;
 	removeEntity(entity->type, scriptId);
