@@ -1625,11 +1625,8 @@ void tickTirednessMechanics(void)
 	}
 }
 
-#if !VERSION_IS(US)
+/* Read the owned target table on every build, including imported targets. */
 #define ITEM_EVOLUTION_TARGET(item) EVOLUTION_ITEM_TARGET[(item) - 0x47]
-#else
-#define ITEM_EVOLUTION_TARGET(item) (&ITEM_CLUT_DATA[0x39])[item]
-#endif
 
 int32_t partnerWillRefuseItem(void)
 {
@@ -1663,14 +1660,10 @@ int32_t partnerWillRefuseItem(void)
 			    DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level !=
 			    (DIGI_PARA(modItem->target).level == LEVEL_MEGA ? LEVEL_ULTIMATE : modItem->level))
 				return 1;
-		} else if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level ==
-			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) ||
-			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level + 2 ==
-			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) ||
-			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level - 1 ==
-			    modOriginalLevel(ITEM_EVOLUTION_TARGET(item)))) {
-			/* MOD (canon levels): the original items keep the original game's levels (Red Ruby and Beetlepearl on a
-			 * Champion, as the disc's routes to Phoenixmon and HerculesKabuterimon) */
+		} else if (!modSpeciesAllowed(ITEM_EVOLUTION_TARGET(item)) ||
+			   DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level + 1 !=
+			   modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) {
+			/* Match handleEvoItems: only the predecessor stage may consume an item. */
 			return 1;
 		}
 	}
