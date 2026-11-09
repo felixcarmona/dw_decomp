@@ -10,6 +10,12 @@ static inline int32_t modResourceNeed(int32_t current, int32_t maximum)
 	return maximum > 0 && current * 10 < maximum * 3;
 }
 
+/* The justified quick-care Scold window; independent of inventory or needs. */
+static inline int32_t modScoldAvailable(int32_t flag)
+{
+	return flag == 1;
+}
+
 typedef struct {
 	int8_t hungerTimes[8];
 	uint8_t energyCap;

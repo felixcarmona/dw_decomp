@@ -202,7 +202,7 @@ static int32_t feedCollect(int32_t needsOnly)
 	int32_t rank;
 
 	feedCount = 0;
-	if (ITEM_SCOLD_FLAG == SCOLD_PENDING) {
+	if (modScoldAvailable(ITEM_SCOLD_FLAG)) {
 		feedAdd(FEED_SCOLD, RANK_SCOLD * 0x100);
 	}
 	if (PARTNER_PARA.condition & CONDITION_SLEEPY) {
