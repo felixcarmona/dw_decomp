@@ -120,7 +120,8 @@ typedef struct {
 	uint8_t vballId;		/* 0x04E VBALL voice */
 	uint8_t vlallId;		/* 0x04F VLALL voice (partners) */
 	uint16_t flags;			/* 0x050 SPECIES_FLAG_* */
-	uint16_t reserved52;
+	uint8_t battleMusic;		/* 0x052 battle track (font 0x21) as a wild enemy: SPECIES_BATTLE_MUSIC */
+	uint8_t reserved53;
 	SkeletonBone bones[SPECIES_MAX_BONES]; /* 0x054 para.boneCount used */
 	/* partner block (SPECIES_FLAG_PARTNER) */
 	RaiseData raise;		/* 0x0D4 */
@@ -143,6 +144,7 @@ typedef struct {
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
 SPECIES_LAYOUT_CHECK(size, sizeof(SpeciesRecord) == SPECIES_RECORD_SIZE);
 SPECIES_LAYOUT_CHECK(para, sizeof(DigimonPara) == 0x34);
+SPECIES_LAYOUT_CHECK(music, __builtin_offsetof(SpeciesRecord, battleMusic) == 0x52);
 SPECIES_LAYOUT_CHECK(bones, __builtin_offsetof(SpeciesRecord, bones) == 0x54);
 SPECIES_LAYOUT_CHECK(raise, __builtin_offsetof(SpeciesRecord, raise) == 0xD4);
 SPECIES_LAYOUT_CHECK(evoReqs, __builtin_offsetof(SpeciesRecord, evoReqs) == 0xF0);
@@ -207,6 +209,8 @@ SkeletonBone *getDigimonSkeleton(int32_t type);
 /* the 4-letter model name (CHDAT\MMDn\NAME.MMD); empty for a model inside DIGI.DAT */
 char *getDigimonModelName(int32_t type);
 int32_t getDigimonVballId(int32_t type);
+/* the battle track (font 0x21) of a wild enemy of the type (SPECIES_BATTLE_MUSIC, the record for ids >= 180) */
+int32_t getSpeciesBattleMusic(int32_t type);
 /* where the model and the texture of a type are: file name (or NULL for the
  * CHDAT\MMDn\NAME.MMD path), first sector and size */
 int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *size);
