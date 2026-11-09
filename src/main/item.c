@@ -2418,7 +2418,7 @@ void spawnDroppedItems(Entity *e, ItemId type) /* MOD: was u8 */
 		it->worldItem.spriteLocation.vz = loc->vz;
 		getModelTile(loc, (int16_t *)((char *)it + 0xc),
 		             (int16_t *)((char *)it + 0xe));
-		addObject(0x195, i, 0, renderDroppedItem);
+		addObject(OBJECT_ID_DROPPED_ITEM, i, 0, renderDroppedItem);
 	}
 }
 
@@ -2447,7 +2447,7 @@ void spawnItem(ItemId itemId, int16_t tileX, int16_t tileY) /* MOD: was u8 */
 				ENTITY_TABLE[0]->posData->location.vy;
 			DROPPED_ITEMS[i].worldItem.spriteLocation.vz =
 				(0x32 - tileY) * 100 - 0x32;
-			addObject(0x195, i, 0, renderDroppedItem);
+			addObject(OBJECT_ID_DROPPED_ITEM, i, 0, renderDroppedItem);
 			return;
 		}
 	}
@@ -2455,7 +2455,7 @@ void spawnItem(ItemId itemId, int16_t tileX, int16_t tileY) /* MOD: was u8 */
 
 void deleteDroppedItem(int16_t itemId)
 {
-	removeObject(0x195, itemId);
+	removeObject(OBJECT_ID_DROPPED_ITEM, itemId);
 	DROPPED_ITEMS[itemId].worldItem.type = ITEM_NONE;
 }
 
