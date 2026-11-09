@@ -17,6 +17,7 @@
 #include <dw/fade.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/map.h>
@@ -3730,7 +3731,6 @@ void newGameScene(void)
 
 extern VECTOR STORED_TAMER_POS;
 int32_t entityCheckCollision(Entity *source, Entity *entity, int32_t arg2, int32_t arg3);
-extern uint8_t PREVIOUS_SCREEN;
 extern uint8_t PREVIOUS_EXIT;
 extern int8_t TAMER_PREVIOUS_TILE_X;
 extern int8_t TAMER_PREVIOUS_TILE_Y;
@@ -3862,7 +3862,7 @@ void recalculatePPandArena(void)
 
 	pp = 0;
 	for (i = 3; i < 0x3b; i++) {
-		if ((DIGIMON_DATA[i].level >= 3) && (isTriggerSet((uint16_t)(0xc8 + i)) != 0)) {
+		if ((DIGIMON_DATA[i].level >= 3) && (isTriggerSet((uint16_t)(TRIGGER_RECRUITED_BASE + i)) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
 			} else {

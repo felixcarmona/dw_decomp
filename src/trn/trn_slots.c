@@ -4,6 +4,7 @@
 #include <libgs.h>
 
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/script.h>
 #include <dw/sound.h>
@@ -16,7 +17,6 @@
 extern uint32_t POLLED_INPUT;
 extern uint32_t POLLED_INPUT_PREVIOUS;
 extern GsOT *ACTIVE_ORDERING_TABLE;
-extern uint8_t CURRENT_SCREEN;
 extern int32_t DRAWING_OFFSET_X;
 extern int32_t DRAWING_OFFSET_Y;
 extern int8_t TRN_D_8008F1AC[3][13];

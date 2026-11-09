@@ -430,7 +430,7 @@ char *MAP_NAME_PTR[70] = {
 	STR_MAP_NAME_AMIDA_FOREST,
 };
 
-MapEntry MAP_ENTRIES[255] = {
+MapEntry MAP_ENTRIES[NUM_SCREENS] = {
 	{
 		"MAYO01",
 		0x03,
@@ -2908,7 +2908,7 @@ SVECTOR CONDITION_FX_OFFSETS[177] = {
 	{ 0x0000, 0x0000, 0x0000, 0x0000 },
 };
 
-int16_t ORIGINAL_DIGIMON_TYPES[180] = {
+int16_t ORIGINAL_DIGIMON_TYPES[NUM_DIGIMON] = {
 	0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 	0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 	0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
@@ -4060,7 +4060,7 @@ void initializeMap(void)
 		MAP_TILE_DATA.tiles[i].texU = MAP_TILE_DATA.tiles[i].texV = 0;
 	}
 
-	PREVIOUS_SCREEN = CURRENT_SCREEN = 0xcc;
+	PREVIOUS_SCREEN = CURRENT_SCREEN = SCREEN_LEGACY_NONE;
 	PREVIOUS_EXIT = CURRENT_EXIT = 9;
 	CAMERA_REACHED_TARGET = -1;
 	CAMERA_HAS_TARGET = 0;

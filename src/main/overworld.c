@@ -2,6 +2,7 @@
 
 #include <dw/anim.h>
 #include <dw/clock.h>
+#include <dw/ids.h>
 #include <dw/map.h>
 #include <dw/model.h>
 #include <dw/partner.h>
@@ -62,7 +63,6 @@ extern int8_t TALKED_TO_ENTITY;
 extern int32_t DRAWING_OFFSET_X;
 extern int32_t DRAWING_OFFSET_Y;
 extern uint8_t MAP_LAYER_ENABLED;
-extern uint8_t CURRENT_SCREEN;
 extern GsOT *ACTIVE_ORDERING_TABLE;
 extern int16_t CAMERA_X_PREVIOUS;
 extern int16_t CAMERA_Y_PREVIOUS;
