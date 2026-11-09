@@ -33,7 +33,7 @@ int32_t hasFoodItem(void)
 {
 	int32_t i;
 	for (i = 0; (uint32_t)i < 30u; i++) {
-		if (INVENTORY.types.array[i] != 0xFF) {
+		if (INVENTORY.types.array[i] != ITEM_NONE) {
 			if (ITEM_PARA[INVENTORY.types.array[i]].sortingValue == 2) {
 				return 1;
 			}

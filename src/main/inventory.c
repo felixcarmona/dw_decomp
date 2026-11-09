@@ -23,7 +23,7 @@ extern char *ITEM_DESCS[];
 
 void addGameMenu(void);
 void closeTriangleMenu(void);
-void startFeedingItem(uint8_t type);
+void startFeedingItem(ItemId type);
 void startThrowingItem(void);
 void getEntityScreenPos(Entity *e, int32_t mode, DVECTOR *out);
 void renderString(int32_t color, int32_t x, int32_t y, int32_t w, int32_t h,
@@ -32,7 +32,6 @@ void renderSelectionCursor(int32_t x, int32_t y, int16_t w, int16_t h, int32_t l
 void swapByte(uint8_t *a, uint8_t *b);
 void playSound(int32_t vabId, uint32_t note);
 void sortItems(int16_t mode);
-void sortItemsById(uint8_t *data, long count);
 void renderItemSprite(int32_t type, int32_t x, int32_t y, int32_t layer);
 void renderItemAmount(int32_t color, int32_t n, int32_t x, int32_t y,
                       int32_t value, int32_t layer);
@@ -68,7 +67,7 @@ void selectDropItem();
 void selectOptionMenu();
 void selectRegularInventory();
 
-void copyItemArray(uint8_t *src, uint8_t *dst, long n);
+void copyItemArray(ItemId *src, ItemId *dst, long n);
 void updateInventoryInputRepeatCounter();
 int32_t isInventoryButtonPressed(int32_t mask);
 void tickInventoryOptionSelector(uint8_t *cursor, int32_t unused, int16_t max);
@@ -167,14 +166,14 @@ void *inventory_text_order[] = {
 int32_t getItemOptionColor(int32_t mode)
 {
 	Item *item;
-	uint8_t type;
+	ItemId type; /* MOD: was u8 */
 
 	if ((mode == 1) || (mode == 2)) {
 		return 9;
 	}
 	type = INVENTORY.types.array[INVENTORY_POINTER];
 	if (mode == 0) {
-		if (type != 0xff) {
+		if (type != ITEM_NONE) {
 			item = &ITEM_PARA[type];
 			switch (GAME_STATE) {
 			case 0:
@@ -198,7 +197,7 @@ int32_t getItemOptionColor(int32_t mode)
 		if (GAME_STATE == 1) {
 			return 0xa;
 		}
-		if (type != 0xff) {
+		if (type != ITEM_NONE) {
 			item = &ITEM_PARA[type];
 			if (item->droppable == 1) {
 				return 9;
@@ -264,7 +263,7 @@ void drawInventoryTextLine(int16_t startSlot)
 	long i;
 
 	for (i = 0; i < 2; i++) {
-		if (INVENTORY.types.array[startSlot + i] != 0xff) {
+		if (INVENTORY.types.array[startSlot + i] != ITEM_NONE) {
 			INVENTORY.names.array[startSlot + i] = startSlot + i;
 			drawString(ITEM_NAME(INVENTORY.types.array[startSlot + i]),
 			           ((startSlot + i) & 1) * 0x60, ((startSlot + i) / 2) * 0xc);
@@ -524,7 +523,7 @@ void renderInventoryTop(int16_t boxId)
 	int32_t slot;
 	int32_t count;
 	int32_t row;
-	uint8_t type;
+	ItemId type; /* MOD: was u8 */
 	uint8_t color;
 	int16_t x;
 	int16_t y;
@@ -540,7 +539,7 @@ void renderInventoryTop(int16_t boxId)
 	}
 	for (i = 0; i < count; ++i, ++slot) {
 		type = INVENTORY.types.array[slot];
-		if (type != 0xff) {
+		if (type != ITEM_NONE) {
 			renderItemSprite(type, (i & 1) ? x + 0x9a : x + 0xa,
 			                 y + 8 + (i / 2) * 0x12, 6 - boxId);
 			if (ITEM_PARA[type].itemColor == 0xff) {
@@ -587,7 +586,7 @@ void renderInventoryTop(int16_t boxId)
 
 void renderInventoryBottom(int16_t boxId)
 {
-	if (INVENTORY.types.array[INVENTORY_POINTER] != 0xff) {
+	if (INVENTORY.types.array[INVENTORY_POINTER] != ITEM_NONE) {
 		if (INVENTORY_POINTER != ITEM_MOVE_TARGET) {
 			updateItemDescription();
 		}
@@ -796,15 +795,15 @@ void updateItemDescription(void)
 
 void moveItem(void)
 {
-	uint8_t *p;
-	uint8_t *src;
+	ItemId *p; /* MOD: was u8 */
+	ItemId *src;
 
 	p = &INVENTORY.types.array[INVENTORY_POINTER];
 	src = &INVENTORY.types.array[ITEM_MOVE_SOURCE];
-	swapByte(p, src);
+	swapItemId(p, src);
 	swapByte(&INVENTORY.amounts.array[INVENTORY_POINTER], &INVENTORY.amounts.array[ITEM_MOVE_SOURCE]);
 	swapByte(&INVENTORY.names.array[INVENTORY_POINTER], &INVENTORY.names.array[ITEM_MOVE_SOURCE]);
-	if (*p != 0xff) {
+	if (*p != ITEM_NONE) {
 		updateItemDescription();
 	}
 }
@@ -834,7 +833,7 @@ void selectOptionMenu(void)
 	    (INVENTORY_ACTION != 0xd) && (UI_BOX_DATA[3].state == 0)) {
 		switch (ITEM_MENU_SELECTED) {
 		case 0:
-			if (INVENTORY.types.array[INVENTORY_POINTER] != 0xff) {
+			if (INVENTORY.types.array[INVENTORY_POINTER] != ITEM_NONE) {
 				item = &ITEM_PARA[INVENTORY.types.array[INVENTORY_POINTER]];
 				switch (GAME_STATE) {
 				case 0:
@@ -862,7 +861,7 @@ void selectOptionMenu(void)
 			break;
 		case 3:
 			if (GAME_STATE == 0) {
-				if ((INVENTORY.types.array[INVENTORY_POINTER] != 0xff) && ITEM_PARA[INVENTORY.types.array[INVENTORY_POINTER]].droppable == 1) {
+				if ((INVENTORY.types.array[INVENTORY_POINTER] != ITEM_NONE) && ITEM_PARA[INVENTORY.types.array[INVENTORY_POINTER]].droppable == 1) {
 					INVENTORY_ACTION = 0xe;
 				}
 			}
@@ -897,20 +896,20 @@ void selectRegularInventory(void)
 void sortItems(int16_t mode)
 {
 	long counts[6];
-	uint8_t desired[30];
-	uint8_t categories[6][30];
+	ItemId desired[30]; /* MOD: was u8 */
+	ItemId categories[6][30];
 	int32_t i;
 	int32_t j;
 	uint8_t *order;
 
 	ITEM_MOVE_TARGET = 0xff;
 	for (i = 0; i < INVENTORY.size; i++) {
-		desired[i] = 0xff;
+		desired[i] = ITEM_NONE;
 	}
 	for (i = 0; i < 6; i++) {
 		counts[i] = 0;
 		for (j = 0; j < INVENTORY.size; j++) {
-			if (INVENTORY.types.array[j] != 0xff) {
+			if (INVENTORY.types.array[j] != ITEM_NONE) {
 				if (i == ITEM_PARA[INVENTORY.types.array[j]].sortingValue) {
 					categories[i][counts[i]] = INVENTORY.types.array[j];
 					counts[i]++;
@@ -927,7 +926,7 @@ void sortItems(int16_t mode)
 		order++;
 	}
 	for (i = 0; i < INVENTORY.size; i++) {
-		if (desired[i] == 0xff) {
+		if (desired[i] == ITEM_NONE) {
 			break;
 		}
 		if (INVENTORY.types.array[i] != desired[i]) {
@@ -936,14 +935,14 @@ void sortItems(int16_t mode)
 					break;
 				}
 			}
-			swapByte(&INVENTORY.types.array[i], &INVENTORY.types.array[j]);
+			swapItemId(&INVENTORY.types.array[i], &INVENTORY.types.array[j]);
 			swapByte(&INVENTORY.amounts.array[i], &INVENTORY.amounts.array[j]);
 			swapByte(&INVENTORY.names.array[i], &INVENTORY.names.array[j]);
 		}
 	}
 }
 
-void copyItemArray(uint8_t *src, uint8_t *dst, long n)
+void copyItemArray(ItemId *src, ItemId *dst, long n)
 {
 	int32_t i;
 
