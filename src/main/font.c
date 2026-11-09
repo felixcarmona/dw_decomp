@@ -1491,6 +1491,7 @@ void drawString(str, x, y)
 	}
 }
 #else
+int16_t MOD_STRING_END_X; /* MOD (long names): font.h */
 // clang-format off
 void drawString(str, x, y)
 	char *str;
@@ -1530,5 +1531,6 @@ void drawString(str, x, y)
 
 		x += drawGlyph(codepoint, x, y);
 	}
+	MOD_STRING_END_X = x;
 }
 #endif
