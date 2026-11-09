@@ -31,6 +31,11 @@
  *
  * MAP SIGNS. The signs painted in the map backgrounds in the language (the disc's copies of the .TFS files) or as the
  * disc has them (some still in Japanese).
+ *
+ * EXTENDED STORY. The story with the mods built onto the disc (new places, the city's new residents) or the original
+ * one: the files the mods change are read from their copies as the original story has them (modStoryFile); the script
+ * text is read again at once, the maps when they are next entered. A disc built without a story mod has no copies and
+ * no choice.
  */
 #include <dw/mod_options.h>
 #include <dw/species.h>
@@ -60,6 +65,8 @@ int32_t modSpeciesAllowed(int32_t type)
 int32_t MOD_OPT_TOUCHED = 0;
 int32_t MOD_LANG = MOD_LANG_BASE;
 int32_t MOD_OPT_SIGNS = 1;
+int32_t MOD_OPT_STORY = 1;
+int32_t MOD_STORY_ARRIVE = 0;
 
 /* the colour the text draws a button glyph in (the US disc's: × cyan, △ green, ○ orange); -1 = not a button */
 static int32_t buttonColor(uint16_t code)
@@ -304,6 +311,30 @@ char *modLangFile(char *name)
 	return name;
 }
 
+/*
+ * MOD (story): a file's copy as the original story has it, with EXTENDED STORY off: the same name with its first letter
+ * an underscore (_G.SCN for DG.SCN, _AYO03.MAP for MAYO03.MAP; tools/dws/variants.py names them), when the disc has it.
+ * A rule, not a table: a hundred copies would cost the executable's heap their rows and names. lookupFileTable looks
+ * the language's copy up first, and the copy of a language's copy follows the same rule (LE012.TFS, _E012.TFS): the
+ * original story in Spanish needs no language rows of its own.
+ */
+static char MOD_STORY_NAME[16];
+
+char *modStoryFile(char *name)
+{
+	if (MOD_OPT_STORY || name[0] == '\0' || strlen(name) >= sizeof(MOD_STORY_NAME)) {
+		return name;
+	}
+	strcpy(MOD_STORY_NAME, name);
+	MOD_STORY_NAME[0] = '_';
+	return modFileOnDisc(MOD_STORY_NAME) ? MOD_STORY_NAME : name;
+}
+
+int32_t modStoryChoice(void)
+{
+	return modFileOnDisc("_G.SCN");
+}
+
 /* MOD (language): the patch that turns the executable's strings into each language */
 static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN" };
 extern char MAIN_D_8012CE64[]; /* main.c: "\\ETCDAT\\FI_INFO.TIM" */
@@ -347,4 +378,15 @@ void modSetLanguage(int32_t lang)
 void modSetSigns(int32_t translated)
 {
 	MOD_OPT_SIGNS = translated != 0; /* the next map reads its background */
+}
+
+/* MOD (story): EXTENDED STORY on or off; the script text of that story is read again (the maps when entered) */
+void modSetStory(int32_t extended)
+{
+	extended = extended != 0;
+	if (extended == MOD_OPT_STORY || !modStoryChoice()) { /* a disc without the copies: no choice */
+		return;
+	}
+	MOD_OPT_STORY = extended;
+	modFontScriptsChanged();
 }
