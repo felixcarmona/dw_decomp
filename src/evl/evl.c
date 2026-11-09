@@ -300,6 +300,96 @@ void EVL_resetSparks(void)
 	}
 }
 
+/* MOD (evolution skip): START (MOD_EVO_SKIP, main evl.c) jumps from any frame before state 3 to the end of state 2:
+ * what the scene does on the way (fades, camera, shards, sparks, flashes, sounds) is left out or removed, what the
+ * evolution needs is kept: the camera saved for state 3 (state 0's end), the new model loaded, EVL_applyEvolution
+ * (once) and its sounds. State 3 then restores the camera, palettes, entities, map and music as always, and state 4
+ * waits for the new form's animation. */
+static void EVL_modSkipToEnd(EvoSequenceData *data)
+{
+	int32_t i;
+
+	if (data->state == 0) {
+		EVL_D_800688E8 = GS_VIEWPOINT;
+		MAIN_D_801351E4 = DRAWING_OFFSET_X;
+		MAIN_D_801351E8 = DRAWING_OFFSET_Y;
+		MAIN_D_801351EC = VIEWPORT_DISTANCE;
+		loadMMDAsync(data->digimonId, 3, MAIN_D_801349E4, &data->modelData, (uint8_t *)&data->hasFinishedLoading);
+	}
+	stopSound();
+	for (i = 0; i < 16; i++) {
+		if (EVL_D_80068F84[i].bone != -1) {
+			removeObject(0x605, i);
+			EVL_D_80068F84[i].bone = -1;
+		}
+	}
+	for (i = 0; i < 30; i++) {
+		if (MAIN_D_80135208[i].timer >= 0) {
+			removeObject(0x604, i);
+			MAIN_D_80135208[i].timer = -1;
+		}
+	}
+	EVL_releaseAllParticles();
+	PARTNER_WIREFRAME_TOTAL = 0x10;
+	for (i = 0; i < 0x28; i++) {
+		PARTNER_WIREFRAME_SUB[i] = 0x10;
+	}
+	if (data->state != 2 || data->timer <= 0x11c) { /* not applied yet */
+		while (data->hasFinishedLoading != 0) {
+			tickFileReadQueue(0);
+		}
+		EVL_applyEvolution(ENTITY_TABLE[1], &PARTNER_ENTITY.digimonEntity.stats, data->para, data->evoTarget);
+		waitForSoundBufferLoading(3);
+		data->partner = (PartnerEntity *)((uint32_t)&PARTNER_ENTITY);
+		startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
+	}
+	data->state = 3;
+	MOD_EVO_SKIP = 0;
+}
+
+/* the hint: "START" on a plate in the bottom right corner, in the digital clock's style (3x5 letters, each row 3
+ * bits, bit 2 the left column) */
+static const uint8_t EVL_START_GLYPHS[5][5] = {
+	{ 7, 4, 7, 1, 7 }, /* S */
+	{ 7, 2, 2, 2, 2 }, /* T */
+	{ 2, 5, 7, 5, 5 }, /* A */
+	{ 6, 5, 6, 5, 5 }, /* R */
+	{ 7, 2, 2, 2, 2 }, /* T */
+};
+
+static void EVL_addHintRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z)
+{
+	POLY_F4 *p;
+
+	p = (POLY_F4 *)GsGetWorkBase();
+	SetPolyF4(p);
+	setRGB0(p, r, g, b);
+	setXYWH(p, x, y, w, h);
+	AddPrim(ACTIVE_ORDERING_TABLE->org + z, p++);
+	GsSetWorkBase((PACKET *)p);
+}
+
+static void EVL_renderSkipHint(void)
+{
+	int32_t x = 0x80;
+	int32_t y = 0x60;
+	int32_t i;
+	int32_t row;
+	int32_t col;
+
+	EVL_addHintRect(x, y, 23, 9, 0x62, 0xB4, 0xF6, 6);
+	EVL_addHintRect(x + 1, y + 1, 21, 7, 0x18, 0x18, 0x18, 5);
+	for (i = 0; i < 5; i++) {
+		for (row = 0; row < 5; row++) {
+			for (col = 0; col < 3; col++) {
+				if (EVL_START_GLYPHS[i][row] & (4 >> col)) {
+					EVL_addHintRect(x + 2 + i * 4 + col, y + 2 + row, 1, 1, 0xF0, 0xF0, 0xF0, 4);
+				}
+			}
+		}
+	}
+}
+
 void EVL_tickEvoSequence(int32_t instanceId)
 {
 	int32_t i;
@@ -335,6 +425,14 @@ void EVL_tickEvoSequence(int32_t instanceId)
 	if ((partner->digimonEntity.entity.anim.animId == 0xc) &&
 	    (partner->digimonEntity.entity.anim.animFrame == partner->digimonEntity.entity.anim.frameCount)) {
 		startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 1);
+	}
+
+	if (MOD_EVO_SKIP == 1 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x800)) {
+		MOD_EVO_SKIP = 2; /* MOD (evolution skip) */
+	}
+	if (MOD_EVO_SKIP == 2 && data->state < 3) {
+		EVL_modSkipToEnd(data);
+		partner = data->partner;
 	}
 
 	switch (data->state) {
@@ -548,6 +646,9 @@ shards:
 
 void EVL_renderEvoSequence(void)
 {
+	if (MOD_EVO_SKIP == 1 && EVO_SEQUENCE_DATA.state < 3) {
+		EVL_renderSkipHint(); /* MOD (evolution skip) */
+	}
 }
 
 void EVL_fadeClutBank0(int16_t *srcClut, void *entity, int16_t *dstClut, int32_t startFrame, int32_t endFrame, int32_t frame)
