@@ -1301,7 +1301,8 @@ static int32_t BTL_modEfeSave(int32_t data, uint32_t **buf)
 	uint32_t *d = b;
 	int32_t k;
 
-	if (size <= 0 || (int32_t)b + size > 0x80052ae0) {
+	/* the heap is free up to the battle overlay (BTL_REL at 0x80052ae0) */
+	if (size <= 0 || (uint32_t)b + size > 0x80052ae0u) {
 		return 0; /* no room: not expected (MOD_FPS_EFE_NO_ROOM counts it) */
 	}
 	for (k = size >> 2; k > 0; k--) {
