@@ -72,10 +72,10 @@ extern GsCOORDINATE2Raw STD_ARENA_COORDS[];
 extern GsDOBJ2 STD_ARENA_OBJECTS[];
 extern int16_t STD_D_8007B9BC[];
 extern StdUnkB9D0 STD_D_8007B9D0;
-extern int32_t STD_D_8007B9EC[4];
+extern int32_t STD_D_8007B9EC[]; /* MOD: 22 entries with STD_D_8007B9FC (GCC build) */
 extern int32_t STD_D_8007B9FC[];
 extern int32_t STD_D_8007BA44[22];
-extern int32_t STD_D_8007BA9C[4];
+extern int32_t STD_D_8007BA9C[]; /* MOD: 22 entries with STD_D_8007BAAC (GCC build) */
 extern int32_t STD_D_8007BAAC[];
 extern StdUnkBAF4 STD_BRACKET_SLOTS[8];
 extern StdUnkBB64 STD_BRACKET_PROJECTILES[8];
