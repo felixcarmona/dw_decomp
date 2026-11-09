@@ -885,7 +885,8 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 		case 0x17:
 			str++;
 			CLEAR_FROM_PEN(x + pos, y, 0x69);
-			pos = 0x69;
+			/* Chinese card names can use 112 pixels before the numeric field. */
+			pos = MOD_LANG == MOD_LANG_ZH ? 0x70 : 0x69;
 			break;
 		case 0x1b:
 			str++;
