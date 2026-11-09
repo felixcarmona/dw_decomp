@@ -132,9 +132,17 @@ uint8_t BTL_DEATH_COUNTDOWN_DIGIT_V[4] = { 0xa8, 0x90, 0x90, 0x80 };
 
 MESSAGES_TEXT
 
+/* MOD (language): the gauge's segments are the letters of BI_IN.TIM's FINISH!!; the Spanish texture has REMATE! there
+ * (tools/localize/textures/misc build.py finish), its eighth segment empty */
+#if MOD_LANG_BUILD == MOD_LANG_ES
+uint8_t BTL_FINISHER_SEGMENT_U[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+uint8_t BTL_FINISHER_SEGMENT_W[8] = { 7, 6, 9, 7, 6, 6, 5, 0 };
+uint8_t BTL_FINISHER_SEGMENT_X[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+#else
 uint8_t BTL_FINISHER_SEGMENT_U[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
 uint8_t BTL_FINISHER_SEGMENT_W[8] = { 6, 4, 8, 4, 8, 8, 5, 5 };
 uint8_t BTL_FINISHER_SEGMENT_X[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
+#endif
 
 int16_t BTL_FINISHER_CHARGEUP_POS[2];
 int8_t BTL_COMMAND_MENU_ACTIVE;
