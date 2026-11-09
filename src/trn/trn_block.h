@@ -78,7 +78,7 @@ void renderStatusBars(int32_t state);
 void TB(renderCareHUD)(int32_t instanceId)
 {
 	int16_t saved;
-	if (MOD_OPT_BARS && !IS_GAMETIME_RUNNING) {
+	if (!IS_GAMETIME_RUNNING) {
 		saved = STATUS_UI_OFFSET_X;
 		STATUS_UI_OFFSET_X = 75;
 		renderStatusBars(1);
@@ -87,10 +87,10 @@ void TB(renderCareHUD)(int32_t instanceId)
 }
 
 /* The skip row puts every lower box beside the care HUD. Keep their right edge
-   at screen x=230, six pixels before the left icon column, only with B5a enabled. */
+   at screen x=230, six pixels before the left icon column. */
 static int32_t TB_box2X(void)
 {
-	return MOD_OPT_BARS ? -118 : -94;
+	return -118;
 }
 
 /* from the session's setup (TB(saveTrainingStartTime)), after it read the flag: the menu's x5 row is a normal session
@@ -99,8 +99,7 @@ void TB(modBlockArm)(void)
 {
 	if (!TB(MOD_QUIET)) {
 		/* Avoid a second, partially slid field copy on the first gym frames. */
-		if (MOD_OPT_BARS)
-			STATUS_UI_OFFSET_X = 240;
+		STATUS_UI_OFFSET_X = 240;
 		TB_x5 = TB_SLOT == 2;
 		if (TB_x5) {
 			TB_SLOT = 0;

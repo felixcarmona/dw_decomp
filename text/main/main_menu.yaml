@@ -359,9 +359,6 @@ MOD_OPTIONS:
     MOD_OPT_STR_ON:
       ja: "ON"
       en_us: "ON"
-    MOD_OPT_STR_BARS:
-      ja: "NEW STATUS BARS"
-      en_us: "NEW STATUS BARS"
     MOD_OPT_STR_EVO:
       ja: "EVOLUTION GUIDE"
       en_us: "EVOLUTION GUIDE"

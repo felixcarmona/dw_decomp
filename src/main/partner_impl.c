@@ -2450,42 +2450,7 @@ void renderStatusBars(state)
 	int8_t state;
 // clang-format on
 {
-	int32_t i, row, value, pass, count;
-	uint8_t texX, texY;
-
-	if (MOD_OPT_BARS) {
-		renderCareHUD();
-		return;
-	}
-	/* Share the original OFF rows without changing their GPU call order. */
-	for (row = 0; row < 2; row++)
-		renderRectPolyFT4(STATUS_UI_OFFSET_X, 85 + row * 12, 75, 8, 0, 236, 5, 0x7D06, 15, 0);
-	for (row = 0; row < 2; row++) {
-		if (row == 0) {
-			texX = PARTNER_PARA.happiness >= 0 ? 64 : 97;
-			if (PLAYTIME_FRAMES % 10 < 5) {
-				if (MAP_TILE_DATA.partnerAreaResponse == 2)
-					texX += 11;
-				else if (MAP_TILE_DATA.partnerAreaResponse == 1)
-					texX -= 11;
-			}
-		} else
-			texX = PARTNER_PARA.discipline >= 50 ? 22 : 33;
-		renderRectPolyFT4(STATUS_UI_OFFSET_X + 3, 83 + row * 12, 11, 11, texX, 244, 5, GetClut(96, row ? 498 : 503), 14, 0);
-	}
-
-	for (row = 0; row < 2; row++) {
-		value = row ? PARTNER_PARA.discipline * 2 - 100 : PARTNER_PARA.happiness;
-		texY = value >= 0 ? 153 : 151;
-		count = (value >= 0 ? value : value + 100) / 4;
-		for (pass = 0; pass < 2; pass++) {
-			value = pass ? count : (texY == 153 ? 25 : 0);
-			for (i = 0; i < value; i++)
-				renderRectPolyFT4(STATUS_UI_OFFSET_X + 18 + i * 2, 88 + row * 12,
-				                 pass ? 2 << row : 2, 2, 232, pass ? texY : 151,
-				                 5, GetClut(96, 503), 14 - pass, 0);
-		}
-	}
+	renderCareHUD();
 }
 
 void setImmortalHour(void)
