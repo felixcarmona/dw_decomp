@@ -4258,7 +4258,7 @@ extern int8_t MENU_SUB_STATE;
 extern SVECTOR MEDAL_ROTATION;
 extern int16_t MONOCHROMON_BUBBLE_TIMER;
 extern uint8_t TEXTBOX_OPEN_TIMER;
-extern int16_t STATS_GAINS[6];   /* renderPostBattleStatsBox counts them down */
+extern int16_t STATS_GAINS[6];   /* training overlays count them down while rendering */
 extern uint8_t FLEE_BUBBLE_DATA[8 * 12]; /* renderFleeBubble: frame++ */
 
 static ModRollbackVar MOD_ROLLBACK_VARS[] = {
