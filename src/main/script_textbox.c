@@ -711,7 +711,7 @@ void registerTextbox(boxId, row, rows, doubleBuffer, mode)
  */
 static int16_t drawString2Fit(uint8_t **str, int16_t x, int16_t y, int16_t pos, int32_t code)
 {
-	char run[24];
+	char run[64];
 	uint8_t *s;
 	int32_t n;
 
@@ -720,7 +720,7 @@ static int16_t drawString2Fit(uint8_t **str, int16_t x, int16_t y, int16_t pos, 
 		setTextColor(*s);
 	}
 	s++;
-	for (n = 0; *s >= 0x20 && n < 23; n++) {
+	for (n = 0; *s >= 0x20 && n < sizeof(run) - 1; n++) {
 		run[n] = *s++;
 	}
 	run[n] = '\0';

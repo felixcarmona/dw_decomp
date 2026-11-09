@@ -2859,10 +2859,15 @@ void calculateMusicMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	out = intToStringSJIS(out, type + 1, 2, 0);
 	*out++ = 0xf;
 	*out++ = 0;
+	/* Keep the number, gap and title inside the cursor, before the scrollbar. */
+	*out++ = textFitCode(BGM_TRACK_NAMES[type], 0xca - 4 - 22);
+	*out++ = type == readPStat(0xf9) ? 6 : 1;
 	strcpy(out, BGM_TRACK_NAMES[type]);
 	len = strlen(BGM_TRACK_NAMES[type]);
 	out += len;
-	out = padWithSpaces(out, 0xc, len);
+	/* Recycled rows must erase every old glyph, independent of encoding or font. */
+	*out++ = TEXT_COLUMN;
+	*out++ = 0xfc;
 	terminateString(out, isLast);
 }
 
