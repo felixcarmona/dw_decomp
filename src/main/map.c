@@ -4639,11 +4639,12 @@ static __attribute__((noinline)) int16_t modCamStep(int16_t want)
 
 extern int32_t IS_IN_MENU;
 
-/* fit only in the world and wild battles: menus (the Digivice view), the evolution
- * scene, VS and arenas draw the partner with their own cameras */
+/* Fit the world behind field menus too. The Digivice portrait uses
+ * renderDigiviceEntity directly, so it never passes through this cap.
+ * Evolution, VS and arenas retain their own cameras. */
 static int32_t modFitOff(void)
 {
-	return GAME_STATE > 1 || IS_IN_MENU != 0;
+	return GAME_STATE > 1;
 }
 
 /* the render scale of the partner (1/4096): its on-screen height (fitPxSeen: the spread of
