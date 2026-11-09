@@ -23,7 +23,8 @@ int32_t MOD_SMOOTH_FLOOR_ADJUSTS __attribute__((section(".bss.modSmoothStats")))
 
 static int32_t smoothSlot(int32_t s)
 {
-    return s==0 || s==2 || s==3 || s==4 || s==5 || s==18;
+    /* Slot1 is the poor-condition field idle, selected by setPartnerIdle. */
+    return s==0 || s==1 || s==2 || s==3 || s==4 || s==5 || s==18;
 }
 
 void modSmoothForget(int32_t instance)
