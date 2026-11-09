@@ -440,7 +440,7 @@ int32_t modStoryChoice(void)
 }
 
 /* MOD (language): the patch that turns the executable's strings into each language */
-static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN", "LANGFR.BIN", "LANGDE.BIN", "LANGIT.BIN", "LANGJA.BIN" };
+static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN", "LANGFR.BIN", "LANGDE.BIN", "LANGIT.BIN", "LANGJA.BIN", "LANGCA.BIN" };
 int32_t modLanguageAt(int32_t index)
 {
     int32_t lang;
