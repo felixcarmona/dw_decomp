@@ -21,10 +21,12 @@ int32_t MOD_SMOOTH_STARTS __attribute__((section(".bss.modSmoothStats")));
 int32_t MOD_SMOOTH_DRAWS __attribute__((section(".bss.modSmoothStats")));
 int32_t MOD_SMOOTH_FLOOR_ADJUSTS __attribute__((section(".bss.modSmoothStats")));
 
-static int32_t smoothSlot(int32_t s)
+static int32_t smoothSlot(Entity *e, int32_t s)
 {
     /* Slot1 is the poor-condition field idle, selected by setPartnerIdle. */
-    return s==0 || s==1 || s==2 || s==3 || s==4 || s==5 || s==18;
+    return s==0 || s==1 || s==2 || s==3 || s==4 || s==5 || s==18 ||
+        (e->type==191 && (s==6 || s==20 || s==26 || s==28 ||
+                         (s>=29 && s<=32)));
 }
 
 void modSmoothForget(int32_t instance)
@@ -94,7 +96,7 @@ void modSmoothBeforeStart(void *entity, int32_t destination)
     for(i=0;i<ENTITY_MAX;i++) if(ENTITY_TABLE[i]==e) break;
     if(i==ENTITY_MAX) return;
     s=smoothStates[i];
-    if(!smoothEligible(e) || !smoothSlot(destination) || !smoothSlot(e->anim.animId)) {
+    if(!smoothEligible(e) || !smoothSlot(e, destination) || !smoothSlot(e, e->anim.animId)) {
         modSmoothForget(i); return;
     }
     /* Repeating a start in its first frame is not another motion transition. */
@@ -138,7 +140,7 @@ static int32_t modSmoothDrawBegin(int32_t instance)
     int32_t b,n,w,elapsed,targetFloor,actualFloor,expectedFloor;
     SmoothPose target,result;
     if(!s) return 0;
-    if(!smoothEligible(e) || !smoothIdentity(s,e) || !smoothSlot(e->anim.animId)) {
+    if(!smoothEligible(e) || !smoothIdentity(s,e) || !smoothSlot(e, e->anim.animId)) {
         modSmoothForget(instance); return 0;
     }
     elapsed=(MOD_FPS_TICKS-s->start)*4096+MOD_RENDER_ALPHA;
