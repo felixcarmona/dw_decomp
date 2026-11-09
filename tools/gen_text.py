@@ -17,6 +17,12 @@ from pathlib import Path
 import yaml
 
 __BANK = {'font': {}, 'text': {}}
+# MOD (language): $TEXT_BANK_PAD, the bank of the other language of a two-language build (docs/mods/language.md). Each
+# string is padded to the longer of its two texts and two strings share one array only when both their texts are equal
+# in both languages, and the literals become arrays: the two builds then lay out every symbol at the same address and
+# differ only in the bytes of the strings, so the game switches language by writing the other build's bytes over them.
+__PAD = None
+__PAD_ON = False
 
 __LANGUAGES = {
     'jp': 'ja',
@@ -58,7 +64,20 @@ def __fail(where, message):
     sys.exit('{}: {}'.format(where, message))
 
 
-def __c_string(text, where):
+def __c_bytes(text, where):
+    n = 0
+    for c in text:
+        if c in __BANK['font']:
+            n += 2
+            continue
+        try:
+            n += len(c.encode('cp932'))
+        except UnicodeEncodeError:
+            __fail(where, 'no Shift-JIS character for {!r} (and no glyph of the mod font)'.format(c))
+    return n
+
+
+def __c_string(text, where, pad_to=0):
     out = ''
     for c in text:
         if c in __BANK['font']:
@@ -77,6 +96,7 @@ def __c_string(text, where):
             out += c
         else:
             out += ''.join('\\{:03o}'.format(x) for x in b)
+    out += '\\000' * max(0, pad_to - __c_bytes(text, where))
     return '"' + out + '"'
 
 
@@ -121,6 +141,36 @@ def __banked(key, value):
     return value
 
 
+def __banked_pad(key, value):
+    if __PAD_ON and key is not None and value is not None and key in __PAD['text']:
+        return __PAD['text'][key]
+    return value
+
+
+def __other_string(entry, release, where, key=None):
+    """the other language's text of a string (a two-language build), else the string's own"""
+    value = __banked_pad(key, __text(entry, release, where)) if __PAD_ON else __banked(key, __text(entry, release, where))
+    return value if not isinstance(value, list) else None
+
+
+def __other_lines(entry, release, count, where, key=None):
+    value = __banked_pad(key, __text(entry, release, where)) if __PAD_ON else __banked(key, __text(entry, release, where))
+    if not isinstance(value, list):
+        value = [value]
+    return (value + [''] * count)[:count]
+
+
+def __padded(text, other, where):
+    """the C literal of text, padded with NULs to the length of the other language's text"""
+    if not __PAD_ON or other is None:
+        return __c_string(text, where)
+    return __c_string(text, where, __c_bytes(other, where))
+
+
+def __pair(text, other):
+    return (text, other if __PAD_ON else None)
+
+
 def __string(entry, release, where, key=None):
     value = __banked(key, __text(entry, release, where))
     if isinstance(value, list):
@@ -148,14 +198,20 @@ def __generate(release, blocks, source):
         text = __string(entry, release, where, key)
         if text is None:
             return []
+        other = __other_string(entry, release, where, key)
+        literal = __padded(text, other, where)
         if as_macro:
-            header.append('#define {} {}'.format(symbol, __c_string(text, where)))
+            # MOD (language): still a literal (the C may initialise an array with it), with one NUL more than the longer
+            # text, so the compiler never merges it with an equal literal (both languages keep the same layout)
+            if __PAD_ON:
+                literal = __c_string(text, where, max(__c_bytes(text, where), __c_bytes(other or '', where)) + 1)
+            header.append('#define {} {}'.format(symbol, literal))
             return []
-        literal = __c_string(text, where)
-        if literal in named:
-            header.append('#define {} {}'.format(symbol, named[literal]))
+        pair = __pair(literal, other)
+        if pair in named:
+            header.append('#define {} {}'.format(symbol, named[pair]))
             return []
-        named[literal] = symbol
+        named[pair] = symbol
         return ['char {}[] = {};'.format(symbol, literal)]
 
     for block, body in blocks.items():
@@ -223,30 +279,38 @@ def __generate(release, blocks, source):
 
             named_here = release in entry.get('named', ())
             refs = []
-            for line in __lines(entry, release, count, where, key):
+            others = __other_lines(entry, release, count, where, key)
+            for n, line in enumerate(__lines(entry, release, count, where, key)):
                 if line is None:
                     refs.append('NULL')
                     continue
-                literal = __c_string(line, where)
+                literal = __padded(line, others[n], where)
+                pair = __pair(literal, others[n])
                 if storage == 'literal' and line == '' and body.get('empty'):
                     symbol = body['empty']
-                elif storage == 'literal' and not named_here:
+                elif storage == 'literal' and not named_here and not __PAD_ON:
                     refs.append(literal)
                     continue
-                elif literal in named:
-                    refs.append(named[literal])
+                elif pair in named:
+                    refs.append(named[pair])
                     continue
-                elif not name and key in __BANK['text']:
+                elif storage == 'literal' and not named_here:   # MOD (language): the literal as an array of its own
+                    symbol = '{}_LANG_{}_{}'.format(block, index, n)
+                    named[pair] = symbol
+                    header.append('static char {}[] = {};'.format(symbol, literal))
+                    refs.append(symbol)
+                    continue
+                elif not name and (key in __BANK['text'] or (__PAD_ON and key in __PAD['text'])):
                     symbol = '{}_BANK_{}'.format(block, index)      # a banked text no other entry has
                 elif not name:
                     __fail(where,
                            'a new {} text needs a name'.format(release))
                 else:
                     symbol = name
-                if literal not in named:
-                    named[literal] = symbol
+                if pair not in named:
+                    named[pair] = symbol
                     strings.append('char {}[] = {};'.format(symbol, literal))
-                refs.append(named[literal])
+                refs.append(named[pair])
             table.append(refs)
 
         lines = []
@@ -284,6 +348,12 @@ def __main():
     if os.path.exists(bank):
         with open(bank, encoding='utf-8') as f:
             __BANK.update(json.load(f))
+    pad = os.environ.get('TEXT_BANK_PAD')
+    if pad:
+        global __PAD, __PAD_ON
+        with open(pad, encoding='utf-8') as f:
+            __PAD = json.load(f)
+        __PAD_ON = True
 
     with open(args.yaml, encoding='utf-8') as f:
         blocks = yaml.load(f, Loader=yaml.BaseLoader)

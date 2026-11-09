@@ -1,0 +1,26 @@
+# MOD (feed menu; language): the feed list's own text, ours (not the game's), keyed so a text source can translate it
+# (keys main.FEED_STR_*). `storage: define`: each is a literal where src/main/mod_feed.c uses it.
+MOD_FEED:
+  storage: define
+  strings:
+    FEED_STR_SCOLD_NAME:
+      ja: "Scold"
+      en_us: "Scold"
+    FEED_STR_SCOLD_DESC:
+      ja: "It misbehaved: teach it."
+      en_us: "It misbehaved: teach it."
+    FEED_STR_SLEEP_NAME:
+      ja: "Sleep"
+      en_us: "Sleep"
+    FEED_STR_SLEEP_DESC:
+      ja: "Put it to bed until morning."
+      en_us: "Put it to bed until morning."
+    FEED_STR_NOTE_FAVOURITE:
+      ja: "Its favourite food!"
+      en_us: "Its favourite food!"
+    FEED_STR_NOTE_MAY_NOT_CURE_SICK:
+      ja: "It may not cure its sickness."
+      en_us: "It may not cure its sickness."
+    FEED_STR_NOTE_MAY_NOT_CURE_WOUND:
+      ja: "It may not cure its wound."
+      en_us: "It may not cure its wound."
