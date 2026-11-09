@@ -114,7 +114,7 @@ void modTamerLevelEvent(int32_t slot, int32_t amount);
  * A period or a threshold left out (-1) switches its rule off; an amount left out counts as 0. Periods are logic frames: 20 = one game minute,
  * 1200 = one game hour. The direction of each amount (a loss, a gain) is its name and stays in the code.
  */
-#define MOD_CARE_SIZE		137
+#define MOD_CARE_SIZE		143
 #define MOD_CARE_SLEEP_TIRED_PERIOD	0
 #define MOD_CARE_SLEEP_TIRED_PERCENT	1
 #define MOD_CARE_SLEEP_SLEEPY_AT	2
@@ -252,7 +252,43 @@ void modTamerLevelEvent(int32_t slot, int32_t amount);
 #define MOD_CARE_FLED_TIRED	134
 #define MOD_CARE_WON_HAPPY	135
 #define MOD_CARE_BATTLE_TIME	136
+#define MOD_CARE_FOOD_FAV_PERCENT	137
+#define MOD_CARE_FOOD_FAV_HAPPY	138
+#define MOD_CARE_FOOD_BOOST_UNIT	139
+#define MOD_CARE_FOOD_SICK_DIE	140
+#define MOD_CARE_MEDICINE_INJURY_DIE	141
+#define MOD_CARE_MEDICINE_SICK_DIE	142
 extern int16_t MOD_CARE[MOD_CARE_SIZE];
+/*
+ * MOD (item effects as data): what an item does when it is used, MOD_ITEM_FX[row][field]: field 0 the item id (-1 = the row is unused), then the fields below
+ * (a field left out of the item's "effect" block is 0). Written by tools/balance.py from content/items/*.json. itemFx answers the row of an item or NULL (no effect).
+ */
+#define MOD_ITEM_FX_ROWS	64
+#define MOD_FX_WIDTH		22
+#define MOD_FX_ENERGY	1
+#define MOD_FX_HAPPINESS	2
+#define MOD_FX_WEIGHT	3
+#define MOD_FX_TIREDNESS	4
+#define MOD_FX_DISCIPLINE	5
+#define MOD_FX_LIFETIME	6
+#define MOD_FX_ADD_HP	7
+#define MOD_FX_ADD_MP	8
+#define MOD_FX_HEAL_HP	9
+#define MOD_FX_HEAL_MP	10
+#define MOD_FX_ADD_OFF	11
+#define MOD_FX_ADD_DEF	12
+#define MOD_FX_ADD_SPEED	13
+#define MOD_FX_ADD_BRAIN	14
+#define MOD_FX_BOOST_FLAG	15
+#define MOD_FX_BOOST_VALUE	16
+#define MOD_FX_BOOST_HOURS	17
+#define MOD_FX_SICK_CHANCE	18
+#define MOD_FX_HEAL_HP_DIV	19
+#define MOD_FX_CURE_INJURY	20
+#define MOD_FX_CURE_SICK	21
+extern int16_t MOD_ITEM_FX[MOD_ITEM_FX_ROWS][MOD_FX_WIDTH];
+const int16_t *itemFx(int32_t itemId);
+#define MOD_FX(row, field)	((row) ? (row)[field] : 0)
 /* the value of a care rule for the partner's species (its own override or the global one), whether it exists (>= 0), and as an amount (a missing one is 0) */
 int32_t careGet(int32_t slot);
 int32_t careHas(int32_t slot);
