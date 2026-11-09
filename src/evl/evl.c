@@ -60,6 +60,7 @@ extern u_long EVL_D_80065398[];
 extern u_long EVL_D_8006569C[];
 extern char EVL_D_80065FA0[];
 extern char EVL_D_80066274[];
+#define EVL_SHARD_SCRATCH_SIZE 5436 /* MOD (integration): sizeof EVL_D_80066274 (evl_bss_us.c) */
 extern EfeFlashBuffer EVL_D_800677B0;
 extern int16_t EVL_D_80067994[40];
 extern GsRVIEW2 GS_VIEWPOINT;
@@ -999,6 +1000,19 @@ int32_t EVL_buildShardSet(Entity *entity, int32_t objIndex, int32_t bone)
 		}
 	}
 	if (slot == 30) {
+		return -1;
+	}
+	/*
+	 * MOD (integration): the shard sets of every bone are written one after
+	 * the other into one scratch array (EVL_D_80066274, 5436 bytes) that the
+	 * original partners never fill. A partner with a big mesh evolving away
+	 * (Machinedramon's boss model, the imported species) ran past it into
+	 * the bone order, particles and sparks, and a shard world object was
+	 * left with its tick in the unloaded overlay (crash at the next battle).
+	 * A bone whose shards do not fit gets none (its wireframe still fades).
+	 */
+	if (out + (int32_t)(obj->vern + obj->primn) * (int32_t)sizeof(EvlModelVertex) >
+	    (int32_t)EVL_D_80066274 + EVL_SHARD_SCRATCH_SIZE) {
 		return -1;
 	}
 
