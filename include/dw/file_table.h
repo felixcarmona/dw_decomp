@@ -29,6 +29,8 @@ static inline uint32_t fileEntrySize(const FileEntry *entry)
 extern FileEntry FILE_OFFSET_TABLE[];
 /* MOD (file table): 1 when the entry is the file `name` */
 int32_t fileEntryIs(FileEntry *entry, char *name);
+uint32_t fileNameHash(char *name);
+FileEntry *findFileEntry(char *name);
 extern const int16_t FILE_TABLE_NEW_FIRST; /* MOD (language): the first of the new files (NEW_FILES) */
 
 #endif
