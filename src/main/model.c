@@ -2897,6 +2897,8 @@ static void modFlagBones(PositionData *pos, int32_t boneCount)
 	}
 }
 
+#include "smooth_runtime.inc"
+
 void renderDigimon(instanceId)
 	int16_t instanceId;
 {
@@ -2906,6 +2908,7 @@ void renderDigimon(instanceId)
 	int32_t boneCount;
 	int32_t i;
 	int32_t fit;
+	int32_t smoothCount;
 	MATRIX rootSave;
 	int32_t y0 = 0x7fff;
 	int32_t y1 = -0x7fff;
@@ -2920,6 +2923,7 @@ void renderDigimon(instanceId)
 	}
 	pos = ENTITY_TABLE[instanceId]->posData;
 	boneCount = DIGI_PARA(ENTITY_TABLE[instanceId]->type).boneCount;
+	smoothCount = modSmoothDrawBegin(instanceId);
 	/* MOD (camera): a big partner drawn smaller on a screen it does not fit (map.c) */
 	fit = instanceId == 1 ? modPartnerFitScale() : 0x1000;
 	if (fit != 0x1000) {
@@ -2981,6 +2985,7 @@ void renderDigimon(instanceId)
 		pos->posMatrix.coord = rootSave;
 		modFlagBones(pos, boneCount);
 	}
+	modSmoothDrawEnd(instanceId, smoothCount);
 	if (ENTITY_TABLE[instanceId]->flatSprite != -1) {
 		renderFlatDigimon(ENTITY_TABLE[instanceId]);
 	}
@@ -2998,6 +3003,7 @@ void removeEntity(int32_t objectId, int32_t entityId)
 {
 	Entity *entity;
 
+	modSmoothForget(entityId);
 	removeObject((int16_t)objectId, (int16_t)entityId);
 	if ((entityId != 1) && (entityId != 0)) {
 		entity = ENTITY_TABLE[entityId];
