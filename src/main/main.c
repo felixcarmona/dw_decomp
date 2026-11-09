@@ -3882,8 +3882,6 @@ extern int8_t TAMER_PREVIOUS_TILE_X;
 extern int8_t TAMER_PREVIOUS_TILE_Y;
 extern int8_t TAMER_WAYPOINT_CURRENT;
 extern int8_t TAMER_WAYPOINT_ACTIVE;
-extern int32_t CAMERA_UPDATE_TILES;
-void createCameraMovement(VECTOR *target, int32_t instanceId);
 void setImmortalHour(void);
 extern int8_t PREV_TILE_X;
 extern int8_t PREV_TILE_Y;
@@ -3978,8 +3976,9 @@ void initializeLoadedMap(void)
 	TAMER_START_TILE_X = SAVED_STATE.tamerStartTileX;
 	TAMER_START_TILE_Y = SAVED_STATE.tamerStartTileY;
 	TAMER_WAYPOINT_ACTIVE = SAVED_STATE.tamerWaypointActive;
-	CAMERA_UPDATE_TILES = 1;
-	createCameraMovement(&TAMER_ENTITY.entity.posData->location, 2);
+	/* Position and upload the final saved view below before field control.
+	 * A second, queued pan keeps aiming at this snapshot while the tamer
+	 * walks; asynchronous camera bands can then leave him outside the view. */
 	setImmortalHour();
 	initializeDrawingOffsets(MAP_TILE_DATA.tiles);
 
