@@ -2895,7 +2895,7 @@ void handleItemSickness(int16_t chance)
 #if !VERSION_IS(US)
 	int32_t halfLen;
 #else
-	char buf[0x18];
+	int32_t nameWidth;
 #endif
 
 	r = randomLimit(careDie(MOD_CARE_FOOD_SICK_DIE));
@@ -2917,9 +2917,9 @@ void handleItemSickness(int16_t chance)
 		setTextColor(1);
 		drawString(STR_IS_SICK, halfLen * 12, 0x78);
 #else
-		sprintf(buf, NAME_FORMAT, PARTNER_ENTITY.name);
-		strcat(buf, STR_IS_SICK);
-		drawString(buf, 0, 0x78);
+		/* Draw translated text without appending it to a fixed-size name buffer. */
+		nameWidth = drawStringMode(PARTNER_ENTITY.name, 0, 0x78, FIT_VANILLA);
+		drawString(STR_IS_SICK, nameWidth, 0x78);
 #endif
 	}
 }
