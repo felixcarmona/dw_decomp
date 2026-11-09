@@ -227,7 +227,10 @@ int16_t instanceId;
 				r = TRN_getSlotSessionResult();
 			}
 			if (((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
-				TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+				TRN_modBlockBegin(); /* MOD (training block) */
+				do {
+					TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+				} while (TRN_modBlockNext());
 				startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 				playSound(8, 0xa);
 				thunkStopSoundMask(MAIN_D_80135384);

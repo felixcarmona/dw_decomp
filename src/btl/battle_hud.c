@@ -13,6 +13,7 @@
 #include <dw/font.h>
 #include <dw/input.h>
 #include <dw/mod_present.h>
+#include <dw/mod_qol.h>
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/model.h>
@@ -1408,76 +1409,25 @@ void BTL_removePartnerStatusBars(void)
 
 /* MOD (battle speed): R2 switches the fight between x1 and x2 (MOD_BATTLE_FAST, main.c). The fight is held at x1
  * while the item menu is open or an item is in hand, and while the defeat countdown runs (its seconds stay real).
- * A plate in the bottom right corner, in the digital clock's style, shows "R2 x1" (white) or "R2 x2" (yellow; grey
- * while held). Each row of a glyph is 3 bits, bit 2 the left column. */
+ * A plate in the bottom right corner (modPlate, mod_qol.c) shows "R2 x1" (white) or "R2 x2" (yellow; grey while
+ * held). */
 extern int32_t IS_INVENTORY_INITIALIZED;
 extern int16_t DEATH_COUNTDOWN;
-
-static const uint8_t BTL_SPEED_GLYPHS[4][5] = {
-	{ 6, 5, 6, 5, 5 }, /* R */
-	{ 7, 1, 7, 4, 7 }, /* 2 */
-	{ 0, 0, 5, 2, 5 }, /* x */
-	{ 2, 6, 2, 2, 7 }, /* 1 */
-};
 
 static int32_t BTL_modSpeedHeld(void)
 {
 	return IS_INVENTORY_INITIALIZED == 1 || TAMER_ITEM.worldItem.type != ITEM_NONE || DEATH_COUNTDOWN != 0;
 }
 
-static void BTL_addSpeedRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z)
-{
-	POLY_F4 *p;
-
-	p = (POLY_F4 *)GsGetWorkBase();
-	SetPolyF4(p);
-	setRGB0(p, r, g, b);
-	setXYWH(p, x, y, w, h);
-	AddPrim(ACTIVE_ORDERING_TABLE->org + z, p++);
-	GsSetWorkBase((PACKET *)p);
-}
-
-static void BTL_addSpeedGlyph(int32_t x, int32_t y, int32_t glyph, int32_t r, int32_t g, int32_t b)
-{
-	int32_t row;
-	int32_t col;
-	int32_t bits;
-
-	for (row = 0; row < 5; row++) {
-		bits = BTL_SPEED_GLYPHS[glyph][row];
-		for (col = 0; col < 3; col++) {
-			if (bits & (4 >> col)) {
-				BTL_addSpeedRect(x + col, y + row, 1, 1, r, g, b, 4);
-			}
-		}
-	}
-}
-
-/* the plate is 23 x 9 pixels; a later prim at the same depth is drawn under an earlier one, so edge, inside and
- * letters go 6, 5, 4 */
 void BTL_renderSpeedPlate(void)
 {
-	int32_t x = 0x80;
-	int32_t y = 0x60;
-	int32_t r = 0xF0;
-	int32_t g = 0xF0;
-	int32_t b = 0xF0;
-
-	if (MOD_BATTLE_FAST) {
-		if (BTL_modSpeedHeld()) {
-			r = g = b = 0x80;
-		} else {
-			r = 0xF8;
-			g = 0xD8;
-			b = 0x30;
-		}
+	if (!MOD_BATTLE_FAST) {
+		modPlate(0x80, 0x60, "R2 x1", 3, 0xF0, 0xF0, 0xF0);
+	} else if (BTL_modSpeedHeld()) {
+		modPlate(0x80, 0x60, "R2 x2", 3, 0x80, 0x80, 0x80);
+	} else {
+		modPlate(0x80, 0x60, "R2 x2", 3, 0xF8, 0xD8, 0x30);
 	}
-	BTL_addSpeedRect(x, y, 23, 9, 0x62, 0xB4, 0xF6, 6);
-	BTL_addSpeedRect(x + 1, y + 1, 21, 7, 0x18, 0x18, 0x18, 5);
-	BTL_addSpeedGlyph(x + 3, y + 2, 0, 0xF0, 0xF0, 0xF0);
-	BTL_addSpeedGlyph(x + 7, y + 2, 1, 0xF0, 0xF0, 0xF0);
-	BTL_addSpeedGlyph(x + 13, y + 2, 2, r, g, b);
-	BTL_addSpeedGlyph(x + 17, y + 2, MOD_BATTLE_FAST ? 1 : 3, r, g, b);
 }
 
 /* before each tick of the battle's loops: whether it may run fast */

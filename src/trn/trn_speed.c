@@ -102,7 +102,10 @@ void TRN_tickSpeedTraining(int32_t instanceId)
 			r = TRN_getSlotSessionResult();
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
-			TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			} while (TRN_modBlockNext());
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			playSound(8, 0xa);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);

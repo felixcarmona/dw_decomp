@@ -86,7 +86,10 @@ void TRN2_tickDefenseTrainingMap108(int32_t instanceId)
 		if (((MAIN_D_801353C2 >= TRN_SESSION_OF(MOD_TRAIN2_RULES)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (r >= 0))) {
 			setMapObjectsFlag(MAIN_D_801353B8, MAIN_D_801353BA, 0);
 			setMapObjectsFlag(MAIN_D_801353BE, MAIN_D_801353C0, 1);
-			TRN2_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			TRN2_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN2_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			} while (TRN2_modBlockNext());
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			playSound(8, 0xa);

@@ -1,0 +1,25 @@
+# MOD (training block): the texts of src/trn/trn_block.h for the TRN2 overlay (a copy of text/trn/trn_reward.yaml's TRN_BLOCK_*)
+TRN_BLOCK_DONE:
+  ja: 5回中0回 トレーニングした
+  en_us: Trained 0 of 5 sessions.
+TRN_BLOCK_HUNGRY:
+  ja: おなかが すいている
+  en_us: It is hungry.
+TRN_BLOCK_TOILET:
+  ja: トイレに 行きたがっている
+  en_us: It needs the toilet.
+TRN_BLOCK_SLEEPY:
+  ja: ねむそうだ
+  en_us: It is sleepy.
+TRN_BLOCK_TIRED:
+  ja: つかれている
+  en_us: It is tired.
+TRN_BLOCK_UNWELL:
+  ja: ぐあいが わるい
+  en_us: It is not well.
+TRN_BLOCK_EVOLVE:
+  ja: 進化しそうだ！
+  en_us: It is about to digivolve!
+TRN_BLOCK_LIFE:
+  ja: 寿命が つきかけている
+  en_us: Its life is ending.

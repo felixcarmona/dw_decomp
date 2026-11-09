@@ -110,6 +110,13 @@ static int32_t TRN_amt(int32_t slot)
 	return MOD_TRAIN_RULES[slot] > 0 ? MOD_TRAIN_RULES[slot] : 0;
 }
 
+/* MOD (training block) */
+#define TB(name) TRN_##name
+#define TB_SLOT MAIN_D_80135370
+#define TB_RULES MOD_TRAIN_RULES
+#define TB_START_MIN (TRN_CURRENT_HOUR * 60 + TRN_CURRENT_MINUTE)
+#include "trn_block.h"
+
 uint8_t TRN_D_8008F14C[56] = {
 	0x2, 0x5, 0x0, 0x4, 0x3, 0x1, 0x6, 0x7,
 	0x2b, 0x2c, 0x2a, 0x2e, 0x2d, 0x29, 0x28, 0x2f,
@@ -139,6 +146,7 @@ void TRN_saveTrainingStartTime(void)
 	TRN_CURRENT_FRAME = CURRENT_FRAME;
 	TRN_CURRENT_HOUR = HOUR;
 	TRN_CURRENT_MINUTE = MINUTE;
+	TRN_modBlockArm(); /* MOD (training block) */
 }
 
 void TRN_startSlotSessionIfEnabled(int16_t arg)
