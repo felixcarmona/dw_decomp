@@ -1396,7 +1396,7 @@ int32_t isPartnerBaby(void)
 {
 	BabyTypeTable babyTypes;
 	int32_t i;
-	uint8_t partnerType;
+	DigimonId partnerType; /* MOD: was u8 */
 
 	babyTypes = BABY_IDS;
 	partnerType = PARTNER_ENTITY.digimonEntity.entity.type;
