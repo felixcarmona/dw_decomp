@@ -2655,8 +2655,10 @@ void BTL_battleTickFrame(void)
 {
 	/* MOD (fps): rendered by the shared tick / present helper (main.c);
 	 * the tick started with the AI in BTL_battleMain */
+	BTL_modSpeedBeforeTick(); /* MOD (battle speed) */
 	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
+	BTL_modSpeedInput();
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
