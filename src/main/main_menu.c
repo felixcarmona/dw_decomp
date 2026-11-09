@@ -276,13 +276,14 @@ static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen i
 #define MOD_OPT_ROW_STORY	3 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
 #define MOD_OPT_ROW_DIFF	4 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
 #define MOD_OPT_ROW_QUICK	5 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
+#define MOD_OPT_ROW_FPS 6
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	10 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	6
-#define MOD_OPT_ROW_LANG	7
+#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	7
+#define MOD_OPT_ROW_LANG	8
 #else
-#define MOD_OPT_ROWS	9
-#define MOD_OPT_ROW_LANG	6
+#define MOD_OPT_ROWS	10
+#define MOD_OPT_ROW_LANG	7
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4751,7 +4752,7 @@ static void modOptionBytes(uint8_t *d)
 {
 	d[0] = MOD_OPT_BUTTONS;
 	d[1] = 1; /* Reserved digital-clock byte. */
-	d[2] = 20; /* Reserved frame-rate byte; safe for older readers. */
+	d[2] = 0xA0 + MOD_OPT_FPS; /* Distinguish new choices from every legacy save. */
 	d[3] = 1; /* Reserved care-HUD byte: always enabled, including for older readers. */
 #if FONT_SWITCH
 	d[4] = MOD_FONT == MOD_FONT_NEW ? 1 : MOD_FONT == MOD_FONT_CLASSIC ? 2 : 0; /* FONT */
@@ -4780,7 +4781,9 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 1) {
 		modSetButtons(d[0]);
 	}
-	/* Bytes 1, 2, 3 and 13 are reserved; legacy display choices are ignored. */
+	/* All old frame-rate bytes (including v0.0.7's 20) default to AUTO. */
+    modSetFrameRate(len >= 3 && d[2] >= 0xA0 && d[2] <= 0xA2 ? d[2] - 0xA0 : MOD_FPS_AUTO);
+    /* Bytes 1, 3 and 13 remain reserved. */
 #if FONT_SWITCH
 	if (len >= 5) {
 		modSetFont(d[4] == 0 ? MOD_FONT_ORIGINAL : d[4] == 2 ? MOD_FONT_CLASSIC : MOD_FONT_NEW);
@@ -5005,7 +5008,7 @@ void modNoticeProbe(void)
 {
 	modCpuProbe();
 #if FPS != 20
-	MOD_FPS_MODE_RUN = MOD_CPU_SPINS >= MOD_CPU_SPINS_FAST ? 2 : 0;
+	modSetFrameRate(MOD_OPT_FPS);
 #endif
 	MOD_NOTICE = (modProbeRam() ? 0 : MOD_NOTICE_NO_RAM) | (MOD_CPU_SPINS < MOD_CPU_SPINS_FAST ? MOD_NOTICE_SLOW_CPU : 0);
 }
@@ -6062,15 +6065,16 @@ void renderInitialMenu(void)
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
-static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
+static char *MOD_OPT_TEXT[MOD_OPT_ROWS][4] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
-	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL }, /* MOD (difficulty) */
+	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL, MOD_OPT_STR_HARD }, /* MOD (difficulty) */
 	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
+    { MOD_OPT_STR_FPS, MOD_OPT_STR_AUTO, MOD_OPT_STR_60, MOD_OPT_STR_20 },
 #if FONT_SWITCH
-	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC },
+	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
 #endif
 	{ MOD_OPT_STR_LANG }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
@@ -6086,6 +6090,7 @@ typedef char mod_options_font_slot[(MOD_OPT_ROW_LANG == MOD_OPT_ROW_FONT + 1) ? 
 #endif
 static int16_t MOD_OPT_V[MOD_OPT_ROWS * 2];
 static int16_t MOD_OPT_LANG_V;
+static int16_t MOD_OPT_FPS_V;
 /* the pixels of each label and value as the font draws them (drawOptionsText) */
 static uint8_t MOD_OPT_W[MOD_OPT_ROWS * 3];
 static uint8_t MOD_OPT_LANG_W[1 + MOD_LANGS];
@@ -6093,25 +6098,29 @@ extern int32_t MOD_COLD_CACHE_TYPE;
 extern uint32_t MOD_LANGUAGE_AVAILABLE;
 static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN, "" };
 
+/* Keep the MENU text lookup a leaf. Language names and their selector are resident. */
+static __attribute__((noinline)) char *modOptionLanguageName(int32_t value)
+{
+    return MOD_LANGUAGE_NAMES[modLanguageAt(value)];
+}
+
 /* Language values share one texture position; the other option rows have at most three values. */
 static char *modOptionText(int32_t row, int32_t value)
 {
-    if (row == MOD_OPT_ROW_DIFF && value == 3) return MOD_OPT_STR_HARD;
-    if (row == MOD_OPT_ROW_LANG && value > 0) return MOD_LANGUAGE_NAMES[modLanguageAt(value - 1)];
-#if FONT_SWITCH
-    if (row == MOD_OPT_ROW_FONT && value == 3) return MOD_OPT_STR_ORIGINAL;
-#endif
+    if (row == MOD_OPT_ROW_LANG && value > 0) return modOptionLanguageName(value - 1);
     return MOD_OPT_TEXT[row][value];
 }
 
 static int16_t *modOptionV(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_FPS && value == 2) return &MOD_OPT_FPS_V;
     if (row == MOD_OPT_ROW_DIFF && value == 2) return &MOD_OPT_V[MOD_OPT_ROW_LANG * 2 + 1];
     return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_V : &MOD_OPT_V[row * 2 + value];
 }
 
 static uint8_t *modOptionW(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_FPS && value == 3) return &MOD_OPT_W[MOD_OPT_ROW_LANG * 3 + 2];
     if (row == MOD_OPT_ROW_DIFF && value == 3) return &MOD_OPT_W[MOD_OPT_ROW_LANG * 3 + 1];
     return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_W[value] : &MOD_OPT_W[row * 3 + value];
 }
@@ -6127,10 +6136,8 @@ static int16_t MOD_OPT_SHOWN;
 
 static int32_t modOptionCount(int32_t row)
 {
-    if (row == MOD_OPT_ROW_DIFF) return 3;
-	if (row == MOD_OPT_ROW_LANG) {
-        return modLanguageCount();
-    }
+    if (row == MOD_OPT_ROW_DIFF || row == MOD_OPT_ROW_FPS) return 3;
+    if (row == MOD_OPT_ROW_LANG) return modLanguageCount();
 #if FONT_SWITCH
     if (row == MOD_OPT_ROW_FONT) return MOD_LANG == MOD_LANG_ZH ? 1 : 3;
 #endif
@@ -6151,6 +6158,8 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_STORY != 0;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty): EASY, NORMAL */
 		return MOD_OPT_DIFFICULTY == MOD_DIFF_EASY ? 0 : MOD_OPT_DIFFICULTY == MOD_DIFF_HARD ? 2 : 1;
+	case MOD_OPT_ROW_FPS:
+        return MOD_OPT_FPS;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		return MOD_OPT_QUICK_BATTLE != 0;
 #if FONT_SWITCH
@@ -6197,6 +6206,9 @@ static void __attribute__((noinline)) modSetOption(int32_t row, int32_t value)
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty) */
 		MOD_OPT_DIFFICULTY = value == 0 ? MOD_DIFF_EASY : value == 2 ? MOD_DIFF_HARD : MOD_DIFF_NORMAL;
 		break;
+	case MOD_OPT_ROW_FPS:
+        modSetFrameRate(value);
+        break;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = value;
 		break;

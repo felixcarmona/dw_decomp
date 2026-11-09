@@ -5363,12 +5363,32 @@ void tickFileReadQueue(int32_t unused);
  * SDK line count wraps at 65536, so a small value alone is not proof of slack.
  * Unsigned elapsed time handles wrap and restored clocks. No deadlines change. */
 #if FPS != 20
-static uint32_t modCpuLastV;
 static int32_t modCpuVotes;
+#endif
+int32_t MOD_OPT_FPS; /* AUTO on a fresh boot. */
+void modSetFrameRate(int32_t mode)
+{
+    MOD_OPT_FPS = mode >= MOD_FPS_AUTO && mode <= MOD_FPS_20 ? mode : MOD_FPS_AUTO;
+#if FPS != 20
+    extern int32_t MOD_CPU_SPINS;
+    modCpuVotes = 0;
+    MOD_FPS_MODE_RUN = MOD_OPT_FPS == MOD_FPS_60 ? 2 :
+        MOD_OPT_FPS == MOD_FPS_20 ? 0 : MOD_CPU_SPINS >= MOD_CPU_SPINS_FAST ? 2 : 0;
+#endif
+}
+
+#if FPS != 20
+static uint32_t modCpuLastV;
 
 static void modAutoFrameRateSample(int32_t spins)
 {
-	int32_t change = MOD_FPS_MODE_RUN == 0 ? spins >= MOD_CPU_SPINS_FAST : spins < MOD_CPU_SPINS_SLOW;
+	int32_t change;
+
+    if (MOD_OPT_FPS != MOD_FPS_AUTO) {
+        modCpuVotes = 0;
+        return;
+    }
+    change = MOD_FPS_MODE_RUN == 0 ? spins >= MOD_CPU_SPINS_FAST : spins < MOD_CPU_SPINS_SLOW;
 
 	if (!change) {
 		modCpuVotes = 0;

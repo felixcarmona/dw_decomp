@@ -13,6 +13,12 @@
 #define MOD_CPU_SPINS_FAST 8500
 #define MOD_CPU_SPINS_SLOW 7500
 int32_t modCpuProbe(void);
+/* OPTIONS indices; save byte 2 uses 0xA0 + index, never legacy 20/30/60. */
+#define MOD_FPS_AUTO 0
+#define MOD_FPS_60 1
+#define MOD_FPS_20 2
+extern int32_t MOD_OPT_FPS;
+void modSetFrameRate(int32_t mode);
 #if FPS == 20
 #define MOD_FPS_MODE 0
 #elif FPS == 30 || FPS == 60

@@ -455,3 +455,15 @@ MOD_OPTIONS:
     MOD_OPT_STR_CHINESE_RAM_3:
       ja: "RAMを8MBにしてください。"
       en_us: "settings."
+    MOD_OPT_STR_FPS:
+      ja: "FRAME RATE"
+      en_us: "FRAME RATE"
+    MOD_OPT_STR_AUTO:
+      ja: "AUTO"
+      en_us: "AUTO"
+    MOD_OPT_STR_60:
+      ja: "60"
+      en_us: "60"
+    MOD_OPT_STR_20:
+      ja: "20"
+      en_us: "20"
