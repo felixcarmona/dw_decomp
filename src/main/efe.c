@@ -1497,6 +1497,9 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 	next = (next + 1) & 7;
 	if (row != NULL && onEntity >= onBone && !(rec->flags & SPECIES_FLAG_SHOTS_FROM_DEFAULT)) {
 		*out = *row;
+		/* Imported rigs also remap entity points borrowed by the fallback. */
+		return (EfeBoneOffset *)getSpeciesEffectOrigin(EFE_SCRIPT_CONTEXT->sourceEntity->type,
+												 (int16_t *)out);
 	} else {
 		out->boneId = rec->effectDefault[0];
 		out->positionX = rec->effectDefault[1];
