@@ -354,12 +354,118 @@ int16_t SEQ_ACCESS_NUM;
 int16_t CURRENT_SEQ_FONT;
 int16_t CURRENT_SEQ_TRACK;
 
+/* MOD (sound limits, step 3): SPU allocation, see dw/sound.h */
+unsigned long SPU_BANK_SIZE[NUM_SOUND_BUFFERS];
+int32_t SPU_ALLOC_FAILS;
+
+/* the original fixed slots: where each bank goes when it fits there */
+static unsigned long SPU_HOME[NUM_SOUND_BUFFERS] = {
+	0x1010, 0xe800, 0x1b800, 0x2a000, 0x31800, 0x34000, 0x36800, 0x39000, 0, 0,
+};
+
+/* size of each VHB_HEADER_* buffer: a VAB header must fit (was unchecked) */
+static uint16_t VHB_HEADER_SIZE[NUM_SOUND_BUFFERS] = {
+	0x1000, 0x1000, 0x2000, 0x1000, 0x1000, 0x1000, 0x1000, 0x1000, 0x1800, 0,
+};
+
 char SEQ_TABLE[SS_SEQ_TABSIZ];
-uint8_t SEQ_BUFFER[0x5800];
+uint8_t SEQ_BUFFER[SEQ_BUFFER_SIZE]; /* MOD (sound limits): was 0x5800, dw/memmap.h */
 
 char VHB_EXT[] = ".VHB";
 
 int32_t ACTIVE_MAP_SOUND_ID = -1;
+
+/* MOD (sound limits): chunk index, see dw/sound.h */
+SoundChunk SOUND_CHUNKS_FAALL[SOUND_MAX_FONTS];
+SoundChunk SOUND_CHUNKS_VBALL[SOUND_MAX_VBALL];
+SoundChunk SOUND_CHUNKS_VLALL[SOUND_MAX_VLALL];
+SoundChunk SOUND_CHUNKS_ESALL[SOUND_MAX_ESALL];
+int16_t SOUND_CHUNK_COUNT[NUM_SOUND_INDEXED_FILES];
+int32_t SOUND_INDEX_LOADED;
+
+typedef struct {
+	char *name;
+	SoundChunk *chunks;
+	int16_t cap;
+	int16_t stride;		/* original layout: sectors per chunk, 0 = MAP_SOUND_PARA */
+} SoundIndexFile;
+
+static SoundIndexFile SOUND_INDEX_FILES[NUM_SOUND_INDEXED_FILES] = {
+	{ "FAALL.VHB", SOUND_CHUNKS_FAALL, SOUND_MAX_FONTS, 39 },
+	{ "VBALL.VHB", SOUND_CHUNKS_VBALL, SOUND_MAX_VBALL, 7 },
+	{ "VLALL.VHB", SOUND_CHUNKS_VLALL, SOUND_MAX_VLALL, 15 },
+	{ "ESALL.VHB", SOUND_CHUNKS_ESALL, SOUND_MAX_ESALL, 0 },
+};
+
+/*
+ * Reads the index sector of every multi-chunk file (once; GENERAL_BUFFER is
+ * free at boot) or, for a file without one, rebuilds the original layout.
+ */
+void loadSoundIndex(void)
+{
+	SoundIndexFile *f;
+	uint32_t *hdr;
+	int32_t i;
+	int32_t k;
+	int32_t count;
+
+	if (SOUND_INDEX_LOADED) {
+		return;
+	}
+	SOUND_INDEX_LOADED = 1;
+
+	hdr = (uint32_t *)GENERAL_BUFFER;
+	for (k = 0; k < NUM_SOUND_INDEXED_FILES; ++k) {
+		f = &SOUND_INDEX_FILES[k];
+		hdr[0] = 0;
+		readFileSectors(f->name, GENERAL_BUFFER, 0, 1);
+		if (hdr[0] == SOUND_INDEX_MAGIC) {
+			count = hdr[1] & 0xffff;
+			if ((hdr[1] >> 16) > 1) {
+				readFileSectors(f->name, GENERAL_BUFFER, 0, hdr[1] >> 16);
+			}
+			if (count > f->cap) {
+				count = f->cap;
+			}
+			memcpy(f->chunks, &hdr[2], count * sizeof(SoundChunk));
+		} else if (f->stride != 0) {
+			count = lookupFileSize(f->name) / (f->stride * 0x800);
+			if (count > f->cap) {
+				count = f->cap;
+			}
+			for (i = 0; i < count; ++i) {
+				f->chunks[i].sector = i * f->stride;
+				f->chunks[i].sectors = f->stride;
+			}
+		} else {
+			count = sizeof(MAP_SOUND_PARA) / sizeof(MAP_SOUND_PARA[0]);
+			for (i = 0; i < count; ++i) {
+				f->chunks[i].sector = MAP_SOUND_PARA[i].sectorId / 2;
+				f->chunks[i].sectors = MAP_SOUND_PARA[i].sectorCount / 2;
+			}
+		}
+		SOUND_CHUNK_COUNT[k] = count;
+	}
+}
+
+/* Where chunk `id` of an indexed file is; 0 if there is no such chunk */
+int32_t getSoundChunk(int32_t file, int32_t id, int32_t *sector, int32_t *sectors)
+{
+	SoundChunk *c;
+
+	if ((id < 0) || (id >= SOUND_CHUNK_COUNT[file])) {
+		return 0;
+	}
+
+	c = &SOUND_INDEX_FILES[file].chunks[id];
+	if (c->sectors == 0) {
+		return 0;
+	}
+
+	*sector = c->sector;
+	*sectors = c->sectors;
+	return 1;
+}
 
 int32_t readVHBFile(int32_t vabId, char *filename, uint8_t *buffer);
 int32_t readVHBFileSectors(int32_t vabId, char *filename, uint8_t *buffer,
@@ -394,6 +500,176 @@ static void *sound_bss[] = {
 	&FREE_CHANNEL_INDEX,
 };
 
+static int32_t spuFits(int32_t bank, unsigned long addr, unsigned long size)
+{
+	int32_t i;
+
+	if ((size > SPU_REVERB_START - SPU_BANKS_START) || (addr < SPU_BANKS_START) ||
+	    (addr > SPU_REVERB_START - size)) {
+		return 0;
+	}
+
+	for (i = 0; i < NUM_SOUND_BUFFERS - 1; ++i) {
+		if ((i != bank) && (SPU_BANK_SIZE[i] != 0) &&
+		    (addr < VHB_SOUNDBUFFER_START[i] + SPU_BANK_SIZE[i]) &&
+		    (VHB_SOUNDBUFFER_START[i] < addr + size)) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+/*
+ * Where bank `bank` puts a body of `size` bytes (its previous body is given
+ * up). Bank 8 goes as high as possible (ending at the reverb area); the
+ * others go to their original slot if nothing is there, else to the lowest
+ * free space. With the original files every bank fits its original slot, so
+ * nothing ever moves except bank 8, which stays inside its original slot.
+ * 0 = no room: the bank is left unloaded (the original overwrote the next
+ * bank instead).
+ */
+static unsigned long spuFindPlace(int32_t bank, unsigned long size)
+{
+	unsigned long best;
+	unsigned long cand;
+	int32_t i;
+
+	cand = (bank == 8) ? SPU_REVERB_START - size : SPU_HOME[bank];
+	if (spuFits(bank, cand, size)) {
+		best = cand;
+	} else {
+		best = 0;
+		for (i = -1; i < NUM_SOUND_BUFFERS - 1; ++i) {
+			if (bank == 8) {
+				/* below the reverb area or below another bank */
+				cand = (i < 0) ? SPU_REVERB_START : VHB_SOUNDBUFFER_START[i];
+				if ((i >= 0) && (SPU_BANK_SIZE[i] == 0)) {
+					continue;
+				}
+				cand = (cand - size) & ~15;
+				if (spuFits(bank, cand, size) && (cand > best)) {
+					best = cand;
+				}
+			} else {
+				/* at the bottom or right after another bank */
+				if ((i >= 0) && (SPU_BANK_SIZE[i] == 0)) {
+					continue;
+				}
+				cand = (i < 0) ? SPU_BANKS_START
+					       : VHB_SOUNDBUFFER_START[i] + SPU_BANK_SIZE[i];
+				if (spuFits(bank, cand, size) && ((best == 0) || (cand < best))) {
+					best = cand;
+				}
+			}
+		}
+	}
+
+	return best;
+}
+
+unsigned long spuPlaceBank(int32_t bank, unsigned long size)
+{
+	unsigned long best;
+
+	size = (size + 15) & ~15;
+	if (size == 0) {
+		size = 16;
+	}
+	SPU_BANK_SIZE[bank] = 0;
+
+	best = spuFindPlace(bank, size);
+
+	/*
+	 * No room. Two banks can make way because the game reloads them by
+	 * itself right after: the map effects region (bank 8 outside battles,
+	 * reloaded by loadMap) when another bank grows on a screen change, and
+	 * a music font that overflowed its original slot when the battle bank
+	 * (SB) needs the space (the battle font replaces it next). With the
+	 * original files neither ever happens.
+	 */
+	if ((best == 0) && (bank != 8) && (SPU_BANK_SIZE[8] != 0) && (ACTIVE_MAP_SOUND_ID >= 0)) {
+		SsVabClose(8);
+		SPU_BANK_SIZE[8] = 0;
+		ACTIVE_MAP_SOUND_ID = -1;
+		best = spuFindPlace(bank, size);
+	}
+	if ((best == 0) && (bank == 8) && (SPU_BANK_SIZE[2] != 0) &&
+	    (VHB_SOUNDBUFFER_START[2] != SPU_HOME[2])) {
+		seqStop();
+		seqClose();
+		SsVabClose(2);
+		SPU_BANK_SIZE[2] = 0;
+		CURRENT_SEQ_FONT = -1;
+		best = spuFindPlace(bank, size);
+	}
+
+	if (best == 0) {
+		++SPU_ALLOC_FAILS;
+		return 0;
+	}
+
+	VHB_SOUNDBUFFER_START[bank] = best;
+	SPU_BANK_SIZE[bank] = size;
+	return best;
+}
+
+/*
+ * The part common to every VHB load (sync and async): checks the chunk,
+ * copies the VAB header to the bank's buffer, places the body in SPU RAM and
+ * starts its transfer. Returns the libsnd vab id or -1; the caller waits for
+ * the transfer as before.
+ */
+int32_t openSoundBank(int32_t vabId, uint8_t *buffer)
+{
+	uint32_t *w;
+	uint32_t hdrSize;
+	uint32_t bodySize;
+	uint32_t fsize;
+	unsigned long addr;
+	short vabid;
+
+	w = (uint32_t *)buffer;
+	hdrSize = w[1] - w[0];
+	bodySize = w[2] - w[1];
+
+	SsVabClose(vabId);
+	SPU_BANK_SIZE[vabId] = 0;
+
+	/* a chunk header (0x0C or 0x10 bytes), then "pBAV" and a header that
+	 * fits the bank's buffer (the original copied it unchecked) */
+	if (((w[0] != 0xc) && (w[0] != 0x10)) || (w[1] <= w[0]) || (w[2] < w[1]) ||
+	    (*(uint32_t *)&buffer[w[0]] != 0x56414270) ||
+	    (hdrSize > VHB_HEADER_SIZE[vabId])) {
+		++SPU_ALLOC_FAILS;
+		return -1;
+	}
+
+	memcpy(VHB_HEADER_ADDR[vabId], &buffer[(w[0] >> 2) << 2], hdrSize);
+
+	/* VabHdr.fsize = header + body: libsnd may transfer that much */
+	fsize = *(uint32_t *)&buffer[w[0] + 0xc];
+	if ((fsize > hdrSize) && (fsize - hdrSize > bodySize)) {
+		bodySize = fsize - hdrSize;
+	}
+
+	if ((addr = spuPlaceBank(vabId, bodySize)) == 0) {
+		return -1;
+	}
+
+	if ((vabid = SsVabOpenHeadSticky(VHB_HEADER_ADDR[vabId], vabId, addr)) < 0) {
+		SPU_BANK_SIZE[vabId] = 0;
+		return -1;
+	}
+
+	if (SsVabTransBody(&buffer[w[1]], vabid) != vabid) {
+		SPU_BANK_SIZE[vabId] = 0;
+		return -1;
+	}
+
+	return vabid;
+}
+
 int32_t readVHBFile(int32_t vabId, char *filename, uint8_t *buffer)
 {
 	short vabid;
@@ -409,17 +685,8 @@ int32_t readVHBFile(int32_t vabId, char *filename, uint8_t *buffer)
 
 	concatStrings3(pathBuf, str, VHB_EXT);
 	readFile(pathBuf, buffer);
-	memcpy(VHB_HEADER_ADDR[vabId],
-	       &buffer[(((VhbFileHeader *)buffer)->vhOffset >> 2) << 2],
-	       ((VhbFileHeader *)buffer)->vbOffset - ((VhbFileHeader *)buffer)->vhOffset);
-
-	SsVabClose(vabId);
-	if ((vabid = SsVabOpenHeadSticky(VHB_HEADER_ADDR[vabId], vabId,
-					 VHB_SOUNDBUFFER_START[vabId])) < 0) {
-		return -1;
-	}
-
-	if (SsVabTransBody(&buffer[((VhbFileHeader *)buffer)->vbOffset], vabid) != vabid) {
+	/* MOD (sound limits, step 3): checked, allocated in SPU RAM */
+	if ((vabid = openSoundBank(vabId, buffer)) < 0) {
 		return -1;
 	}
 
@@ -464,17 +731,8 @@ int32_t readVHBFileSectors(int32_t vabId, char *filename, uint8_t *buffer,
 
 	concatStrings3(pathBuf, str, VHB_EXT);
 	readFileSectors(pathBuf, buffer, offset, sectors);
-	memcpy(VHB_HEADER_ADDR[vabId],
-	       &buffer[(((VhbFileHeader *)buffer)->vhOffset >> 2) << 2],
-	       ((VhbFileHeader *)buffer)->vbOffset - ((VhbFileHeader *)buffer)->vhOffset);
-
-	SsVabClose(vabId);
-	if ((vabid = SsVabOpenHeadSticky(VHB_HEADER_ADDR[vabId], vabId,
-					 VHB_SOUNDBUFFER_START[vabId])) < 0) {
-		return -1;
-	}
-
-	if (SsVabTransBody(&buffer[((VhbFileHeader *)buffer)->vbOffset], vabid) != vabid) {
+	/* MOD (sound limits, step 3): checked, allocated in SPU RAM */
+	if ((vabid = openSoundBank(vabId, buffer)) < 0) {
 		return -1;
 	}
 
@@ -535,6 +793,9 @@ int32_t initializeMusic(void)
 	SsSetTableSize(SEQ_TABLE, 1, 1);
 	SsSetTickMode(SS_TICK240);
 
+	/* MOD (sound limits, step 3): every bank starts unloaded */
+	memset(SPU_BANK_SIZE, 0, sizeof(SPU_BANK_SIZE));
+
 	if (readVHBFile(0, "SOUND\\SS", GENERAL_BUFFER) == -1) {
 		return 0;
 	}
@@ -542,6 +803,8 @@ int32_t initializeMusic(void)
 	if (readVHBFile(1, "SOUND\\SL", GENERAL_BUFFER) == -1) {
 		return 0;
 	}
+
+	loadSoundIndex(); /* MOD (sound limits) */
 
 	SsStart();
 	SsSetMVol(127, 127);
@@ -570,6 +833,7 @@ void finalizeMusic(void)
 
 	for (i = 0; i < NUM_SOUND_BUFFERS; ++i) {
 		SsVabClose(i);
+		SPU_BANK_SIZE[i] = 0; /* MOD (sound limits) */
 	}
 
 	SsEnd();
@@ -620,6 +884,11 @@ uint32_t startSound(int32_t vabId, char prog, char note)
 	int32_t i;
 
 	mask = 0;
+	/* MOD (sound limits, step 3): never key a bank that is not loaded (a
+	 * stale entity vabId, or a load that did not fit) */
+	if ((vabId < 0) || (vabId >= NUM_SOUND_BUFFERS) || (SPU_BANK_SIZE[vabId] == 0)) {
+		return 0;
+	}
 	tones = ((VhbFile *)VHB_HEADER_ADDR[vabId])->tones[0];
 	tones += prog * VAB_TONES_PER_PROGRAM;
 	channel = 0x18;
@@ -698,6 +967,8 @@ void thunkStopSoundMask(uint32_t mask)
 int32_t loadPartnerSounds(int32_t type)
 {
 	int32_t soundId;
+	int32_t sector;
+	int32_t sectors;
 
 	if ((type > 0) && (type < NUM_DIGIMON)) { /* MOD: was NUM_PARTNER_DIGIMON */
 		soundId = DIGIMON_VLALL_SOUND_ID[type];
@@ -705,8 +976,12 @@ int32_t loadPartnerSounds(int32_t type)
 		soundId = 15;
 	}
 
-	if (readVHBFileSectors(3, "VLALL", GENERAL_BUFFER, soundId * 15,
-			       15) == -1) {
+	/* MOD (sound limits): the index instead of soundId * 15 */
+	if (!getSoundChunk(SOUND_FILE_VLALL, soundId, &sector, &sectors)) {
+		return 0;
+	}
+
+	if (readVHBFileSectors(3, "VLALL", GENERAL_BUFFER, sector, sectors) == -1) {
 		return 0;
 	}
 
@@ -716,13 +991,20 @@ int32_t loadPartnerSounds(int32_t type)
 int32_t loadDigimonSounds(int32_t vabId, int32_t type)
 {
 	int32_t soundId;
+	int32_t sector;
+	int32_t sectors;
 
 	if ((vabId < 4) || (7 < vabId)) {
 		return 0;
 	}
 
+	/* MOD (sound limits): the index instead of soundId * 7 */
 	soundId = getDigimonVballId(type); /* MOD (species) */
-	if (readVHBFileSectors(vabId, "VBALL", GENERAL_BUFFER, soundId * 7, 7) == -1) {
+	if (!getSoundChunk(SOUND_FILE_VBALL, soundId, &sector, &sectors)) {
+		return 0;
+	}
+
+	if (readVHBFileSectors(vabId, "VBALL", GENERAL_BUFFER, sector, sectors) == -1) {
 		return 0;
 	}
 
@@ -742,15 +1024,21 @@ int32_t VSLoadSounds(void)
 
 int32_t loadMapSounds(int32_t mapSoundId)
 {
+	int32_t sector;
+	int32_t sectors;
+
 	if (ACTIVE_MAP_SOUND_ID == mapSoundId) {
 		return 1;
 	}
 
 	ACTIVE_MAP_SOUND_ID = mapSoundId;
 
-	if (readVHBFileSectors(8, "ESALL", GENERAL_BUFFER,
-			       MAP_SOUND_PARA[mapSoundId].sectorId / 2,
-			       MAP_SOUND_PARA[mapSoundId].sectorCount / 2) == -1) {
+	/* MOD (sound limits): the index instead of MAP_SOUND_PARA */
+	if (!getSoundChunk(SOUND_FILE_ESALL, mapSoundId, &sector, &sectors)) {
+		return 0;
+	}
+
+	if (readVHBFileSectors(8, "ESALL", GENERAL_BUFFER, sector, sectors) == -1) {
 		return 0;
 	}
 
@@ -760,10 +1048,22 @@ int32_t loadMapSounds(int32_t mapSoundId)
 int32_t loadMusicFont(int32_t font)
 {
 	uint32_t *buf;
+	int32_t sector;
+	int32_t sectors;
+
+	/* MOD (sound limits): the index instead of (font - 1) * 39 */
+	if (!getSoundChunk(SOUND_FILE_FAALL, font - 1, &sector, &sectors)) {
+		return 0;
+	}
 
 	buf = (uint32_t *)GENERAL_BUFFER;
-	if (readVHBFileSectors(2, "FAALL", GENERAL_BUFFER,
-			       (font - 1) * 0x27, 0x27) == -1) {
+	if (readVHBFileSectors(2, "FAALL", GENERAL_BUFFER, sector, sectors) == -1) {
+		return 0;
+	}
+
+	/* MOD (sound limits): the copy was unchecked; a block that does not fit
+	 * is refused (playMusic then plays nothing) instead of overflowing */
+	if (buf[3] - buf[2] > SEQ_BUFFER_SIZE) {
 		return 0;
 	}
 
@@ -774,7 +1074,8 @@ int32_t loadMusicFont(int32_t font)
 
 int32_t playMusic(int32_t font, int32_t track)
 {
-	if ((font <= 0) || (0x21 < font)) {
+	/* MOD (sound limits): every font of the index, not 1..0x21 */
+	if ((font <= 0) || (SOUND_CHUNK_COUNT[SOUND_FILE_FAALL] < font)) {
 		return 0;
 	}
 
@@ -786,7 +1087,12 @@ int32_t playMusic(int32_t font, int32_t track)
 	seqClose();
 
 	if (CURRENT_SEQ_FONT != font) {
-		loadMusicFont(font);
+		/* MOD (sound limits): a font that failed to load plays nothing
+		 * (the original opened the previous font's sequences) */
+		if (!loadMusicFont(font)) {
+			CURRENT_SEQ_FONT = -1;
+			return 0;
+		}
 		CURRENT_SEQ_FONT = font;
 	}
 
