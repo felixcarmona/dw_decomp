@@ -8,6 +8,7 @@
 #include <dw/entity.h>
 #include <dw/font.h>
 #include <dw/ids.h>
+#include <dw/mod_rules.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/main.h>
@@ -4881,11 +4882,17 @@ int32_t tickSaveMachine(void)
 	return 0;
 }
 
+int16_t MOD_VS_UNLOCK[5] = { -1, -1, -1, -1, -1 };
+
 void awardMachinedramonData(void)
 {
 	RegisteredDigimon *rec;
 
-	rec = &SAVE_FILE.saves[0].battleRegistrationData[39];
+	/* MOD (rules as data): the species, techniques and slot come from MOD_VS_UNLOCK (-1: nothing is unlocked) */
+	if (MOD_VS_UNLOCK[0] < 0 || MOD_VS_UNLOCK[4] < 0) {
+		return;
+	}
+	rec = &SAVE_FILE.saves[0].battleRegistrationData[MOD_VS_UNLOCK[4]];
 	rec->hp = PARTNER_ENTITY.digimonEntity.stats.base.hp;
 	rec->mp = PARTNER_ENTITY.digimonEntity.stats.base.mp;
 	rec->offense = PARTNER_ENTITY.digimonEntity.stats.base.off;
@@ -4893,11 +4900,11 @@ void awardMachinedramonData(void)
 	rec->speed = PARTNER_ENTITY.digimonEntity.stats.base.speed;
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
-	rec->digimonId = 0x73;
+	rec->digimonId = MOD_VS_UNLOCK[0];
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
-	rec->moves[0] = 0x2e;
-	rec->moves[1] = 0x30;
-	rec->moves[2] = 0x32;
+	rec->moves[0] = MOD_VS_UNLOCK[1];
+	rec->moves[1] = MOD_VS_UNLOCK[2];
+	rec->moves[2] = MOD_VS_UNLOCK[3];
 }
 
 void gameClearSave(void)
