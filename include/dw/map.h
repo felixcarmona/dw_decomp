@@ -77,5 +77,6 @@ void initializeDrawingOffsets(MapTileData *tiles);
 void clearMapObjects(LocalMapObjectInstance *instances);
 void calcMapObjectOrder(LocalMapObjectInstance *instances);
 void renderMapOverlays(LocalMapObjectInstance *instances, int16_t screenX, int16_t screenY);
+void tickMapOverlays(LocalMapObjectInstance *instances, int16_t screenX, int16_t screenY);
 
 #endif
