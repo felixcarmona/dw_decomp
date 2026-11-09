@@ -353,7 +353,12 @@ void learnMove(int32_t move)
 
 uint8_t entityGetTechFromAnim(Entity *e, uint8_t anim)
 {
-	if (anim == 0xff) {
+	/* The flat attack queues animation zero, outside the technique slots.
+	 * Reading before moves[] can turn its spit into a finisher and lock AI. */
+	if (anim == 0 && (uint8_t)e->flatSprite < 4) {
+		return 0x79;
+	}
+	if (anim < 0x2e || anim >= 0x3e) {
 		return 0xff;
 	}
 	if ((e->type == 0x3cL) && (anim == 0x3c)) {
