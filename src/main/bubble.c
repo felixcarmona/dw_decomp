@@ -1,3 +1,6 @@
+#include <libgs.h>
+
+#include <dw/btl.h> /* MOD (care menu): ACTIVE_ORDERING_TABLE for the X badge */
 #include <dw/bubble.h>
 #include <dw/params.h>
 #include <dw/world_object.h>
@@ -710,6 +713,44 @@ static void drawRingBubble(int32_t j, int32_t cx, int32_t cy, int32_t depth,
 	bg->my = 0x1f;
 }
 
+/*
+ * MOD (care menu): the X badge. While X in front of the partner would open the care menu (mod_feed.c sets
+ * MOD_FEED_HINT for that tick), the dialogue box's X button (renderUIBox, script_textbox.c: the UI texture page,
+ * three 16x12 frames pressing it) is drawn beside the bottom right bubble of the row, or where the bubbles would be
+ * when it has none (a scolding or HP short of the maximum need no bubble). It grows in and shrinks out in
+ * RING_BADGE_TICKS and moves with the row (its bob and its steps), one ordering table slot nearer than the bubbles.
+ */
+#define RING_BADGE_TICKS	4	/* 0.2 s to grow in or shrink out */
+#define RING_BADGE_W	16	/* texels, as the dialogue box draws it */
+#define RING_BADGE_H	12
+
+extern int32_t MOD_FEED_HINT;
+int32_t MOD_RING_BADGE = 0; /* the badge's size in ticks, 0..RING_BADGE_TICKS */
+
+/* the badge centred on (x, y); k as renderConditionRing's, size 0..256 */
+static void renderBadge(int32_t x, int32_t y, int32_t depth, int32_t k, int32_t size)
+{
+	int32_t kk = (k * size) >> 8;
+	int32_t w = (RING_BADGE_W * kk) >> 12;
+	int32_t h = (RING_BADGE_H * kk) >> 12;
+	int32_t slot = (depth >> 4) - 1;
+	POLY_FT4 *p;
+
+	if (slot < 0 || slot >= 0x1000 || w < 1 || h < 1) {
+		return;
+	}
+	p = (POLY_FT4 *)GsGetWorkBase();
+	setPolyFT4(p);
+	setSemiTrans(p, 1);
+	p->tpage = GetTPage(0, 1, 320, 128);
+	p->clut = GetClut(96, 500);
+	setRGB0(p, 0x80, 0x80, 0x80);
+	setUVWH(p, (MOD_RING_CLOCK / 4) % 3 * 16 + 0x4c, 0xb7, RING_BADGE_W, RING_BADGE_H);
+	setXYWH(p, x - w / 2, y - h / 2, w, h);
+	AddPrim(ACTIVE_ORDERING_TABLE->org + slot, p);
+	GsSetWorkBase((PACKET *)(p + 1));
+}
+
 static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 				uint32_t scale)
 {
@@ -750,6 +791,30 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 		bs[b] = -bs[b];
 		++drawn;
 	}
+	if (MOD_RING_BADGE > 0) {
+		int32_t right = -0x8000;
+		int32_t bottom = 0;
+		int32_t bx0 = 0;
+		int32_t by0 = 0;
+
+		/* beside the right edge of the bottom row, a bit under its centre */
+		for (j = 0; j < 6; ++j) {
+			if (bs[j] < -24) {
+				if (bx[j] + ((168 * -bs[j]) >> 8) > right) {
+					right = bx[j] + ((168 * -bs[j]) >> 8);
+				}
+				if (by[j] > bottom) {
+					bottom = by[j];
+				}
+			}
+		}
+		if (right != -0x8000) {
+			bx0 = right + RING_BADGE_W * 16 / 3;
+			by0 = bottom + 96;
+		}
+		renderBadge(x + ((bx0 * k) >> 16), cy0 + ((by0 * k) >> 16), depth, k,
+			    (MOD_RING_BADGE * 256) / RING_BADGE_TICKS);
+	}
 	MOD_RING_SHOWN[2] = big < 0 ? 0 :
 			    ((big << 24) | (-bs[big] << 8) | (full > 1));
 	MOD_RING_SHOWN[3] = p | (MOD_RING_STEPS << 16);
@@ -783,7 +848,7 @@ void renderConditionRingObject(int32_t instanceId)
 
 	if ((MOD_STATUS_BUBBLES == 0) || (IS_IN_MENU == 1) || (GAME_STATE != 0) ||
 	    ((PARTNER_STATE != 1) && (PARTNER_STATE != 0xa)) ||
-	    (entity == NULL) || (ringAnyBubble() == 0)) {
+	    (entity == NULL) || (ringAnyBubble() == 0 && MOD_RING_BADGE == 0)) {
 		MOD_RING_SHOWN[2] = 0;
 		return;
 	}
@@ -841,6 +906,15 @@ void tickConditionRingObject(int32_t instanceId)
 		return;
 	}
 	++MOD_RING_CLOCK;
+	/* MOD (care menu): the X badge follows the hint, which lasts one tick */
+	if (MOD_FEED_HINT) {
+		if (MOD_RING_BADGE < RING_BADGE_TICKS) {
+			++MOD_RING_BADGE;
+		}
+	} else if (MOD_RING_BADGE > 0) {
+		--MOD_RING_BADGE;
+	}
+	MOD_FEED_HINT = 0;
 
 	/* a running step goes on to its end; it ends the tick after its last
 	 * frame, so that every pass of that tick still shows it */
