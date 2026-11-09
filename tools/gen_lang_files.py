@@ -31,6 +31,9 @@ def main():
     hashes = {}
     for n in names:
         hashes.setdefault(fnv1a(n), set()).add(n)
+    for value, group in hashes.items():
+        if value == 0 or len(group) > 1:
+            sys.exit(f'gen_lang_files: ambiguous filename hash {value:08X}: {sorted(group)}')
     rows = []
     for spec in a.lang.split():
         parts = spec.split(':')
@@ -48,7 +51,8 @@ def main():
                 idx.append(where[c])
             else:
                 sys.exit(f'gen_lang_files: {c} (a copy of {key}) is not in NEW_FILES')
-        rows.append('{ 0x%08X, { %s } }, /* %s */' % (fnv1a(key), ', '.join(map(str, idx)), key))
+        original = [where.get('_' + c[1:], 0xFFFF) if c != '-' else 0xFFFF for c in copies]
+        rows.append('{ 0x%08X, { %s }, { %s } }, /* %s */' % (fnv1a(key), ', '.join(map(str, idx)), ', '.join(map(str, original)), key))
     text = ''.join(r + '\n' for r in rows)
     if not os.path.exists(a.out) or open(a.out).read() != text:
         open(a.out, 'w').write(text)
