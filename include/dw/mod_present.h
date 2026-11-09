@@ -33,6 +33,13 @@ typedef struct {
 void modTickStart(int32_t flags);
 void modPresent(int32_t flags, ModRollbackSet *extra);
 
+/* A scene may request evenly spaced 30 fps when 60 cannot fit. Cleared by
+ * modTickStart; the scene arms it again from its tick. The player's 20 fps
+ * option still takes precedence. */
+/* 0: inactive; 1/2: normal/early half of a steady 30 fps pair;
+ * 4: curling at the requested rate, with deferred tile uploads. */
+extern int32_t MOD_RENDER_CADENCE;
+
 /* MOD (battle speed, main.c): the R2 switch; set before modTickStart when the coming tick may run fast (it clears
  * it); the tick that is running is fast; 0 on a fast pair's second tick */
 extern int8_t MOD_BATTLE_FAST;
