@@ -1,4 +1,5 @@
 #include <dw/file_table.h>
+#include <dw/mod_font.h>
 
 #include <dw/atan_lookup_table.h>
 
@@ -828,6 +829,13 @@ FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + par
 	/* MOD (screens beyond 255): the screens >= 255 (tools/screens.py, include/dw/screen.h); build-disc.py
 	 * --relayout --add writes its sector and size. Without the file sector 0 of the disc is read: no record. */
 	{ 0x00000000, 0x00000800, "SCRN.DAT" },
+#if FONT_SWITCH
+	/* MOD (font): DG.SCN, MAPHEAD.SCN and SCRN.DAT paged for the original font, read with NEW FONT off
+	 * (tools/build-full.sh, script_interp.c); sector 0 (no such file on the disc): the ones above */
+	{ 0x00000000, 0x00000800, "DGORIG.SCN" },
+	{ 0x00000000, 0x00000800, "MHORIG.SCN" },
+	{ 0x00000000, 0x00000800, "SCRNORIG.DAT" },
+#endif
 	/*
 	 * MOD (partners-npc-c): partner-only models (model.c). Sector 0 until
 	 * build-disc.py --relayout --add writes the real one; without the file

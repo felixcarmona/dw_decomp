@@ -256,6 +256,11 @@ int32_t MEMORY_CARD_ERROR;
 int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
+#if FONT_SWITCH
+#define MOD_OPT_ROWS	5 /* MOD (options): and NEW FONT, in a build with both fonts */
+#else
+#define MOD_OPT_ROWS	4
+#endif
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
 static int32_t modOptionValue(int32_t row);
@@ -993,9 +998,9 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0024,
 		0x000c,
 	},
-	{ /* MOD (options): the OPTIONS box (renderOptionsMenu), 4 rows */
+	{ /* MOD (options): the OPTIONS box (renderOptionsMenu), its rows; x and w follow the font (drawOptionsText) */
 		0x00,
-		{ 0x04, 0x00, 0x00, 0x00, 0x00 },
+		{ MOD_OPT_ROWS, 0x00, 0x00, 0x00, 0x00 },
 		0x000c,
 		0x0035,
 		0x0037,
@@ -4588,7 +4593,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t screens[2];
 	int16_t inventory[30];
 	int32_t partnerType;
-	uint8_t options[4]; /* MOD (options) */
+	uint8_t options[5]; /* MOD (options) */
 	int32_t size;
 	int32_t i;
 
@@ -4645,6 +4650,7 @@ static void prepareSaveFile(int32_t fromRam)
 	options[1] = MOD_OPT_CLOCK;
 	options[2] = modFrameRate();
 	options[3] = MOD_OPT_BARS;
+	options[4] = FONT_PROPORTIONAL; /* NEW FONT */
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
@@ -4883,6 +4889,11 @@ static void applyRecords(uint8_t *e)
 			if (len >= 4 && !MOD_OPT_TOUCHED) {
 				MOD_OPT_BARS = d[3] != 0;
 			}
+#if FONT_SWITCH
+			if (len >= 5 && !MOD_OPT_TOUCHED) {
+				modSetFont(d[4] == 0);
+			}
+#endif
 			break;
 		}
 	}
@@ -5336,18 +5347,30 @@ void renderInitialMenu(void)
 /*
  * MOD (options): the box's rows, each a label and its two values side by side; the chosen value is drawn yellow and the
  * other one grey, so the row reads as a switch. Left picks the left value, right the right one, confirm the other one.
+ * With the original font (NEW FONT off) the two do not fit the screen beside "JAPANESE CONTROLS" (200 + 2 x 61 pixels
+ * for "20 FPS" / "60 FPS"): a row then shows its chosen value only, as the original game's own settings do.
  */
-#define MOD_OPT_ROWS	4
-#define MOD_OPT_VALUE_X	0x80	/* the left value's column in the text area; the right one's is MOD_OPT_VALUE_W further */
-#define MOD_OPT_VALUE_W	0x28
-#define MOD_OPT_TEXT_X	0x38	/* the box's text on the screen */
+#define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels */
+#define MOD_OPT_VALUE_X	0x60	/* the right value's column in the text area (the left one's is 0) */
+#define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between the two values */
+#define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
 static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
+#if FONT_SWITCH
+	{ MOD_OPT_STR_FONT, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+#endif
 };
+
+/* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
+ * width, a value's, and how many values a row shows (2, or 1 with the original font: below) */
+static int16_t MOD_OPT_TEXT_X;
+static int16_t MOD_OPT_LABEL_W;
+static int16_t MOD_OPT_VALUE_W;
+static int16_t MOD_OPT_SHOWN;
 
 /* 0 the row's left value, 1 the right one, -1 neither (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
 static int32_t modOptionValue(int32_t row)
@@ -5359,6 +5382,10 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_CLOCK != 0;
 	case 2:
 		return MOD_OPT_BARS != 0;
+#if FONT_SWITCH
+	case 4:
+		return FONT_PROPORTIONAL;
+#endif
 	}
 #if FPS == 20
 	return -1;
@@ -5383,39 +5410,76 @@ static void modSetOption(int32_t row, int32_t value)
 	case 3:
 		modSetFrameRate(value ? 60 : 20);
 		break;
+#if FONT_SWITCH
+	case 4:
+		modSetFont(value == 0);
+		break;
+#endif
 	}
 }
 
+/*
+ * The labels in the text area's first rows, the values in the rows under them (the original font's "JAPANESE CONTROLS"
+ * takes 200 of its 256 pixels), and the box laid out on the widest of each, centred on the screen.
+ */
 static void drawOptionsText(void)
 {
+	MenuHighlight *bar;
 	int32_t r;
+	int32_t w;
 
+	MOD_OPT_LABEL_W = 0;
+	MOD_OPT_VALUE_W = 0;
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		drawString(MOD_OPT_TEXT[r][0], 0, r * 0xC);
-		drawString(MOD_OPT_TEXT[r][1], MOD_OPT_VALUE_X, r * 0xC);
+		drawString(MOD_OPT_TEXT[r][1], 0, MOD_OPT_VALUE_Y + r * 0xC);
 		DrawSync(0);
-		drawString(MOD_OPT_TEXT[r][2], MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, r * 0xC);
+		drawString(MOD_OPT_TEXT[r][2], MOD_OPT_VALUE_X, MOD_OPT_VALUE_Y + r * 0xC);
 		DrawSync(0);
+		w = measureStringMode(MOD_OPT_TEXT[r][0], FIT_VANILLA) + 1; /* and the shadow */
+		MOD_OPT_LABEL_W = w > MOD_OPT_LABEL_W ? w : MOD_OPT_LABEL_W;
+		w = measureStringMode(MOD_OPT_TEXT[r][1], FIT_VANILLA) + 1;
+		MOD_OPT_VALUE_W = w > MOD_OPT_VALUE_W ? w : MOD_OPT_VALUE_W;
+		w = measureStringMode(MOD_OPT_TEXT[r][2], FIT_VANILLA) + 1;
+		MOD_OPT_VALUE_W = w > MOD_OPT_VALUE_W ? w : MOD_OPT_VALUE_W;
 	}
+	MOD_OPT_SHOWN = 2;
+	w = MOD_OPT_LABEL_W + 2 * (MOD_OPT_GAP + MOD_OPT_VALUE_W);
+	if (w + 2 * MOD_OPT_MARGIN > 0x140 - 0x10) {
+		MOD_OPT_SHOWN = 1;
+		w = MOD_OPT_LABEL_W + MOD_OPT_GAP + MOD_OPT_VALUE_W;
+	}
+	MOD_OPT_TEXT_X = (0x140 - w) / 2;
+	bar = &MENU_HIGHLIGHTS[22];
+	bar->x = MOD_OPT_TEXT_X - MOD_OPT_MARGIN + 5;
+	bar->w = w + 2 * MOD_OPT_MARGIN - 10;
 }
 
 static void renderOptionsMenu(void)
 {
 	POLY_FT4 *cur;
 	int32_t r;
+	int32_t x;
 	int32_t y;
 	int32_t value;
 
 	cur = (POLY_FT4 *)GsGetWorkBase();
+	x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		y = 0x37 + r * 0xC;
 		value = modOptionValue(r);
-		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_VALUE_X, 0xC, 0);
-		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X, y, MOD_OPT_VALUE_X, r * 0xC, MOD_OPT_VALUE_W, 0xC,
-			   value == 0 ? 2 : 1);
-		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, y, MOD_OPT_VALUE_X + MOD_OPT_VALUE_W,
-			   r * 0xC, MOD_OPT_VALUE_W, 0xC, value == 1 ? 2 : 1);
+		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_LABEL_W, 0xC, 0);
+		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the left one, grey, when neither is) */
+			renderText(cur++, x, y, value == 1 ? MOD_OPT_VALUE_X : 0, MOD_OPT_VALUE_Y + r * 0xC, MOD_OPT_VALUE_W,
+				   0xC, value >= 0 ? 2 : 1);
+			continue;
+		}
+		renderText(cur++, x, y, 0, MOD_OPT_VALUE_Y + r * 0xC, MOD_OPT_VALUE_W, 0xC, value == 0 ? 2 : 1);
+		renderText(cur++, x + MOD_OPT_VALUE_W + MOD_OPT_GAP, y, MOD_OPT_VALUE_X, MOD_OPT_VALUE_Y + r * 0xC,
+			   MOD_OPT_VALUE_W, 0xC, value == 1 ? 2 : 1);
 	}
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x30, 0x32, 0xE0, 0x16 + (MOD_OPT_ROWS - 1) * 0xC);
+	renderMenuBox(MOD_OPT_TEXT_X - MOD_OPT_MARGIN, 0x32,
+		      MOD_OPT_LABEL_W + MOD_OPT_SHOWN * (MOD_OPT_GAP + MOD_OPT_VALUE_W) + 2 * MOD_OPT_MARGIN,
+		      0x16 + (MOD_OPT_ROWS - 1) * 0xC);
 }
