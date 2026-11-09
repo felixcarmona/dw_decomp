@@ -602,13 +602,6 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 #endif
 
 	PARTNER_ENTITY.lives = modNewGame(MOD_NG_LIVES);
-	for (i = 0; i < 2; i++) {	/* MOD (species JSON): was Agumon and Gabumon by literal */
-		if (NEW_GAME_TECHNIQUES[i].type == type) {
-			PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = NEW_GAME_TECHNIQUES[i].animation;
-			learnMove(NEW_GAME_TECHNIQUES[i].technique);
-		}
-	}
-
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[1] = 0xff;
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[2] = 0xff;
 	for (i = 15; i >= 0; i--) {
@@ -628,6 +621,29 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 	addObject(0xfa8, 0, NULL, renderPoop);
 	HAS_IMMORTAL_HOUR = 0;
 	IMMORTAL_HOUR = -1;
+}
+
+/* Starter techniques belong to new games. Continue has already restored the
+ * learned bits; initializeLoadedMap restores the equipped slots afterward. */
+void modInitializeStarterTechniques(int32_t type)
+{
+	int32_t i;
+
+	/* The rebirth path equips the first list animation (0x2e). New starters
+	 * also learn that list entry; keep the two authored opening exceptions. */
+	PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x2e;
+	for (i = 0; i < 2; i++) {	/* MOD (species JSON): was Agumon and Gabumon by literal */
+		if (NEW_GAME_TECHNIQUES[i].type == type) {
+			PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = NEW_GAME_TECHNIQUES[i].animation;
+			learnMove(NEW_GAME_TECHNIQUES[i].technique);
+			break;
+		}
+	}
+
+	/* Fresh Bubble attacks are intrinsic, outside the learned-move bitset. */
+	if (i == 2 && DIGI_PARA(type).moves[0] < 0x3a) {
+		learnMove(DIGI_PARA(type).moves[0]);
+	}
 }
 
 void renderPoop(int32_t instanceId)
