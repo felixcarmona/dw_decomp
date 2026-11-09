@@ -2403,7 +2403,7 @@ static void renderCareHUD(void)
 			if (max <= 0)
 				max = 1;
 			else {
-				value = max - PARTNER_PARA.poopLevel;
+				value = PARTNER_PARA.poopLevel;
 				if (period > 0) {
 					active |= PARTNER_PARA.poopLevel <= 0;
 					warn = PARTNER_PARA.poopLevel * period <= 1200;
@@ -2421,6 +2421,8 @@ static void renderCareHUD(void)
 				/* ceil(100 / 18): the last native gauge step before exhaustion. */
 				warn = value + 6 >= period;
 			}
+			/* Energy remaining; condition thresholds still use raw fatigue. */
+			value = max - value;
 		}
 		/* Needs share light-blue fills; active changes only the icon palette. */
 		x = STATUS_UI_OFFSET_X + uv[2][icon];
