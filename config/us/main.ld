@@ -111,6 +111,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.text.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.text.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/npc_anim_trim.c.o(.text.*);
@@ -335,6 +337,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.rodata.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.rodata.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/npc_anim_trim.c.o(.rodata.*);
@@ -492,6 +496,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.data.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.data.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/npc_anim_trim.c.o(.data.*);
@@ -622,6 +628,8 @@ SECTIONS
         . = ALIGN(., 4);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.sdata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.sdata.*);
         . = ALIGN(., 4);
@@ -765,6 +773,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.sbss.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.sbss.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/npc_anim_trim.c.o(.sbss.*);
@@ -896,6 +906,8 @@ SECTIONS
         . = ALIGN(., 4);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.bss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_screen.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.bss.*);
         . = ALIGN(., 4);

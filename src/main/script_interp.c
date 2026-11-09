@@ -30,6 +30,7 @@
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
+#include <dw/screen.h>
 
 extern int8_t MAIN_STATE;
 extern int16_t SCRIPT_MAP_CHANGE_STATE;
@@ -673,7 +674,7 @@ void scriptInstruction10to27(op)
 		entry.scriptId = ACTIVE_MAP_SCRIPT;
 		entry.smth[0] = 1;
 		pushScriptStack(&entry);
-		ACTIVE_SCRIPT = getScript(shortArg);
+		ACTIVE_SCRIPT = shortArg == 0 ? getMapHeadScript(offset) : getScript(shortArg); /* MOD (screens beyond 255) */
 		SCRIPT_POINTER = getScriptSection(
 			(uint8_t *)(int32_t)ACTIVE_SCRIPT, offset);
 		break;
@@ -690,7 +691,7 @@ void scriptInstruction10to27(op)
 		break;
 	case SCRIPT_OP_JUMP_TO_FILE:
 		skipOneReadTwoShort(&shortArg, &offset);
-		ACTIVE_SCRIPT = getScript(shortArg);
+		ACTIVE_SCRIPT = shortArg == 0 ? getMapHeadScript(offset) : getScript(shortArg); /* MOD (screens beyond 255) */
 		SCRIPT_POINTER = getScriptSection(
 			(uint8_t *)(int32_t)ACTIVE_SCRIPT, offset);
 		break;
@@ -2216,7 +2217,8 @@ void callScriptSection(scriptId, section, param)
 {
 	int32_t i;
 
-	ACTIVE_SCRIPT = getScript(scriptId);
+	/* MOD (screens beyond 255): a new screen's MAPHEAD section is its SCRN.DAT record's script */
+	ACTIVE_SCRIPT = scriptId == 0 ? getMapHeadScript(section) : getScript(scriptId);
 	SCRIPT_POINTER =
 		getScriptSection((uint8_t *)(int32_t)ACTIVE_SCRIPT,
 	                         section);
