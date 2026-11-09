@@ -1644,14 +1644,14 @@ int32_t partnerWillRefuseItem(void)
 	item = TAMER_ITEM.worldItem.type;
 
 	if ((item >= 0x73) && (item != 0x79) && (item != 0x7A) &&
-	    (item < 0x7D))
+	    (item < 0x7C))
 		return 1;
 	if ((item >= 0x21) && (item < 0x26))
 		return 1;
 
 	if (((item >= 0x47) && (item < 0x73)) ||
-	    ((item >= 0x7D) && (item < 0x80))) {
-		if (item >= 0x7D) {
+	    ((item >= 0x7C) && (item < 0x80))) {
+		if (item >= 0x7C) {
 			/* MOD (evolution rules as data): the level the partner must have is MOD_EVO_ITEMS'; an item without a row does nothing */
 			ModEvoItem *modItem = getModEvoItem(item);
 
@@ -1662,7 +1662,7 @@ int32_t partnerWillRefuseItem(void)
 				return 1;
 		} else if (!modSpeciesAllowed(ITEM_EVOLUTION_TARGET(item)) ||
 			   DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level + 1 !=
-			   modOriginalLevel(ITEM_EVOLUTION_TARGET(item))) {
+			   modNativeItemTargetLevel(ITEM_EVOLUTION_TARGET(item))) {
 			/* Match handleEvoItems: only the predecessor stage may consume an item. */
 			return 1;
 		}

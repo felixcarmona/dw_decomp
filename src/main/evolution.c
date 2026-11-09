@@ -903,7 +903,7 @@ ModEvoItem *getModEvoItem(int32_t item)
 
 	for (i = 0; i < MOD_EVO_ITEM_MAX; i++) {
 		if (MOD_EVO_ITEMS[i].item == item && MOD_EVO_ITEMS[i].target >= 0)
-			return &MOD_EVO_ITEMS[i];
+			return modSpeciesAllowed(MOD_EVO_ITEMS[i].target) ? &MOD_EVO_ITEMS[i] : NULL;
 	}
 	return NULL;
 }
