@@ -1,6 +1,7 @@
 #include <libetc.h>
 
 #include <dw/mod_options.h>
+#include <dw/mod_version.h>
 #include <dw/mod_rules.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/btl.h>
@@ -181,7 +182,7 @@ int32_t MAIN_D_80134E7C;
 static int16_t MOD_PAUSE_HINT_WIDTH;
 
 #define PAUSE_HINT_TEXT_Y	0xE4 /* a text-area row only the status page shares: modPauseHintShow keeps what was there */
-#define PAUSE_HINT_TEXT_W	216
+#define PAUSE_HINT_TEXT_W	256
 #define PAUSE_HINT_TEXT_H	12
 #define PAUSE_HINT_BAR_LEFT	232 /* the box is centred left of the status bars */
 
@@ -427,41 +428,69 @@ void startMovie(int32_t movieId)
 
 /* MOD (cheats): the hint appears exactly when Select opens the menu (modLabMenu's guard). The pause can
  * interrupt a screen using the row, so its pixels wait in the caller's `saved` until modPauseHintHide */
-static void modPauseHintShow(u_long *saved)
+/* The version row is shared by menus/dialogue. Keep its 4-bit pixels on the pause
+ * stack, like the hint row: no resident buffer and no text writes during render. */
+#define PAUSE_HINT_WORDS (PAUSE_HINT_TEXT_W / 4 * PAUSE_HINT_TEXT_H / 2)
+#define PAUSE_VERSION_WORDS (0x100 / 4 * 0xC / 2)
+static uint8_t MOD_PAUSE_VERSION_VISIBLE;
+
+/* clearTextSubArea converts the rectangle to VRAM words in place. */
+static void modPauseTextSave(u_long *saved, int16_t y)
 {
 	RECT area;
 
-	if (!MOD_OPT_CHEATS || IS_SCRIPT_PAUSED != 1) {
-		return;
-	}
 	DrawSync(0);
-	setRECT(&area, TEXT_VRAM_X, TEXT_VRAM_Y + PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W / 4, PAUSE_HINT_TEXT_H);
+	setRECT(&area, TEXT_VRAM_X, TEXT_VRAM_Y + y, 0x100 / 4, 12);
 	StoreImage(&area, saved);
 	DrawSync(0);
-	setRECT(&area, 0, PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W, PAUSE_HINT_TEXT_H);
+	/* StoreImage reads the rectangle; its height is still 12. */
+	area.x = 0;
+	area.y = y;
+	area.w = 0x100;
 	clearTextSubArea(&area);
-	drawString(LAB_STR_PAUSE_HINT, 0, PAUSE_HINT_TEXT_Y);
-	MOD_PAUSE_HINT_WIDTH = measureStringMode(LAB_STR_PAUSE_HINT, FIT_VANILLA);
 }
 
-static void modPauseHintHide(u_long *saved)
+static void modPauseTextRestore(u_long *saved, int16_t y)
 {
 	RECT area;
 
-	if (MOD_PAUSE_HINT_WIDTH == 0) {
-		return;
-	}
-	MOD_PAUSE_HINT_WIDTH = 0;
-	setRECT(&area, 0, PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W, PAUSE_HINT_TEXT_H);
-	clearTextSubArea(&area); /* and forgets the last glyph's cell */
-	setRECT(&area, TEXT_VRAM_X, TEXT_VRAM_Y + PAUSE_HINT_TEXT_Y, PAUSE_HINT_TEXT_W / 4, PAUSE_HINT_TEXT_H);
+	setRECT(&area, 0, y, 0x100, 12);
+	clearTextSubArea(&area); /* also forget the last glyph's cell */
 	LoadImage(&area, saved);
 	DrawSync(0);
 }
 
+static void modPauseHintShow(u_long *saved)
+{
+	if (IS_SCRIPT_PAUSED != 1) {
+		return;
+	}
+	MOD_PAUSE_VERSION_VISIBLE = MOD_VERSION_TEXT[0];
+	if (MOD_PAUSE_VERSION_VISIBLE) {
+		modPauseTextSave(saved + PAUSE_HINT_WORDS, MOD_VERSION_ROW);
+		modVersionDraw();
+	}
+	if (MOD_OPT_CHEATS) {
+		modPauseTextSave(saved, PAUSE_HINT_TEXT_Y);
+		MOD_PAUSE_HINT_WIDTH = drawStringMode(LAB_STR_PAUSE_HINT, 0, PAUSE_HINT_TEXT_Y, FIT_VANILLA);
+	}
+}
+
+static void modPauseHintHide(u_long *saved)
+{
+	if (MOD_PAUSE_HINT_WIDTH != 0) {
+		MOD_PAUSE_HINT_WIDTH = 0;
+		modPauseTextRestore(saved, PAUSE_HINT_TEXT_Y);
+	}
+	if (MOD_PAUSE_VERSION_VISIBLE) {
+		MOD_PAUSE_VERSION_VISIBLE = 0;
+		modPauseTextRestore(saved + PAUSE_HINT_WORDS, MOD_VERSION_ROW);
+	}
+}
+
 void handlePause(void)
 {
-	u_long hintPixels[PAUSE_HINT_TEXT_W / 4 * PAUSE_HINT_TEXT_H / 2];
+	u_long hintPixels[PAUSE_HINT_WORDS + PAUSE_VERSION_WORDS];
 
 	if (PAUSE_BOX_VISIBLE != 0) {
 		removePauseBox();
@@ -553,6 +582,9 @@ void renderPauseBox(instanceId)
 #else
 	renderString(0, pos->x + 6, pos->y + 6, 0x2A, 0xC, 0x78, 0xF0, 0, 1);
 #endif
+	if (MOD_PAUSE_VERSION_VISIBLE) {
+		modVersionRenderAt(MOD_VERSION_PAUSE_TOP);
+	}
 	if (MOD_PAUSE_HINT_WIDTH != 0) {
 		RECT hint;
 
