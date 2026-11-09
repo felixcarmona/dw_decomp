@@ -15,6 +15,7 @@
 #include <dw/main.h>
 #include <dw/math.h>
 #include <dw/mod_qol.h>
+#include <dw/mod_hard.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -328,10 +329,12 @@ void STD_initializeOpponent(int16_t type, int16_t slot, uint8_t tier)
 	if (stats->base.mp >= 0x2710) {
 		stats->base.mp = 0x270f;
 	}
+
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 	stats->current.currentHP = stats->base.hp;
 	stats->current.currentMP = stats->base.mp;
 #endif
+	modHardEnemy(stats);
 	stats->current.chargeMode = 0;
 	ENTITY_TABLE[slot + 2]->isOnMap = 1;
 	ENTITY_TABLE[slot + 2]->isOnScreen = 1;

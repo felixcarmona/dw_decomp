@@ -86,7 +86,8 @@ void modSetStory(int32_t extended);
  */
 #define MOD_DIFF_NORMAL	0
 #define MOD_DIFF_EASY	1
-extern int32_t MOD_OPT_DIFFICULTY; /* DIFFICULTY: MOD_DIFF_EASY or MOD_DIFF_NORMAL */
+#define MOD_DIFF_HARD	2
+extern int32_t MOD_OPT_DIFFICULTY; /* Saved values: NORMAL=0, EASY=1, HARD=2. */
 extern int32_t MOD_OPT_QUICK_BATTLE; /* QUICK BATTLE START: a field battle starts at once, its intro over the fight (battle_setup.c, btl.c); 0 = the original start */
 /* the damage `dmg` that `attacker` deals `defender` with the difficulty (`partner`: the partner's entity) */
 #define MOD_DIFF_DAMAGE(attacker, defender, partner, dmg)                                                              \

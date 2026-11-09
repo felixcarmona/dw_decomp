@@ -1,4 +1,5 @@
 #include <dw/mod_battle.h>
+#include <dw/mod_hard.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/attack_object.h>
@@ -78,6 +79,21 @@ void BTL_initializeCombat(void)
 		COMBAT_DATA_PTR->player.usedMoves[i] = 0xff;
 	}
 
+	/* Keep reward/restoration inputs unscaled, including on HARD. */
+	for (i = 0; i <= ENEMY_COUNT; i++) {
+		stats = &((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]])->stats;
+		dst = (int16_t *)&INITIAL_COMBAT_STATS[i];
+		*dst++ = stats->base.hp;
+		*dst++ = stats->base.mp;
+		*dst++ = stats->base.off;
+		*dst++ = stats->base.def;
+		*dst++ = stats->base.speed;
+		*dst = stats->base.brain;
+	}
+
+	for (i = 1; i <= ENEMY_COUNT; i++) {
+		modHardEnemy(&((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]])->stats);
+	}
 	BTL_addEnemyHPBars();
 	BTL_initializePartnerStatusBars();
 	drawInventoryText();
@@ -181,16 +197,6 @@ void BTL_initializeCombat(void)
 	COMBAT_DATA_PTR->player.hoveredCommand[0] = COMBAT_DATA_PTR->player.numCommands[0] - 1;
 	COMBAT_DATA_PTR->player.currentCommand[0] = COMBAT_DATA_PTR->player.bufferedCommand[0] = 3;
 
-	for (i = 0; i <= ENEMY_COUNT; i++) {
-		stats = &((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]])->stats;
-		dst = (int16_t *)&INITIAL_COMBAT_STATS[i];
-		*dst++ = stats->base.hp;
-		*dst++ = stats->base.mp;
-		*dst++ = stats->base.off;
-		*dst++ = stats->base.def;
-		*dst++ = stats->base.speed;
-		*dst = stats->base.brain;
-	}
 
 	if ((PARTNER_PARA.condition & 0x60) != 0) {
 		stats = &PARTNER_ENTITY.digimonEntity.stats;
