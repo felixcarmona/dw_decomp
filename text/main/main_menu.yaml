@@ -378,8 +378,8 @@ MOD_OPTIONS:
       ja: "NORMAL"
       en_us: "NORMAL"
     MOD_NOTICE_STR_HEAD1:
-      ja: "Detected emulator enhancements"
-      en_us: "Detected emulator enhancements"
+      ja: "In an emulator, the game can run smoother"
+      en_us: "In an emulator, the game can run smoother"
     MOD_NOTICE_STR_RAM:
       ja: "8 MB RAM"
       en_us: "8 MB RAM"
@@ -392,9 +392,9 @@ MOD_OPTIONS:
     MOD_NOTICE_STR_READY:
       ja: "READY"
       en_us: "READY"
-    MOD_NOTICE_STR_FPS:
-      ja: "%d FPS"
-      en_us: "%d FPS"
+    MOD_NOTICE_STR_HEAD2:
+      ja: "if you turn on these options:"
+      en_us: "if you turn on these options:"
     MOD_OPT_STR_QUICK:
       ja: "QUICK BATTLE START"
       en_us: "QUICK BATTLE START"
