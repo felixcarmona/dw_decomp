@@ -3984,7 +3984,7 @@ void initializeLoadedMap(void)
 	 * A second, queued pan keeps aiming at this snapshot while the tamer
 	 * walks; asynchronous camera bands can then leave him outside the view. */
 	setImmortalHour();
-	initializeDrawingOffsets(MAP_TILE_DATA.tiles);
+	initializeLoadedDrawingOffsets();
 
 	MAP_TILE_X = MAP_TILE_DATA.cameraX / 128;
 	if (MAP_TILE_DATA.width < 5) {

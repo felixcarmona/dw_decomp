@@ -74,6 +74,7 @@ extern int8_t MAP_TILE_Y;
 extern MapLightUpdateData MAP_LIGHT_UPDATE_DATA[];
 
 void initializeDrawingOffsets(MapTileData *tiles);
+void initializeLoadedDrawingOffsets(void);
 void clearMapObjects(LocalMapObjectInstance *instances);
 void calcMapObjectOrder(LocalMapObjectInstance *instances);
 void renderMapOverlays(LocalMapObjectInstance *instances, int16_t screenX, int16_t screenY);
