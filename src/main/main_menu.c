@@ -134,6 +134,18 @@ typedef struct {
 	RegisteredDigimon battleRegistrationData[40];
 } SavegamePayload;
 
+/*
+ * MOD: the v1 save layout must not change while the ids widen in RAM
+ * (docs/mods/ids.md, step 3). The ids are written as their low byte.
+ */
+#define SAVE_LAYOUT_CHECK(name, cond) typedef char save_layout_##name[(cond) ? 1 : -1]
+SAVE_LAYOUT_CHECK(size, sizeof(SavegamePayload) == 0xF00);
+SAVE_LAYOUT_CHECK(inventory, __builtin_offsetof(SavegamePayload, inventory) == 0x40C);
+SAVE_LAYOUT_CHECK(inventorySize, sizeof(((SavegamePayload *)0)->inventory) == 0x5B);
+SAVE_LAYOUT_CHECK(playerName, __builtin_offsetof(SavegamePayload, playerName) == 0x467);
+SAVE_LAYOUT_CHECK(currentScreen, __builtin_offsetof(SavegamePayload, currentScreen) == 0x49A);
+SAVE_LAYOUT_CHECK(checksum, __builtin_offsetof(SavegamePayload, checksum) == 0x4FC);
+
 typedef struct {
 	char id[2];
 	uint8_t iconDisplayFlag;
@@ -220,7 +232,7 @@ extern char *MOVE_NAMES[];
 extern char *MAP_NAME_PTR[];
 #endif
 
-int8_t getFileCityTopMap(void);
+int32_t getFileCityTopMap(void);
 void renderUIBoxBorder(RECT *rect, int32_t flag);
 void SetPolyG4(POLY_G4 *prim);
 void recalculatePPandArena(void);
@@ -4025,8 +4037,9 @@ void writeSavegame(SavegamePayload *savegame)
 	memcpy(savegame->playerName, DIGIMON_NAME(0), 0x14);
 	memcpy(savegame->worldPoop, WORLD_POOP, 0x190);
 	savegame->partnerPara = PARTNER_PARA;
-	savegame->currentScreen = CURRENT_SCREEN;
-	savegame->previousScreen = PREVIOUS_SCREEN;
+	/* MOD: the v1 save keeps the low byte (exact while ids are < 255) */
+	savegame->currentScreen = (uint8_t)CURRENT_SCREEN;
+	savegame->previousScreen = (uint8_t)PREVIOUS_SCREEN;
 	savegame->currentExit = CURRENT_EXIT;
 	savegame->previousExit = PREVIOUS_EXIT;
 	savegame->merit = MERIT;

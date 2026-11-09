@@ -20,8 +20,8 @@ typedef struct {
 	Stats partnerStats;
 	int8_t lives;
 	int8_t npcMaps[8];
-	uint8_t currentScreen;
-	uint8_t previousScreen;
+	ScreenId currentScreen; /* MOD: u8 in the save */
+	ScreenId previousScreen;
 	uint8_t currentExit;
 	uint8_t previousExit;
 	int8_t tamerWaypointX[30];
