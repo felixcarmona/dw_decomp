@@ -5023,13 +5023,13 @@ void modNoticeDraw(void)
 
 	MOD_NOTICE_CACHE.spins = MOD_CPU_SPINS;
 #if FPS != 20
-	MOD_NOTICE_CACHE.mode = MOD_FPS_MODE_RUN;
+	MOD_NOTICE_CACHE.mode = modFrameRateLevel();
 #else
 	MOD_NOTICE_CACHE.mode = 0;
 #endif
 	sprintf(ram, MOD_NOTICE_STR_RAM, MOD_NOTICE & MOD_NOTICE_NO_RAM ? 2 : 8);
 	sprintf(cpu, MOD_NOTICE_STR_CPU, modNoticePercent(MOD_NOTICE_CACHE.spins));
-	sprintf(fps, MOD_NOTICE_STR_FPS, MOD_NOTICE_CACHE.mode == 2 ? 60 : 20);
+	sprintf(fps, MOD_NOTICE_STR_FPS, MOD_NOTICE_CACHE.mode == 2 ? 60 : MOD_NOTICE_CACHE.mode == 1 ? 30 : 20);
 	text[0] = MOD_NOTICE_STR_HEAD1;
 	text[1] = MOD_NOTICE_STR_HEAD2;
 	text[2] = ram;
@@ -5055,7 +5055,7 @@ void modNoticeRender(void)
 {
 	if (MOD_NOTICE_CACHE.spins != MOD_CPU_SPINS
 #if FPS != 20
-	    || MOD_NOTICE_CACHE.mode != MOD_FPS_MODE_RUN
+	    || MOD_NOTICE_CACHE.mode != modFrameRateLevel()
 #endif
 	) {
 		modNoticeDraw();

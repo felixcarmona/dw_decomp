@@ -37,7 +37,8 @@ void modPresent(int32_t flags, ModRollbackSet *extra);
  * modTickStart; the scene arms it again from its tick. The player's 20 fps
  * option still takes precedence. */
 /* 0: inactive; 1/2: normal/early half of a steady 30 fps pair;
- * 4: curling at the requested rate, with deferred tile uploads. */
+ * 4: curling at the requested rate, with deferred tile uploads;
+ * 8 | 1/2 and 16: the same halves and one frame at 3/3, armed by the ladder in main.c (no curling tile flush). */
 extern int32_t MOD_RENDER_CADENCE;
 
 /* MOD (battle speed, main.c): the R2 switch; set before modTickStart when the coming tick may run fast (it clears
