@@ -5113,6 +5113,7 @@ static __attribute__((noinline)) void chartCardBuild(int32_t target)
 
 	/* weight */
 	tol = evoAmt(MOD_EVF_SCORE_WEIGHT_TOL);
+	r.weight = evoTargetWeight(CHART_DETAIL_ID, target);
 	chartRange(a, CHART_TEXT_WEIGHT, r.weight - tol, r.weight + tol);
 	chartCardLine(a, PARTNER_PARA.weight, met & EVO_MET_WEIGHT, 1, 0, NULL);
 

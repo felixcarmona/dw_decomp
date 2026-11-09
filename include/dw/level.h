@@ -353,6 +353,7 @@ int32_t evoPassPoints(void);
 #define EVO_MET_WEIGHT	2
 #define EVO_MET_STATS	4
 #define EVO_MET_BONUS	8
+int32_t evoTargetWeight(int32_t current, int16_t target);
 int32_t evoRequirementsMet(int32_t current, int16_t target, int8_t isMaxCM, int8_t isMaxBattles);
 int32_t evoRequirementPoints(int32_t met);
 int32_t evoPartnerTopStat(void);
