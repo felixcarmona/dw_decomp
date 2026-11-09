@@ -11,6 +11,7 @@
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/species.h>
+#include <dw/mod_options.h>
 
 #include "common.h"
 
@@ -61,6 +62,30 @@ static EvoStatsGains NO_EVO_GAINS;
 
 static uint8_t SPECIES_VANILLA[SPECIES_VANILLA_BYTES];
 static int8_t SPECIES_HAS_VANILLA;
+/* MOD (canon levels): {id, level with NEW DIGIMON on, off} (SPECIES_HEADER_LEVEL_OFF) */
+static uint8_t SPECIES_LEVEL_SWAP[SPECIES_LEVEL_SWAP_MAX][3];
+static int32_t SPECIES_LEVEL_SWAPS;
+
+void modApplySpeciesLevels(void)
+{
+	int32_t i;
+
+	for (i = 0; i < SPECIES_LEVEL_SWAPS; i++) {
+		DIGIMON_DATA[SPECIES_LEVEL_SWAP[i][0]].level = SPECIES_LEVEL_SWAP[i][MOD_OPT_NEW_DIGIMON ? 1 : 2];
+	}
+}
+
+int32_t modOriginalLevel(int32_t type)
+{
+	int32_t i;
+
+	for (i = 0; i < SPECIES_LEVEL_SWAPS; i++) {
+		if (SPECIES_LEVEL_SWAP[i][0] == type) {
+			return SPECIES_LEVEL_SWAP[i][2];
+		}
+	}
+	return DIGI_PARA(type).level;
+}
 
 int32_t isVanillaSpecies(int32_t type)
 {
@@ -321,6 +346,7 @@ void initializeSpecies(void)
 	SPECIES_CITY_SECTOR = 0;
 	SPECIES_PARTNER_COUNT = 0;
 	SPECIES_FIRST_MEGA = 0;
+	SPECIES_LEVEL_SWAPS = 0;
 	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
 		SPECIES_RECORD_ORIGINALS[i] = 0;
 	}
@@ -370,6 +396,13 @@ void initializeSpecies(void)
 		SPECIES_VANILLA[i] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_VANILLA + i];
 		SPECIES_HAS_VANILLA |= SPECIES_VANILLA[i] != 0;
 	}
+	/* MOD (canon levels): the originals' levels with NEW DIGIMON on and off */
+	for (i = 0; i < ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVEL_OFF] && i < SPECIES_LEVEL_SWAP_MAX; i++) {
+		SPECIES_LEVEL_SWAP[i][0] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVEL_OFF + 1 + i * 3];
+		SPECIES_LEVEL_SWAP[i][1] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVEL_OFF + 2 + i * 3];
+		SPECIES_LEVEL_SWAP[i][2] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVEL_OFF + 3 + i * 3];
+	}
+	SPECIES_LEVEL_SWAPS = i;
 	SPECIES_FALLBACK_PORTRAIT = header->fallbackPortrait;
 	SPECIES_CHART_SECTOR = header->chartSector;
 	SPECIES_CITY_SECTOR = ((uint32_t *)header)[14];
@@ -398,6 +431,7 @@ void initializeSpecies(void)
 			copyRecordOriginal(i);
 		}
 	}
+	modApplySpeciesLevels();
 }
 
 int32_t getSpeciesPartnerCount(void)
