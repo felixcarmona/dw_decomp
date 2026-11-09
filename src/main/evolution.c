@@ -966,9 +966,46 @@ int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
   return currentBest;
 }
 
+/* Ordinary evolution entropy only: RAM, never written to the memory card.
+ * COUNT reads match Psy-Q GetRCnt; leave MODE/TARGET and IRQ ownership alone. */
+static uint32_t evolutionEntropy;
+static uint32_t evolutionPad;
+/* PadInit supplies this destination to the BIOS, which refreshes it on VBlank. */
+extern volatile uint32_t pad_buf;
+/* Psy-Q VSync(-1) returns this existing refresh counter. */
+extern volatile uint32_t Vcount[];
+
+static uint32_t evolutionTimers(void)
+{
+  uint32_t ticks = *(volatile uint16_t *)0x1F801100;
+  ticks |= (uint32_t)*(volatile uint16_t *)0x1F801120 << 16;
+  return ticks ^ Vcount[0];
+}
+
+void mixEvolutionInput(void)
+{
+  uint32_t buttons = pad_buf;
+  if (buttons != evolutionPad) {
+    evolutionPad = buttons;
+    evolutionEntropy = ((evolutionEntropy << 5) | (evolutionEntropy >> 27)) ^
+                       evolutionTimers();
+  }
+}
+
+static int32_t evolutionTimingSample(void)
+{
+  uint32_t mix = evolutionEntropy ^ evolutionTimers();
+  /* Spread a one-frame difference through the low 15 bits before the XOR.
+   * XOR with an independent uniform RNG draw preserves its uniformity. */
+  mix ^= mix >> 16;
+  mix *= 0x45d9f3bu;
+  mix ^= mix >> 16;
+  return mix & 32767;
+}
+
 /* Admission is independent of the roll, including the route-order raised filter.
  * A first unraised qualifier becomes the history anchor, excluding later raised
- * targets. Earlier admitted targets remain eligible. No persistent pool or data. */
+ * targets. Earlier admitted targets remain eligible. Qualifiers live on the stack. */
 static int16_t chooseQualifiedEvolution(int32_t currentDigimon, int32_t roll)
 {
   DigimonId *targets = getEvolutionPath(currentDigimon)->to;
@@ -993,12 +1030,11 @@ static int16_t chooseQualifiedEvolution(int32_t currentDigimon, int32_t roll)
   /* Training only asks whether a target exists. Never consume RNG there. */
   if (!roll || count == 1)
     return qualified[0];
-  /* The existing RNG has 15 bits. Mix the live refresh counter at evolution,
-   * not saved age/time or a new-game seed: reload timing can change the choice.
+  /* Mix input timing retained since load plus the live sub-frame timers.
    * Reject the short tail rather than give the first slots extra probability. */
   ceiling = 32768 - 32768 % count;
   do {
-    sample = randomLimit(32768) ^ (VSync(-1) & 32767);
+    sample = randomLimit(32768) ^ evolutionTimingSample();
   } while (sample >= ceiling);
   return qualified[sample % count];
 }
