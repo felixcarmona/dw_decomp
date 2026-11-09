@@ -42,9 +42,6 @@ int32_t modSpeciesAllowed(int32_t type);
  * MOD_SWAP_TO is turned back (main_menu.c, SAVE_TAG_VANILLA_SWAP) */
 extern int16_t MOD_SWAP_FROM;
 extern int16_t MOD_SWAP_TO;
-/* FRAME RATE: the rate the game is shown at, 30 or 60 (20 in an FPS=20 build, which has no choice) */
-int32_t modFrameRate(void);
-void modSetFrameRate(int32_t fps);
 /* a TIM of ETCTIM.BIN was uploaded (loadStackedTIMFile): the SYSTEM_W page's button frames */
 void modButtonsTimLoaded(GsIMAGE *img);
 /* at boot: a disc whose dialogue box button is the Japanese ○ starts with JAPANESE CONTROLS on (saved options win) */

@@ -395,15 +395,6 @@ MOD_OPTIONS:
     MOD_OPT_STR_QUICK:
       ja: "QUICK BATTLE START"
       en_us: "QUICK BATTLE START"
-    MOD_OPT_STR_FPS:
-      ja: "FRAME RATE"
-      en_us: "FRAME RATE"
-    MOD_OPT_STR_20:
-      ja: "20 FPS"
-      en_us: "20 FPS"
-    MOD_OPT_STR_60:
-      ja: "60 FPS"
-      en_us: "60 FPS"
     MOD_OPT_STR_FONT:
       ja: "FONT"
       en_us: "FONT"
