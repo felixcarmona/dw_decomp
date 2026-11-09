@@ -3,6 +3,7 @@
 #include <dw/mod_options.h>
 #include <dw/btl.h> /* MOD (care menu): ACTIVE_ORDERING_TABLE for the X badge */
 #include <dw/bubble.h>
+#include <dw/clock.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -779,15 +780,51 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 	int32_t drawn = 0;
 	int32_t big = -1;
 	int32_t full = 0;
+	int32_t left = 0x8000;
+	int32_t right = -0x8000;
 	int32_t j;
 
 	for (j = 0; j < 8; ++j) {
 		ringBubbleAt(j, p, &bx[j], &by[j], &bs[j], &bt[j]);
+		if (bs[j] > 24) {
+			int32_t edge = (13 * bs[j]) >> 4;
+			if (bx[j] - edge < left) {
+				left = bx[j] - edge;
+			}
+			/* Include the legacy badge's full lower-right footprint. */
+			if (MOD_RING_BADGE > 0) {
+				edge = ((168 * bs[j]) >> 8) + RING_BADGE_W * 16 / 3 + RING_BADGE_W * 8;
+			}
+			if (bx[j] + edge > right) {
+				right = bx[j] + edge;
+			}
+		}
 		if (bs[j] > (RING_SIZE * 9) / 10) {
 			++full;
 		}
 		if (bs[j] > 24 && (big < 0 || bs[j] > bs[big])) {
 			big = j;
+		}
+	}
+	/* Move the complete group at the screen sides, preserving every relative
+	 * bubble and badge offset. The existing top clamp covers both rows. */
+	if (left != 0x8000) {
+		int32_t screenLeft = x + ((left * k) >> 16) + DRAWING_OFFSET_X;
+		int32_t screenRight = x + ((right * k) >> 16) + DRAWING_OFFSET_X;
+		int32_t inset = 3;
+		int32_t clockRight = CLOCK_OFFSET_X + 160 + 50;
+		/* The sliding clock occupies the upper-left corner, including its
+		 * digital plate. Its HUD origin is fixed at 160, independent of the
+		 * world camera offset. Keep the group beside those visible pixels. */
+		if (clockRight > 0 && cy0 + DRAWING_OFFSET_Y - ((32 * k) >> 12) < 86 &&
+		    screenLeft < clockRight + 3 &&
+		    screenRight + (screenLeft < 3 ? 3 - screenLeft : 0) > clockRight - 52) {
+			inset = clockRight + 3;
+		}
+		if (screenLeft < inset) {
+			x += inset - screenLeft;
+		} else if (screenRight > 317) {
+			x -= screenRight - 317;
 		}
 	}
 	/* the bottom row first, then the bigger: drawn first is on top (same
