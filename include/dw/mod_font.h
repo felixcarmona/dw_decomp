@@ -3,10 +3,11 @@
 
 /*
  * MOD (font): the build's font (Makefile `FONT=original|b`, generated font_sel.h; docs/mods/font.md "Fonts").
- * FONT_SWITCH: a FONT=b build carries both fonts, and the title menu's OPTIONS (NEW FONT) chooses one at run time.
- * FONT_PROPORTIONAL is then true while font b draws: glyphs placed to the pixel (font.c drawGlyph), their width their
- * advance in pixels; otherwise (NEW FONT off, or a FONT=original build) the original code: a 12-pixel cell on the
- * 4-pixel grid of the text area.
+ * FONT_SWITCH: a FONT=b build carries both fonts, and the title menu's OPTIONS (FONT) chooses at run time: NEW (font
+ * b), CLASSIC (the original letters placed to the pixel, evenly spaced) or ORIGINAL (the original code). FONT_PROPORTIONAL
+ * is then true for NEW and CLASSIC: glyphs placed to the pixel (font.c drawGlyph), their width their advance in pixels;
+ * otherwise (ORIGINAL, or a FONT=original build) the original code: a 12-pixel cell on the 4-pixel grid of the text
+ * area.
  */
 #include <font_sel.h>
 #include <dw/types.h>
@@ -14,14 +15,17 @@
 
 #if defined(FONT_B) && VERSION_IS(US)
 #define FONT_SWITCH 1
-extern int8_t MOD_FONT_ORIGINAL; /* NEW FONT off: the original font (font.c) */
-#define FONT_PROPORTIONAL (!MOD_FONT_ORIGINAL)
+#define MOD_FONT_NEW		0 /* font b */
+#define MOD_FONT_ORIGINAL	1 /* the original font, as the original draws it */
+#define MOD_FONT_CLASSIC	2 /* the original letters placed to the pixel */
+extern int8_t MOD_FONT; /* OPTIONS' FONT (font.c) */
+#define FONT_PROPORTIONAL (MOD_FONT != MOD_FONT_ORIGINAL)
 /* the font changes (OPTIONS, a loaded save): the text from now on is drawn in it, and the script text is read from the
- * files paged for it (script_interp.c modFontScriptsChanged) */
-void modSetFont(int32_t original);
+ * files paged for it (script_interp.c modFontScriptsChanged; CLASSIC reads the original font's, which it draws narrower) */
+void modSetFont(int32_t font);
 void modFontScriptsChanged(void);
-/* `path`, or with NEW FONT off the file `originalFont` (no directory) paged for the original font when the disc has it
- * (file.c) */
+/* `path`, or with the original letters (ORIGINAL, CLASSIC) the file `originalFont` (no directory) paged for the original
+ * font when the disc has it (file.c) */
 char *modFontFile(char *path, char *originalFont);
 #define FONT_FILE(path, originalFont) modFontFile(path, originalFont)
 #else

@@ -1398,28 +1398,81 @@ static int32_t glyphColor(uint16_t codepoint)
 #endif
 
 #if FONT_SWITCH
-/* the rows of a glyph of font b (GLYPH_HEIGHT, then its width) */
-static uint16_t *glyphRows(uint16_t codepoint)
+/* the rows of the glyph `code` (Shift-JIS, big endian) in a font's tables: GLYPH_HEIGHT, then its width */
+static uint16_t *lookupGlyph(uint16_t code, const GlyphData *glyphs, const GlyphData *extras)
 {
-	uint16_t code;
 	int32_t n;
 
-	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
-	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
-	if (code == FONT_FIGURE_SPACE) {
-		return (uint16_t *)FIGURE_SPACE_GLYPH.pixelData;
-	}
 	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
 	if ((code & 0xff) > 0x7f) {
 		n--;
 	}
 	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
-		return (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+		return (uint16_t *)extras[n].pixelData;
 	}
 	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
 	}
-	return GLYPH_DATA[n].pixelData;
+	return (uint16_t *)glyphs[n].pixelData;
+}
+
+/*
+ * MOD (font): CLASSIC, the original letters placed to the pixel. A glyph of the original font made at the draw: its ink
+ * moved to the cell's first column and its advance the ink and one blank column, as font b's; a glyph without ink keeps
+ * its width (a space: 4). The digits share one advance, 7 (the widest digit's ink, 6, and the blank), each centred in
+ * it, and the figure space is as wide, so numbers stay right-aligned. The high byte keeps the original width (its cell).
+ */
+#define CLASSIC_DIGIT_ADVANCE 7
+static uint16_t CLASSIC_GLYPH[GLYPH_HEIGHT + 1];
+
+static uint16_t *classicRows(uint16_t code)
+{
+	uint16_t *p;
+	uint32_t ink;
+	int32_t left;
+	int32_t right;
+	int32_t adv;
+	int32_t i;
+
+	p = lookupGlyph(code == FONT_FIGURE_SPACE ? 0x8140 : code, CELL_GLYPH_DATA, CELL_EXTRA_GLYPH_DATA);
+	ink = 0;
+	for (i = 0; i < GLYPH_HEIGHT; i++) {
+		ink |= ~p[i] & 0xfff0; /* 0 = ink */
+	}
+	left = 0;
+	adv = p[GLYPH_HEIGHT] & 0xff;
+	if (ink != 0) {
+		for (; (ink & (0x8000 >> left)) == 0; left++) {
+		}
+		for (right = GLYPH_WIDTH - 1; (ink & (0x8000 >> right)) == 0; right--) {
+		}
+		adv = right - left + 2;
+	}
+	if ((code >= 0x824f && code <= 0x8258) || code == FONT_FIGURE_SPACE) {
+		left -= (CLASSIC_DIGIT_ADVANCE - adv) / 2;
+		adv = CLASSIC_DIGIT_ADVANCE;
+	}
+	for (i = 0; i < GLYPH_HEIGHT; i++) {
+		CLASSIC_GLYPH[i] = left >= 0 ? (p[i] << left) | ((1 << left) - 1) : (p[i] >> -left) | (0xffff << (16 + left));
+	}
+	CLASSIC_GLYPH[GLYPH_HEIGHT] = (p[GLYPH_HEIGHT] << 8) | adv;
+	return CLASSIC_GLYPH;
+}
+
+/* the rows of a glyph placed to the pixel (GLYPH_HEIGHT, then its width: the advance, the original width above it) */
+static uint16_t *glyphRows(uint16_t codepoint)
+{
+	uint16_t code;
+
+	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
+	if (MOD_FONT == MOD_FONT_CLASSIC) {
+		return classicRows(code);
+	}
+	if (code == FONT_FIGURE_SPACE) {
+		return (uint16_t *)FIGURE_SPACE_GLYPH.pixelData;
+	}
+	return lookupGlyph(code, GLYPH_DATA, EXTRA_GLYPH_DATA);
 }
 
 #ifdef FONT_KERN
@@ -1434,6 +1487,9 @@ int32_t kernOf(uint16_t prev, uint16_t code)
 	const uint16_t *right;
 	int32_t i;
 
+	if (MOD_FONT != MOD_FONT_NEW) {
+		return 0; /* CLASSIC: the original letters, without font b's pairs */
+	}
 	for (r = KERN_RULES; r[0] != 0; r = right + r[2]) {
 		right = r + 3 + r[1];
 		for (i = 0; i < r[1] && r[3 + i] != prev; i++) {
@@ -1702,22 +1758,29 @@ static int32_t drawGlyphPixel(uint16_t codepoint, uint16_t x, uint16_t y)
  * MOD (font): the font changes (OPTIONS' NEW FONT, a loaded save's options): the next glyph starts a ring and a row of
  * its own (the two fonts lay out the same buffer in slots of their own sizes)
  */
-int8_t MOD_FONT_ORIGINAL;
+int8_t MOD_FONT;
 
-void modSetFont(int32_t original)
+void modSetFont(int32_t font)
 {
-	original = original != 0;
-	if (original == MOD_FONT_ORIGINAL) {
+	int32_t files;
+
+	if (font != MOD_FONT_ORIGINAL && font != MOD_FONT_CLASSIC) {
+		font = MOD_FONT_NEW;
+	}
+	if (font == MOD_FONT) {
 		return;
 	}
 	DrawSync(0);
-	MOD_FONT_ORIGINAL = original;
+	files = (font == MOD_FONT_NEW) != (MOD_FONT == MOD_FONT_NEW); /* the script text is paged for another font */
+	MOD_FONT = font;
 	GLYPH_DRAWING_AREA_INDEX = 0;
 	GLYPH_CARRY_Y = -1;
 #ifdef FONT_KERN
 	KERN_PREV_Y = -1;
 #endif
-	modFontScriptsChanged();
+	if (files) {
+		modFontScriptsChanged();
+	}
 }
 
 static int32_t drawGlyphCells(uint16_t codepoint, uint16_t x, uint16_t y);
@@ -2021,21 +2084,30 @@ static int32_t measureStringModePixel(char *str, int32_t mode)
 static int32_t measureStringModeCells(char *str, int32_t mode);
 static int32_t fitStringModeCells(char *str, int32_t maxW);
 static int32_t drawStringModeCells(char *str, int32_t x, int32_t y, int32_t mode);
-static int32_t textFitCodeCells(char *str, int32_t maxW);
 
+/*
+ * NEW: every name fits as font b draws it. ORIGINAL: the original's modes. CLASSIC: the name as the font draws it when it
+ * fits, else the original's tight or condensed line (tight is the same letters one column apart, as CLASSIC places them)
+ */
 int32_t measureStringMode(char *str, int32_t mode)
 {
-	return FONT_PROPORTIONAL ? measureStringModePixel(str, mode) : measureStringModeCells(str, mode);
+	return FONT_PROPORTIONAL && mode == FIT_VANILLA ? measureStringModePixel(str, mode) : measureStringModeCells(str, mode);
 }
 
 int32_t fitStringMode(char *str, int32_t maxW)
 {
-	return FONT_PROPORTIONAL ? FIT_VANILLA : fitStringModeCells(str, maxW);
+	int32_t mode;
+
+	if (MOD_FONT == MOD_FONT_NEW || (MOD_FONT == MOD_FONT_CLASSIC && measureStringModePixel(str, FIT_VANILLA) <= maxW)) {
+		return FIT_VANILLA;
+	}
+	mode = fitStringModeCells(str, maxW);
+	return MOD_FONT == MOD_FONT_CLASSIC && mode == FIT_VANILLA ? FIT_TIGHT : mode;
 }
 
 int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 {
-	if (FONT_PROPORTIONAL) {
+	if (FONT_PROPORTIONAL && mode == FIT_VANILLA) {
 		drawString(str, x, y);
 		return measureStringModePixel(str, mode);
 	}
@@ -2044,7 +2116,10 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 
 int32_t textFitCode(char *str, int32_t maxW)
 {
-	return FONT_PROPORTIONAL ? 1 : textFitCodeCells(str, maxW);
+	int32_t mode;
+
+	mode = fitStringMode(str, maxW);
+	return mode == FIT_VANILLA ? 1 : TEXT_FIT_TIGHT - FIT_TIGHT + mode;
 }
 
 /* the original font's long names (NEW FONT off): the functions above in its cells */
@@ -2243,9 +2318,14 @@ CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t 
 	}
 	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, stride / 4, GLYPH_HEIGHT);
 	LoadImage(&rect, (u_long *)FIT_STRIP);
+#if FONT_SWITCH
+	DrawSync(0); /* MOD (font): CLASSIC's ring of slots covers FIT_STRIP: read before the next glyph */
+	GLYPH_CARRY_Y = -1; /* and the last glyph's slot may be under it */
+#endif
 	return w;
 }
 
+#if !FONT_SWITCH
 /* MOD (item names): the drawString2 code that draws a name within maxW pixels: 1 (a colour code, the name as the font
  * draws it) when it fits so, else TEXT_FIT_TIGHT or TEXT_FIT_CONDENSED (font.h) */
 CELLS_FN int32_t CELLS(textFitCode)(char *str, int32_t maxW)
@@ -2258,4 +2338,5 @@ CELLS_FN int32_t CELLS(textFitCode)(char *str, int32_t maxW)
 	}
 	return TEXT_FIT_TIGHT - FIT_TIGHT + mode;
 }
+#endif
 #endif
