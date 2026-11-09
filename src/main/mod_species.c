@@ -66,13 +66,29 @@ static int8_t SPECIES_HAS_VANILLA;
 /* MOD (canon levels): {id, level with NEW DIGIMON on, off} (SPECIES_HEADER_LEVEL_OFF) */
 static uint8_t SPECIES_LEVEL_SWAP[SPECIES_LEVEL_SWAP_MAX][3];
 static int32_t SPECIES_LEVEL_SWAPS;
+static void readSpeciesSector(int32_t sector);
 
 void modApplySpeciesLevels(void)
 {
 	int32_t i;
+	int32_t j;
+	uint16_t *row;
+	int16_t *target;
 
 	for (i = 0; i < SPECIES_LEVEL_SWAPS; i++) {
 		DIGIMON_DATA[SPECIES_LEVEL_SWAP[i][0]].level = SPECIES_LEVEL_SWAP[i][MOD_OPT_NEW_DIGIMON ? 1 : 2];
+	}
+	/* Read targets on demand: the shared sector buffer costs no additional heap. */
+	if (!SPECIES_INDEX_SECTOR) return;
+	readSpeciesSector(0);
+	row = (uint16_t *)((uint8_t *)SPECIES_SECTOR + SPECIES_HEADER_STATS_OFF);
+	j = *row++;
+	if (j > SPECIES_STATS_SWAP_MAX) j = SPECIES_STATS_SWAP_MAX;
+	for (i = 0; i < j; i++, row += 13) {
+		int32_t k;
+		if (row[0] >= NUM_ORIGINAL_DIGIMON) continue;
+		target = &EVOLUTION_STATS_GAINS[row[0]].hp;
+		for (k = 0; k < 6; k++) target[k] = row[1 + (MOD_OPT_NEW_DIGIMON ? 0 : 6) + k];
 	}
 }
 
