@@ -31,6 +31,15 @@ extern int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE];
 #define MOD_DAILY_CLEAR_MASK	6 /* ... with this mask */
 extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 
+/* the game clock: how many real seconds one game day lasts (MOD_CLOCK[0], -1: game time does not run). A frame of CURRENT_FRAME is
+ * 1/20 of a game minute (3 game seconds) whatever the screen's frame rate; the logic runs at 20 ticks a second. */
+#define MOD_CLOCK_SIZE		1
+#define MOD_CLK_DAY_SECONDS	0
+extern int16_t MOD_CLOCK[MOD_CLOCK_SIZE];
+/* game frames the clock advanced this tick (at least 1), and whether a period of frames was crossed this tick (a jump of a script, more than 64 frames, crosses nothing) */
+int32_t clockAdvance(void);
+int32_t clockCrossed(int32_t period);
+
 /* time of day: the hours the screen changes, the tint, the music variant and the clock icon */
 #define MOD_DAYTIME_SIZE	9
 #define MOD_DT_DUSK		0 /* the hour dusk starts (-1 in any of the first three: always day) */

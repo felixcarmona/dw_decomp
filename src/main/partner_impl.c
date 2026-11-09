@@ -16,6 +16,7 @@
 #include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/level.h>
+#include <dw/mod_rules.h>
 #include <dw/map.h>
 #include <dw/map_object.h>
 #include <dw/math.h>
@@ -994,11 +995,10 @@ static int32_t careGet(int32_t slot)
 	return MOD_CARE[slot];
 }
 
+/* a period (frames of game time: 20 = a game minute) came round this tick; clockCrossed does not need the tick to land on it */
 static int32_t careEveryRaw(int32_t slot)
 {
-	int32_t period = careGet(slot);
-
-	return period > 0 && (CURRENT_FRAME % period) == 0;
+	return clockCrossed(careGet(slot));
 }
 
 static int32_t careEvery(int32_t slot)
@@ -1539,7 +1539,7 @@ void tickTirednessMechanics(void)
 	uint8_t animId;
 
 	animId = PARTNER_ENTITY.digimonEntity.entity.anim.animId;
-	if (careGet(MOD_CARE_AREA_PERIOD) > 0 && ((PARTNER_PARA.areaEffectTimer % careGet(MOD_CARE_AREA_PERIOD)) == 0) &&
+	if (careGet(MOD_CARE_AREA_PERIOD) > 0 && ((PARTNER_PARA.areaEffectTimer % careGet(MOD_CARE_AREA_PERIOD)) < clockAdvance()) &&
 	    (PARTNER_PARA.areaEffectTimer > 0)) {
 		if (MAP_TILE_DATA.partnerAreaResponse == 1) {
 			PARTNER_PARA.happiness += careAmt(MOD_CARE_AREA_GOOD_HAPPY);
@@ -1558,7 +1558,7 @@ void tickTirednessMechanics(void)
 		PARTNER_PARA.subTiredness = 0;
 	}
 	if (careHas(MOD_CARE_TIRED_HUNGER_AT) && PARTNER_PARA.tiredness >= careGet(MOD_CARE_TIRED_HUNGER_AT)) {
-		PARTNER_PARA.tirednessHungerTimer += 1;
+		PARTNER_PARA.tirednessHungerTimer += clockAdvance();
 	} else {
 		PARTNER_PARA.tirednessHungerTimer = 0;
 	}
@@ -1821,7 +1821,7 @@ void tickPoopingMechanic(void)
 	}
 
 	if (isPoopy && (CURRENT_FRAME != LAST_HANDLED_FRAME)) {
-		PARTNER_PARA.poopingTimer -= 1;
+		PARTNER_PARA.poopingTimer -= clockAdvance();
 	}
 
 	if (isPoopy && (PARTNER_PARA.poopingTimer <= 0)) {
@@ -2222,12 +2222,12 @@ void tickConditions(void)
 	tickHungerMechanics();
 	tickUnhappinessMechanics();
 	tickConditionBoundaries();
-	PARTNER_PARA.areaEffectTimer++;
+	PARTNER_PARA.areaEffectTimer += clockAdvance();
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 	if (PARTNER_PARA.areaEffectTimer > 28800)
 		PARTNER_PARA.areaEffectTimer = 0;
 #endif
-	PARTNER_PARA.trainBoostTimer--;
+	PARTNER_PARA.trainBoostTimer -= clockAdvance();
 	if (PARTNER_PARA.trainBoostTimer <= 0) {
 		PARTNER_PARA.trainBoostFlag = 0;
 		PARTNER_PARA.trainBoostTimer = 0;
