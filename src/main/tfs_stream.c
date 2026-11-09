@@ -29,7 +29,14 @@
  *   overlays, the evolution model) and every battle invalidate the ring; the
  *   game's readMapTFS calls (map load, battle exit, evolution, death,
  *   jukebox...) reopen it. A tile needed while the ring is invalid reopens
- *   it first, which only happens in the world.
+ *   it first, in the world only (ringMayReopen): in a battle the load area
+ *   is the fight's (the EFE engine's slot table sits at GENERAL_BUFFER, its
+ *   heap and BTL_REL above), and a reopen there wrote the .TFS header and a
+ *   tile over them: the fight's second render jumped through the garbage
+ *   (2026-10-22, the camera lift of a tall partner asking for a tile row in
+ *   the second fight of a screen). Outside the world such a tile is simply
+ *   not uploaded (the window keeps what VRAM holds; the next readMapTFS
+ *   restores it) and MOD_TFS_STATS.refused counts it.
  * - The palettes are not read from the header once the screen is set up: a
  *   load over it in the world is only noticed by the ring, and the header
  *   is read again lazily (the next tile the window needs), while the hour
@@ -329,6 +336,20 @@ static int32_t victimSlot(int8_t *protect, int32_t count, int32_t avoid)
 }
 
 /*
+ * Whether an invalid ring may be reopened on demand: only while the world
+ * runs. GAME_STATE 1-3 is a battle (loading, fighting, its menus), whose
+ * EFE engine owns [GENERAL_BUFFER, ...): see the header comment.
+ */
+static int32_t ringMayReopen(void)
+{
+	if (GAME_STATE == 0) {
+		return 1;
+	}
+	MOD_TFS_STATS.refused++;
+	return 0;
+}
+
+/*
  * Whole-window upload (uploadMapTileImages: map load, curling, fishing):
  * each window row is contiguous in the file, so it is read in one CdRead
  * over the ring instead of tile by tile. tfsTilePixels returns the row's
@@ -357,6 +378,9 @@ void tfsStageRow(int32_t firstTile, int32_t count)
 		return;
 	}
 	if (!TFS_ACTIVE) {
+		if (!ringMayReopen()) {
+			return;	/* no span: tfsTilePixels gives NULL for the row's tiles and nothing is uploaded */
+		}
 		MOD_TFS_STATS.reopens++;
 		tfsStreamOpen(TFS_PATH);
 	}
@@ -396,7 +420,10 @@ void tfsUnstage(void)
 	TFS_SPAN_FIRST = TFS_SPAN_LAST = -1;
 }
 
-/* The pixels of tile (MAP_TILE_DATA.tiles index) for LoadImage. */
+/*
+ * The pixels of tile (MAP_TILE_DATA.tiles index) for LoadImage; NULL when
+ * the ring is invalid and may not be reopened (not in the world).
+ */
 u_long *tfsTilePixels(int32_t tile)
 {
 	int32_t slot;
@@ -411,6 +438,9 @@ u_long *tfsTilePixels(int32_t tile)
 		return (u_long *)(TFS_SPAN_BASE + tileOffset(t));
 	}
 	if (!TFS_ACTIVE) {
+		if (!ringMayReopen()) {
+			return NULL;
+		}
 		MOD_TFS_STATS.reopens++;
 		tfsStreamOpen(TFS_PATH);
 	}
@@ -679,8 +709,16 @@ static void captureOutgoing(RECT *rect, int32_t incoming)
 
 void tfsLoadTile(RECT *rect, int32_t tile)
 {
+	u_long *pixels;
+
+	if (!TFS_ACTIVE && !ringMayReopen()) {
+		return;	/* the cell keeps what VRAM holds; captureOutgoing would write the ring too */
+	}
 	captureOutgoing(rect, tile);
-	LoadImage(rect, tfsTilePixels(tile));
+	pixels = tfsTilePixels(tile);
+	if (pixels != NULL) {
+		LoadImage(rect, pixels);
+	}
 }
 
 void tfsClearTile(RECT *rect)
