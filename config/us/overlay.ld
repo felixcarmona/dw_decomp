@@ -928,12 +928,13 @@ SECTIONS
 			);
 			. = ALIGN(., 4);
             /* Player chart opens MENU before reaching its modal renderer (and the detail view's lists, built while it is open).
-             * The cell writer and primitive/number helpers stay resident to reserve scrolling room below EVL. */
+             * The row writer and primitive/number helpers stay resident to reserve scrolling room below EVL. */
             BUILD_DIR/src/main/game_menu.c.o(
+                .text.chartCardText .text.chartCardText.*
+                .text.chartTargetHours .text.chartTargetHours.*
                 .text.chartCardBuild .text.chartCardBuild.*
                 .text.chartCardRender .text.chartCardRender.*
                 .text.chartCardPrompt .text.chartCardPrompt.*
-                .text.chartAppend .text.chartAppend.*
                 .text.chartBuildLists .text.chartBuildLists.*
                 .text.chartListAdd .text.chartListAdd.*
                 .rodata.CHART_POPUP_AUTOMATIC
@@ -965,6 +966,10 @@ SECTIONS
                 .rodata.CHART_POPUP_VERDICT
                 .rodata.CHART_POPUP_VIEW
                 .rodata.CHART_POPUP_WEIGHT
+                .rodata.CHART_POPUP_TIME
+                .rodata.CHART_POPUP_WAIT
+                .rodata.CHART_POPUP_LIFE
+                .rodata.CHART_POPUP_SPECIAL
                 .rodata.CHART_POPUP_YES
                 .rodata.CHART_STAT_NAMES
             );
