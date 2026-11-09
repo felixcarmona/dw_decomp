@@ -376,10 +376,9 @@ void TRN2_tickPostTrainingStatsBox(void)
 		}
 	}
 
-	if ((POLLED_INPUT == CONFIRM_BUTTON) || (POLLED_INPUT == CANCEL_BUTTON)) {
-		if (!(POLLED_INPUT_PREVIOUS & CONFIRM_BUTTON) && !(POLLED_INPUT_PREVIOUS & CANCEL_BUTTON)) {
-			MAIN_D_801353D4 = 1;
-		}
+	/* A face-button edge on pad 1 still counts with other buttons or pad 2 held. */
+	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & (CONFIRM_BUTTON | CANCEL_BUTTON)) {
+		MAIN_D_801353D4 = 1;
 	}
 
 	if (MAIN_D_801353D4 != 1) {
