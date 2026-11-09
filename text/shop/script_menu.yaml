@@ -82,6 +82,9 @@ MOD_PACK_TEXT:
     STR_CARD_PACK:
       ja: Card pack
       en_us: Card pack
+    STR_CARD_ONE:
+      ja: Card
+      en_us: Card
     STR_PACK_CARDS:
       ja: " cards, "
       en_us: " cards, "
