@@ -3280,8 +3280,21 @@ PositionData PARTNER_POSITION_DATA[34];
 uint8_t PARTNER_MODEL_BUFFER[0x18800];
 MomentumData TAMER_MOMENTUM_DATA[22];
 PositionData TAMER_POSITION_DATA[22];
+#ifdef __MWERKS__
 uint8_t TAMER_MODEL_BUFFER[0x7800];
 char MAIN_D_801A8B98[0x6800];
+#else
+/*
+ * BOYS.MMD (the tamer model, 57036 bytes) does not fit in the 0x7800 bytes of
+ * TAMER_MODEL_BUFFER: the original relies on MAIN_D_801A8B98 coming right
+ * after it (0x7800 + 0x6800 = 0xE000). GCC lays out the .bss sections in a
+ * different order, so make it one buffer and alias the second half.
+ */
+uint8_t TAMER_MODEL_BUFFER[0x7800 + 0x6800];
+extern char MAIN_D_801A8B98[];
+__asm__(".globl MAIN_D_801A8B98\n"
+	"\t.set MAIN_D_801A8B98, TAMER_MODEL_BUFFER + 0x7800");
+#endif
 int8_t MAP_COLLISION_DATA[0x2800];
 StdVsCamera STDVS_CAMERA;
 
