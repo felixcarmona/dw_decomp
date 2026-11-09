@@ -4052,7 +4052,7 @@ void recalculateProsperity(void);
 #define CHART_SCROLL_X		294	/* the scroll bar: past the last column's border (292), inside the band (299) */
 #define CHART_SCROLL_W		3
 #define CHART_SCROLL_H		(CHART_ROWS * CHART_PITCH - 1)
-#define CHART_ICON_X		576	/* the page's icons: 16 a row, 4 halfwords each */
+#define CHART_ICON_X		576	/* the page's icons: 16 a row, 4 halfwords each; each row's second idle frames below it */
 #define CHART_ICON_Y		288
 #define CHART_ICON_TPAGE	((CHART_ICON_Y / 256) * 16 + CHART_ICON_X / 64)
 #define CHART_CLUT_X		640	/* their CLUTs: 4 a row */
@@ -4147,6 +4147,7 @@ static void chartLoadPage(int32_t row)
 	uint16_t palette[16];
 	int32_t id;
 	int32_t clut;
+	uint8_t *icon;
 
 	CHART_PAGE_COUNT = 0;
 	CHART_RAISED = 0;
@@ -4213,14 +4214,17 @@ static void chartLoadPage(int32_t row)
 			last = sector;
 		}
 		slot = chartSlot(k);
+		icon = s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE;
 		setRECT(&rect, CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4, 16, 1);
 		if (CITY_VIEW && !isDigimonRecruited(id)) {
-			cityGreyClut((uint16_t *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE), slot);
+			cityGreyClut((uint16_t *)icon, slot);
 		} else {
-			LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE));
+			LoadImage(&rect, (u_long *)icon);
 		}
-		setRECT(&rect, CHART_ICON_X + (slot % 16) * 4, CHART_ICON_Y + (slot / 16) * 16, 4, 16);
-		LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE + 0x20));
+		setRECT(&rect, CHART_ICON_X + (slot % 16) * 4, CHART_ICON_Y + (slot / 16) * 32, 4, 16);
+		LoadImage(&rect, (u_long *)(icon + 0x20));
+		rect.y += 16;
+		LoadImage(&rect, (u_long *)(icon + 0xA0));
 	}
 	DrawSync(0);
 }
@@ -4590,17 +4594,17 @@ void renderEvoChartView(void)
 				continue;
 			}
 			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
-			shift = (id == CHART_SELECTED_DIGIMON) && (1 < MENU_STATE) && ((PLAYTIME_FRAMES % 10) < 5);
+			shift = ((PLAYTIME_FRAMES + k * 3) % 20) < 10; /* two idle frames, half a second each, out of step */
 			slot = chartSlot(k);
 			if (id <= NUM_EVO_CHART_DIGIMON) {
 				renderRectPolyFT4(bx - 0xa0, by - 0x78, 0x10, 0x10,
-				                  (uint8_t)((shift ? 0x10 : 0) + EVO_CHART_BOXES[id - 1].u),
+				                  (uint8_t)(shift * 0x10 + EVO_CHART_BOXES[id - 1].u),
 				                  EVO_CHART_BOXES[id - 1].v, 0x18, (CITY_VIEW && !isDigimonRecruited(id))
 				                  ? GetClut(CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4)
 				                  : cluts.m[EVO_CHART_BOXES[id - 1].clut], 5, 0);
 			} else {
-				renderRectPolyFT4(bx - 0xa0, by - 0x78 - shift, 0x10, 0x10, (slot % 16) * 16,
-				                  CHART_ICON_Y - 256 + (slot / 16) * 16, CHART_ICON_TPAGE,
+				renderRectPolyFT4(bx - 0xa0, by - 0x78, 0x10, 0x10, (slot % 16) * 16,
+				                  CHART_ICON_Y - 256 + shift * 16 + (slot / 16) * 32, CHART_ICON_TPAGE,
 				                  GetClut(CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4), 5, 0);
 			}
 		}
