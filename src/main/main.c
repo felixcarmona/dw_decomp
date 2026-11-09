@@ -4686,6 +4686,28 @@ static void modInterpSnapshotBones(int32_t snap)
 	}
 }
 
+/* Equivalent Euler charts can differ by half a turn on two axes. Pick
+ * the nearer chart before interpolating; native animation fields stay intact. */
+static void modLerpBoneRotation(SVECTOR *out, const int16_t *prev, const SVECTOR *cur, int32_t alpha)
+{
+	int32_t x = cur->vx;
+	int32_t y = cur->vy;
+	int32_t z = cur->vz;
+	int32_t direct = modAbs(modAngleDiff(prev[0], x)) +
+		modAbs(modAngleDiff(prev[1], y)) + modAbs(modAngleDiff(prev[2], z));
+	int32_t alternate = modAbs(modAngleDiff(prev[0], x + 2048)) +
+		modAbs(modAngleDiff(prev[1], 2048 - y)) + modAbs(modAngleDiff(prev[2], z + 2048));
+
+	if (alternate < direct) {
+		x += 2048;
+		y = 2048 - y;
+		z += 2048;
+	}
+	out->vx = modLerpAngle(prev[0], x, alpha);
+	out->vy = modLerpAngle(prev[1], y, alpha);
+	out->vz = modLerpAngle(prev[2], z, alpha);
+}
+
 /* write the bone coords for the pass (the fields stay the tick's) */
 static void modInterpApplyBones(int32_t i, int32_t alpha)
 {
@@ -4703,9 +4725,7 @@ static void modInterpApplyBones(int32_t i, int32_t alpha)
 			continue;
 		}
 		modCopy(save++, &pd->posMatrix.coord, sizeof(MATRIX));
-		rot.vx = modLerpAngle(pb->rot[0], pd->rotation.vx, alpha);
-		rot.vy = modLerpAngle(pb->rot[1], pd->rotation.vy, alpha);
-		rot.vz = modLerpAngle(pb->rot[2], pd->rotation.vz, alpha);
+		modLerpBoneRotation(&rot, pb->rot, &pd->rotation, alpha);
 		loc.vx = modLerp(pb->loc[0], pd->location.vx, alpha);
 		loc.vy = modLerp(pb->loc[1], pd->location.vy, alpha);
 		loc.vz = modLerp(pb->loc[2], pd->location.vz, alpha);
