@@ -969,6 +969,7 @@ SECTIONS
                 .rodata.CHART_POPUP_NEEDS
                 .rodata.CHART_POPUP_NO
                 .rodata.CHART_POPUP_READY
+                .rodata.CHART_POPUP_RANDOM
                 .rodata.CHART_POPUP_SHORT
                 .rodata.CHART_POPUP_STATS
                 .rodata.CHART_POPUP_STATS_ANY

@@ -1,3 +1,5 @@
+#include <libetc.h>
+
 #include "dw/partner.h"
 #include <dw/evolution.h>
 
@@ -964,136 +966,58 @@ int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
   return currentBest;
 }
 
-int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
-  DigimonId *targetPtr; /* MOD: was int8_t */
-  int32_t currentBestDigimon;
-  int32_t i;
-  int16_t bestScore;
-  int16_t statCount;
-  int16_t statTotal;
-  int8_t isMaxCM;
-  int8_t isMaxBattles;
-
-  targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
-  currentBestDigimon = -1;
-  bestScore = statTotal = statCount = 0U;
+/* Admission is independent of the roll, including the route-order raised filter.
+ * A first unraised qualifier becomes the history anchor, excluding later raised
+ * targets. Earlier admitted targets remain eligible. No persistent pool or data. */
+static int16_t chooseQualifiedEvolution(int32_t currentDigimon, int32_t roll)
+{
+  DigimonId *targets = getEvolutionPath(currentDigimon)->to;
+  DigimonId qualified[6];
+  int32_t count = 0;
+  int32_t anchor = -1;
+  int32_t i, target, sample, ceiling;
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr) || !modSpeciesAllowed(*targetPtr)) { /* MOD (scale): a model that does not fit is no target; MOD (options): NEW DIGIMON off, the original's species only */
-      targetPtr++;
+    target = targets[i];
+    if (target == -1 || !isPartnerModelFit(target) || !modSpeciesAllowed(target))
       continue;
-    }
-
-    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
-    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
-    if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
-                                  isMaxBattles, currentBestDigimon) >= evoPassPoints()) {
-      if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).mp != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.mp / 10;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).offense != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.off;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).defense != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.def;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).speed != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.speed;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).brain != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.brain;
-        statCount++;
-      }
-
-      statTotal /= statCount;
-      if (bestScore < statTotal) {
-        currentBestDigimon = *targetPtr;
-        bestScore = statTotal;
-        statTotal = statCount = 0;
-      }
-    }
-    targetPtr++;
+    if (calculateRequirementScore(currentDigimon, target,
+          (EVO_REQ_ROW(target).flags & 0x10) >> 4,
+          EVO_REQ_ROW(target).flags & 1, anchor) < evoPassPoints())
+      continue;
+    qualified[count++] = target;
+    anchor = target;
   }
+  if (!count)
+    return -1;
+  /* Training only asks whether a target exists. Never consume RNG there. */
+  if (!roll || count == 1)
+    return qualified[0];
+  /* The existing RNG has 15 bits. Mix the live refresh counter at evolution,
+   * not saved age/time or a new-game seed: reload timing can change the choice.
+   * Reject the short tail rather than give the first slots extra probability. */
+  ceiling = 32768 - 32768 % count;
+  do {
+    sample = randomLimit(32768) ^ (VSync(-1) & 32767);
+  } while (sample >= ceiling);
+  return qualified[sample % count];
+}
 
-  /* MOD (evolution rules as data): the default target (Numemon) and its wait, from content/tables/evolution-rules.json */
-  if (currentBestDigimon == -1 && MOD_EVO_TIMING[MOD_EVO_FALLBACK_HOURS] >= 0 &&
+int16_t getRookieEvolutionTarget(int32_t currentDigimon, int32_t roll)
+{
+  int16_t target = chooseQualifiedEvolution(currentDigimon, roll);
+  if (target == -1 && MOD_EVO_TIMING[MOD_EVO_FALLBACK_HOURS] >= 0 &&
       MOD_EVO_TIMING[MOD_EVO_FALLBACK_TARGET] >= 0 &&
       PARTNER_PARA.evoTimer >= MOD_EVO_TIMING[MOD_EVO_FALLBACK_HOURS])
-    currentBestDigimon = MOD_EVO_TIMING[MOD_EVO_FALLBACK_TARGET];
-
-  return currentBestDigimon;
+    target = MOD_EVO_TIMING[MOD_EVO_FALLBACK_TARGET];
+  return target;
 }
 
-
-int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
-  DigimonId *targetPtr; /* MOD: was int8_t */
-  int32_t currentBestDigimon;
-  int32_t i;
-  int16_t bestScore;
-  int16_t statCount;
-  int16_t statTotal;
-  int8_t isMaxCM;
-  int8_t isMaxBattles;
-
-  targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
-  currentBestDigimon = -1;
-  bestScore = statTotal = statCount = 0U;
-
-  for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr) || !modSpeciesAllowed(*targetPtr)) { /* MOD (scale): a model that does not fit is no target; MOD (options): NEW DIGIMON off, the original's species only */
-      targetPtr++;
-      continue;
-    }
-
-    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
-    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
-    if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
-                                  isMaxBattles, currentBestDigimon) >= evoPassPoints()) {
-      if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).mp != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.mp / 10;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).offense != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.off;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).defense != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.def;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).speed != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.speed;
-        statCount++;
-      }
-      if (EVO_REQ_ROW((int32_t)*targetPtr).brain != -1) {
-        statTotal += PARTNER_ENTITY.digimonEntity.stats.base.brain;
-        statCount++;
-      }
-
-      statTotal /= statCount;
-      if (bestScore < statTotal) {
-        currentBestDigimon = *targetPtr;
-        bestScore = statTotal;
-        statTotal = statCount = 0;
-      }
-    }
-    targetPtr++;
-  }
-
-  return currentBestDigimon;
+int16_t getChampionEvolutionTarget(int32_t currentDigimon, int32_t roll)
+{
+  return chooseQualifiedEvolution(currentDigimon, roll);
 }
+
 
 // clang-format off
 int32_t handleSpecialEvolutions(mode, entity)
@@ -1409,8 +1333,8 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 	return -1;
 }
 
-/* The callers check the due hour. Keep random special-evolution rules in the tick. */
-int16_t getNaturalEvolutionTarget(int32_t currentDigimon)
+/* The callers check the due hour. Only the evolution tick requests a roll. */
+static int16_t naturalEvolutionTarget(int32_t currentDigimon, int32_t roll)
 {
 	int32_t level = DIGI_PARA(currentDigimon).level;
 	int16_t evoTimer = PARTNER_PARA.evoTimer;
@@ -1421,18 +1345,29 @@ int16_t getNaturalEvolutionTarget(int32_t currentDigimon)
 	if (level == 2)
 		return getInTrainingEvolutionTarget(currentDigimon);
 	if (level == 3)
-		return getRookieEvolutionTarget(currentDigimon);
+		return getRookieEvolutionTarget(currentDigimon, roll);
 	if (level == 4)
-		return getChampionEvolutionTarget(currentDigimon);
+		return getChampionEvolutionTarget(currentDigimon, roll);
 	if (level == LEVEL_ULTIMATE) {
 		target = getModUltimateEvolutionTarget(currentDigimon);
 		if (target == -1 && MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN] >= 0 &&
 		    evoTimer >= MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN]) {
-			target = getChampionEvolutionTarget(currentDigimon);
+			target = getChampionEvolutionTarget(currentDigimon, roll);
 			if (target != -1 && evoTimer < MOD_EVO_TIMING[MOD_EVO_MEGA] &&
 			    DIGI_PARA(target).level == LEVEL_MEGA)
 				target = -1;
 		}
 	}
 	return target;
+}
+
+/* The existing lookup remains a read-only preview for training and tools. */
+int16_t getNaturalEvolutionTarget(int32_t currentDigimon)
+{
+  return naturalEvolutionTarget(currentDigimon, 0);
+}
+
+int16_t rollNaturalEvolutionTarget(int32_t currentDigimon)
+{
+  return naturalEvolutionTarget(currentDigimon, 1);
 }

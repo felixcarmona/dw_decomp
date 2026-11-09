@@ -4886,6 +4886,8 @@ static const char CHART_POPUP_NO[] __attribute__((section(".rodata.CHART_POPUP_N
 #define CHART_TEXT_NO ((char *)CHART_POPUP_NO)
 static const char CHART_POPUP_READY[] __attribute__((section(".rodata.CHART_POPUP_READY"))) = CHART_STR_READY;
 #define CHART_TEXT_READY ((char *)CHART_POPUP_READY)
+static const char CHART_POPUP_RANDOM[] __attribute__((section(".rodata.CHART_POPUP_RANDOM"))) = CHART_STR_RANDOM;
+#define CHART_TEXT_RANDOM ((char *)CHART_POPUP_RANDOM)
 static const char CHART_POPUP_SHORT[] __attribute__((section(".rodata.CHART_POPUP_SHORT"))) = CHART_STR_SHORT;
 #define CHART_TEXT_SHORT ((char *)CHART_POPUP_SHORT)
 static const char CHART_POPUP_STATS[] __attribute__((section(".rodata.CHART_POPUP_STATS"))) = CHART_STR_STATS;
@@ -5237,7 +5239,10 @@ static __attribute__((noinline)) void chartCardBuild(int32_t target)
 			CHART_CARD_VERDICT_COLOR = 6;
 		}
 		CHART_CARD_VERDICT_W = drawStringMode(a, 0, CHART_CARD_VERDICT_ROW, FIT_VANILLA);
-		if (k < evoPassPoints()) {
+		if (hours >= 0 && (DIGI_PARA(CHART_DETAIL_ID).level == LEVEL_ROOKIE ||
+		    DIGI_PARA(CHART_DETAIL_ID).level == LEVEL_CHAMPION)) {
+			CHART_CARD_FOOTER_W = drawStringMode(CHART_TEXT_RANDOM, 0, CHART_CARD_FOOTER_ROW, FIT_VANILLA);
+		} else if (k < evoPassPoints()) {
 			sprintf(a, CHART_TEXT_SHORT, evoPassPoints() - k);
 			CHART_CARD_FOOTER_W = drawStringMode(a, 0, CHART_CARD_FOOTER_ROW, FIT_VANILLA);
 		}
