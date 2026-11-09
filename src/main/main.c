@@ -4121,6 +4121,7 @@ static int32_t modTickRefreshes(void);
 int32_t MOD_FPS_TICKS;
 int32_t MOD_FPS_RENDERS;
 int32_t MOD_RENDER_PASS;
+int32_t MOD_RENDER_ALPHA = 4096; /* MOD (status-bubbles): the fraction of the tick this render pass shows (4096 = the tick's own state) */
 /* effect render scripts not rolled back on an extra pass for lack of room
  * (BTL_renderEFEEngine): expected to stay 0 */
 int32_t MOD_FPS_EFE_NO_ROOM;
@@ -5326,6 +5327,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			MOD_PERF_XSTART = (l1 - l0) & 0xFFFF;
 			MOD_PERF_XSTARTV = VSync(-1) - tickV;
 		}
+		MOD_RENDER_ALPHA = 4096;
 		if (interp) {
 			/* the fraction of the tick at the refresh this pass is shown */
 			shownV = VSync(-1) + 1;
@@ -5336,7 +5338,8 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 				shownV = tickV + period;
 			}
 			l2 = modLines();
-			modInterpApply(force ? thirds[r] * 4096 / 3 : (shownV - tickV) * 4096 / period);
+			MOD_RENDER_ALPHA = force ? thirds[r] * 4096 / 3 : (shownV - tickV) * 4096 / period;
+			modInterpApply(MOD_RENDER_ALPHA);
 			MOD_PERF_INTERP[0] += (modLines() - l2) & 0xFFFF;
 			MOD_PERF_INTERP[2]++;
 		}
