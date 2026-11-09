@@ -149,9 +149,10 @@
 /*
  * The SEQ block of the current music font (every track of it), copied from
  * the FAALL chunk (sound.c). Original 0x5800 (font 0xB uses 0x55F8); the
- * extra 0x2800 bytes come out of the malloc3 heap (MIN_HEAP assert below).
+ * built fonts need at most 0x7284 bytes. Keep 0x7800 bytes (1404 spare),
+ * returning 0x800 unused resident bytes to the malloc3 heap.
  */
-#define SEQ_BUFFER_SIZE		0x8000
+#define SEQ_BUFFER_SIZE		0x7800
 
 /*
  * SPU RAM (512 KB, sound.c): what the sound banks may use. Below it the
