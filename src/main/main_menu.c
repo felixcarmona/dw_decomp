@@ -2321,9 +2321,13 @@ void drawMainMenuStrings(int32_t menu)
 		break;
 	case 19:
 		strcpy(buf, PARTNER_ENTITY.name);
-		strcat(buf, MAIN_D_801346B4);
-		strcat(buf, DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type));
-		strcat(buf, MAIN_D_801346B8);
+		if (!modPartnerNameIsSpecies(PARTNER_ENTITY.digimonEntity.entity.type)) { /* MOD (optional name): not "Agumon(Agumon)" */
+			strcat(buf, MAIN_D_801346B4);
+			strcat(buf, DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type));
+			strcat(buf, MAIN_D_801346B8);
+		} else {
+			strcat(buf, MAIN_D_801346B8);
+		}
 		drawString(buf, 0, 0);
 		DrawSync(0);
 		drawString(MAIN_D_80131580, 0, 0xC);
@@ -5013,6 +5017,7 @@ static void swapPartnerSpecies(int32_t to)
 	for (i = 0; i < 4; i++) {
 		SAVED_STATE.partnerStats.base.moves[i] = equipped[i];
 	}
+	modPartnerNameFollow(from, to); /* MOD (optional name) */
 	SAVED_STATE.partnerType = to;
 	PARTNER_ENTITY.digimonEntity.entity.type = to;
 	setDigimonRaised(to);
@@ -5524,6 +5529,7 @@ void registerBattleData(void)
 	rec->digimonId = PARTNER_ENTITY.digimonEntity.entity.type < 256 ? PARTNER_ENTITY.digimonEntity.entity.type
 			 : getOriginalType(PARTNER_ENTITY.digimonEntity.entity.type);
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
+	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	memcpy(rec->moves, PARTNER_ENTITY.digimonEntity.stats.base.moves, 3);
 }
 
@@ -5617,6 +5623,7 @@ void awardMachinedramonData(void)
 	rec->discipline = PARTNER_PARA.discipline;
 	rec->digimonId = MOD_VS_UNLOCK[0];
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
+	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	rec->moves[0] = MOD_VS_UNLOCK[1];
 	rec->moves[1] = MOD_VS_UNLOCK[2];
 	rec->moves[2] = MOD_VS_UNLOCK[3];

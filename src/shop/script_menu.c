@@ -8,6 +8,7 @@
 #include <dw/line.h>
 #include <dw/math.h>
 #include <dw/params.h>
+#include <dw/partner.h>
 #include <dw/pstat.h>
 #include <dw/script.h>
 #include <dw/sound.h>
@@ -1166,6 +1167,8 @@ void initializeNamingBuffer(uint8_t flags)
 
 		if ((NAMING_BOX_FLAG & 1) == 0) {
 			strcpy(NAMING_BUFFER, DIGIMON_NAME(0));
+		} else if (modPartnerNameIsSpecies(PARTNER_ENTITY.digimonEntity.entity.type)) {
+			NAMING_BUFFER[0] = 0; /* MOD (optional name): an unnamed partner starts the keyboard empty */
 		} else {
 			strcpy(NAMING_BUFFER, PARTNER_ENTITY.name);
 		}
@@ -1253,6 +1256,13 @@ int32_t newGameStateMachine(void)
 
 		if ((NAMING_BOX_FLAG & 1) == 0) {
 			strcpy(DIGIMON_NAME(0), NAMING_BUFFER);
+		} else if (NAMING_BUFFER[0] == 0) {
+			/* MOD (optional name): no name, the species' (a new game's: the starter the answers chose, as main.c) */
+			if ((NAMING_BOX_FLAG & 2) != 0) {
+				modPartnerNameSetSpecies(PARTNER_ENTITY.digimonEntity.entity.type);
+			} else {
+				modPartnerNameSetSpecies(modNewGame(readPStat(PSTAT_254) == 0 ? MOD_NG_STARTER0 : MOD_NG_STARTER1));
+			}
 		} else {
 			strcpy(PARTNER_ENTITY.name, NAMING_BUFFER);
 		}
@@ -2880,11 +2890,13 @@ void tickNamingBox(void)
 			namingDeleteLast();
 			break;
 		case NAMING_OK:
-			if (NAMING_BUFFER[0] == 0) {
+			if (NAMING_BUFFER[0] == 0 && (NAMING_BOX_FLAG & 1) == 0) {
 				playSound(0, 0xb);
 				return;
 			}
-			terminateNamingBuffer();
+			if (NAMING_BUFFER[0] != 0) { /* MOD (optional name): the partner's may be left empty */
+				terminateNamingBuffer();
+			}
 			playSound(0, 3);
 			SCRIPT_STATE_2 = 0x15;
 			break;
@@ -2944,7 +2956,7 @@ void renderNamingBox(void)
 		renderString(0, bx + lbl[0], by + lbl[1], lbl[2], 12, texX, texY, 5, 1);
 		texX += lbl[2];
 	}
-	if (NAMING_BUFFER[0] == 0) {
+	if (NAMING_BUFFER[0] == 0 && (NAMING_BOX_FLAG & 1) == 0) { /* MOD (optional name): the partner's OK is never grey */
 		ty = 0xd;
 	} else {
 		ty = 0;
