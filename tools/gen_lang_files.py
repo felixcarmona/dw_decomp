@@ -34,7 +34,7 @@ def main():
     for value, group in hashes.items():
         if value == 0 or len(group) > 1:
             sys.exit(f'gen_lang_files: ambiguous filename hash {value:08X}: {sorted(group)}')
-    rows = []
+    rows = [[] for _ in range(8)]
     for spec in a.lang.split():
         parts = spec.split(':')
         if not 3 <= len(parts) <= 9:
@@ -52,8 +52,10 @@ def main():
             else:
                 sys.exit(f'gen_lang_files: {c} (a copy of {key}) is not in NEW_FILES')
         original = [where.get('_' + c[1:], 0xFFFF) if c != '-' else 0xFFFF for c in copies]
-        rows.append('{ 0x%08X, { %s }, { %s } }, /* %s */' % (fnv1a(key), ', '.join(map(str, idx)), ', '.join(map(str, original)), key))
-    text = ''.join(r + '\n' for r in rows)
+        for lang in range(8):
+            col = 1 if lang == 0 else 0 if lang == 1 else lang
+            rows[lang].append('{ 0x%08X, %d, %d }, /* %s */' % (fnv1a(key), idx[col], original[col], key))
+    text = ''.join('#if MOD_LANG_BUILD == %d\n%s#endif\n' % (lang, ''.join(r + '\n' for r in table)) for lang, table in enumerate(rows))
     if not os.path.exists(a.out) or open(a.out).read() != text:
         open(a.out, 'w').write(text)
 
