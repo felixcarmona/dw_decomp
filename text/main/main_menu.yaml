@@ -362,6 +362,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_BARS:
       ja: "NEW STATUS BARS"
       en_us: "NEW STATUS BARS"
+    MOD_OPT_STR_EVO:
+      ja: "EVOLUTION GUIDE"
+      en_us: "EVOLUTION GUIDE"
     MOD_OPT_STR_FPS:
       ja: "FRAME RATE"
       en_us: "FRAME RATE"
