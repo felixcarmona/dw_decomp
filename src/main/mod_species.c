@@ -30,6 +30,9 @@ int32_t SPECIES_COUNT;
 int32_t SPECIES_RECORD_READS;
 uint8_t SPECIES_RAISED_BITS[NUM_DIGIMON / 8];
 uint8_t SPECIES_RECRUITED_BITS[NUM_DIGIMON / 8];
+/* Written from content/tables/city-residents.json by the balance build. */
+const uint8_t CITY_RESIDENTS[14] = {0};
+
 static int32_t SPECIES_RECORDS_SECTOR;
 /* MOD (record originals): the originals carried by their DIGI.DAT record (species.h) */
 static uint8_t SPECIES_RECORD_ORIGINALS[SPECIES_RECORD_ORIGINALS_BYTES];
