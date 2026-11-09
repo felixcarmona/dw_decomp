@@ -12,6 +12,7 @@
 #include <dw/params.h>
 #include <dw/tamer.h>
 #include <dw/types.h>
+#include <dw/mod_rules.h>
 
 void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
                                    int32_t posZ, int32_t rotX, int32_t rotY,
@@ -1307,7 +1308,7 @@ void reincarnatePartner(unused, stats, partner, digimonId)
   ENTITY_TABLE[1] = NULL;
   thunkUnloadModel(previousId, 3);
   initializeReincarnatedPartner(id, 0, 0, 0, 0, 0, 0);
-  PARTNER_ENTITY.lives = 3;
+  PARTNER_ENTITY.lives = modNewGame(MOD_NG_LIVES);
   setDigimonRaised(id);
 }
 
