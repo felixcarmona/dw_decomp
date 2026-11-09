@@ -444,11 +444,11 @@ void BTL_tickDeathCountdown(void)
 		spin = &BTL_DEATH_COUNTDOWN.data.sprite;
 		do {
 			BTL_DEATH_COUNTDOWN.data.timer++;
-			if ((BTL_DEATH_COUNTDOWN.data.timer % 31) == 0) {
+			if ((BTL_DEATH_COUNTDOWN.data.timer % (BMS(T_DIGIT) + 1)) == 0) {
 				BTL_DEATH_COUNTDOWN.data.step = 0;
 			}
 			BTL_DEATH_COUNTDOWN.data.step++;
-			frame = (BTL_DEATH_COUNTDOWN.data.timer + 0x1d) / 30;
+			frame = (BTL_DEATH_COUNTDOWN.data.timer + BMS(T_DIGIT) - 1) / BMS(T_DIGIT);
 			if (frame < 5) {
 				spin->u = BTL_DEATH_COUNTDOWN_DIGIT_U[frame - 1];
 				spin->v = BTL_DEATH_COUNTDOWN_DIGIT_V[frame - 1];
@@ -492,7 +492,7 @@ void BTL_renderDeathCountdown(void)
 {
 	GsSortSprite(&BTL_DEATH_COUNTDOWN.data.sprite, ACTIVE_ORDERING_TABLE, 7);
 	GsSortSprite(&BTL_DEATH_COUNTDOWN_SPRITE, ACTIVE_ORDERING_TABLE, 7);
-	if (BTL_DEATH_COUNTDOWN.data.timer >= 0x96) {
+	if (BTL_DEATH_COUNTDOWN.data.timer >= 5 * BMS(T_DIGIT)) {
 		BTL_removeDeathCountdown();
 	}
 }
