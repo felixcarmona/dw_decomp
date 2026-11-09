@@ -309,16 +309,18 @@ void initTournamentInfo(int32_t arg)
 
 /*
  * MOD (portraits): a cup lists original species by type; a species of DIGI.DAT is in no list. It takes the
- * place of the originals of its level: an open cup (a list of 30 or more) admits it when the list holds an
- * original of its level (a Mega counts as an Ultimate), a themed cup (a short list: one element, one
- * family) only when the list holds the original it borrows its techniques from.
+ * place of the originals of its level (a Mega counts as an Ultimate): a list with nine or more originals of its
+ * level (an open cup, or the over-level list of the lowest cups) holds it; a themed cup (twelve species of
+ * every kind) holds it only when the list holds the original it borrows its techniques from.
  */
+#define CUP_OPEN_LEVEL_COUNT	9
+
 static int32_t cupListHasType(uint8_t *typePtr, DigimonId partnerType)
 {
-	uint8_t *p;
-	int32_t n;
+	int32_t sameLevel;
 	int32_t level;
 	int32_t other;
+	int32_t hasOther;
 	uint8_t type;
 
 	if (partnerType < NUM_ORIGINAL_DIGIMON) {
@@ -329,21 +331,22 @@ static int32_t cupListHasType(uint8_t *typePtr, DigimonId partnerType)
 		}
 		return 0;
 	}
-	n = 0;
-	for (p = typePtr; *p < 0xfe; p++) {
-		n++;
-	}
 	level = DIGI_PARA(partnerType).level;
 	if (level > 5) {
 		level = 5;
 	}
 	other = getOriginalType(partnerType);
+	sameLevel = 0;
+	hasOther = 0;
 	while ((type = *typePtr++) < 0xfe) {
-		if (n >= 30 ? DIGI_PARA(type).level == level : type == other) {
-			return 1;
+		if (DIGI_PARA(type).level == level) {
+			sameLevel++;
+		}
+		if (type == other) {
+			hasOther = 1;
 		}
 	}
-	return 0;
+	return sameLevel >= CUP_OPEN_LEVEL_COUNT || hasOther;
 }
 
 int32_t tournamentCheckFair(uint8_t value)
