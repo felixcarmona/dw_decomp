@@ -12,6 +12,7 @@
 #include <dw/sound.h>
 #include <dw/species.h>
 #include <dw/mod_options.h>
+#include <dw/chinese.h>
 
 #include "common.h"
 
@@ -525,7 +526,7 @@ DigimonPara *getSpeciesPara(int32_t type)
 	if (rec == NULL) {
 		return &NO_PARA;
 	}
-	return &rec->para;
+	return MOD_LANG == MOD_LANG_ZH ? zhSpeciesPara(&rec->para, type) : &rec->para;
 }
 
 int32_t isValidDigimonType(int32_t type)

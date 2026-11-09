@@ -3,6 +3,7 @@
 #include <dw/font.h>
 #include <dw/mod_font.h>
 #include <dw/mod_options.h>
+#include <dw/chinese.h>
 #include <dw/sjis.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -1410,7 +1411,7 @@ extern int32_t MOD_RENDER_PASS;
 #if FONT_SWITCH
 /* MOD (font): the cell of the last glyph uploaded (drawGlyph): its text-area x (a multiple of 4), y, ring slot */
 static int16_t GLYPH_CARRY_X;
-static int16_t GLYPH_CARRY_Y = -1;
+int16_t GLYPH_CARRY_Y = -1;
 static uint8_t *GLYPH_CARRY_SLOT;
 #ifdef FONT_KERN
 /* MOD (font): the last glyph drawGlyph drew (its Shift-JIS code, row, where its advance ended), for the kerning */
@@ -1557,7 +1558,7 @@ static uint16_t *classicRows(uint16_t code)
 }
 
 /* the rows of a glyph placed to the pixel (GLYPH_HEIGHT, then its width: the advance, the original width above it) */
-static uint16_t *glyphRows(uint16_t codepoint)
+uint16_t *glyphRows(uint16_t codepoint)
 {
 	uint16_t code;
 
@@ -1575,7 +1576,7 @@ static uint16_t *glyphRows(uint16_t codepoint)
 #ifdef FONT_KERN
 /*
  * MOD (font): font b's kerning (tools/font/b.txt `kern`, generated KERN_RULES): what the pen moves when the glyph `code`
- * comes right after `prev` (Shift-JIS codes), 0 for most pairs. The mockup the owner approved draws T V W Y P F closer
+ * comes right after `prev` (Shift-JIS codes), 0 for most pairs. The font draws T V W Y P F closer
  * to the lowercase letters and the period and comma after them, r f before those two.
  */
 int32_t kernOf(uint16_t prev, uint16_t code)
@@ -1584,7 +1585,7 @@ int32_t kernOf(uint16_t prev, uint16_t code)
 	const uint16_t *right;
 	int32_t i;
 
-	if (MOD_FONT != MOD_FONT_NEW) {
+	if (MOD_FONT != MOD_FONT_NEW || MOD_LANG == MOD_LANG_ZH) {
 		return 0; /* CLASSIC: the original letters, without font b's pairs */
 	}
 	for (r = KERN_RULES; r[0] != 0; r = right + r[2]) {
@@ -1607,12 +1608,14 @@ int32_t kernOf(uint16_t prev, uint16_t code)
 /* the advance of a glyph in pixels (script_textbox.c centres the name keyboard's letters in their 12-pixel cells) */
 int32_t glyphWidth(uint16_t codepoint)
 {
+	if (MOD_LANG == MOD_LANG_ZH) return zhGlyphWidth(codepoint);
 	return glyphRows(codepoint)[GLYPH_HEIGHT] & 0xff;
 }
 
 /* the original glyph's width, its cell (script_textbox.c lays out a row in pieces by it) */
 int32_t glyphCell(uint16_t codepoint)
 {
+	if (MOD_LANG == MOD_LANG_ZH && (codepoint & 255) >= 0xA0) return 12;
 	return glyphRows(codepoint)[GLYPH_HEIGHT] >> 8;
 }
 
@@ -1864,6 +1867,7 @@ int8_t MOD_FONT;
 
 void modSetFont(int32_t font)
 {
+    if (MOD_LANG == MOD_LANG_ZH) font = MOD_FONT_NEW;
 	int32_t files;
 
 	if (font != MOD_FONT_ORIGINAL && font != MOD_FONT_CLASSIC) {
@@ -1895,6 +1899,10 @@ int32_t drawGlyph(codepoint, x, y)
 	uint16_t y;
 // clang-format on
 {
+    if (MOD_LANG == MOD_LANG_ZH) {
+        int32_t advance = zhDrawGlyph(codepoint, x, y);
+        if (advance >= 0) return advance;
+    }
 	if (FONT_PROPORTIONAL) {
 		return drawGlyphPixel(codepoint, x, y);
 	}

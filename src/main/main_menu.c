@@ -1238,6 +1238,7 @@ uint8_t SAVE_TITLE_RESERVED[28] = { 0 };
 void renderText(POLY_FT4 *prim, int32_t x, int32_t y, int32_t u, int32_t v,
 		int32_t w, int32_t h, int32_t textColor)
 {
+    if (MOD_LANG == MOD_LANG_ZH && h == 11) h = 12;
 	x -= 0xA0;
 	y -= 0x78;
 	SetPolyFT4(prim);
@@ -6014,7 +6015,7 @@ void renderInitialMenu(void)
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
 #define MOD_OPT_MARGIN	8	/* the box's frame to its text */
 
-static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
+static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
@@ -6025,19 +6026,47 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
-	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
+	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC },
 #endif
-	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE }, /* MOD (language) */
+	{ MOD_OPT_STR_LANG }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 	{ MOD_OPT_STR_CHEATS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_ENEMY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 };
 /* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
  * drawn once (drawOptionsText) */
-static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
+/* The font row's third value uses the following language row's otherwise unused slot. */
+#if FONT_SWITCH
+typedef char mod_options_font_slot[(MOD_OPT_ROW_LANG == MOD_OPT_ROW_FONT + 1) ? 1 : -1];
+#endif
+static int16_t MOD_OPT_V[MOD_OPT_ROWS * 2];
+static int16_t MOD_OPT_LANG_V;
 /* the pixels of each label and value as the font draws them (drawOptionsText) */
-static uint8_t MOD_OPT_W[MOD_OPT_ROWS][1 + MOD_OPT_VALUES];
-static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN };
+static uint8_t MOD_OPT_W[MOD_OPT_ROWS * 3];
+static uint8_t MOD_OPT_LANG_W[1 + MOD_LANGS];
+extern int32_t MOD_COLD_CACHE_TYPE;
+extern uint32_t MOD_LANGUAGE_AVAILABLE;
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN, "Chinese - needs 8 MB" };
+
+/* Language values share one texture position; the other option rows have at most three values. */
+static char *modOptionText(int32_t row, int32_t value)
+{
+    if (row == MOD_OPT_ROW_LANG && value > 0) return MOD_LANGUAGE_NAMES[modLanguageAt(value - 1)];
+#if FONT_SWITCH
+    if (row == MOD_OPT_ROW_FONT && value == 3) return MOD_OPT_STR_ORIGINAL;
+#endif
+    return MOD_OPT_TEXT[row][value];
+}
+
+static int16_t *modOptionV(int32_t row, int32_t value)
+{
+    return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_V : &MOD_OPT_V[row * 2 + value];
+}
+
+static uint8_t *modOptionW(int32_t row, int32_t value)
+{
+    return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_W[value] : &MOD_OPT_W[row * 3 + value];
+}
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
  * width, a value's, how many values a row shows (all, or 1 with the original font, 0 for 1 at the right edge: above)
@@ -6050,7 +6079,14 @@ static int16_t MOD_OPT_SHOWN;
 
 static int32_t modOptionCount(int32_t row)
 {
-	return row == MOD_OPT_ROW_LANG ? modLanguageCount() : MOD_OPT_TEXT[row][3] != NULL ? 3 : 2;
+	if (row == MOD_OPT_ROW_LANG) {
+        int32_t count = modLanguageCount();
+        return count - (MOD_COLD_CACHE_TYPE < 0 && (MOD_LANGUAGE_AVAILABLE & (1u << MOD_LANG_ZH)));
+    }
+#if FONT_SWITCH
+    if (row == MOD_OPT_ROW_FONT) return 3;
+#endif
+    return 2;
 }
 
 /* the index of the row's chosen value, -1 none (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
@@ -6166,42 +6202,39 @@ static void drawOptionsText(void)
 	int32_t r2;
 	int32_t k2;
 
-	for (k = 0; k < modLanguageCount(); k++) {
-        MOD_OPT_TEXT[MOD_OPT_ROW_LANG][k + 1] = MOD_LANGUAGE_NAMES[modLanguageAt(k)];
-    }
     MOD_OPT_LABEL_W = 0;
 	MOD_OPT_VALUE_W = 0;
 	y = MOD_OPT_VALUE_Y << 1; /* the value's place times two, its half in the low bit */
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		for (k = 0; k <= modOptionCount(r); k++) {
 			if (r == MOD_OPT_ROW_LANG && k > 0) {
-				MOD_OPT_V[r][k - 1] = (y >> 1) + ((y & 1) << 8);
-				if (k - 1 == modOptionValue(r)) drawString(MOD_OPT_TEXT[r][k], (y & 1) * MOD_OPT_VALUE_U, y >> 1);
+				(*modOptionV(r, k - 1)) = (y >> 1) + ((y & 1) << 8);
+				if (k - 1 == modOptionValue(r)) drawString(modOptionText(r, k), (y & 1) * MOD_OPT_VALUE_U, y >> 1);
 				if (k == modOptionCount(r)) y += (y & 1) ? 0xC * 2 - 1 : 1;
 				goto drawn;
 			}
 			if (k > 0) { /* MOD (language): a value an earlier row has is drawn once */
 				for (r2 = 0; r2 <= r; r2++) {
 					for (k2 = 1; k2 <= modOptionCount(r2) && (r2 < r || k2 < k); k2++) {
-						if (!strcmp(MOD_OPT_TEXT[r2][k2], MOD_OPT_TEXT[r][k])) {
+						if (!strcmp(modOptionText(r2, k2), modOptionText(r, k))) {
 							goto shared;
 						}
 					}
 				}
-				MOD_OPT_V[r][k - 1] = (y >> 1) + ((y & 1) << 8);
-				drawString(MOD_OPT_TEXT[r][k], (y & 1) * MOD_OPT_VALUE_U, y >> 1);
+				(*modOptionV(r, k - 1)) = (y >> 1) + ((y & 1) << 8);
+				drawString(modOptionText(r, k), (y & 1) * MOD_OPT_VALUE_U, y >> 1);
 				y += (y & 1) ? 0xC * 2 - 1 : 1;
 				goto drawn;
 			shared:
-				MOD_OPT_V[r][k - 1] = MOD_OPT_V[r2][k2 - 1];
-				MOD_OPT_W[r][k] = MOD_OPT_W[r2][k2];
+				(*modOptionV(r, k - 1)) = (*modOptionV(r2, k2 - 1));
+				(*modOptionW(r, k)) = (*modOptionW(r2, k2));
 				continue;
 			}
-			drawString(MOD_OPT_TEXT[r][k], 0, r * 0xC);
+			drawString(modOptionText(r, k), 0, r * 0xC);
 		drawn:
 			DrawSync(0);
-			w = measureStringMode(MOD_OPT_TEXT[r][k], FIT_VANILLA) + 1; /* and the shadow */
-			MOD_OPT_W[r][k] = w < 0xFF ? w : 0xFF;
+			w = measureStringMode(modOptionText(r, k), FIT_VANILLA) + 1; /* and the shadow */
+			(*modOptionW(r, k)) = w < 0xFF ? w : 0xFF;
 			if (k == 0) {
 				MOD_OPT_LABEL_W = w > MOD_OPT_LABEL_W ? w : MOD_OPT_LABEL_W;
 			} else {
@@ -6221,9 +6254,9 @@ static void drawOptionsText(void)
 		for (r = 0; r < MOD_OPT_ROWS; r++) {
 			k2 = 0;
 			for (k = 1; k <= modOptionCount(r); k++) {
-				k2 = MOD_OPT_W[r][k] > k2 ? MOD_OPT_W[r][k] : k2;
+				k2 = (*modOptionW(r, k)) > k2 ? (*modOptionW(r, k)) : k2;
 			}
-			k2 += MOD_OPT_W[r][0] + MOD_OPT_GAP;
+			k2 += (*modOptionW(r, 0)) + MOD_OPT_GAP;
 			w = k2 > w ? k2 : w;
 		}
 	}
@@ -6247,22 +6280,22 @@ static void renderOptionsMenu(void)
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		y = 0x37 + r * 0xC;
 		value = modOptionValue(r);
-		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_SHOWN ? MOD_OPT_LABEL_W : MOD_OPT_W[r][0], 0xC, 0);
+		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_SHOWN ? MOD_OPT_LABEL_W : (*modOptionW(r, 0)), 0xC, 0);
 		x = MOD_OPT_TEXT_X + MOD_OPT_LABEL_W + MOD_OPT_GAP;
 		if (MOD_OPT_SHOWN == 0) { /* the chosen value at the right edge */
 			value = value > 0 ? value : 0;
-			k = MOD_OPT_V[r][value];
-			renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_TEXT_W - MOD_OPT_W[r][1 + value], y, (k >> 8) * MOD_OPT_VALUE_U,
-				   k & 0xFF, MOD_OPT_W[r][1 + value], 0xC, modOptionValue(r) >= 0 ? 2 : 1);
+			k = (*modOptionV(r, value));
+			renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_TEXT_W - (*modOptionW(r, 1 + value)), y, (k >> 8) * MOD_OPT_VALUE_U,
+				   k & 0xFF, (*modOptionW(r, 1 + value)), 0xC, modOptionValue(r) >= 0 ? 2 : 1);
 			continue;
 		}
 		if (MOD_OPT_SHOWN == 1) { /* the chosen value (the first one, grey, when none is) */
-			k = MOD_OPT_V[r][value > 0 ? value : 0];
+			k = (*modOptionV(r, value > 0 ? value : 0));
 			renderText(cur++, x, y, (k >> 8) * MOD_OPT_VALUE_U, k & 0xFF, MOD_OPT_VALUE_W, 0xC, value >= 0 ? 2 : 1);
 			continue;
 		}
 		for (k = 0; k < modOptionCount(r); k++) {
-			renderText(cur++, x, y, (MOD_OPT_V[r][k] >> 8) * MOD_OPT_VALUE_U, MOD_OPT_V[r][k] & 0xFF, MOD_OPT_VALUE_W,
+			renderText(cur++, x, y, ((*modOptionV(r, k)) >> 8) * MOD_OPT_VALUE_U, (*modOptionV(r, k)) & 0xFF, MOD_OPT_VALUE_W,
 				   0xC, value == k ? 2 : 1);
 			x += MOD_OPT_VALUE_W + MOD_OPT_GAP;
 		}
@@ -6282,7 +6315,7 @@ static void modDrawLanguagePicker(void)
 	drawString("LANGUAGE - IDIOMA", 0, 0);
 	DrawSync(0);
 	for (i = 0; i < modLanguageCount(); i++) {
-		drawString(MOD_LANGUAGE_NAMES[modLanguageAt(i)], 0, 16 + i * 20);
+		drawString(MOD_LANGUAGE_NAMES[modLanguageAt(i)], 0, 16 + i * 18);
 		DrawSync(0);
 	}
 	drawString("START", 0, 188);
@@ -6354,26 +6387,28 @@ static void modRenderLanguagePicker(void)
 {
 	POLY_FT4 *text;
 	MenuHighlight selected = {0};
-	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 20;
+	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 18;
 	int32_t i, x, y, end, lang;
 	uint32_t colour;
 	text = (POLY_FT4 *)GsGetWorkBase();
 	renderText(text++, 68, 22, 0, 0, 216, 12, 0);
 	for (i = 0; i < modLanguageCount(); i++) {
-		renderText(text++, 108, 46 + i*20, 0, 16 + i*20, 144, 12, i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
+        lang = modLanguageAt(i);
+		renderText(text++, 108, 46 + i*18, 0, 16 + i*18, 144, 12, lang == MOD_LANG_ZH && MOD_COLD_CACHE_TYPE < 0 ? 1 : i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
 	}
 	renderText(text++, 132, 210, 0, 188, 80, 12, 0);
 	GsSetWorkBase((PACKET *)text);
 	for (i = 0; i < modLanguageCount(); i++) {
 		lang = modLanguageAt(i);
+        if (lang == MOD_LANG_ZH) continue;
 		for (y = 0; y < 16; y++) {
 			for (x = 0; x < 24; x = end) {
 				colour = modFlagPixel(lang, x, y);
 				for (end = x + 1; end < 24 && modFlagPixel(lang, end, y) == colour; end++);
-				modFlagRect(76+x, 44+i*20+y, end-x, 1, colour);
+				modFlagRect(76+x, 44+i*18+y, end-x, 1, colour);
 			}
 		}
-		modFlagRect(75, 43+i*20, 26, 18, 0x080808);
+		modFlagRect(75, 43+i*18, 26, 18, 0x080808);
 	}
 	selected.pos = MOD_BOOT_LANGUAGE_CURSOR;
 	renderMenuSelector(&selected);
