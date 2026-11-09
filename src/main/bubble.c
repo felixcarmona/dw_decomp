@@ -478,22 +478,19 @@ static void drawConditionIcon(int32_t icon, int32_t fc, int32_t x, int32_t y,
 	switch (icon) {
 	case 13:
 	case 14: {
-		/* Derived ITEM.TIM disks and pixel labels in the existing ETCTIM upload. */
-		GsSPRITE disk = CONDITION_SPRITES[0];
-		disk.u = 224;
-		disk.v = 192;
-		if (icon == 14) {
-			/* Wider art keeps both M stems and its valleys after sampling. */
-			disk.v = 208;
-			disk.w = 32;
-			disk.mx = 16;
-		}
-		disk.tpage = 0x1f;
-		disk.cx = 272;
-		disk.cy = 493 + icon - 13;
-		disk.my = 22;
-		/* A 20-texel disk fits the native 26-texel circle; keep the label legible. */
-		renderSprite(&disk, x, y, depth, scale * 5 / 4, scale * 5 / 4);
+		/* Depleted native HUD heart/orb, derived into the existing ETCTIM upload. */
+		GsSPRITE gauge = CONDITION_SPRITES[0];
+		gauge.u = 224;
+		gauge.v = 192 + (icon - 13) * 16;
+		gauge.w = 11;
+		gauge.h = 11;
+		gauge.mx = 5;
+		gauge.my = 16;
+		gauge.tpage = 0x1f;
+		gauge.cx = 272;
+		gauge.cy = 493 + icon - 13;
+		/* The 11 native texels span 19.25 within the unchanged 26-texel circle. */
+		renderSprite(&gauge, x, y, depth, scale * 7 / 4, scale * 7 / 4);
 		break;
 	}
 	case 9: {
