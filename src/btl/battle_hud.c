@@ -696,6 +696,60 @@ void BTL_appendMoveLearnedText(move)
 	BATTLE_END_BOX_LINE_COUNT += 2;
 }
 
+#if VERSION_IS(US)
+/* Fit a whole composed row, then redraw only the typed prefix. Keep the existing
+ * cursor, waits, colors, row count and scrolling. No persistent row buffer. */
+static int32_t BTL_drawFittedEndGlyph(void)
+{
+	char text[256];
+	uint8_t colors[256];
+	char *p = BTL_END_BOX_TEXTBUFFER;
+	char *start = p;
+	char *end = (char *)BATTLE_END_CURSOR;
+	int32_t n = 0;
+	int32_t typed = 0;
+	int32_t mode;
+	int32_t color = 1;
+	int32_t typedColor = 1;
+	int32_t startColor = 1;
+	int32_t bytes;
+
+	/* Walk encoded glyphs, never interpreting their trailing byte as a control. */
+	while (p < (char *)BATTLE_END_CURSOR) {
+		if (*p == '#') {
+			if (p[1] == 'C') { color = p[2]; p += 3; }
+			else { p += 2; start = p; startColor = color; }
+		} else { p += ((uint8_t)*p & 0x80) ? 2 : 1; }
+	}
+	p = start;
+	color = startColor;
+	while (*p && !(p[0] == '#' && (p[1] == 'R' || p[1] == 'W'))) {
+		if (*p == '#' && p[1] == 'C') {
+			color = p[2]; p += 3; continue;
+		}
+		bytes = ((uint8_t)*p & 0x80) ? 2 : 1;
+		if (n + bytes >= (int32_t)sizeof(text)) { return 0; }
+		colors[n] = color;
+		text[n++] = *p++;
+		if (bytes == 2) { text[n++] = *p++; }
+		if (p > (char *)BATTLE_END_CURSOR && typed == 0) { typed = n; end = p; typedColor = color; }
+	}
+	text[n] = 0;
+	if (measureStringMode(text, FIT_VANILLA) <= 156) { return 0; }
+	for (mode = FIT_TIGHT; mode < FIT_COMPACT; mode++) {
+		if (measureStringMode(text, mode) <= 156) { break; }
+	}
+	/* Compact colors are glyph-indexed, unlike the encoded byte string. */
+	p = text; n = 0;
+	while (*p) { colors[n++] = colors[p - text]; p += ((uint8_t)*p & 0x80) ? 2 : 1; }
+	text[typed] = 0;
+	BATTLE_END_PEN_X = drawFittedRow(text, BATTLE_END_PEN_Y, mode, colors);
+	BATTLE_END_CURSOR = (uint8_t *)end;
+	setTextColor(typedColor);
+	return 1;
+}
+#endif
+
 void BTL_drawBattleEndText(int32_t flag)
 {
 #if !VERSION_IS(US)
@@ -758,6 +812,7 @@ void BTL_drawBattleEndText(int32_t flag)
 			}
 			continue;
 		}
+		if (*BATTLE_END_CURSOR != 0 && BTL_drawFittedEndGlyph()) { return; }
 		c = *BATTLE_END_CURSOR;
 		/* MOD (end box rows): the original tested c == '0' (0x30), so the "0" of the US MP bonus's
 		 * "10"/"20" stopped the text for good, and the end of the text (0) was drawn as a glyph */
