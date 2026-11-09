@@ -3480,6 +3480,7 @@ int8_t entityId;
 	anim = entity->anim.animId;
 	pos = entity->posData;
 	count = DIGIMON_DATA[type].boneCount;
+	modInterpUnapplyEntity(entityId); /* MOD (fps): its own position */
 	savedPos = pos->location;
 	savedRot = pos->rotation;
 	/* MOD (fps): this moves the live entity to the menu view, poses it and
