@@ -8,6 +8,7 @@
 #include <dw/efe.h>
 #include <dw/entity.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
 #include <dw/memmap.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -27,10 +28,28 @@ typedef struct {
 	int16_t brains;
 	int16_t discipline;
 	char name[14];
-	uint8_t digimonId;
+	uint8_t digimonId;	/* MOD (wide registered species): a species past 255 keeps here the original it is based on */
 	uint8_t moves[3];
-	uint8_t unk20[32];
+	/* MOD (wide registered species): the species itself, which the byte above cannot hold past 255. The original game
+	 * never writes these bytes (zero on its cards); wideCheck repeats digimonId, so a slot that a build without this
+	 * field registers over again (it writes digimonId only) is read by its new byte */
+	uint16_t wideId;
+	uint8_t wideCheck;
+	uint8_t wideTag;	/* REGISTERED_WIDE_TAG when wideId is set */
+	uint8_t unk24[28];
 } RegisteredDigimon;
+
+#define REGISTERED_WIDE_TAG 0xD7
+
+/* MOD (wide registered species): the species a registered Digimon fights as; 0 for an empty slot */
+static inline int32_t registeredSpecies(const RegisteredDigimon *r)
+{
+	if (r->digimonId != 0 && r->wideTag == REGISTERED_WIDE_TAG && r->wideCheck == r->digimonId && r->wideId != 0 &&
+	    r->wideId < NUM_DIGIMON) {
+		return r->wideId;
+	}
+	return r->digimonId;
+}
 
 typedef struct {
 	uint8_t fighters[2][5];
