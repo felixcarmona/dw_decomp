@@ -55,8 +55,8 @@ MENU_LABELS:
       ja: 合計戦績勝った数負けた数勝率％
       en_us: BattleRecord Wins Losses Percentage
     MAIN_D_80123A18:
-      ja: ステータスデジモン表メダルカードつり
-      en_us: Player   Chart    Med. Card Fish
+      ja: ひとずかんメダルカードまち
+      en_us: PlayerChartMed.CardsCity
     MAIN_D_80123A3C:
       ja: メダルコレクションａｂｈｉｊｋｌｍｎｏ？
       en_us: Medals Chart   △× Select  Cancel
@@ -325,3 +325,9 @@ CHART_TEXT:
     CHART_STR_READY:
       ja: "  ready"
       en_us: "  ready"
+    CITY_STR_PROSPERITY:
+      en_us: Prosperity
+      ja: 繁栄度
+    CITY_STR_RESIDENTS:
+      en_us: Residents
+      ja: 住人
