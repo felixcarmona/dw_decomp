@@ -1,3 +1,4 @@
+#include <dw/mod_battle.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/attack_object.h>
@@ -103,21 +104,21 @@ void BTL_initializeCombat(void)
 		f->finisherProgress = 0;
 		f->statusFxId = -1;
 		f->activeEffectSlot = -1;
-		f->speedBuffer = 0x64;
+		f->speedBuffer = BM(SPEED_START);
 		f->unk15 = 0;
 		f->hasCollidedWhileDistanceCmd = 0;
-		if (stats->base.brain < 0x190) {
-			f->buffsRemaining = (stats->base.brain / 100) + 1;
-		} else if (stats->base.brain < 0x258) {
-			f->buffsRemaining = 4;
+		if (stats->base.brain < BM(BUFFUSE_T1)) { /* MOD (battle as data) */
+			f->buffsRemaining = BMD(stats->base.brain, BUFFUSE_DIV) + 1;
+		} else if (stats->base.brain < BM(BUFFUSE_T2)) {
+			f->buffsRemaining = BM(BUFFUSE_N1);
 		} else {
-			f->buffsRemaining = 5;
+			f->buffsRemaining = BM(BUFFUSE_N2);
 		}
 		/* MOD (caps): brains and speed past the old 999 limit do not
 		 * make buffs win every draw or the finisher goal reach 0:
 		 * the goal keeps falling, ten times slower (1101 at 9999) */
-		f->buffPrioTimer = (CAPS_OLD_STAT(stats->base.brain) / 10) + 5;
-		f->finisherGoal = 0xbb8 - CAPS_OLD_STAT(stats->base.speed) -
+		f->buffPrioTimer = BMD(CAPS_OLD_STAT(stats->base.brain), PRIO_DIV) + BM(PRIO_BASE);
+		f->finisherGoal = BM(FIN_GOAL) - CAPS_OLD_STAT(stats->base.speed) -
 		                  (stats->base.speed - CAPS_OLD_STAT(stats->base.speed)) / 10;
 		for (j = 0; j < 0x96; j++) {
 			f->table1[j] = -1;
@@ -199,10 +200,10 @@ void BTL_initializeCombat(void)
 
 	if ((PARTNER_PARA.condition & 0x60) != 0) {
 		stats = &PARTNER_ENTITY.digimonEntity.stats;
-		stats->base.off -= (int16_t)(stats->base.off / 5);
-		stats->base.def -= (int16_t)(stats->base.def / 5);
-		stats->base.speed -= (int16_t)(stats->base.speed / 5);
-		stats->base.brain -= (int16_t)(stats->base.brain / 5);
+		stats->base.off -= (int16_t)(stats->base.off * BM(COND_STAT_PCT) / 100);
+		stats->base.def -= (int16_t)(stats->base.def * BM(COND_STAT_PCT) / 100);
+		stats->base.speed -= (int16_t)(stats->base.speed * BM(COND_STAT_PCT) / 100);
+		stats->base.brain -= (int16_t)(stats->base.brain * BM(COND_STAT_PCT) / 100);
 	}
 
 	COMBAT_DATA_PTR->player.startingHP = PARTNER_ENTITY.digimonEntity.stats.current.currentHP;
