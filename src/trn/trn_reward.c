@@ -646,7 +646,7 @@ int32_t c;
 	if (shown == 1) {
 		setTextColor(1);
 		drawString(TRN_D_8008F140, 0, y);
-		createMenuBox(2, -94, TB_box2Y(), 188, 0x30, 2, 0, TRN_renderNewOrdersBox); /* MOD (skip hint) */
+		createMenuBox(2, TB_box2X(), TB_box2Y(), 188, 0x30, 2, 0, TRN_renderNewOrdersBox); /* MOD (skip hint) */
 		MAIN_D_80135388 = 1;
 	} else if (TRN_crossedLearnMark(base, total)) { /* MOD (caps): reaching 999 (was total == 999); MOD (training as data): the marks are MOD_TRAIN_RULES' */
 		TRN_tryLearnMove(a);
@@ -804,7 +804,7 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 
 void TRN_renderNewOrdersBox(void)
 {
-	renderString(0, -84, 28 + TB_box2Dy, 240, 48, 0, 120, 4, 0);
+	renderString(0, TB_box2X() + 10, 28 + TB_box2Dy, MOD_OPT_BARS ? 168 : 240, 48, 0, 120, 4, 0);
 }
 
 int32_t TRN_tryLearnMove(int32_t type)
@@ -869,7 +869,7 @@ int32_t TRN_tryLearnMove(int32_t type)
 		MAIN_D_80135392 = strlen(MOVE_NAMES[move]);
 #endif
 		drawString(TRN_D_8008F19C, 0, 0x84);
-		createMenuBox(2, -94, TB_box2Y(), 188, 0x23, 2, 0, TRN_renderMoveLearnedBox); /* MOD (skip hint) */
+		createMenuBox(2, TB_box2X(), TB_box2Y(), 188, 0x23, 2, 0, TRN_renderMoveLearnedBox); /* MOD (skip hint) */
 		MAIN_D_80135388 = 1;
 		return 1;
 	}
@@ -885,7 +885,7 @@ int32_t TRN_tryLearnMove(int32_t type)
  * which cut the US line ("Spit F" + "w" / "as m"). Both strings were drawn whole into the text area by
  * TRN_tryLearnMove; MAIN_D_80135392 holds the name's width.
  */
-#define LEARNED_TEXT_X	-84
+#define LEARNED_TEXT_X	(TB_box2X() + 10)
 #define LEARNED_TEXT_W	168 /* to the box's inner edge, as far right as the text starts left of it */
 #define LEARNED_GAP	5   /* from the name's last ink to the text: a blank column and a space */
 
@@ -908,8 +908,8 @@ void TRN_renderMoveLearnedBox(void)
 #else
 void TRN_renderMoveLearnedBox(void)
 {
-	renderString(3, -84, 28 + TB_box2Dy, (MAIN_D_80135392 / 2) * 12, 12, 0, 120, 4, 0);
-	renderString(0, ((MAIN_D_80135392 / 2) * 12) - 84, 28 + TB_box2Dy, 12, 12, 0, 132, 4, 0);
-	renderString(0, -84, 40 + TB_box2Dy, 48, 12, 12, 132, 4, 0);
+	renderString(3, TB_box2X() + 10, 28 + TB_box2Dy, (MAIN_D_80135392 / 2) * 12, 12, 0, 120, 4, 0);
+	renderString(0, ((MAIN_D_80135392 / 2) * 12) + TB_box2X() + 10, 28 + TB_box2Dy, 12, 12, 0, 132, 4, 0);
+	renderString(0, TB_box2X() + 10, 40 + TB_box2Dy, 48, 12, 12, 132, 4, 0);
 }
 #endif
