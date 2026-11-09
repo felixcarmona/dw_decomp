@@ -442,6 +442,12 @@ void writeSavegame(SavegamePayload *savegame);
 static int32_t SAVE_FILE_BYTES = SAVE_V1_BYTES;
 static int32_t getSaveFileBytes(void);
 static int32_t loadSaveCopy(int32_t copy);
+static int32_t coherentSlotLayout(uint8_t *e);
+static int32_t isTaggedVersion(int32_t version);
+static int32_t getSaveVersion(SavegamePayload *savegame);
+static uint8_t *saveExtOf(int32_t copy);
+static int32_t isExtensionValid(int32_t copy);
+static void migrateCoherentRegistered(RegisteredDigimon *p, int32_t n);
 static int32_t isSaveCopyValid(int32_t copy);
 static void prepareSaveFile(int32_t fromRam);
 static void modTitleOptions(void); /* MOD (options) */
@@ -3511,8 +3517,12 @@ void tickMainMenu(void)
 					setMemoryCardReadError(2, 0x32);
 					break;
 				}
+				status = isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[slot])) && isExtensionValid(slot)
+					 ? coherentSlotLayout(saveExtOf(slot)) : 0;
+				if (status < 0) { setMemoryCardReadError(2, 0x32); break; }
 				memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
 				       SAVE_FILE.saves[slot].battleRegistrationData, 0xA00);
+				if (status == 0) migrateCoherentRegistered(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28], 40);
 				dropAbsentRegistered(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28], 40);
 				if (countRegisteredDigimon(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28])) {
 					TARGET_MENU = 0x37;
@@ -5108,6 +5118,7 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_GROUND_PICKED, 0, 0);
 		p = putRecord(p, SAVE_TAG_GROUND_PICKUP_BITS, MOD_GROUND_PICKED, sizeof(MOD_GROUND_PICKED));
 	}
+	{ uint8_t layout = 1; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -5387,6 +5398,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_VANILLA_SWAP:
 	case SAVE_TAG_GROUND_PICKED:
 	case SAVE_TAG_GROUND_PICKUP_BITS:
+	case SAVE_TAG_TECHNIQUE_LAYOUT:
 		return 1;
 	}
 	return 0;
@@ -5486,10 +5498,13 @@ static void applyRecords(uint8_t *e)
  * Loads copy 0 or 1 (isSaveCopyValid): the v1 payload, then
  * the extension when it is valid. 0 = a newer format this build cannot read.
  */
+#include "coherent_slots.h"
+
 static int32_t loadSaveCopy(int32_t copy)
 {
 	SaveExtension *ext;
 	int32_t i;
+	int32_t layout = 0;
 
 	if (!isSaveVersionReadable(getSaveVersion(&SAVE_FILE.saves[copy]))) {
 		return 0;
@@ -5503,6 +5518,10 @@ static int32_t loadSaveCopy(int32_t copy)
 	if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0])) && isExtensionValid(0) &&
 	    hasUnreadableRecord(saveExtOf(0))) {
 		return 0; /* it holds something this build would silently drop */
+	}
+	if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0])) && isExtensionValid(0)) {
+		layout = coherentSlotLayout(saveExtOf(0));
+		if (layout < 0) return 0;
 	}
 	/* No options record (original cards too): explicit upgrade defaults. */
 	modApplyOptions(NULL, 0);
@@ -5533,7 +5552,21 @@ static int32_t loadSaveCopy(int32_t copy)
 			}
 		}
 	}
+	if (layout == 0) {
+		migrateCoherentRegistered(SAVE_FILE.saves[0].battleRegistrationData, 40);
+		migrateCoherentSlots(SAVED_STATE.partnerType, PARTNER_ENTITY.digimonEntity.stats.base.moves,
+				     &PARTNER_ENTITY.learnedMoves[0]);
+		for (i = 0; i < 4; i++) {
+			SAVED_STATE.partnerStats.base.moves[i] = PARTNER_ENTITY.digimonEntity.stats.base.moves[i];
+		}
+	}
 	dropAbsentSaveContent();
+	/* The registration menu restores copy 1. Keep its used fields in the selected
+	 * layout too; unk24 contains that copy's inline extension and must stay intact. */
+	for (i = 0; i < 40; i++) {
+		memcpy(&SAVE_FILE.saves[1].battleRegistrationData[i], &SAVE_FILE.saves[0].battleRegistrationData[i],
+		       __builtin_offsetof(RegisteredDigimon, unk24));
+	}
 	modVanillaSwap();
 	modStoryRelocate();
 	return 1;
@@ -6115,7 +6148,7 @@ static int32_t modOptionValue(int32_t row)
 	return 0;
 }
 
-static void modSetOption(int32_t row, int32_t value)
+static void __attribute__((noinline)) modSetOption(int32_t row, int32_t value)
 {
     if (row == MOD_OPT_ROW_LANG && modLanguageAt(value) == MOD_LANG_ZH && MOD_COLD_CACHE_TYPE < 0) {
         modShowLanguageError();
@@ -6163,7 +6196,7 @@ static void modSetOption(int32_t row, int32_t value)
  * The labels in the text area's first rows, the values in bands under them (the original font's "JAPANESE CONTROLS"
  * takes 200 of its 256 pixels), and the box laid out on the widest of each, centred on the screen.
  */
-static void drawOptionsText(void)
+static void __attribute__((noinline)) drawOptionsText(void)
 {
 	MenuHighlight *bar;
 	int32_t r;
@@ -6239,7 +6272,7 @@ static void drawOptionsText(void)
 	bar->w = w + 2 * MOD_OPT_MARGIN - 10;
 }
 
-static void renderOptionsMenu(void)
+static void __attribute__((noinline)) renderOptionsMenu(void)
 {
 	POLY_FT4 *cur;
 	int32_t r;

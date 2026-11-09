@@ -303,6 +303,14 @@ SECTIONS
                 .text.modRenderLanguagePicker* .text.modDrawLanguageName*
                 .text.modShowLanguageError* .text.modRenderLanguageError*
                 .text.modFlagRect*
+                /* OPTIONS is title-only (CURRENT_MENU 4). Keep its cold drawing,
+                 * setter and private helpers with the picker; mutable width caches
+                 * and localized pointer tables keep their existing storage. */
+                .text.drawOptionsText* .text.renderOptionsMenu* .text.modSetOption*
+                .text.modOptionValue* .text.modOptionText* .text.modOptionCount*
+                .text.modOptionV* .text.modOptionW*
+                .rodata.drawOptionsText* .rodata.renderOptionsMenu* .rodata.modSetOption*
+                .rodata.modOptionValue* .rodata.modOptionText* .rodata.modOptionCount*
                 .rodata.modDrawLanguagePicker* .rodata.modTickLanguagePicker*
                 .rodata.modRenderLanguagePicker*
                 .rodata.MOD_FLAG_PALETTE .rodata.MOD_FLAG_OFFSET .rodata.MOD_FLAG_RUNS
@@ -845,12 +853,12 @@ SECTIONS
 				.text.isExtensionValid
 				.text.isMoveAbsent
 				.text.loadSaveCopy
+				.text.migrateCoherentSlots* .text.coherentSlotLayout* .text.migrateCoherentRegistered*
 				.text.loadSaveSlotData
 				.text.loadSavegame
 				.text.modDrawSlot2.constprop.0
 				.text.modDrawSlot2.part.0.constprop.0
 				.text.modDrawSlotName
-				.text.modOptionValue
 				.text.modRegisterLong
 				.text.modTitleNameTail .text.modTitleNames
 				.text.modTitleOptions
@@ -896,7 +904,7 @@ SECTIONS
 			. = ALIGN(., 4);
 			/* their switch tables and literals, which only they read */
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
-				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue
+				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.old.*
                 .rodata.MOD_OPT_TEXT); /* Options row pointers are read only while MENU is loaded. */
 			. = ALIGN(., 4);
 			/* MOD (heap): read-only data of the card menus that only this overlay reaches (tools/xref.py classes): their
@@ -995,7 +1003,7 @@ SECTIONS
 			LONG(0);
 			. = ALIGN(., 4);
             /* Resident helpers reached only by this loaded overlay (xref). */
-            BUILD_DIR/src/main/main_menu.c.o(.text.modOptionBytes .text.modOptionText .text.modOptionCount*);
+            BUILD_DIR/src/main/main_menu.c.o(.text.modOptionBytes);
             BUILD_DIR/src/main/main_menu.c.o(.text.setRegisteredSpecies*);
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
             BUILD_DIR/src/main/sjis.c.o(.text.asciiToShiftJIS);
