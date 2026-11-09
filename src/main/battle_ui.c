@@ -1,6 +1,7 @@
 #include <libgs.h>
 
 #include <dw/mod_font.h>
+#include <dw/mod_rules.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/combat.h>
 #include <dw/entity.h>
@@ -291,13 +292,16 @@ void handleBattleEndBox(void)
 	RECT boxPosition;
 	long i;
 	int32_t done;
+	int32_t bits;
 
 	initializeBitText();
 
-	BITS_TO_GAIN = 0;
+	bits = 0; /* MOD (economy): summed wide, scaled by economy.battle.bitsPercent, then into the u16 counter */
 	for (i = 1; i <= ENEMY_COUNT; i++) {
-		BITS_TO_GAIN += NPC_ENTITIES[COMBAT_DATA_PTR->player.entityIds[i] - 2].bits;
+		bits += NPC_ENTITIES[COMBAT_DATA_PTR->player.entityIds[i] - 2].bits;
 	}
+	bits = bits * econPercent(MOD_ECON_BATTLE_BITS) / 100;
+	BITS_TO_GAIN = bits > 0xffff ? 0xffff : bits;
 
 	battleStatsGainsAndDrops(droppedItems);
 	setRECT(&boxPosition, -78, 54, 156, 24);
