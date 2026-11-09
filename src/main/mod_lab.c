@@ -232,7 +232,7 @@ int32_t modRosterTick(void)
 	int32_t type;
 
 	pressed = POLLED_INPUT & ~POLLED_INPUT_PREVIOUS;
-	if (!MOD_OPT_CHEATS || !(POLLED_INPUT & PAD_SELECT) || !(pressed & (PAD_L1 | PAD_L2 | PAD_R1 | PAD_R2))) {
+	if (!MOD_OPT_CHEATS || !MOD_OPT_SHORTCUTS || !(POLLED_INPUT & PAD_SELECT) || !(pressed & (PAD_L1 | PAD_L2 | PAD_R1 | PAD_R2))) {
 		return 0;
 	}
 	if (IS_SCRIPT_PAUSED != 1 || partnerGetState() != 1 || EVOLUTION_TARGET != -1 || isFileReadQueueBusy()) {

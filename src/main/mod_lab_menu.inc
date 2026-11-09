@@ -1,7 +1,8 @@
 /* Private laboratory implementation; included by mod_lab.c. Ten texture rows fit below UV 256; createPauseBox restores its shared last row on return. */
 #define MOD_LAB_BOX 5
 #define MOD_LAB_TEXT_Y 0x84
-#define MOD_LAB_OPTIONS 10
+#define MOD_LAB_OPTIONS 11
+#define LAB_ROW_SHORTCUTS 6
 #define MOD_LAB_OPT_EVOLVE 3
 #define PAD_SELECT 0x100
 #define PAD_UP 0x1000
@@ -56,7 +57,7 @@ static uint16_t *labChoices; /* points into modLabMenu's stack, valid until the 
 static char *modLabMessage;
 static char labText[LAB_ROWS][96];
 static char *LAB_HOME_TEXT[] = { LAB_STR_ADD_BITS, LAB_STR_SATIATE, LAB_STR_PARAMETERS,
-    LAB_STR_EVOLVE, LAB_STR_TELEPORT, LAB_STR_HEAL, LAB_STR_SAVE_GAME, LAB_STR_LOAD_GAME, LAB_STR_MAIN_MENU, LAB_STR_CLOSE };
+    LAB_STR_EVOLVE, LAB_STR_TELEPORT, LAB_STR_HEAL, LAB_STR_SHORTCUTS_OFF, LAB_STR_SAVE_GAME, LAB_STR_LOAD_GAME, LAB_STR_MAIN_MENU, LAB_STR_CLOSE };
 static char *LAB_STAGES[] = { "", "Baby I", "Baby II", "Rookie", "Champion", "Ultimate", "Mega" };
 
 static char *appendStr(char *dst, char *src)
@@ -316,7 +317,7 @@ static void modLabDrawText(void)
         n = labTop + row;
         if (n >= count) break;
         p = lines[row + firstRow];
-        if (MOD_LAB_VIEW == LAB_HOME) appendStr(p, LAB_HOME_TEXT[n]);
+        if (MOD_LAB_VIEW == LAB_HOME) appendStr(p, n == LAB_ROW_SHORTCUTS && MOD_OPT_SHORTCUTS ? LAB_STR_SHORTCUTS_ON : LAB_HOME_TEXT[n]);
         else if (MOD_LAB_VIEW == LAB_VALUES) {
             p = appendStr(p, LAB_FIELDS[n].name); p = appendStr(p, ": "); labInt(p, *modLabFieldPtr(n));
         } else {
@@ -518,14 +519,18 @@ void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
                 case 3: modLabList(LAB_EVOLVE); break;
                 case 4: modLabList(LAB_MAPS); break;
                 case 5: modLabHeal(); modLabMessage = LAB_STR_MSG_HEALED; break;
-                case 6: case 8:
+                case LAB_ROW_SHORTCUTS:
+                    MOD_OPT_SHORTCUTS = !MOD_OPT_SHORTCUTS;
+                    if (MOD_OPT_SHORTCUTS) modLabMessage = LAB_STR_SHORTCUTS_HELP;
+                    break;
+                case 7: case 9:
                     labPrevious = LAB_HOME; labPreviousCursor = MOD_LAB_CURSOR;
-                    MOD_LAB_TARGET = MOD_LAB_CURSOR == 6 ? 1 : 3;
+                    MOD_LAB_TARGET = MOD_LAB_CURSOR == 7 ? 1 : 3;
                     MOD_LAB_VIEW = LAB_CONFIRM; break;
-                case 7:
+                case 8:
                     labPrevious = LAB_HOME; labPreviousCursor = MOD_LAB_CURSOR;
                     MOD_LAB_TARGET = 2; done = modLabPerform(); break;
-                case 9: done = 1; break;
+                case 10: done = 1; break;
                 }
             } else if (MOD_LAB_VIEW == LAB_VALUES) {
                 labField = MOD_LAB_CURSOR; MOD_LAB_VALUE = modLabClamp(labField, *modLabFieldPtr(labField)); MOD_LAB_VIEW = LAB_NUMBER; labStep = 1;

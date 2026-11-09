@@ -10,6 +10,15 @@ MOD_LAB:
     LAB_STR_ADD_BITS:
       ja: "Add 10000 bits"
       en_us: "Add 10000 bits"
+    LAB_STR_SHORTCUTS_OFF:
+      ja: "SELECT shortcuts: OFF"
+      en_us: "SELECT shortcuts: OFF"
+    LAB_STR_SHORTCUTS_ON:
+      ja: "SELECT shortcuts: ON"
+      en_us: "SELECT shortcuts: ON"
+    LAB_STR_SHORTCUTS_HELP:
+      ja: "SELECT + L1/R1: Digimon, L2/R2: map"
+      en_us: "SELECT + L1/R1: Digimon, L2/R2: map"
     LAB_STR_HEAL:
       ja: "Heal Digimon"
       en_us: "Heal Digimon"
