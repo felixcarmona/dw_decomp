@@ -3984,6 +3984,13 @@ static void modPerfReset(void)
  * not end before the next tick is due (judging by the previous pass's cost),
  * is skipped; the logic never is. See dw/mod_fps.h for how renders stay idempotent. */
 int32_t MOD_FPS_RENDERS_PER_TICK = 3;
+/* test switch (state checks with the slow interpreter CPU): render every pass
+ * of a tick even when it is late, so the extra passes always run (with the
+ * interpolation fraction they would have had). Ticks then last longer than 3
+ * refreshes, which changes on which tick a CD read ends: 1 forces only in
+ * battle (GAME_STATE 1 or 2: the battle data is loaded in state 3), 2
+ * everywhere (a walk on one map). */
+int32_t MOD_FPS_FORCE_PASSES;
 int32_t MOD_FPS_TICKS;
 int32_t MOD_FPS_RENDERS;
 int32_t MOD_RENDER_PASS;
@@ -4058,11 +4065,6 @@ extern SVECTOR MEDAL_ROTATION;
 extern int16_t MONOCHROMON_BUBBLE_TIMER;
 extern uint8_t TEXTBOX_OPEN_TIMER;
 
-typedef struct {
-	void *ptr;
-	int32_t size;
-} ModRollbackVar;
-
 static ModRollbackVar MOD_ROLLBACK_VARS[] = {
 	{ &MENU_STATE, sizeof(MENU_STATE) },
 	{ &MENU_SUB_STATE, sizeof(MENU_SUB_STATE) },
@@ -4090,20 +4092,59 @@ static void modRollbackCopy(uint8_t *buf, int32_t toVars)
 	}
 }
 
+/* the caller's list (modPresent's extra argument) */
+static ModRollbackSet *modExtraRollback;
+
+static void modCopyAny(void *dst, const void *src, int32_t size)
+{
+	if ((((uint32_t)dst | (uint32_t)src | (uint32_t)size) & 3) == 0) {
+		modCopy(dst, src, size);
+	} else {
+		modCopyBytes(dst, src, size);
+	}
+}
+
+static void modExtraRollbackCopy(uint8_t *buf, int32_t toVars)
+{
+	ModRollbackSet *set = modExtraRollback;
+	int32_t i;
+	int32_t size;
+
+	for (i = 0; i < set->count; i++) {
+		size = (set->vars[i].size + 3) & ~3; /* keeps the buffer aligned */
+		if (toVars) {
+			modCopyAny(set->vars[i].ptr, buf, set->vars[i].size);
+		} else {
+			modCopyAny(buf, set->vars[i].ptr, set->vars[i].size);
+		}
+		buf += size;
+	}
+}
+
 void modRenderRollbackSave(void)
 {
 	modRollbackCopy(modRollbackPre, 0);
+	if (modExtraRollback != NULL) {
+		modExtraRollbackCopy((uint8_t *)modExtraRollback->pre, 0);
+	}
 }
 
 void modRenderRollbackBegin(void)
 {
 	modRollbackCopy(modRollbackPost, 0);
 	modRollbackCopy(modRollbackPre, 1);
+	if (modExtraRollback != NULL) {
+		modExtraRollbackCopy((uint8_t *)modExtraRollback->post, 0);
+		modExtraRollbackCopy((uint8_t *)modExtraRollback->pre, 1);
+	}
 }
 
 void modRenderRollbackEnd(void)
 {
 	modRollbackCopy(modRollbackPost, 1);
+	if (modExtraRollback != NULL) {
+		modExtraRollbackCopy((uint8_t *)modExtraRollback->post, 1);
+	}
 }
 
 static uint32_t modRenderLcg = 0x1234567;
@@ -4215,6 +4256,9 @@ static int16_t modCamSaveCX, modCamSaveCY;
 static int32_t modCamSaveDX, modCamSaveDY;
 static int8_t modInterpLastPassLerped;
 static int8_t modCamApplied;
+static int8_t modInterpBattle;     /* modPresent with MOD_PRESENT_BATTLE */
+static int8_t modInterpLastBattle;
+static MATRIX modInterpWsMatrix;   /* GsWSMATRIX of the previous tick's first pass */
 
 static int32_t modLerp(int32_t a, int32_t b, int32_t alpha)
 {
@@ -4477,14 +4521,26 @@ static void modInterpSnapshot(void)
 	/* a tick much longer than 3 refreshes: a battle or a load ran inside it */
 	snap = !modInterpValid || modInterpMapGen != MOD_INTERP_MAP_GEN ||
 	       modInterpGameState != GAME_STATE || modInterpTickGap > 6 ||
+	       modInterpLastBattle != modInterpBattle ||
+	       /* a camera cut that does not go through GS_VIEWPOINT (the battle
+		* effects' fixed camera, EFE opcodes 63/64) */
+	       !modSame(&modInterpWsMatrix, &modPass0WsMatrix, sizeof(MATRIX)) ||
 	       !modSame(&modInterpView, &GS_VIEWPOINT, sizeof(GsRVIEW2));
 	modInterpMapGen = MOD_INTERP_MAP_GEN;
 	modInterpGameState = GAME_STATE;
+	modInterpLastBattle = modInterpBattle;
+	modCopy(&modInterpWsMatrix, &modPass0WsMatrix, sizeof(MATRIX));
 	modCopy(&modInterpView, &GS_VIEWPOINT, sizeof(GsRVIEW2));
 
 	modCopy(&modCamPrev, &modCamCur, sizeof(ModInterpCam));
-	modCamCur.ox = modPass0Position.offx;
-	modCamCur.oy = modPass0Position.offy;
+	if (modInterpBattle) {
+		/* the origin is set from DRAWING_OFFSET right before the swap */
+		modCamCur.ox = DRAWING_OFFSET_X;
+		modCamCur.oy = DRAWING_OFFSET_Y;
+	} else {
+		modCamCur.ox = modPass0Position.offx;
+		modCamCur.oy = modPass0Position.offy;
+	}
 	modCamCur.cx = MAP_TILE_DATA.cameraX;
 	modCamCur.cy = MAP_TILE_DATA.cameraY;
 	modCamCur.dx = DRAWING_OFFSET_X;
@@ -4758,7 +4814,50 @@ static void modInterpEndTick(void)
 	}
 }
 
-void gameLoop(void)
+/* MOD (fps): the tick / present helper shared by the loops (gameLoop, the
+ * battle loops, the new-game scene). A loop calls modTickStart() before its
+ * logic, runs the logic (tickObjects included) and then modPresent(), which
+ * runs the late tick and renders the tick MOD_FPS_RENDERS_PER_TICK times
+ * (pass r shown at refresh tickStart + (r + 1) * 3 / n, interpolated), and
+ * waits until the tick has lasted 3 refreshes, as VSync(3) did.
+ * MOD_PRESENT_BATTLE: loops that set the 2D origin after VSync from the
+ * post-tick DRAWING_OFFSET (battle, battle data load, new-game scene); each
+ * pass does that right before its swap. gameLoop sets it before the tick.
+ * extra: render-side state of the caller to roll back around the extra
+ * passes, like the built-in list (dw/mod_fps.h). */
+static int32_t modTickV;
+static int32_t modTickL0;
+static int32_t modLastEndV = -1000;
+static int32_t modLastEndLines;
+
+void modTickStart(int32_t flags)
+{
+	int32_t now;
+
+	if (MOD_PERF_RESET != 0) {
+		modPerfReset();
+	}
+	modFlushRemovals();
+	MOD_RENDER_PASS = 0;
+	now = VSync(-1);
+	if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < 3) {
+		/* VSync(3) counts from the previous tick's last VSync: the battle
+		 * AI, which runs before the loop function, is part of this tick */
+		modTickV = modLastEndV;
+		modTickL0 = modLastEndLines;
+	} else {
+		modTickV = now;
+		modTickL0 = modLines();
+	}
+	if (modPerfPrevStart >= 0) {
+		MOD_PERF_PERIOD = (modTickL0 - modPerfPrevStart) & 0xFFFF;
+	}
+	modPerfPrevStart = modTickL0;
+	MOD_TICK_PRIM_MAIN_MENU = 0;
+	MOD_TICK_PRIM_MERAMON = 0;
+}
+
+void modPresent(int32_t flags, ModRollbackSet *extra)
 {
 	int32_t n;
 	int32_t r;
@@ -4774,7 +4873,12 @@ void gameLoop(void)
 	int32_t vLast = 0;
 	int32_t interp;
 	int32_t shownV;
+	int32_t battle = flags & MOD_PRESENT_BATTLE;
+	int32_t force = MOD_FPS_FORCE_PASSES == 2 ||
+			(MOD_FPS_FORCE_PASSES == 1 && (GAME_STATE == 1 || GAME_STATE == 2));
 
+	tickV = modTickV;
+	l0 = modTickL0;
 	n = MOD_FPS_RENDERS_PER_TICK;
 	if (n < 1) {
 		n = 1;
@@ -4787,34 +4891,8 @@ void gameLoop(void)
 	if (!interp) {
 		modInterpInvalidate();
 	}
-	if (MOD_PERF_RESET != 0) {
-		modPerfReset();
-	}
-	modFlushRemovals();
-	MOD_RENDER_PASS = 0;
-	tickV = VSync(-1);
-	l0 = modLines();
-	if (modPerfPrevStart >= 0) {
-		MOD_PERF_PERIOD = (l0 - modPerfPrevStart) & 0xFFFF;
-	}
-	modPerfPrevStart = l0;
-	MOD_TICK_PRIM_MAIN_MENU = 0;
-	MOD_TICK_PRIM_MERAMON = 0;
-	pollInputGame();
-	modFpsBeginFrame();
-	processInput();
-	updateTournamentRegistration();
-
-	if (IS_SCRIPT_PAUSED == 0) {
-		tickScript();
-	}
-
-	modFpsSetView();
-	GS_VIEWPOINT_COPY = GS_VIEWPOINT;
-	VIEWPORT_DISTANCE_COPY = VIEWPORT_DISTANCE;
-	DRAWING_OFFSET_X_COPY = DRAWING_OFFSET_X;
-	DRAWING_OFFSET_Y_COPY = DRAWING_OFFSET_Y;
-	tickObjects();
+	modInterpBattle = battle;
+	modExtraRollback = n > 1 ? extra : NULL;
 	lateTickObjects();
 	MOD_FPS_TICKS++;
 	l1 = modLines();
@@ -4825,15 +4903,18 @@ void gameLoop(void)
 	for (r = 0; r < n; r++) {
 		endV = tickV + (r + 1) * 3 / n;
 		if (r > 0) {
-			if (VSync(-1) >= endV) {
-				continue; /* this pass would be shown late: skip it */
-			}
-			/* lines left before the vblank that ends the tick, counted from
-			 * the last vblank waited for; the pass costs about what the first
-			 * one did plus its setup (OT clear, rollback, view) */
 			lc = modLines();
-			if ((tickV + 3 - vLast) * 263 - VSync(1) <
-			    passLines + modPassSetupLines + 4) {
+			if (force) {
+				/* test switch: every pass, however late (the tick then
+				 * lasts longer, the logic per tick is the same) */
+			} else if (VSync(-1) >= endV) {
+				continue; /* this pass would be shown late: skip it */
+			} else if ((tickV + 3 - vLast) * 263 - VSync(1) <
+				   passLines + modPassSetupLines + 4) {
+				/* lines left before the vblank that ends the tick,
+				 * counted from the last vblank waited for; the pass costs
+				 * about what the first one did plus its setup (OT clear,
+				 * rollback, view) */
 				break; /* it would not end before the next tick is due */
 			}
 			MOD_RENDER_PASS = r;
@@ -4861,8 +4942,8 @@ void gameLoop(void)
 		if (interp) {
 			/* the fraction of the tick at the refresh this pass is shown */
 			shownV = VSync(-1) + 1;
-			if (shownV < endV) {
-				shownV = endV;
+			if (shownV < endV || force) {
+				shownV = endV; /* forced: the fraction it would have had */
 			}
 			if (shownV > tickV + 3) {
 				shownV = tickV + 3;
@@ -4874,6 +4955,11 @@ void gameLoop(void)
 		}
 		renderObjects();
 		applyDrawOffset(ACTIVE_FRAMEBUFFER);
+		if (battle) {
+			/* the origin this frame is drawn with (the interpolated one if
+			 * the camera is), as these loops set it after VSync */
+			GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
+		}
 		if (interp) {
 			l2 = modLines();
 			modInterpRestore();
@@ -4914,12 +5000,39 @@ void gameLoop(void)
 	if (interp) {
 		modInterpEndTick();
 	}
+	if (battle) {
+		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
+	}
 	while (VSync(-1) < tickV + 3) {
 		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
 	MOD_RENDER_PASS = 0;
 	MOD_RENDER_MULTIPASS = 0;
+	modExtraRollback = NULL;
 	modFlushRemovals();
+	modLastEndV = VSync(-1);
+	modLastEndLines = modLines();
+}
+
+void gameLoop(void)
+{
+	modTickStart(0);
+	pollInputGame();
+	modFpsBeginFrame();
+	processInput();
+	updateTournamentRegistration();
+
+	if (IS_SCRIPT_PAUSED == 0) {
+		tickScript();
+	}
+
+	modFpsSetView();
+	GS_VIEWPOINT_COPY = GS_VIEWPOINT;
+	VIEWPORT_DISTANCE_COPY = VIEWPORT_DISTANCE;
+	DRAWING_OFFSET_X_COPY = DRAWING_OFFSET_X;
+	DRAWING_OFFSET_Y_COPY = DRAWING_OFFSET_Y;
+	tickObjects();
+	modPresent(0, NULL);
 	handlePause();
 }
 

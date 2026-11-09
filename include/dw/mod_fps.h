@@ -3,6 +3,7 @@
 
 #include <dw/types.h>
 #include <dw/world_object.h>
+#include <dw/mod_present.h>
 
 /* MOD (fps): the scene can be rendered several times per 20 Hz logic tick
  * (see docs/mods/60fps.md). renderObjects() must then be idempotent:
