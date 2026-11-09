@@ -269,6 +269,10 @@ int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_BOOT_LANGUAGE;
 static int32_t MOD_BOOT_LANGUAGE_CURSOR;
+static int32_t MOD_LANGUAGE_ERROR;
+static void __attribute__((noinline)) modShowLanguageError(void);
+static void __attribute__((noinline)) modRenderLanguageError(void);
+static void __attribute__((noinline)) modDrawLanguageName(int32_t lang, int32_t x, int32_t y);
 static char *MOD_LANGUAGE_NAMES[MOD_LANGS];
 static void modDrawLanguagePicker(void);
 static void modTickLanguagePicker(void);
@@ -2699,6 +2703,13 @@ void tickMainMenu(void)
 		drawMainMenuStrings(TARGET_MENU);
 	}
 	MAIN_MENU_TICKS++;
+    if (MOD_LANGUAGE_ERROR) {
+        if (CHANGED_INPUT & (CONFIRM_BUTTON | CANCEL_BUTTON | 0x800)) {
+            MOD_LANGUAGE_ERROR = 0;
+            playSound(0, 3);
+        }
+        return;
+    }
 	if (MOD_BOOT_LANGUAGE && CURRENT_MENU == 0) {
 		modTickLanguagePicker();
 		return;
@@ -5662,6 +5673,7 @@ int32_t countRegisteredDigimon(RegisteredDigimon *p)
 void renderMainMenu(void)
 {
 	int32_t menu;
+    if (MOD_LANGUAGE_ERROR) modRenderLanguageError();
 	if (MOD_BOOT_LANGUAGE && CURRENT_MENU == 0) {
 		modRenderLanguagePicker();
 		return;
@@ -6026,7 +6038,7 @@ static uint8_t MOD_OPT_W[MOD_OPT_ROWS * 3];
 static uint8_t MOD_OPT_LANG_W[1 + MOD_LANGS];
 extern int32_t MOD_COLD_CACHE_TYPE;
 extern uint32_t MOD_LANGUAGE_AVAILABLE;
-static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN, "Chinese - needs 8 MB" };
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE, MOD_OPT_STR_CATALAN, "" };
 
 /* Language values share one texture position; the other option rows have at most three values. */
 static char *modOptionText(int32_t row, int32_t value)
@@ -6060,8 +6072,7 @@ static int16_t MOD_OPT_SHOWN;
 static int32_t modOptionCount(int32_t row)
 {
 	if (row == MOD_OPT_ROW_LANG) {
-        int32_t count = modLanguageCount();
-        return count - (MOD_COLD_CACHE_TYPE < 0 && (MOD_LANGUAGE_AVAILABLE & (1u << MOD_LANG_ZH)));
+        return modLanguageCount();
     }
 #if FONT_SWITCH
     if (row == MOD_OPT_ROW_FONT) return MOD_LANG == MOD_LANG_ZH ? 1 : 3;
@@ -6117,6 +6128,10 @@ static int32_t modOptionValue(int32_t row)
 
 static void modSetOption(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_LANG && modLanguageAt(value) == MOD_LANG_ZH && MOD_COLD_CACHE_TYPE < 0) {
+        modShowLanguageError();
+        return;
+    }
 	MOD_OPT_TOUCHED = 1;
 	switch (row) {
 	case 0:
@@ -6189,7 +6204,7 @@ static void drawOptionsText(void)
 		for (k = 0; k <= modOptionCount(r); k++) {
 			if (r == MOD_OPT_ROW_LANG && k > 0) {
 				(*modOptionV(r, k - 1)) = (y >> 1) + ((y & 1) << 8);
-				if (k - 1 == modOptionValue(r)) drawString(modOptionText(r, k), (y & 1) * MOD_OPT_VALUE_U, y >> 1);
+				if (k - 1 == modOptionValue(r)) modDrawLanguageName(modLanguageAt(k - 1), (y & 1) * MOD_OPT_VALUE_U, y >> 1);
 				if (k == modOptionCount(r)) y += (y & 1) ? 0xC * 2 - 1 : 1;
 				goto drawn;
 			}
@@ -6213,7 +6228,7 @@ static void drawOptionsText(void)
 			drawString(modOptionText(r, k), 0, r * 0xC);
 		drawn:
 			DrawSync(0);
-			w = measureStringMode(modOptionText(r, k), FIT_VANILLA) + 1; /* and the shadow */
+			w = r == MOD_OPT_ROW_LANG && k > 0 && modLanguageAt(k - 1) == MOD_LANG_ZH ? 25 : measureStringMode(modOptionText(r, k), FIT_VANILLA) + 1; /* and the shadow */
 			(*modOptionW(r, k)) = w < 0xFF ? w : 0xFF;
 			if (k == 0) {
 				MOD_OPT_LABEL_W = w > MOD_OPT_LABEL_W ? w : MOD_OPT_LABEL_W;
@@ -6290,37 +6305,48 @@ static void renderOptionsMenu(void)
  * remembered by the existing save-header options, with no extra card writes. */
 static void modDrawLanguagePicker(void)
 {
-	int32_t i;
-	clearTextArea();
-	drawString("LANGUAGE - IDIOMA", 0, 0);
-	DrawSync(0);
-	for (i = 0; i < modLanguageCount(); i++) {
-		drawString(MOD_LANGUAGE_NAMES[modLanguageAt(i)], 0, 16 + i * 18);
-		DrawSync(0);
-	}
-	drawString("START", 0, 188);
-	DrawSync(0);
+    int32_t i;
+    clearTextArea();
+    drawString("LANGUAGE - IDIOMA", 0, 0);
+    DrawSync(0);
+    for (i = 0; i < modLanguageCount(); i++) {
+        modDrawLanguageName(modLanguageAt(i), (i & 1) * 128, 16 + (i / 2) * 20);
+        DrawSync(0);
+    }
+    drawString("START", 0, 188);
+    DrawSync(0);
 }
 
 static void modTickLanguagePicker(void)
 {
-	int32_t count = modLanguageCount();
-	int32_t chosen;
-	if (CHANGED_INPUT & 0x1000) {
-		MOD_BOOT_LANGUAGE_CURSOR = (MOD_BOOT_LANGUAGE_CURSOR + count - 1) % count;
-		playSound(0, 2);
-	} else if (CHANGED_INPUT & 0x4000) {
-		MOD_BOOT_LANGUAGE_CURSOR = (MOD_BOOT_LANGUAGE_CURSOR + 1) % count;
-		playSound(0, 2);
-	} else if (CHANGED_INPUT & (CONFIRM_BUTTON | 0x800)) {
-		chosen = modLanguageAt(MOD_BOOT_LANGUAGE_CURSOR);
-		modSetLanguage(chosen);
-		if (MOD_LANG != chosen) return;
-		MOD_OPT_TOUCHED = 1;
-		MOD_BOOT_LANGUAGE = 0;
-		playSound(0, 3);
-		drawMainMenuStrings(0);
-	}
+    int32_t count = modLanguageCount();
+    int32_t cursor = MOD_BOOT_LANGUAGE_CURSOR;
+    int32_t column = cursor & 1;
+    int32_t chosen;
+    if (CHANGED_INPUT & 0x1000) {
+        cursor -= 2;
+        if (cursor < 0) cursor = ((count - 1 - column) / 2) * 2 + column;
+    } else if (CHANGED_INPUT & 0x4000) {
+        cursor += 2;
+        if (cursor >= count) cursor = column;
+    } else if (CHANGED_INPUT & 0xA000) {
+        if ((cursor ^ 1) < count) cursor ^= 1;
+    } else if (CHANGED_INPUT & (CONFIRM_BUTTON | 0x800)) {
+        chosen = modLanguageAt(cursor);
+        if (chosen == MOD_LANG_ZH && MOD_COLD_CACHE_TYPE < 0) {
+            modShowLanguageError();
+            return;
+        }
+        modSetLanguage(chosen);
+        if (MOD_LANG != chosen) return;
+        MOD_OPT_TOUCHED = 1;
+        MOD_BOOT_LANGUAGE = 0;
+        playSound(0, 3);
+        drawMainMenuStrings(0);
+        return;
+    }
+    if (cursor != MOD_BOOT_LANGUAGE_CURSOR) playSound(0, 2);
+    MOD_BOOT_LANGUAGE_CURSOR = cursor;
 }
 
 static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb)
@@ -6336,37 +6362,104 @@ static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb
 
 #include "language_flags.h"
 
+/* The two name glyphs use the licensed 12px subset, independent of active font/RAM. */
+static void __attribute__((noinline)) modDrawLanguageName(int32_t lang, int32_t x, int32_t y)
+{
+    uint32_t pixels[36];
+    RECT rect;
+    int32_t row, col;
+    if (lang != MOD_LANG_ZH) {
+        drawString(MOD_LANGUAGE_NAMES[lang], x, y);
+        return;
+    }
+    memset(pixels, 0, sizeof(pixels));
+    for (row = 0; row < 12; row++) {
+        for (col = 0; col < 24; col++) {
+            if (!(MOD_CHINESE_NAME[(col / 12) * 12 + row] & (0x8000 >> (col % 12))))
+                pixels[row * 3 + col / 8] |= 1u << ((col % 8) * 4);
+        }
+    }
+    setRECT(&rect, TEXT_VRAM_X + x / 4, TEXT_VRAM_Y + y, 6, 12);
+    LoadImage(&rect, (u_long *)pixels);
+    DrawSync(0);
+}
+
+/* Title-only scratch, never retained across a language/disc read. Keep the text
+ * page intact so the modal sits above both existing menus without extra VRAM. */
+static void __attribute__((noinline)) modShowLanguageError(void)
+{
+    RECT rect;
+    char *lines[4] = { MOD_OPT_STR_CHINESE_RAM_0, MOD_OPT_STR_CHINESE_RAM_1,
+                       MOD_OPT_STR_CHINESE_RAM_2, MOD_OPT_STR_CHINESE_RAM_3 };
+    int32_t row;
+    setRECT(&rect, TEXT_VRAM_X, TEXT_VRAM_Y, 64, 48);
+    DrawSync(0);
+    StoreImage(&rect, (u_long *)GENERAL_BUFFER);
+    DrawSync(0);
+    setRECT(&rect, 0, 0, 256, 48);
+    clearTextSubArea(&rect);
+    setTextColor(1);
+    for (row = 0; row < 4; row++) {
+        drawString(lines[row], 0, row * 12);
+        DrawSync(0);
+    }
+    setRECT(&rect, TEXT_VRAM_X, TEXT_VRAM_Y, 64, 48);
+    StoreImage(&rect, (u_long *)(GENERAL_BUFFER + 6144));
+    DrawSync(0);
+    LoadImage(&rect, (u_long *)GENERAL_BUFFER);
+    DrawSync(0);
+    MOD_LANGUAGE_ERROR = 1;
+    playSound(0, 1);
+}
+
+static void __attribute__((noinline)) modRenderLanguageError(void)
+{
+    uint8_t *pixels = GENERAL_BUFFER + 6144;
+    int32_t x, y, end;
+    for (y = 0; y < 48; y++) {
+        for (x = 0; x < 256; x = end) {
+            end = x + 1;
+            if (((pixels[y * 128 + x / 2] >> ((x & 1) * 4)) & 15) != 1) continue;
+            while (end < 256 && ((pixels[y * 128 + end / 2] >> ((end & 1) * 4)) & 15) == 1) end++;
+            modFlagRect(32 + x, 80 + y + (y / 12) * 2, end - x, 1, 0xE0E0E0);
+        }
+    }
+    renderMenuBox(20, 68, 280, 80);
+}
+
 static void modRenderLanguagePicker(void)
 {
-	POLY_FT4 *text;
-	MenuHighlight selected = {0};
-	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 18;
-	int32_t i, x, y, end, lang;
+    POLY_FT4 *text;
+    MenuHighlight selected = {0};
+    int32_t i, x, y, end, lang, sx, sy;
     const uint8_t *run;
-	uint32_t colour;
-	text = (POLY_FT4 *)GsGetWorkBase();
-	renderText(text++, 68, 22, 0, 0, 216, 12, 0);
-	for (i = 0; i < modLanguageCount(); i++) {
+    uint32_t colour;
+    text = (POLY_FT4 *)GsGetWorkBase();
+    renderText(text++, (320 - measureStringMode("LANGUAGE - IDIOMA", FIT_VANILLA)) / 2, 30, 0, 0, 216, 12, 0);
+    for (i = 0; i < modLanguageCount(); i++) {
+        renderText(text++, 48 + (i & 1) * 152, 68 + (i / 2) * 26,
+                   (i & 1) * 128, 16 + (i / 2) * 20, 112, 12, i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
+    }
+    renderText(text++, (320 - measureStringMode("START", FIT_VANILLA)) / 2, 204, 0, 188, 80, 12, 0);
+    GsSetWorkBase((PACKET *)text);
+    for (i = 0; i < modLanguageCount(); i++) {
         lang = modLanguageAt(i);
-		renderText(text++, 108, 46 + i*18, 0, 16 + i*18, 144, 12, lang == MOD_LANG_ZH && MOD_COLD_CACHE_TYPE < 0 ? 1 : i == MOD_BOOT_LANGUAGE_CURSOR ? 2 : 0);
-	}
-	renderText(text++, 132, 210, 0, 188, 80, 12, 0);
-	GsSetWorkBase((PACKET *)text);
-	for (i = 0; i < modLanguageCount(); i++) {
-		lang = modLanguageAt(i);
-        if (lang == MOD_LANG_ZH) continue;
+        sx = 16 + (i & 1) * 152;
+        sy = 66 + (i / 2) * 26;
         run = MOD_FLAG_RUNS + MOD_FLAG_OFFSET[lang];
         for (y = 0; y < 16; y++) {
             for (x = 0; x < 24; x += end) {
                 end = *run++;
                 colour = MOD_FLAG_PALETTE[lang][end >> 5];
                 end &= 31;
-                modFlagRect(76+x, 44+i*18+y, end, 1, colour);
+                modFlagRect(sx+x, sy+y, end, 1, colour);
             }
         }
-		modFlagRect(75, 43+i*18, 26, 18, 0x080808);
-	}
-	selected.pos = MOD_BOOT_LANGUAGE_CURSOR;
-	renderMenuSelector(&selected);
-	renderMenuBox(56, 12, 216, 218);
+        modFlagRect(sx-1, sy-1, 26, 18, 0x080808);
+    }
+    selected.x = 10 + (MOD_BOOT_LANGUAGE_CURSOR & 1) * 152;
+    selected.y = 64 + (MOD_BOOT_LANGUAGE_CURSOR / 2) * 26;
+    selected.w = 148; selected.h = 20;
+    renderMenuSelector(&selected);
+    renderMenuBox(8, 18, 304, 210);
 }
