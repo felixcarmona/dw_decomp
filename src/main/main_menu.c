@@ -2504,7 +2504,7 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos)
 	if (anim >= 0x2E && anim < 0x3E) {
 		move = DIGI_PARA(type).moves[anim - 0x2E];
 		if (move >= 0 && move < NUM_MOVE_NAMES) {
-			drawString(MOVE_NAMES[move], color, pos);
+			drawStringMode(MOVE_NAMES[move], color, pos, fitStringMode(MOVE_NAMES[move], 120));
 		}
 	}
 }
