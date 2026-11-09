@@ -187,6 +187,7 @@ static int32_t chartDetailInput(void);
 static void chartOverviewInput(void); /* MOD (chart) */
 static void chartBoxXY(int32_t col, int32_t row, int16_t *x, int16_t *y);
 static void chartCardRelease(void); /* MOD (chart criteria) */
+static void chartVanillaInput(void); /* MOD (options): NEW DIGIMON off */
 void renderPlayerInfoView(void);
 void renderString();
 void renderMenuTab(int16_t x, int8_t w, int8_t layer);
@@ -1737,7 +1738,11 @@ void tickPlayerMenu(void)
 		if (PLAYER_MENU_STATE == 1) {
 			if (MENU_STATE == 2) {
 				/* MOD (chart): the tabs, pages and grid of every partner species (chartOverviewInput) */
-				chartOverviewInput();
+				if (MOD_OPT_NEW_DIGIMON) {
+					chartOverviewInput();
+				} else {
+					chartVanillaInput(); /* MOD (options): NEW DIGIMON off, the original sheet */
+				}
 				if (isKeyDown(CONFIRM_BUTTON) != 0) {
 					if (CHART_SELECTED_DIGIMON > 0 &&
 					    hasDigimonRaised((uint16_t)CHART_SELECTED_DIGIMON) != 0) {
@@ -2890,6 +2895,36 @@ static int8_t CHART_DETAIL_DEPTH;
 static int8_t CHART_CURSOR_SIDE; /* 0 the "from" boxes, 1 the "to" boxes */
 static int8_t CHART_CURSOR_J;	 /* the slot in that side's array */
 
+/*
+ * MOD (options): a species' evolution paths as the chart shows them: with NEW DIGIMON off, the species the original does
+ * not raise are left out (DIGI.DAT's links fill the original rows' empty slots, so what stays is the original row).
+ * Not to be kept across a load (getEvolutionPath).
+ */
+static EvolutionPath CHART_PATH;
+
+static EvolutionPath *chartEvolutionPath(int32_t id)
+{
+	EvolutionPath *path;
+	int32_t j;
+
+	path = getEvolutionPath(id);
+	if (MOD_OPT_NEW_DIGIMON) {
+		return path;
+	}
+	CHART_PATH = *path;
+	for (j = 0; j < 5; j++) {
+		if (CHART_PATH.from[j] > 0 && !modSpeciesAllowed(CHART_PATH.from[j])) {
+			CHART_PATH.from[j] = -1;
+		}
+	}
+	for (j = 0; j < 6; j++) {
+		if (CHART_PATH.to[j] > 0 && !modSpeciesAllowed(CHART_PATH.to[j])) {
+			CHART_PATH.to[j] = -1;
+		}
+	}
+	return &CHART_PATH;
+}
+
 static void loadChartPortraits(int32_t id)
 {
 	EvolutionPath *path;
@@ -2900,7 +2935,7 @@ static void loadChartPortraits(int32_t id)
 	for (i = 0; i < CHART_EXTRA_SLOTS; i++) {
 		CHART_EXTRA_ID[i] = 0;
 	}
-	path = getEvolutionPath(id);
+	path = chartEvolutionPath(id);
 	n = 0;
 	for (i = -1; i < 11 && n < CHART_EXTRA_SLOTS; i++) {
 		other = i < 0 ? id : (i < 5 ? path->from[i] : path->to[i - 5]);
@@ -2912,7 +2947,7 @@ static void loadChartPortraits(int32_t id)
 		                    CHART_EXTRA_X + (n % 8) * 16, CHART_EXTRA_CLUT_Y + n / 8);
 		n++;
 		if (i >= 0) {
-			path = getEvolutionPath(id); /* the loads may have moved the record of a new species */
+			path = chartEvolutionPath(id); /* the loads may have moved the record of a new species */
 		}
 	}
 }
@@ -2941,7 +2976,7 @@ static int32_t chartDetailBox(int32_t side, int32_t j, int16_t *x, int16_t *y)
 	int32_t i;
 	int32_t id;
 
-	path = getEvolutionPath(CHART_DETAIL_ID);
+	path = chartEvolutionPath(CHART_DETAIL_ID);
 	n = side == 0 ? 5 : 6;
 	count = 0;
 	for (i = 0; i < n; i++) {
@@ -3154,6 +3189,11 @@ static int32_t chartPages(void)
 /* the icon's top-left corner of a grid box, screen pixels (its border is one pixel out) */
 static void chartBoxXY(int32_t col, int32_t row, int16_t *x, int16_t *y)
 {
+	if (!MOD_OPT_NEW_DIGIMON) { /* MOD (options): the original sheet's columns (chartVanillaInput) */
+		*x = (col < 3 ? col * 0x25 + 0x1c : col < 7 ? (col - 3) * 0x18 + 0x8b : (col - 7) * 0x18 + 0xf8) + 2;
+		*y = row * 0x13 + 0x2b;
+		return;
+	}
 	*x = CHART_GRID_X + 1 + col * CHART_PITCH;
 	*y = CHART_GRID_Y + 1 + row * CHART_PITCH;
 }
@@ -3401,6 +3441,136 @@ static void chartOverviewInput(void)
 	}
 }
 
+/*
+ * MOD (options): with NEW DIGIMON off the overview is the original one: the sheet of the original's species in its level
+ * columns, its cursor and its input (the code before patch 0170).
+ */
+static void chartVanillaInput(void)
+{
+	int16_t previousRow;
+	int16_t previousColumn;
+	uint8_t maxColumn;
+	int16_t selectorX;
+	int32_t i;
+
+	previousRow = CHART_SELECTED_COLUMN;
+	previousColumn = CHART_SELECTED_ROW;
+	if (CHANGED_INPUT & 0x8000) {
+		CHART_SELECTED_COLUMN--;
+	}
+	if (CHANGED_INPUT & 0x2000) {
+		CHART_SELECTED_COLUMN++;
+	}
+	if (CHART_SELECTED_COLUMN < 0) {
+		CHART_SELECTED_COLUMN = 0;
+	}
+	if (CHART_SELECTED_COLUMN >= 9) {
+		CHART_SELECTED_COLUMN = 8;
+	}
+	if ((CHART_SELECTED_COLUMN == 0) || (CHART_SELECTED_COLUMN == 1)) {
+		if (CHANGED_INPUT & 0x1000) {
+			CHART_SELECTED_ROW -= 2;
+		}
+		if (CHANGED_INPUT & 0x4000) {
+			CHART_SELECTED_ROW += 2;
+		}
+		CHART_SELECTED_ROW = (CHART_SELECTED_ROW / 2) * 2;
+		maxColumn = 6;
+	} else {
+		if (CHANGED_INPUT & 0x1000) {
+			CHART_SELECTED_ROW--;
+		}
+		if (CHANGED_INPUT & 0x4000) {
+			CHART_SELECTED_ROW++;
+		}
+		if (CHART_SELECTED_COLUMN == 2) {
+			maxColumn = 8;
+		} else if (((CHART_SELECTED_COLUMN >= 4) && (CHART_SELECTED_COLUMN < 7)) || (CHART_SELECTED_COLUMN == 8)) {
+			maxColumn = 6;
+		} else {
+			maxColumn = 7;
+		}
+	}
+	if (CHART_SELECTED_ROW < 0) {
+		CHART_SELECTED_ROW = 0;
+	}
+	if (maxColumn < CHART_SELECTED_ROW) {
+		CHART_SELECTED_ROW = maxColumn;
+	}
+	if ((previousRow != CHART_SELECTED_COLUMN) || (previousColumn != CHART_SELECTED_ROW)) {
+		playSound(0, 2);
+	}
+	if (CHART_SELECTED_COLUMN < 3) {
+		selectorX = CHART_SELECTED_COLUMN * 0x25 + 0x1c;
+	} else if (CHART_SELECTED_COLUMN < 7) {
+		selectorX = (CHART_SELECTED_COLUMN - 3) * 0x18 + 0x8b;
+	} else {
+		selectorX = (CHART_SELECTED_COLUMN - 7) * 0x18 + 0xf8;
+	}
+	for (i = 0; i < NUM_EVO_CHART_DIGIMON; i++) {
+		if (((selectorX + 2) == EVO_CHART_BOXES[i].posX) &&
+		    ((CHART_SELECTED_ROW * 0x13 + 0x2b) == EVO_CHART_BOXES[i].posY)) {
+			break;
+		}
+	}
+	CHART_SELECTED_DIGIMON = i < NUM_EVO_CHART_DIGIMON ? i + 1 : -1;
+}
+
+static void renderEvoChartViewVanilla(void)
+{
+	int32_t i;
+	int16_t x;
+	int8_t shift;
+	EvoClutTable cluts;
+
+	cluts = EVO_CHART_VIEW_COLORS;
+	switch (MENU_STATE) {
+	case 0:
+		if (drawEvoChartStrings(0) == 1) {
+			MENU_STATE = 1;
+		}
+		break;
+	case 2:
+	case 3:
+	case 4:
+		if (CHART_SELECTED_COLUMN < 3) {
+			x = (int16_t)(CHART_SELECTED_COLUMN * 0x25 + 0x1c);
+		} else if (CHART_SELECTED_COLUMN < 7) {
+			x = (int16_t)((CHART_SELECTED_COLUMN - 3) * 0x18 + 0x8b);
+		} else {
+			x = (int16_t)((CHART_SELECTED_COLUMN - 7) * 0x18 + 0xf8);
+		}
+		renderRectPolyFT4((int16_t)(x - 0xa2), (int16_t)(CHART_SELECTED_ROW * 0x13 - 0x4e), 0x18, 0x14, 0, 0xe8, 0x18,
+		                  0x7dc7, 5, 0);
+		/* fall through */
+	case 1:
+		for (i = 0; i < NUM_EVO_CHART_DIGIMON; i++) {
+			if (hasDigimonRaised((i + 1) & 0xffff)) {
+				shift = 0;
+				if ((i + 1 == CHART_SELECTED_DIGIMON) && (1 < MENU_STATE) && ((PLAYTIME_FRAMES % 10) < 5)) {
+					shift = 0x10;
+				}
+				renderRectPolyFT4((int16_t)(EVO_CHART_BOXES[i].posX - 0xa0), (int16_t)(EVO_CHART_BOXES[i].posY - 0x78),
+				                  0x10, 0x10, (uint8_t)(shift + EVO_CHART_BOXES[i].u), EVO_CHART_BOXES[i].v, 0x18,
+				                  cluts.m[EVO_CHART_BOXES[i].clut], 5, 0);
+			}
+		}
+		for (i = 0; i < NUM_EVO_CHART_DIGIMON; i++) {
+			renderBorderBox((EVO_CHART_BOXES[i].posX - 1), (EVO_CHART_BOXES[i].posY - 1), 0x12, 0x12, 0xbebebe,
+			                0x3c3c3c, 0x87, 0x87, 0x87, 5);
+		}
+		renderBorderBox(0x15, 0x27, 0x22, 0x9f, 0xaaa0c8, 0x5a3c8c, 0xa5, 0x5a, 0x73, 5);
+		renderBorderBox(0x3a, 0x27, 0x22, 0x9f, 0xa078a5, 0x46144b, 0x6e, 0x2d, 0x5a, 5);
+		renderBorderBox(0x5f, 0x27, 0x22, 0xb0, 0xc88250, 0x5f370a, 0xf, 0x50, 0x82, 5);
+		renderBorderBox(0x84, 0x27, 0x6a, 0x9f, 0x6eaf5a, 0x285a00, 0, 0x87, 0x41, 5);
+		renderBorderBox(0xf1, 0x27, 0x38, 0x9f, 0x6996d2, 0x1e4178, 0xaf, 0x64, 0x2d, 5);
+		renderString(0xf, -0x1a, 0x54, 0xc, 0xc, 0, 0xc, 5, 1);
+		renderString(0, -0xe, 0x54, 0x3c, 0xc, 0xc, 0xc, 5, 1);
+		renderString(7, 0x3a, 0x54, 0xc, 0xc, 0x48, 0xc, 5, 1);
+		renderString(0, 0x46, 0x54, 0x3c, 0xc, 0x54, 0xc, 5, 1);
+	}
+}
+
 void renderEvoChartView(void)
 {
 	int32_t k;
@@ -3412,6 +3582,10 @@ void renderEvoChartView(void)
 	int8_t shift;
 	EvoClutTable cluts;
 
+	if (!MOD_OPT_NEW_DIGIMON) {
+		renderEvoChartViewVanilla();
+		return;
+	}
 	cluts = EVO_CHART_VIEW_COLORS;
 	switch (MENU_STATE) {
 	case 0:
@@ -3910,7 +4084,7 @@ void renderEvoChartDetail(void)
 
 	clut = EVO_CHART_DETAIL_COLORS;
 	MENU_SUB_STATE = 2;
-	ep = getEvolutionPath(CHART_DETAIL_ID); /* MOD (portraits): any species of the tree */
+	ep = chartEvolutionPath(CHART_DETAIL_ID); /* MOD (portraits): any species of the tree; MOD (options): NEW DIGIMON */
 	drawEvoChartStrings(CHART_DETAIL_ID);
 	count1 = (count2 = 0);
 	for (i = 0; i < 5; i++) {
