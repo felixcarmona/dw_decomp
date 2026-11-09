@@ -12,6 +12,7 @@
 #include <dw/file_queue.h>
 #include <dw/graphics.h>
 #include <dw/ids.h>
+#include <dw/level.h>
 #include <dw/memmap.h>
 #include <dw/model.h>
 #include <dw/move.h>
@@ -1360,6 +1361,9 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 				if (DIGI_PARA(newId).level == 5) {
 					addTamerLevel(100, 1);
 				}
+				if (DIGI_PARA(newId).level == LEVEL_MEGA) { /* MOD (mega) */
+					addTamerLevel(100, 1);
+				}
 			}
 		}
 		newId = gains->targetDigimon;
@@ -1371,6 +1375,9 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	/* MOD (partners-npc-a): only on reaching Ultimate, not Etemon -> MetalEtemon */
 	if (level == 5 && oldLevel != 5 && HAS_USED_EVOITEM == 0) {
 		para->remainingLifetime += 96;
+	}
+	if (level == LEVEL_MEGA && HAS_USED_EVOITEM == 0) { /* MOD (mega) */
+		para->remainingLifetime += MEGA_LIFETIME_BONUS;
 	}
 	special = DIGI_PARA(newId).special[0];
 	if (special == 0) {
