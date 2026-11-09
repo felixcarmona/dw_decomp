@@ -254,7 +254,7 @@ static void modLabEntry(char *out, int32_t id, int32_t evolution)
         p = appendStr(p, level >= 1 && level <= 6 ? LAB_STAGES[level] : "?");
     }
     if (!evolution) {
-        p = appendStr(p, " - ID "); p = labInt(p, id);
+        p = appendStr(p, " - "); p = appendStr(p, getScreenEntry(id)->filename);
     }
     if (evolution ? modLabNewSpecies(id) : isNewScreen(id)) appendStr(p, LAB_STR_NEW_MARK);
     modLabFit(name, 248 - measureStringMode(suffix, FIT_VANILLA));
