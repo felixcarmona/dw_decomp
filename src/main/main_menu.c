@@ -1,3 +1,5 @@
+extern int MOD_CHEATS_CARD_MODE, MOD_CHEATS_CARD_DONE;
+
 #include <stdio.h>
 #include <string.h>
 
@@ -2955,7 +2957,8 @@ void tickMainMenu(void)
 		memcpy(SAVE_FILE.iconFrames[0], SAVE_ICON_FRAME_0, 0x80);
 		memcpy(SAVE_FILE.iconFrames[1], SAVE_ICON_FRAME_1, 0x80);
 		memcpy(SAVE_FILE.iconFrames[2], SAVE_ICON_FRAME_2, 0x80);
-		initializeDefaultSavegame();
+		if (MOD_CHEATS_CARD_MODE == 1) writeSavegame(&SAVE_FILE.saves[0]);
+		else initializeDefaultSavegame();
 #if !VERSION_IS(US)
 		strncpy(SAVE_FILE.title, MAIN_D_8013392C, 0x40);
 		_strncpy(SAVE_FILE.title + 8, SAVEGAME_ID_LABEL[MEMORY_CARD_SLOT + 1], 4);
@@ -2984,7 +2987,7 @@ void tickMainMenu(void)
 		modTitlePlayerName(); /* MOD (language) */
 		modTitleOptions(); /* MOD (options) */
 #endif
-		prepareSaveFile(0); /* MOD (save v2): checksums, extension, mirror */
+		prepareSaveFile(MOD_CHEATS_CARD_MODE == 1); /* MOD (save v2): checksums, extension, mirror */
 		status = writeSaveFile();
 		if (status != 1) {
 			setMemoryCardReadError(0, 0);
@@ -2992,8 +2995,8 @@ void tickMainMenu(void)
 		saveFileSync(&command, &result); /* MOD (save extension area) */
 		if (result == 0) {
 			TARGET_MENU = 9;
-			loadSaveCopy(0);
-			MAIN_STATE = 0;
+			if (MOD_CHEATS_CARD_MODE == 1) MOD_CHEATS_CARD_DONE = 1;
+			else { loadSaveCopy(0); MAIN_STATE = 0; }
 		} else {
 			setMemoryCardReadError(status, 0);
 		}
@@ -3126,6 +3129,7 @@ void tickMainMenu(void)
 				 * the copy whose extension links first (pickSaveCopy) */
 				slot = pickSaveCopy();
 				if (slot >= 0 && loadSaveCopy(slot)) {
+					if (MOD_CHEATS_CARD_MODE == 2) MOD_CHEATS_CARD_DONE = 2;
 					TARGET_MENU = 9;
 					break;
 				}
@@ -3361,6 +3365,7 @@ void tickMainMenu(void)
 			}
 			saveFileSync(&command, &result); /* MOD (save extension area) */
 			if (result == 0) {
+				if (MOD_CHEATS_CARD_MODE == 1) MOD_CHEATS_CARD_DONE = 1;
 				TARGET_MENU = 9;
 			} else {
 				setMemoryCardReadError(status, 0x28);
