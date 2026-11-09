@@ -84,6 +84,12 @@ int8_t TRN_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66) 
 	[DIGIMON_WARUMONZAEMON] = { 0x2e, 0xa },
 	/* MOD (partners-npc-b): its first technique, like Whamon (24) */
 	[DIGIMON_SHOGUNGEKOMON] = { 0x2e, 0xa },
+	/* MOD (machinedramon): its first technique, Megaton Punch */
+	[DIGIMON_MACHINEDRAMON] = { 0x2e, 0xa },
+	/* MOD (jijimon): his first technique, Tremar */
+	[DIGIMON_JIJIMON] = { 0x2e, 0xa },
+	/* MOD (analogman): his first technique, Static Elect */
+	[DIGIMON_ANALOGMAN] = { 0x2e, 0xa },
 };
 
 MESSAGES_TEXT
