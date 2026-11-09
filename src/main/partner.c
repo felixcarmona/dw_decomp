@@ -577,7 +577,7 @@ void tickPartnerToilet(void)
 		}
 		break;
 	case 4:
-		entityLookAtLocation(&TAMER_ENTITY.entity, (VECTOR*)&location); // BUG: this shouldn't be a pointer?
+		entityLookAtLocation(&TAMER_ENTITY.entity, location);
 		if (tickEntityWalkTo(0xfc, 0xff, TOILET_TARGET_POS1.vx,
                                             TOILET_TARGET_POS1.vz, 0) == 1) {
 			SOME_SCRIPT_SYNC_BIT = 1;
