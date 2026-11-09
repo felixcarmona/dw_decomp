@@ -1322,7 +1322,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	uint8_t special;
 	EvoStatsGains *gains;
 
-	gains = &EVOLUTION_STATS_GAINS[digimonId];
+	gains = &EVO_GAINS_ROW(digimonId);
 	newId = gains->targetDigimon;
 	oldLevel = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
 	level = DIGI_PARA(digimonId).level;
@@ -1383,7 +1383,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 		}
 		newId = gains->targetDigimon;
 	}
-	para->weight = RAISE_DATA[newId].defaultWeight;
+	para->weight = RAISE_ROW(newId).defaultWeight;
 	para->careMistakes = 0;
 	para->battles = 0;
 	level = DIGI_PARA(newId).level;

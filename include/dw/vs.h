@@ -125,6 +125,8 @@ extern SVECTOR VS_AURA_PROJECTILE_VERTEX_3;
 extern uint16_t VS_FONT_CHARS[];
 extern int16_t VS_FONT_GLYPHS[];
 extern uint8_t VS__INTRO_DIGIMON_NAMES[][14];
+/* MOD (scale): the VS name table covers types 0..115; any other type reads row 0 (a blank name) */
+#define VS_NAME_ROW(t) ((uint32_t)(t) < 116 ? (uint32_t)(t) : 0)
 
 extern VsRoundFlagsRaw VS_ROUND_WON;
 extern VsRoundFlagsRaw VS_ROUND_LOST;

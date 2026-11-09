@@ -79,9 +79,28 @@ typedef struct {
 extern EvlSpark EVL_D_80068F84[];
 extern EvoSequenceData EVO_SEQUENCE_DATA;
 
-extern EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON];
+extern EvoStatsGains EVOLUTION_STATS_GAINS[NUM_ORIGINAL_DIGIMON];
 extern EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1];
-extern EvoRequirements EVOLUTION_REQS[NUM_DIGIMON];
+extern EvoRequirements EVOLUTION_REQS[NUM_ORIGINAL_DIGIMON];
+/* MOD (scale): rows of species >= NUM_ORIGINAL_DIGIMON come from their DIGI.DAT record (partner.h) */
+EvoStatsGains *getSpeciesEvoGains(int32_t type);
+EvoRequirements *getSpeciesEvoReqs(int32_t type);
+static inline EvoStatsGains *evoGainsRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &EVOLUTION_STATS_GAINS[type];
+	}
+	return getSpeciesEvoGains(type);
+}
+static inline EvoRequirements *evoReqRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &EVOLUTION_REQS[type];
+	}
+	return getSpeciesEvoReqs(type);
+}
+#define EVO_GAINS_ROW(type) (*evoGainsRow(type))
+#define EVO_REQ_ROW(type) (*evoReqRow(type))
 
 extern int8_t MAIN_D_801349F4;
 

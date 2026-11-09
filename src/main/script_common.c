@@ -11,6 +11,7 @@
 #include <dw/params.h>
 #include <dw/script.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
@@ -2926,6 +2927,9 @@ void setDigimonRaised(int32_t digimonId)
 {
 	if (HAS_RAISED_FLAG(digimonId)) { /* MOD: + MasterTyrannomon (ids.h) */
 		setTrigger(RAISED_TRIGGER(digimonId)); /* MOD (partners-npc-b): was + 0x200 */
+	} else if ((uint32_t)digimonId < NUM_DIGIMON) {
+		/* MOD (scale): the species without a free trigger (new ones, Icemon, Meteormon...) */
+		SPECIES_RAISED_BITS[digimonId >> 3] |= 1 << (digimonId & 7);
 	}
 }
 
@@ -2938,9 +2942,14 @@ int32_t hasDigimonRaised(digimonId)
 	 * MOD: only types that have a raised flag. The original read trigger
 	 * 0x200 + any id; with MasterTyrannomon in Tyrannomon's evolution list
 	 * the evolution tie-break and the chart ask for 124 (trigger 636).
+	 * MOD (scale): the others have a bit in SPECIES_RAISED_BITS (saved in
+	 * the v2 extension).
 	 */
 	if (!HAS_RAISED_FLAG(digimonId)) {
-		return 0;
+		if (digimonId >= NUM_DIGIMON) {
+			return 0;
+		}
+		return (SPECIES_RAISED_BITS[digimonId >> 3] >> (digimonId & 7)) & 1;
 	}
 	return isTriggerSet(RAISED_TRIGGER(digimonId)); /* MOD (partners-npc-b): was + 0x200 */
 }
