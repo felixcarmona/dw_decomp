@@ -40,10 +40,25 @@ void modMenuVsBattle(int32_t trial); /* MOD (menu overlay) */
 #define NO_TEXT_U 0xc
 #define NO_TEXT_W 0x24
 #else
-#define YES_TEXT_W 0x1c
-#define NO_TEXT_U 0x1c
-#define NO_TEXT_W 0x1c
+int16_t YES_NO_CROPS[3] = {
+#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+    0x24, 0x24, 0x24,
+#else
+    0x1c, 0x1c, 0x1c,
 #endif
+};
+#define YES_TEXT_W YES_NO_CROPS[0]
+#define NO_TEXT_U YES_NO_CROPS[1]
+#define NO_TEXT_W YES_NO_CROPS[2]
+#endif
+
+uint16_t YES_NO_PIECES[3] = {
+#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+    0, 0x24 | PIECE_LEFT, PIECES_END,
+#else
+    0, 0x1c | PIECE_LEFT, PIECES_END,
+#endif
+};
 
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 #define VS_RETURN_MENU 0x47
@@ -2141,7 +2156,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801312E4, 0, 0x30);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
+		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 7:
 		/* MOD (language): the title of slot 2 drawn whole (the original drew a "2" at the x of the US title's "1") */
@@ -2158,7 +2173,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_80131328, 0, 0x18);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 8:
 		modDrawSlot2(SLOT_ACTION_TITLES[MAIN_MENU_ACTION], 0, 0, MAIN_MENU_ACTION <= 2 && MEMORY_CARD_ID != 0); /* MOD (language) */
@@ -2177,7 +2192,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(SLOT_ACTION_QUESTIONS[MAIN_MENU_ACTION], 0x18, 0x30);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xF0, YES_NO_PIECES);
 		if (MAIN_MENU_ACTION == 2) {
 			MENU_HIGHLIGHTS[view].pos = 1;
 		}
@@ -2229,7 +2244,7 @@ void drawMainMenuStrings(int32_t menu)
 			drawString(MEMORY_CARD_ERROR_MESSAGES[MEMORY_CARD_ERROR], 0, 0x30);
 			DrawSync(0);
 		}
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
+		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 13:
 		drawString(SLOT_ACTION_TITLES[5], 0, 0);
@@ -2241,7 +2256,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		modDrawSlot2(MAIN_D_8013141C, 0, 0x24, VS_PLAYER_INDEX == 1);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0xF0, 0, 0x1c | PIECE_LEFT);
+		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0xF0, YES_NO_PIECES);
 		break;
 	case 14:
 		drawString(SLOT_ACTION_TITLES[6], 0, 0);
@@ -2323,7 +2338,7 @@ void drawMainMenuStrings(int32_t menu)
 	case 18:
 		drawString(MAIN_D_80131568, 0, 0);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO_SPACED, 0, 0xC, 0, 0x1c | PIECE_LEFT); /* MOD (font): cut into Yes and No */
+		DRAW_STRING_PIECES_AT(STR_YES_NO_SPACED, 0, 0xC, YES_NO_PIECES); /* MOD (font): cut into Yes and No */
 		break;
 	case 19:
 		strcpy(buf, PARTNER_ENTITY.name);
@@ -2355,7 +2370,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(MAIN_D_801315EC, 0, 0x18);
 		DrawSync(0);
-		DRAW_STRING_PIECES(STR_YES_NO, 0, 0x24, 0, 0x1c | PIECE_LEFT); /* MOD (font): cut into Yes and No */
+		DRAW_STRING_PIECES_AT(STR_YES_NO, 0, 0x24, YES_NO_PIECES); /* MOD (font): cut into Yes and No */
 		break;
 	}
 #endif
@@ -5806,7 +5821,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
 #endif
-	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH }, /* MOD (language) */
+	{ MOD_OPT_STR_LANG, MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 };
 /* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
@@ -5814,6 +5829,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
 /* the pixels of each label and value as the font draws them (drawOptionsText) */
 static uint8_t MOD_OPT_W[MOD_OPT_ROWS][1 + MOD_OPT_VALUES];
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE };
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
  * width, a value's, how many values a row shows (all, or 1 with the original font, 0 for 1 at the right edge: above)
@@ -5826,7 +5842,7 @@ static int16_t MOD_OPT_SHOWN;
 
 static int32_t modOptionCount(int32_t row)
 {
-	return MOD_OPT_TEXT[row][3] != NULL ? 3 : 2;
+	return row == MOD_OPT_ROW_LANG ? modLanguageCount() : MOD_OPT_TEXT[row][3] != NULL ? 3 : 2;
 }
 
 /* the index of the row's chosen value, -1 none (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
@@ -5854,7 +5870,13 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
 #endif
 	case MOD_OPT_ROW_LANG: /* MOD (language) */
-		return MOD_LANG;
+		{
+            int32_t index;
+            for (index = 0; index < modLanguageCount(); index++) {
+                if (modLanguageAt(index) == MOD_LANG) return index;
+            }
+            return 0;
+        }
 	case MOD_OPT_ROW_SIGNS:
 		return MOD_OPT_SIGNS;
 	}
@@ -5902,7 +5924,7 @@ static void modSetOption(int32_t row, int32_t value)
 		break;
 #endif
 	case MOD_OPT_ROW_LANG: /* MOD (language) */
-		modSetLanguage(value);
+		modSetLanguage(modLanguageAt(value));
 		break;
 	case MOD_OPT_ROW_SIGNS:
 		modSetSigns(value);
@@ -5925,7 +5947,10 @@ static void drawOptionsText(void)
 	int32_t r2;
 	int32_t k2;
 
-	MOD_OPT_LABEL_W = 0;
+	for (k = 0; k < modLanguageCount(); k++) {
+        MOD_OPT_TEXT[MOD_OPT_ROW_LANG][k + 1] = MOD_LANGUAGE_NAMES[modLanguageAt(k)];
+    }
+    MOD_OPT_LABEL_W = 0;
 	MOD_OPT_VALUE_W = 0;
 	y = MOD_OPT_VALUE_Y << 1; /* the value's place times two, its half in the low bit */
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
@@ -5959,7 +5984,7 @@ static void drawOptionsText(void)
 			}
 		}
 	}
-	MOD_OPT_SHOWN = FONT_SWITCH ? MOD_OPT_VALUES : 2;
+	MOD_OPT_SHOWN = MOD_OPT_VALUES;
 	w = MOD_OPT_LABEL_W + MOD_OPT_SHOWN * (MOD_OPT_GAP + MOD_OPT_VALUE_W);
 	if (w + 2 * MOD_OPT_MARGIN > 0x140 - 0x10) {
 		MOD_OPT_SHOWN = 1;
