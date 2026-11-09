@@ -68,6 +68,56 @@ static uint8_t SPECIES_LEVEL_SWAP[SPECIES_LEVEL_SWAP_MAX][3];
 static int32_t SPECIES_LEVEL_SWAPS;
 static void readSpeciesSector(int32_t sector);
 
+/* Only active scalar rows stay resident; both move lists remain in DIGI.DAT. */
+typedef struct {
+	uint16_t type, move, power;
+	uint8_t cost, element;
+} SpeciesMoveBalance;
+static SpeciesMoveBalance SPECIES_MOVE_BALANCE[SPECIES_BALANCE_SWAP_MAX];
+static int32_t SPECIES_MOVE_BALANCES;
+static Move SPECIES_MOVE_COPY;
+
+Move *modSpeciesMove(int32_t type, int32_t move)
+{
+	int32_t i;
+	SpeciesMoveBalance *b;
+	for (i = 0; i < SPECIES_MOVE_BALANCES; i++) {
+		b = &SPECIES_MOVE_BALANCE[i];
+		if (b->type != type || b->move != move) continue;
+		SPECIES_MOVE_COPY = MOVE_DATA[move];
+		SPECIES_MOVE_COPY.power = b->power;
+		SPECIES_MOVE_COPY.mpCost = b->cost;
+		SPECIES_MOVE_COPY.special = b->element;
+		return &SPECIES_MOVE_COPY;
+	}
+	return &MOVE_DATA[move];
+}
+
+static void applySpeciesMoveBalance(int32_t sector)
+{
+	int32_t i, count, type;
+	uint8_t *row;
+	SpeciesMoveBalance *b;
+	SPECIES_MOVE_BALANCES = 0;
+	if (!sector) return;
+	readSpeciesSector(sector);
+	count = *(uint16_t *)SPECIES_SECTOR;
+	if (count > SPECIES_BALANCE_SWAP_MAX) count = SPECIES_BALANCE_SWAP_MAX;
+	for (i = 0; i < count; i++) {
+		row = (uint8_t *)SPECIES_SECTOR + 2 + i * 44;
+		type = row[0] | row[1] << 8;
+		if (type >= NUM_ORIGINAL_DIGIMON) continue;
+		row += 2 + (MOD_OPT_NEW_DIGIMON ? 0 : 21);
+		memcpy(DIGIMON_DATA[type].moves, row, 16);
+		b = &SPECIES_MOVE_BALANCE[SPECIES_MOVE_BALANCES++];
+		b->type = type;
+		b->move = row[16];
+		b->power = row[17] | row[18] << 8;
+		b->cost = row[19];
+		b->element = row[20];
+	}
+}
+
 void modApplySpeciesLevels(void)
 {
 	int32_t i;
@@ -92,6 +142,8 @@ void modApplySpeciesLevels(void)
 	}
 	/* Explicit on/off path and requirement rows live in a separate sector. */
 	i = ((uint32_t *)SPECIES_SECTOR)[SPECIES_HEADER_EVOLUTION_OFF / 4];
+	j = ((uint32_t *)SPECIES_SECTOR)[SPECIES_HEADER_BALANCE_OFF / 4];
+	applySpeciesMoveBalance(j);
 	if (!i) return;
 	readSpeciesSector(i);
 	row = (uint16_t *)SPECIES_SECTOR;
