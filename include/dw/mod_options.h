@@ -32,6 +32,11 @@ uint16_t modButtonGlyph(uint16_t code);
 /* the colour (setTextColor's) to draw the US layout's button glyph `code` in, given the text's colour `color` */
 int32_t modButtonColor(uint16_t code, int32_t color);
 /* the CLUT of the dialogue box's button frames (ours: the ○ red, the × blue) */
+/* Care-only atlas holes, separate from every confirm glyph and localized label. */
+#define MOD_CARE_BUTTON_U(frame) ((frame) == 2 ? 192 : 239)
+#define MOD_CARE_BUTTON_V(frame) ((frame) == 2 ? 224 : 155 + (frame) * 12)
+#define MOD_CARE_CLUT_X 352
+#define MOD_CARE_CLUT_Y 252
 uint16_t modButtonClut(void);
 /* the button layout changes: the dialogue box's button in VRAM follows it */
 void modSetButtons(int32_t layout);

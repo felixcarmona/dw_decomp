@@ -716,8 +716,8 @@ static void drawRingBubble(int32_t j, int32_t cx, int32_t cy, int32_t depth,
 }
 
 /*
- * MOD (care menu): the X badge. While X in front of the partner would open the care menu (mod_feed.c sets
- * MOD_FEED_HINT for that tick), the dialogue box's X button (renderUIBox, script_textbox.c: the UI texture page,
+ * MOD (care menu): the Square badge. While Square would open the care menu (mod_feed.c sets
+ * MOD_FEED_HINT for that tick), the care-only native button cap (the UI texture page,
  * three 16x12 frames pressing it) is drawn beside the bottom right bubble of the row, or where the bubbles would be
  * when it has none (a scolding or HP short of the maximum need no bubble). It grows in and shrinks out in
  * RING_BADGE_TICKS and moves with the row (its bob and its steps), one ordering table slot nearer than the bubbles.
@@ -745,9 +745,10 @@ static void renderBadge(int32_t x, int32_t y, int32_t depth, int32_t k, int32_t 
 	setPolyFT4(p);
 	setSemiTrans(p, 1);
 	p->tpage = GetTPage(0, 1, 320, 128);
-	p->clut = modButtonClut(); /* MOD (options): GetClut(96, 500), the ○ in red */
+	p->clut = GetClut(MOD_CARE_CLUT_X, MOD_CARE_CLUT_Y);
 	setRGB0(p, 0x80, 0x80, 0x80);
-	setUVWH(p, (MOD_RING_CLOCK / 4) % 3 * 16 + 0x4c, 0xb7, RING_BADGE_W, RING_BADGE_H);
+	setUVWH(p, MOD_CARE_BUTTON_U((MOD_RING_CLOCK / 4) % 3),
+	        MOD_CARE_BUTTON_V((MOD_RING_CLOCK / 4) % 3), RING_BADGE_W, RING_BADGE_H);
 	setXYWH(p, x - w / 2, y - h / 2, w, h);
 	AddPrim(ACTIVE_ORDERING_TABLE->org + slot, p);
 	GsSetWorkBase((PACKET *)(p + 1));
@@ -961,7 +962,7 @@ void tickConditionRingObject(int32_t instanceId)
 		return;
 	}
 	++MOD_RING_CLOCK;
-	/* MOD (care menu): the X badge follows the hint, which lasts one tick */
+	/* MOD (care menu): the badge follows the hint, which lasts one tick */
 	if (MOD_FEED_HINT) {
 		if (MOD_RING_BADGE < RING_BADGE_TICKS) {
 			++MOD_RING_BADGE;
