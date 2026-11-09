@@ -318,6 +318,14 @@ SECTIONS
                 .rodata.MOD_LANGUAGE_TITLE_GLYPHS
             );
             . = ALIGN(., 4);
+            /* Detection display only runs while the title owns EVL and MENU. */
+            BUILD_DIR/src/main/main_menu.c.o(
+                .text.modNoticeDraw* .text.modNoticeRender* .text.modNoticeString*
+                .text.modNoticePercent* .rodata.modNoticeDraw*
+                .rodata.MOD_NOTICE_CALIBRATION .rodata.widths*
+                .bss.MOD_NOTICE_CACHE
+            );
+            . = ALIGN(., 4);
             title_ui_END = .;
 
 		}
