@@ -25,6 +25,7 @@
 #include <dw/map.h>
 #include <dw/map_object.h>
 #include <dw/mod_fps.h>
+#include <dw/mod_rules.h>
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/partner.h>
@@ -3504,15 +3505,15 @@ int32_t main(void)
 			loadStackedTIMFile(MAIN_D_8012CE8C);
 			initializeTamer(0, 0, 0, 0, 0, 0, 0);
 			if (readPStat(0xfe) == 0) {
-				partnerId = 0x3;
+				partnerId = modNewGame(MOD_NG_STARTER0); /* MOD (new game as data): was 0x3 */
 			} else {
-				partnerId = 0x11;
+				partnerId = modNewGame(MOD_NG_STARTER1); /* was 0x11 */
 			}
 			initializePartner(partnerId, 0, 0, 0, 0, 0, 0);
 			setDigimonRaised(partnerId);
 			initializeMap();
 			initializeChest();
-			runMapHeadScript(0xcc);
+			runMapHeadScript(modNewGame(MOD_NG_START_SCRIPT)); /* was 0xcc */
 			addClock();
 			stopGameTime();
 			break;

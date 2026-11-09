@@ -4080,7 +4080,7 @@ int32_t tickSelectSlotInput(MenuCursor *cursor, int32_t which)
 }
 
 /* MOD (new game as data): written by tools/balance.py from content/tables/new-game.json; -1 = the rule does not exist */
-int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE] = { [0 ... MOD_NEWGAME_SIZE - 1] = -1 };
 
 int32_t modNewGame(int32_t slot)
 {
@@ -4103,8 +4103,8 @@ void initializeDefaultSavegame(void)
 	}
 	savegame->mainState = 0;
 	savegame->currentScreen = SCREEN_LEGACY_NONE;
-	savegame->currentExit = 9;
-	savegame->partnerType = 0x72;
+	savegame->currentExit = modNewGame(MOD_NG_START_EXIT);
+	savegame->partnerType = modNewGame(MOD_NG_FIRST_SPECIES);
 	strcpy(savegame->playerName, MAIN_D_801346C4);
 	strcpy(savegame->digimonName, MAIN_D_8013468C);
 
@@ -4126,7 +4126,7 @@ void initializeDefaultSavegame(void)
 	savegame->partnerPara.remainingLifetime = modNewGame(MOD_NG_FIRST_LIFETIME);
 	savegame->partnerPara.age = modNewGame(MOD_NG_FIRST_AGE);
 	for (i = 0; i < 6; i++) {
-		savegame->scriptState[i] = 0x3A + i;
+		savegame->scriptState[i] = modNewGame(MOD_NG_SHOP_CARD0 + i);
 	}
 
 	defaultInventoryCounts = DEFAULT_INVENTORY_AMOUNTS;
