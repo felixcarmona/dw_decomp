@@ -50,6 +50,8 @@ extern int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON];
 
 void tickMainMenu(int32_t instanceId);
 void renderMainMenu(int32_t instanceId);
+void loadMenuOverlay(void);
+void closeMenuOverlay(void);
 void renderFeedingItem(int32_t instanceId);
 
 void partnerTickOverworld(int32_t instanceId);
@@ -329,6 +331,7 @@ void partnerTickSleep(void)
 					TARGET_MENU = 40;
 					MAIN_STATE = 1;
 				}
+				loadMenuOverlay(); /* MOD (menu overlay): tickMainMenu and renderMainMenu are in MENU_REL.BIN */
 				addObject(5000, 0, tickMainMenu, renderMainMenu);
 				PARTNER_SUB_STATE = 6;
 			}
@@ -337,6 +340,7 @@ void partnerTickSleep(void)
 	case 6:
 		if (CURRENT_MENU == -1) {
 			removeObject(5000, 0);
+			closeMenuOverlay(); /* MOD (menu overlay): the curling screen's KAR shares its slot */
 			fadeFromBlack(40);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
 			updateTimeOfDay();
