@@ -21,6 +21,7 @@
 #include <dw/script.h>
 #include <dw/species.h>
 #include <dw/tamer.h>
+#include <dw/tfs_stream.h>
 #include <dw/types.h>
 #include <dw/utils.h>
 #include <dw/vecmath.h>
@@ -4367,7 +4368,8 @@ void readMapTFS(int32_t mapId)
 	char path[32];
 
 	buildMapPath(path, MAP_ENTRIES[mapId].filename, MAP_FILE_EXT_TFS, mapId);
-	readFile(path, GENERAL_BUFFER_PTR);
+	/* MOD (memreclaim): only the header; tiles are streamed (tfs_stream.c) */
+	tfsStreamOpen(path);
 }
 
 void setupMap(void)
@@ -4378,6 +4380,7 @@ void setupMap(void)
 	int32_t y;
 	int32_t i;
 	int16_t numCluts;
+	int32_t seq;
 
 	data = (u_long *)GENERAL_BUFFER_PTR;
 	data++;
@@ -4391,20 +4394,23 @@ void setupMap(void)
 
 	updateTimeOfDay();
 
+	/*
+	 * MOD (memreclaim): the TFS is consumed in order; remember each tile's
+	 * place in the file instead of a pointer into it (tfs_stream.c).
+	 */
+	seq = 0;
+	for (i = 0; i < 35; i++) {
+		MOD_TFS_TILE_SEQ[i] = -1;
+	}
 	tile = MAP_TILE_DATA.tiles;
 	for (y = 0; y < MAP_TILE_DATA.height; y++) {
 		for (x = 0; x < MAP_TILE_DATA.width; x++) {
 			tile->tileId = MAP_TILES[x + (y * MAP_TILE_DATA.width)];
-			if (tile->tileId == -1) {
-				fillTileData(tile, (uint8_t *)NULL,
-					     x % 4 * 64 + 768, y % 3 * 128,
-					     x * 128, y * 128);
-			} else {
-				data++;
-				fillTileData(tile, (uint8_t *)data,
-					     x % 4 * 64 + 768, y % 3 * 128,
-					     x * 128, y * 128);
-				data += 4096;
+			fillTileData(tile, (uint8_t *)NULL,
+				     x % 4 * 64 + 768, y % 3 * 128,
+				     x * 128, y * 128);
+			if (tile->tileId != -1) {
+				MOD_TFS_TILE_SEQ[tile - MAP_TILE_DATA.tiles] = seq++;
 			}
 			tile++;
 		}
@@ -4550,45 +4556,35 @@ void uploadMapTileImages(MapTileData *tiles, int16_t index)
 	int16_t stride;
 	int16_t count;
 	int32_t i;
+	int32_t row;
 
 	count = stride = *(int8_t *)((int8_t *)tiles + 0x1bb8);
 	if (stride > 3) {
 		count = 4;
 	}
 
-	for (i = 0; i < count; i++) {
-		setRECT(&rect, tiles[index + i].texU, tiles[index + i].texV, 64, 128);
-
-		if (tiles[index + i].tileId == -1) {
-			ClearImage(&rect, 0, 0, 0);
-		} else {
-			LoadImage(&rect, (u_long *)tiles[index + i].imagePtr);
+	/*
+	 * MOD (memreclaim): row by row, each row read from the CD in one go
+	 * (tfsStageRow); same rectangles and data as the original's column order.
+	 */
+	for (row = 0; row < 3; row++) {
+		if ((row == 2) && (MAP_TILE_DATA.height <= 2)) {
+			break;
 		}
+		tfsStageRow(index + stride * row, count);
+		for (i = 0; i < count; i++) {
+			setRECT(&rect, tiles[index + stride * row + i].texU,
+				tiles[index + stride * row + i].texV, 64, 128);
 
-		DrawSync(0);
-
-		setRECT(&rect, tiles[index + stride + i].texU, tiles[index + stride + i].texV, 64, 128);
-
-		if (tiles[index + stride + i].tileId == -1) {
-			ClearImage(&rect, 0, 0, 0);
-		} else {
-			LoadImage(&rect, (u_long *)tiles[index + stride + i].imagePtr);
-		}
-
-		DrawSync(0);
-
-		if (MAP_TILE_DATA.height > 2) {
-			setRECT(&rect, tiles[index + (stride * 2) + i].texU, tiles[index + (stride * 2) + i].texV, 64, 128);
-
-			if (tiles[index + (stride * 2) + i].tileId == -1) {
-				ClearImage(&rect, 0, 0, 0);
+			if (tiles[index + stride * row + i].tileId == -1) {
+				tfsClearTile(&rect);
 			} else {
-				LoadImage(&rect,
-					  (u_long *)tiles[index + stride * 2 + i].imagePtr);
+				tfsLoadTile(&rect, index + stride * row + i);
 			}
 
 			DrawSync(0);
 		}
+		tfsUnstage();
 	}
 }
 
@@ -5371,9 +5367,9 @@ void updateTileRow(bottom)
 			setRECT(&rect, MAP_TILE_DATA.tiles[i + (base + start)].texU, MAP_TILE_DATA.tiles[i + (base + start)].texV, 64, 128);
 
 			if (MAP_TILE_DATA.tiles[base + i].tileId == -1) {
-				ClearImage(&rect, 0, 0, 0);
+				tfsClearTile(&rect);
 			} else {
-				LoadImage(&rect, (u_long *)MAP_TILE_DATA.tiles[i + (base + start)].imagePtr);
+				tfsLoadTile(&rect, i + (base + start));
 			}
 
 			DrawSync(0);
@@ -5412,9 +5408,9 @@ void updateTileColumn(right)
 			setRECT(&rect, MAP_TILE_DATA.tiles[start + (base + stride * i)].texU, MAP_TILE_DATA.tiles[start + (base + stride * i)].texV, 64, 128);
 
 			if (MAP_TILE_DATA.tiles[start + (base + stride * i)].tileId == -1) {
-				ClearImage(&rect, 0, 0, 0);
+				tfsClearTile(&rect);
 			} else {
-				LoadImage(&rect, (u_long *)MAP_TILE_DATA.tiles[start + (base + stride * i)].imagePtr);
+				tfsLoadTile(&rect, start + (base + stride * i));
 			}
 
 			DrawSync(0);
