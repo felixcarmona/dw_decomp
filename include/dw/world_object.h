@@ -11,13 +11,14 @@
  * so an object with the same instance number removed the Digimon instead of
  * itself: with species 402 the partner's damage text (0x192, slot 1) took the
  * partner's own object, the partner stopped ticking and the victory animation
- * never ended (the game froze at the end of every battle). The two objects of
+ * never ended (the game froze at the end of every battle). The objects of
  * the overworld and the normal battle that have an instance number get ids
  * above the species range (species files go up to 1023). The VS-only objects
  * (0x198, 0x19c, 0x1a3, 0x1a9..0x1b0) still sit in 400..432: new species
  * cannot enter VS. */
 #define OBJECT_ID_ENTITY_TEXT	0x1f92
 #define OBJECT_ID_DROPPED_ITEM	0x1f95
+#define OBJECT_ID_BATTLE_START_TEXT	0x1fa6
 
 typedef void (*TickFunction)(int32_t);
 typedef void (*RenderFunction)(int32_t);
