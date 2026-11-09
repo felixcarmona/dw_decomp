@@ -119,7 +119,7 @@ void rotateVector(SVECTOR *rotation, VECTOR *input, VECTOR *output);
 void mapToWorldPosition(VECTOR *out, int32_t x, int32_t z, int32_t *f);
 void renderString(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h, int32_t i);
 void renderUIBox(int32_t id);
-void renderItemSprite(int32_t itemId, int32_t x, int32_t y, int32_t depth);
+void renderItemSprite(ItemId itemId, int16_t x, int16_t y, int32_t depth);
 void calculatePosition(GsCOORDINATE2 *coord, MATRIX *matrix);
 void matrixToEuler2(MATRIX *m, SVECTOR *out);
 

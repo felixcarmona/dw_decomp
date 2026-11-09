@@ -427,7 +427,7 @@ void BTL_tickDeathCountdown(void)
 	GsSPRITE *spin;
 	long frame;
 
-	if (TAMER_ITEM.worldItem.type == 0xff) {
+	if (TAMER_ITEM.worldItem.type == ITEM_NONE) {
 		base = &BTL_DEATH_COUNTDOWN_SPRITE;
 		spin = &BTL_DEATH_COUNTDOWN.data.sprite;
 		do {

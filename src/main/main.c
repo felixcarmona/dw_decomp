@@ -4192,7 +4192,7 @@ void addThrownItem(type)
 {
 	MATRIX *workm;
 
-	if (TAMER_ITEM.worldItem.type == 0xff) {
+	if (TAMER_ITEM.worldItem.type == ITEM_NONE) {
 		workm = &TAMER_ENTITY.entity.posData[9].posMatrix.workm;
 		TAMER_ITEM.worldItem.spriteLocation.vx = workm->t[0];
 		TAMER_ITEM.worldItem.spriteLocation.vy = workm->t[1];
