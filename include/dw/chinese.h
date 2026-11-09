@@ -17,6 +17,8 @@ int32_t zhPreviousFont(void);
 int32_t zhLookupFile(FileLookup *lookup, char *name);
 int32_t zhDrawGlyph(uint16_t codepoint, uint16_t x, uint16_t y);
 int32_t zhGlyphWidth(uint16_t codepoint);
+char *zhLatinName(int32_t type);
+char *zhCardName(char *name);
 void zhVsReset(void);
 void zhRegisterName(char *name, int32_t type);
 #endif
