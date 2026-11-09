@@ -2924,7 +2924,7 @@ void showMapheadSelection(int32_t idx, uint8_t owner, uint16_t x, int32_t *outSe
 
 void setDigimonRaised(int32_t digimonId)
 {
-	if ((uint32_t)digimonId < NUM_EVOLVING_DIGIMON) {
+	if (HAS_RAISED_FLAG(digimonId)) { /* MOD: + MasterTyrannomon (ids.h) */
 		setTrigger(digimonId + TRIGGER_RAISED_BASE);
 	}
 }
@@ -2934,6 +2934,14 @@ int32_t hasDigimonRaised(digimonId)
 	uint16_t digimonId;
 // clang-format on
 {
+	/*
+	 * MOD: only types that have a raised flag. The original read trigger
+	 * 0x200 + any id; with MasterTyrannomon in Tyrannomon's evolution list
+	 * the evolution tie-break and the chart ask for 124 (trigger 636).
+	 */
+	if (!HAS_RAISED_FLAG(digimonId)) {
+		return 0;
+	}
 	return isTriggerSet(digimonId + TRIGGER_RAISED_BASE);
 }
 
