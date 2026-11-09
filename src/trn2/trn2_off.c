@@ -6,6 +6,7 @@
 #include <dw/partner.h>
 #include <dw/script.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/trn2.h>
 #include <dw/types.h>
 #include <dw/world_object.h>
@@ -34,7 +35,7 @@ static void *trn2_off_functions[] = {
 int16_t MAIN_D_801353C6;
 
 // clang-format off
-int8_t TRN2_TRAINING_ANIM_IDS[67][2] = {
+int8_t TRN2_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66) */
 	{ 0x0, 0x0 }, { 0x2e, 0xa }, { 0x2e, 0xa }, { 0x33, 0xc },
 	{ 0x2e, 0x14 }, { 0x35, 0x14 }, { 0x2e, 0xa }, { 0x2e, 0xa },
 	{ 0x2e, 0xa }, { 0x35, 0xd }, { 0x2e, 0xa }, { 0x2e, 0x14 },
@@ -109,7 +110,7 @@ int16_t instanceId;
 	case 1:
 		TRN2_func_8008AA84(4);
 		if (tickEntityWalkTo(0xfc, 0xff, TRN2_D_8008DC1C.vx, TRN2_D_8008DC1C.vz, 0) == 1) {
-			startAnimation(ENTITY_TABLE[1], TRN2_TRAINING_ANIM_IDS[PARTNER_ENTITY.digimonEntity.entity.type][0]);
+			startAnimation(ENTITY_TABLE[1], getTrainingAnimRow(TRN2_TRAINING_ANIM_IDS, PARTNER_ENTITY.digimonEntity.entity.type, 1)[0]);
 			PARTNER_ENTITY.digimonEntity.entity.anim.animFlag |= 2;
 			MAIN_D_801353C6 = 0;
 			PARTNER_ENTITY.digimonEntity.entity.posData->rotation.vy = 0x400;
@@ -123,7 +124,7 @@ int16_t instanceId;
 		MAIN_D_801353C6++;
 		MAIN_D_801353C2++;
 		PARTNER_ENTITY.digimonEntity.entity.anim.animFlag |= 2;
-		if (MAIN_D_801353C6 == TRN2_TRAINING_ANIM_IDS[PARTNER_ENTITY.digimonEntity.entity.type][1]) {
+		if (MAIN_D_801353C6 == getTrainingAnimRow(TRN2_TRAINING_ANIM_IDS, PARTNER_ENTITY.digimonEntity.entity.type, 1)[1]) {
 			createParticleFX(0, 0, &TRN2_D_8008DC3C[0], NULL, 0);
 			createParticleFX(0, 0, &TRN2_D_8008DC3C[1], NULL, 0);
 			createParticleFX(0, 0, &TRN2_D_8008DC3C[2], NULL, 0);
@@ -141,7 +142,7 @@ int16_t instanceId;
 		if (MAIN_D_801353C6 == 0x2e) {
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_801353B4, MAIN_D_801353B6, 1);
-			startAnimation(ENTITY_TABLE[1], TRN2_TRAINING_ANIM_IDS[PARTNER_ENTITY.digimonEntity.entity.type][0]);
+			startAnimation(ENTITY_TABLE[1], getTrainingAnimRow(TRN2_TRAINING_ANIM_IDS, PARTNER_ENTITY.digimonEntity.entity.type, 1)[0]);
 			MAIN_D_801353C6 = 0;
 			MAIN_D_801353BD = 2;
 		}
@@ -197,13 +198,13 @@ int16_t arg;
 		TRN2_D_8008DC1C.vy = 0;
 		TRN2_D_8008DC1C.vz = 0x3f8;
 		TRN2_D_8008DC3C[0].vx = -0x3c6;
-		TRN2_D_8008DC3C[0].vy = -DIGIMON_DATA[ENTITY_TABLE[1]->type].height;
+		TRN2_D_8008DC3C[0].vy = -DIGI_PARA(ENTITY_TABLE[1]->type).height;
 		TRN2_D_8008DC3C[0].vz = 0x3f8;
 		TRN2_D_8008DC3C[1].vx = -0x3b6;
-		TRN2_D_8008DC3C[1].vy = -DIGIMON_DATA[ENTITY_TABLE[1]->type].height;
+		TRN2_D_8008DC3C[1].vy = -DIGI_PARA(ENTITY_TABLE[1]->type).height;
 		TRN2_D_8008DC3C[1].vz = 0x3e8;
 		TRN2_D_8008DC3C[2].vx = -0x3a2;
-		TRN2_D_8008DC3C[2].vy = -DIGIMON_DATA[ENTITY_TABLE[1]->type].height;
+		TRN2_D_8008DC3C[2].vy = -DIGI_PARA(ENTITY_TABLE[1]->type).height;
 		TRN2_D_8008DC3C[2].vz = 0x3d4;
 		MAIN_D_801353B8 = 4;
 		MAIN_D_801353BA = 3;
@@ -216,7 +217,7 @@ int16_t arg;
 		TRN2_D_8008DC1C.vy = 0;
 		TRN2_D_8008DC1C.vz = -0x3bf;
 		TRN2_D_8008DC3C[0].vx = 0x63e;
-		TRN2_D_8008DC3C[0].vy = -DIGIMON_DATA[ENTITY_TABLE[1]->type].height;
+		TRN2_D_8008DC3C[0].vy = -DIGI_PARA(ENTITY_TABLE[1]->type).height;
 		TRN2_D_8008DC3C[0].vz = -0x3bf;
 		MAIN_D_801353B4 = 0xe;
 		MAIN_D_801353B6 = 1;

@@ -354,8 +354,8 @@ int32_t VS_rollAttackOutcome(DigimonEntity *attacker, DigimonEntity *defender, i
 	int32_t dmg;
 
 	for (i = 0; i < 3; i++) {
-		if (DIGIMON_DATA[defender->entity.type].special[i] != 0xff) {
-			eff[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGIMON_DATA[defender->entity.type].special[i]];
+		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
+			eff[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
 			eff[i] = 10;
 		}
@@ -589,7 +589,7 @@ void VS_resolveAttack(void)
 		}
 		entity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		tech = VS_getAttackTech(&attack);
-		if (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
+		if (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
 			if (COMBAT_DATA_PTR->player.entityIds[fighter->targetId] == attack.casterId) {
 				((DigimonEntity *)entity)->stats.current.isHit = 0;
 				continue;
@@ -632,14 +632,14 @@ skipViewpoint:
 			continue;
 		}
 		handled = 0;
-		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
+		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
 				if (((DigimonEntity *)entity)->stats.current.currentMP < 0xa5) {
 					break;
 				}
-				if ((moves[j] != 0xff) && (DIGIMON_DATA[entity->type].moves[moves[j] - 0x2e] == 0x2d)) {
-					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGIMON_DATA[entity->type].level)) {
+				if ((moves[j] != 0xff) && (DIGI_PARA(entity->type).moves[moves[j] - 0x2e] == 0x2d)) {
+					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGI_PARA(entity->type).level)) {
 						fighter->queuedAnim = moves[j];
 						fighter->targetId = VS_getFighterSlot(attack.casterId);
 						fighter->moveRange = 1;
@@ -1455,7 +1455,7 @@ int16_t VS_getMostEffectiveMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGIMON_DATA[target->type].special[0]];
+			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGI_PARA(target->type).special[0]];
 		} else {
 			score[i] = -1;
 		}
@@ -1684,10 +1684,10 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
 		if (MOVE_DATA[tech].range == 4) {
-			weights[i] += fighter->buffPrioTimer + VS_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[digimon->entity.type].special[0]);
+			weights[i] += fighter->buffPrioTimer + VS_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
-		weights[i] += VS_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type].special[0]);
+		weights[i] += VS_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
 		if (MOVE_DATA[tech].range != 3) {
 			continue;
 		}

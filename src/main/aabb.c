@@ -58,12 +58,12 @@ int32_t findAABBHitEntity(AABB *aabb, Entity *ignoreEntity, int32_t startId)
 			location = &entity->posData->location;
 			center.vx = location->vx;
 			center.vy = location->vy -
-				(DIGIMON_DATA[entity->type].height >> 1);
+				(DIGI_PARA(entity->type).height >> 1);
 			center.vz = location->vz;
 			b.center = &center;
-			b.extent.vx = DIGIMON_DATA[entity->type].radius >> 1;
-			b.extent.vy = DIGIMON_DATA[entity->type].height >> 1;
-			b.extent.vz = DIGIMON_DATA[entity->type].radius >> 1;
+			b.extent.vx = DIGI_PARA(entity->type).radius >> 1;
+			b.extent.vy = DIGI_PARA(entity->type).height >> 1;
+			b.extent.vz = DIGI_PARA(entity->type).radius >> 1;
 			if (hasAABBOverlap(aabb, &b) == 1) {
 				return startId;
 			}

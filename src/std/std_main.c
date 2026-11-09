@@ -1425,7 +1425,7 @@ void STD_addIntroText(entity, id)
 	STD_INTRO_DATA_FRAME_COUNT = 4;
 	STD_INTRO_DATA_RENDERED_CHARACTERS = 0;
 
-	switch (DIGIMON_DATA[entity->type].special[0]) {
+	switch (DIGI_PARA(entity->type).special[0]) {
 	case 0:
 		STD_INTRO_DATA_COLOR = 3;
 		break;
@@ -2276,9 +2276,9 @@ void STD_setChampionCamera(void)
 	STD_CAMERA_STATE = 0xb;
 	GS_VIEWPOINT.vpx = 0;
 	GS_VIEWPOINT.vpy = -0xc8;
-	GS_VIEWPOINT.vpz = -((DIGIMON_DATA[ENTITY_TABLE[1]->type].radius * 2) + 0x320);
+	GS_VIEWPOINT.vpz = -((DIGI_PARA(ENTITY_TABLE[1]->type).radius * 2) + 0x320);
 	GS_VIEWPOINT.vrx = 0;
-	GS_VIEWPOINT.vry = (-DIGIMON_DATA[ENTITY_TABLE[1]->type].height * 2) / 3;
+	GS_VIEWPOINT.vry = (-DIGI_PARA(ENTITY_TABLE[1]->type).height * 2) / 3;
 	GS_VIEWPOINT.vrz = 0;
 	GS_VIEWPOINT.rz = 0;
 	VIEWPORT_DISTANCE = 0x200;
@@ -2335,8 +2335,8 @@ void STD_updateCameraLerp(int32_t t, int8_t flip)
 
 	off = STD_INTRO_CAMERA_STAGE2_POS;
 	rot = STD_INTRO_CAMERA_STAGE2_ROT;
-	base = ((((DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height +
-	           DIGIMON_DATA[STD_FOCUSED_ENTITY->type].radius) /
+	base = ((((DIGI_PARA(STD_FOCUSED_ENTITY->type).height +
+	           DIGI_PARA(STD_FOCUSED_ENTITY->type).radius) /
 	          2) *
 	         0x62c) /
 	        450);
@@ -2355,7 +2355,7 @@ void STD_updateCameraLerp(int32_t t, int8_t flip)
 	}
 
 	rot.vy += STD_FOCUSED_ENTITY->posData->rotation.vy;
-	off.vy = (-DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height * 2) / 3;
+	off.vy = (-DIGI_PARA(STD_FOCUSED_ENTITY->type).height * 2) / 3;
 	STD_setViewpointFromBone(STD_FOCUSED_ENTITY, &off, &rot, dist);
 }
 
@@ -2432,8 +2432,8 @@ void STD_tickCameraChase(void)
 				rot.vy = lerp(0x638, 0x293, 0, 0x23, dist);
 			}
 			rot.vy += STD_FOCUSED_ENTITY->posData->rotation.vy;
-			off.vy = (-DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height * 7) / 10;
-			d2 = (((DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height + DIGIMON_DATA[STD_FOCUSED_ENTITY->type].radius) / 2) * 0x5aa) / 450;
+			off.vy = (-DIGI_PARA(STD_FOCUSED_ENTITY->type).height * 7) / 10;
+			d2 = (((DIGI_PARA(STD_FOCUSED_ENTITY->type).height + DIGI_PARA(STD_FOCUSED_ENTITY->type).radius) / 2) * 0x5aa) / 450;
 			STD_setViewpointFromBone(STD_FOCUSED_ENTITY, &off, &rot, d2);
 			GS_VIEWPOINT.vpy = (off.vy * 7) / 10;
 			if (GS_VIEWPOINT.vpy > -0xb4) {
@@ -2489,8 +2489,8 @@ void STD_startCameraChase(entity, dx, side)
 		rot.vy = 0x638;
 	}
 	rot.vy += STD_FOCUSED_ENTITY->posData->rotation.vy;
-	off.vy = (-DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height * 2) / 3;
-	dist = (((DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height + DIGIMON_DATA[STD_FOCUSED_ENTITY->type].radius) / 2) * 0x5aa) / 450;
+	off.vy = (-DIGI_PARA(STD_FOCUSED_ENTITY->type).height * 2) / 3;
+	dist = (((DIGI_PARA(STD_FOCUSED_ENTITY->type).height + DIGI_PARA(STD_FOCUSED_ENTITY->type).radius) / 2) * 0x5aa) / 450;
 	STD_setViewpointFromBone(STD_FOCUSED_ENTITY, &off, &rot, dist);
 	GS_VIEWPOINT.vpy = (off.vy * 3) / 10;
 	if (GS_VIEWPOINT.vpy > -0xb4) {
@@ -2528,7 +2528,7 @@ void STD_tickCameraIntro(void)
 	 * STD_D_8007B9D0.target, which follows it there; GCC places other data next. */
 	STD_setViewpointFromBone(STD_D_8007B9D0.target, &off, &rot, STD_D_8007B9BC[8]);
 #endif
-	GS_VIEWPOINT.vry = (-DIGIMON_DATA[STD_D_8007B9D0.target->type].height * 2) / 3;
+	GS_VIEWPOINT.vry = (-DIGI_PARA(STD_D_8007B9D0.target->type).height * 2) / 3;
 	GS_VIEWPOINT.vpy = -processSomeArenaArrays(0x16, p[0], STD_D_8007A41C, STD_D_8007BA9C, STD_D_8007BA44);
 	p[0]++;
 }
@@ -2567,19 +2567,19 @@ void STD_startCameraIntro(Entity *target, Entity *entity)
 	}
 	STD_setViewpointFromBone(target, &off, &rot, STD_D_8007B9BC[8]);
 
-	STD_D_8007B9BC[9] = DIGIMON_DATA[target->type].radius * 3 * 2;
-	GS_VIEWPOINT.vry = (-DIGIMON_DATA[target->type].height * 2) / 3;
-	GS_VIEWPOINT.vpy = -DIGIMON_DATA[entity->type].height;
+	STD_D_8007B9BC[9] = DIGI_PARA(target->type).radius * 3 * 2;
+	GS_VIEWPOINT.vry = (-DIGI_PARA(target->type).height * 2) / 3;
+	GS_VIEWPOINT.vpy = -DIGI_PARA(entity->type).height;
 	STD_D_8007B9D0.unk0 = GS_VIEWPOINT.vpy;
 	STD_D_8007B9D0.unk2 = GS_VIEWPOINT.vpy * 250 / 100;
-	STD_D_8007BA9C[0] = DIGIMON_DATA[entity->type].height;
-	STD_D_8007BA9C[1] = DIGIMON_DATA[entity->type].height;
-	STD_D_8007BA9C[2] = DIGIMON_DATA[entity->type].height * 200 / 100;
-	STD_D_8007BA9C[3] = DIGIMON_DATA[target->type].height * 380 / 100;
-	STD_D_8007BAAC[0] = DIGIMON_DATA[target->type].height * 250 / 100;
+	STD_D_8007BA9C[0] = DIGI_PARA(entity->type).height;
+	STD_D_8007BA9C[1] = DIGI_PARA(entity->type).height;
+	STD_D_8007BA9C[2] = DIGI_PARA(entity->type).height * 200 / 100;
+	STD_D_8007BA9C[3] = DIGI_PARA(target->type).height * 380 / 100;
+	STD_D_8007BAAC[0] = DIGI_PARA(target->type).height * 250 / 100;
 	for (i = 5; i < 0x16; i++) {
 		STD_D_8007BA9C[i] =
-			customRandom(0x50, DIGIMON_DATA[target->type].height * 180 / 100);
+			customRandom(0x50, DIGI_PARA(target->type).height * 180 / 100);
 	}
 	initializeSomeArenaArrays(0x16, (int32_t)STD_D_8007A41C, (int32_t)STD_D_8007BA9C, STD_D_8007BA44);
 
@@ -2613,7 +2613,7 @@ void STD_applyEntityViewpoint(void)
 	GsSetProjection(VIEWPORT_DISTANCE);
 	m = &STD_FOCUSED_ENTITY->posData->posMatrix.workm;
 	GS_VIEWPOINT.vrx = m->t[0];
-	GS_VIEWPOINT.vry = -DIGIMON_DATA[STD_FOCUSED_ENTITY->type].height * 2 / 3;
+	GS_VIEWPOINT.vry = -DIGI_PARA(STD_FOCUSED_ENTITY->type).height * 2 / 3;
 	GS_VIEWPOINT.vrz = m->t[2];
 	GsSetRefView2(&GS_VIEWPOINT);
 }
@@ -3204,7 +3204,7 @@ void STD_setupParticipants(uint8_t *out, uint8_t *list)
 	}
 
 	for (i = 0; i < 4; i++) {
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGIMON_DATA[PARTICIPANT_TYPES[i * 2]].level - 3][DIGIMON_DATA[PARTICIPANT_TYPES[i * 2 + 1L]].level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[i * 2]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[i * 2 + 1L]).level - 3]) {
 			STD_ROUND1_WINNERS[i] = i * 2;
 		} else {
 			STD_ROUND1_WINNERS[i] = i * 2 + 1;
@@ -3217,13 +3217,13 @@ void STD_setupParticipants(uint8_t *out, uint8_t *list)
 		} else {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[0];
 		}
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGIMON_DATA[PARTICIPANT_TYPES[STD_ROUND1_WINNERS[2]]].level - 3][DIGIMON_DATA[PARTICIPANT_TYPES[STD_ROUND1_WINNERS[3]]].level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[2]]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[3]]).level - 3]) {
 			STD_ROUND2_WINNERS[1] = STD_ROUND1_WINNERS[2];
 		} else {
 			STD_ROUND2_WINNERS[1] = STD_ROUND1_WINNERS[3];
 		}
 	} else {
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGIMON_DATA[PARTICIPANT_TYPES[STD_ROUND1_WINNERS[0]]].level - 3][DIGIMON_DATA[PARTICIPANT_TYPES[STD_ROUND1_WINNERS[1]]].level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[0]]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[1]]).level - 3]) {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[0];
 		} else {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[1];
@@ -3592,14 +3592,14 @@ void STD_tickPartnerAI(void)
 			if ((((DigimonEntity *)partner)->stats.base.moves[COMBAT_DATA_PTR->player.currentCommand[0] - 8] != fighter->queuedAnim) || (fighter->moveRange <= 0)) {
 				STD_setupQueuedMove((DigimonEntity *)partner, fighter, 0, COMBAT_DATA_PTR->player.currentCommand[0] - 8);
 			}
-			STD_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGIMON_DATA[partner->type].moves[fighter->queuedAnim - 0x2e]);
+			STD_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGI_PARA(partner->type).moves[fighter->queuedAnim - 0x2e]);
 			return;
 		case 11:
 			fighter->targetId = 1;
 			if ((((DigimonEntity *)partner)->stats.base.moves[3] != fighter->queuedAnim) || (fighter->moveRange <= 0)) {
 				STD_setupQueuedMove((DigimonEntity *)partner, fighter, 0, 3);
 			}
-			STD_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGIMON_DATA[partner->type].moves[fighter->queuedAnim - 0x2e]);
+			STD_applyChargeRequirement((DigimonEntity *)partner, fighter, DIGI_PARA(partner->type).moves[fighter->queuedAnim - 0x2e]);
 			return;
 		}
 		if ((COMBAT_DATA_PTR->player.currentCommand[0] != 2) && (COMBAT_DATA_PTR->player.currentCommand[0] != 4)) {
@@ -3712,7 +3712,7 @@ void STD_combatSetup(void)
 
 		for (j = 0; j < 4; ++j) {
 			if (entity->stats.base.moves[j] != 0xff) {
-				effect = DIGIMON_DATA[entity->entity.type].moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
+				effect = DIGI_PARA(entity->entity.type).moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
 				moves[moveCount++] = effect;
 			}
 		}
@@ -4495,7 +4495,7 @@ void STD_tickAttackState(Entity *entity, DigimonEntity *target, int32_t id)
 			for (i = 0; i <= ENEMY_COUNT; ++i) {
 				if (i != id) {
 					other = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
-					if (DIGIMON_DATA[other->type].moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
+					if (DIGI_PARA(other->type).moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
 						if (id == COMBAT_DATA_PTR->fighter[i].targetId) {
 							return;
 						}
@@ -4712,7 +4712,7 @@ void STD_tickQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterDa
 			break;
 		case 2:
 		case 3:
-			STD_tickDigimonAttackRanged(digimon, target, fighter, DIGIMON_DATA[digimon->entity.type].moves[fighter->queuedAnim - 0x2e]);
+			STD_tickDigimonAttackRanged(digimon, target, fighter, DIGI_PARA(digimon->entity.type).moves[fighter->queuedAnim - 0x2e]);
 			break;
 		case 4:
 			handleBattleIdle(digimon, &digimon->stats, fighter->flags);
@@ -4774,7 +4774,7 @@ int32_t STD_tickMeleeAttack(DigimonEntity *digimon, DigimonEntity *target, Fight
 	orig = *rot;
 	if (target != NULL) {
 		dist = STD_getDistanceSquared(&digimon->entity, &target->entity);
-		radius = DIGIMON_DATA[digimon->entity.type].radius + DIGIMON_DATA[target->entity.type].radius;
+		radius = DIGI_PARA(digimon->entity.type).radius + DIGI_PARA(target->entity.type).radius;
 		radius = radius * radius;
 		if (dist <= radius) {
 			handleBattleIdle(digimon, &digimon->stats, fighter->flags);
@@ -4865,7 +4865,7 @@ void STD_tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 	}
 
 	distance = STD_getDistanceSquared(&entity->entity, &other->entity);
-	total = DIGIMON_DATA[entity->entity.type].radius + DIGIMON_DATA[other->entity.type].radius;
+	total = DIGI_PARA(entity->entity.type).radius + DIGI_PARA(other->entity.type).radius;
 	total = *(uint32_t *)&MOVE_DATA[move].distance + total * total;
 
 	if (distance > total + total * 3 / 10) {
@@ -5151,7 +5151,7 @@ int32_t STD_getContactRangeSquared(int32_t *a, int32_t *b)
 {
 	int32_t reach;
 
-	reach = DIGIMON_DATA[*a].radius + DIGIMON_DATA[*b].radius + 0xc8;
+	reach = DIGI_PARA(*a).radius + DIGI_PARA(*b).radius + 0xc8;
 
 	return reach * reach;
 }
@@ -5433,7 +5433,7 @@ void STD_renderPlayerMarker(int16_t id)
 	gte_stszotz(&otz);
 	sxy.vx -= (int16_t)(160 - DRAWING_OFFSET_X);
 	sxy.vy -= (int16_t)(120 - DRAWING_OFFSET_Y);
-	offset = VIEWPORT_DISTANCE * (DIGIMON_DATA[entity->type].radius / 2) / (otz * 4);
+	offset = VIEWPORT_DISTANCE * (DIGI_PARA(entity->type).radius / 2) / (otz * 4);
 	sxy.vx += (int16_t)offset;
 
 	prim = (POLY_FT4 *)GsGetWorkBase();
@@ -5477,7 +5477,7 @@ void STD_tickAttackHits(void)
 		}
 		entity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		tech = STD_getAttackTech(&attack);
-		if (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
+		if (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
 			if (COMBAT_DATA_PTR->player.entityIds[fighter->targetId] == attack.casterId) {
 				((DigimonEntity *)entity)->stats.current.isHit = 0;
 				continue;
@@ -5529,14 +5529,14 @@ skipViewpoint:
 			continue;
 		}
 		handled = 0;
-		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGIMON_DATA[entity->type].moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
+		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
 				if (((DigimonEntity *)entity)->stats.current.currentMP < 0xa5) {
 					break;
 				}
-				if ((moves[j] != 0xff) && (DIGIMON_DATA[entity->type].moves[moves[j] - 0x2e] == 0x2d)) {
-					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGIMON_DATA[entity->type].level)) {
+				if ((moves[j] != 0xff) && (DIGI_PARA(entity->type).moves[moves[j] - 0x2e] == 0x2d)) {
+					if (randomLimit(100) < (((DigimonEntity *)entity)->stats.base.speed / DIGI_PARA(entity->type).level)) {
 						fighter->queuedAnim = moves[j];
 						fighter->targetId = STD_getFighterSlot(attack.casterId);
 						fighter->moveRange = 1;
@@ -5714,8 +5714,8 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	int16_t def;
 
 	for (i = 0; i < 3; i++) {
-		if (DIGIMON_DATA[defender->entity.type].special[i] != 0xff) {
-			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGIMON_DATA[defender->entity.type].special[i]];
+		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
+			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
 			mult[i] = 10;
 		}
@@ -6366,10 +6366,10 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
 		if (MOVE_DATA[tech].range == 4) {
-			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[digimon->entity.type].special[0]);
+			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
-		weights[i] += STD_calculateElementBonus(MOVE_DATA[tech].special, DIGIMON_DATA[ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type].special[0]);
+		weights[i] += STD_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
 		if (MOVE_DATA[tech].range != 3) {
 			continue;
 		}
@@ -7088,7 +7088,7 @@ int16_t STD_getMostEffectiveMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGIMON_DATA[target->type].special[0]];
+			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGI_PARA(target->type).special[0]];
 		} else {
 			score[i] = -1;
 		}
