@@ -32,13 +32,17 @@ extern uint8_t TEXTBOX_CELLS;
 
 /*
  * a C string whose row a screen copies in pieces (the crops' offsets in pixels from x: 0, then each next crop's srcX - x;
- * PIECE_CENTRE marks a piece centred in its original span): each piece drawn with the font's spacing (font.c
+ * PIECE_CENTRE marks a piece centred in its original span, PIECE_LEFT one that starts as far into its crop as the row's
+ * first piece, for crops shown one under the other such as Yes / No): each piece drawn with the font's spacing (font.c
  * drawStringPieces); the original font draws it as drawString
  */
 #define PIECE_CENTRE 0x8000
+#define PIECE_LEFT   0x4000
+#define PIECE_FLAGS  (PIECE_CENTRE | PIECE_LEFT)
 #define PIECES_END   0xffff
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
+void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, int32_t x, int32_t y, const uint16_t *pieces);
 #define DRAW_STRING_PIECES(str, x, y, ...)                                         \
 	do {                                                                       \
 		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \
@@ -56,6 +60,23 @@ void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
 #define TEXTBOX_IN_CELLS(boxId) (TEXTBOX_CELLS |= 1 << (boxId))
 #else
 #define TEXTBOX_IN_CELLS(boxId)
+#endif
+
+/*
+ * one row of a text box that a screen copies in pieces (the crops' offsets as for DRAW_STRING_PIECES): after
+ * createTextbox, that row laid out as drawStringPieces lays out a C string, each glyph's original cell advancing as
+ * drawString2 advanced it (a space by the glyph before it); the box's other rows to the pixel. The original font: the
+ * box in the original's cells (TEXTBOX_IN_CELLS). One such row at a time (script_textbox.c TEXTBOX_PIECES)
+ */
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+void textboxRowPieces(int32_t boxId, int32_t row, const uint16_t *pieces);
+#define TEXTBOX_ROW_PIECES(boxId, row, ...)                                        \
+	do {                                                                       \
+		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \
+		textboxRowPieces(boxId, row, PIECES_);                             \
+	} while (0)
+#else
+#define TEXTBOX_ROW_PIECES(boxId, row, ...) TEXTBOX_IN_CELLS(boxId)
 #endif
 
 #endif
