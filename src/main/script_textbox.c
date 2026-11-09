@@ -267,7 +267,8 @@ int32_t tickSelectionDialogue(void)
 	}
 
 	if (isKeyDown(CANCEL_BUTTON)) {
-		if (isTriggerSet(0x31) == 0) {
+		if (isTriggerSet(0x31) == 0 &&
+		    (ACTIVE_INSTRUCTION == SCRIPT_OP_CALL_ROUTINE || DIALOGUE_SELECTION.endPointer != NULL)) { /* MOD (cancel) */
 			if (ACTIVE_INSTRUCTION != SCRIPT_OP_CALL_ROUTINE) {
 				advanceTextbox(0);
 				SCRIPT_POINTER = DIALOGUE_SELECTION.endPointer;
@@ -1252,8 +1253,15 @@ void scriptShowSelection(void)
 	}
 #endif
 
-	SCRIPT_POINTER += 2;
-	DIALOGUE_SELECTION.endPointer = SCRIPT_POINTER;
+	/* MOD (cancel): the original skipped 2 bytes as the END_SELECTION (12 00) every selection was thought to end with; 23
+	 * of the disc's have none, so △ ran their next instruction from its third byte (Piximon's Buy, Meteormon,
+	 * WaruMonzaemon...). Without the marker there is no cancel path: △ is refused as under trigger 49. */
+	if (SCRIPT_POINTER[0] == 0x12 && SCRIPT_POINTER[1] == 0) {
+		SCRIPT_POINTER += 2;
+		DIALOGUE_SELECTION.endPointer = SCRIPT_POINTER;
+	} else {
+		DIALOGUE_SELECTION.endPointer = NULL;
+	}
 
 	if (CURRENT_DIALOGUE_OWNER != 0xff) {
 		DIALOGUE_SELECTION.cursorOffsetY = 0xd;
