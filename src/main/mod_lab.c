@@ -20,8 +20,8 @@
  *                      (113), the partners of MOD partners-npc-b, "To
  *                      Machinedramon" (115; MOD machinedramon), "To Jijimon"
  *                      (117), "To Analogman" (116), and the species imported
- *                      from other games, Veemon (182), Puppetmon (183),
- *                      Kimeramon (184) (MOD dcb-import), and "To Mega <name>"
+ *                      from other games, Veemon (180), Puppetmon (181),
+ *                      Kimeramon (182) (MOD dcb-import), and "To Mega <name>"
  *                      (MOD mega: the Mega the partner, an Ultimate, evolves
  *                      to, otherwise the first Mega species in DIGI.DAT,
  *                      docs/mods/mega.md); a species the disc's DIGI.DAT
@@ -121,11 +121,11 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_JIJIMON,       /* MOD (jijimon) */
 	DIGIMON_ANALOGMAN,     /* MOD (analogman) */
 	/* MOD (dcb-import): the species imported from other games
-	 * (content/species/: 182 Veemon and 183 Puppetmon from Digimon Digital
-	 * Card Battle, 184 Kimeramon from Digimon World 2003) */
+	 * (content/species/: 180 Veemon and 181 Puppetmon from Digimon Digital
+	 * Card Battle, 182 Kimeramon from Digimon World 2) */
+	180,
+	181,
 	182,
-	183,
-	184,
 	MOD_LAB_EVO_MEGA, /* MOD (mega): "To Mega <name>" */
 };
 
