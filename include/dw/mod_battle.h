@@ -169,6 +169,8 @@ enum {
 	MOD_BT_T_DIGIT,		/* ticks a digit of the defeat countdown shows (it pulses 20 ticks of them; the countdown ends after 5) */
 	MOD_BT_MUSIC_LAST_SPECIES,	/* the species that, as the first enemy of the fight (COMBAT_DATA_PTR->player.entityIds[1], Machinedramon in the original), makes the battle play the last-battle track (-1: none) */
 	MOD_BT_MUSIC_LAST_TRACK,	/* the track (font 0x21) it plays */
+	MOD_BT_TAIL_HALF,
+	MOD_BT_TAIL_DIV,
 	MOD_BT_SIZE
 };
 
@@ -185,6 +187,26 @@ int32_t modBtBrainDiscount(int32_t brain);
 #define BMS(X) modBtSpan(MOD_BT_##X)
 #define BMD(a, X) modBtDiv((a), MOD_BT_##X)
 #define BMV(X) ((int32_t)MOD_BATTLE[MOD_BT_##X])
+
+/* Preserve signed division and rounding inside the original range. Above the
+ * positive knee, a bounded rational tail approaches one extra power. The
+ * supported nonnegative int16 stats/power keep power * excess within int32. */
+static inline int32_t modBtStatPower(int32_t power, int32_t difference)
+{
+	int32_t knee = BM(DIFF_CLAMP);
+	int32_t limited = difference;
+	int32_t result;
+
+	if (limited > knee) limited = knee;
+	if (limited < -knee) limited = -knee;
+	result = power + BMD(limited * power, DIFF_DIV);
+	if (difference > knee && BM(TAIL_HALF) > 0 && BM(TAIL_DIV) > 0) {
+		int32_t excess = difference - knee;
+		result += power * excess / ((excess + BM(TAIL_HALF)) * BM(TAIL_DIV));
+	}
+	return result;
+}
+
 /* the command menu a partner gets from its brains: the table row for brains / CMD_STEP below CMD_MAX, else the top menu (`first` is the row's first slot) */
 static inline int32_t modBtCommands(int32_t brain, int32_t first, int32_t top)
 {
