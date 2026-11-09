@@ -129,8 +129,6 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sound_async.c.o(.text.*);
         . = ALIGN(., 4);
-        BUILD_DIR/asm/main/psyq/libpress.s.o(.text .text.*);
-        . = ALIGN(., 4);
         BUILD_DIR/asm/main/psyq/libds.s.o(.text .text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/butterfly.c.o(.text.*);
@@ -138,8 +136,6 @@ SECTIONS
         BUILD_DIR/asm/main/psyq/libmcrd.s.o(.text .text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/bubble.c.o(.text.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/main/battle_ui.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/main.c.o(.text.*);
         . = ALIGN(., 4);
@@ -150,10 +146,6 @@ SECTIONS
         BUILD_DIR/src/main/buff_model.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sjis.c.o(.text.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_intro.c.o(.text.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_combat.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/vs/vs_select.c.o(.text.*);
         . = ALIGN(., 4);
@@ -361,8 +353,6 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sound_async.c.o(.rodata.*);
         . = ALIGN(., 4);
-        BUILD_DIR/asm/main/data/psyq/libpress.rodata.s.o(.rodata .rodata.*);
-        . = ALIGN(., 4);
         BUILD_DIR/asm/main/psyq/libds.s.o(.rodata .rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/butterfly.c.o(.rodata.*);
@@ -370,8 +360,6 @@ SECTIONS
         BUILD_DIR/asm/main/data/psyq/libmcrd.rodata.s.o(.rodata .rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/bubble.c.o(.rodata.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/main/battle_ui.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/main.c.o(.rodata.*);
         . = ALIGN(., 4);
@@ -382,10 +370,6 @@ SECTIONS
         BUILD_DIR/src/main/buff_model.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sjis.c.o(.rodata.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_intro.c.o(.rodata.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/src/vs/vs_combat.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/vs/vs_select.c.o(.rodata.*);
         . = ALIGN(., 4);
@@ -525,8 +509,6 @@ SECTIONS
         BUILD_DIR/src/main/efe_table.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/sound_async.c.o(.data.*);
-        . = ALIGN(., 4);
-        BUILD_DIR/asm/main/data/psyq/libpress.data.s.o(.data .data.*);
         . = ALIGN(., 4);
         BUILD_DIR/asm/main/psyq/libds.s.o(.data .data.*);
         . = ALIGN(., 4);
@@ -1028,6 +1010,15 @@ ASSERT(OVL_END(.DOOA) <= OVL_OT_0_ADDR, "DOOA overlay overlaps its ordering tabl
 ASSERT(OVL_END(.DGET) <= LOAD_AREA_END, "DGET overlay overflows the load area")
 ASSERT(OVL_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the original's slot")
 ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
+/*
+ * MOD (code out of the executable, docs/mods/memory.md): BTL and VS carry code the executable used to hold (battle_ui.c;
+ * vs_combat.c, vs_intro.c), appended at their ends. A battle-mode overlay may reach as high as STD, the tournament
+ * overlay that runs the same battle engine (EFE heap, effects, sound) and the original's largest. MOV carries libpress
+ * and libcd's streaming: it must stay below TRN's slot (TEXTURE_BUFFER, the frame OTs of main.c).
+ */
+ASSERT(OVL_END(.BTL) <= OVL_END(.STD), "BTL overlay ends above STD's end, the highest a battle overlay is known to reach")
+ASSERT(OVL_END(.VS) <= OVL_END(.STD), "VS overlay ends above STD's end, the highest a battle overlay is known to reach")
+ASSERT(OVL_END(.MOV) <= OVL_TRN_BASE, "MOV overlay overlaps TRN's slot (TEXTURE_BUFFER)")
 ASSERT(TFS_RING_ADDR + TFS_RING_SLOTS * TFS_SLOT_SIZE == TFS_RING_END,
        "TFS ring size does not match TFS_RING_END")
 ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with the curling map")
