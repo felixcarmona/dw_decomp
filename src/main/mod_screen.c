@@ -62,7 +62,13 @@ static int32_t readScreenRecord(int32_t id)
  * modFontScriptsChanged) */
 void modScreenFileChanged(void)
 {
+	int32_t i;
+
 	SCREEN_SECTOR_ID = -1;
+	/* Captions belong to the selected language, including cached headers. */
+	for (i = 0; i < SCREEN_CACHE_SLOTS; i++) {
+		SCREEN_CACHE_ID[i] = -1;
+	}
 }
 
 static ScreenRecordHead *getScreenHead(int32_t id)
