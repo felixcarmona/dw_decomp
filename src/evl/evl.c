@@ -605,7 +605,7 @@ shards:
 void EVL_renderEvoSequence(void)
 {
 	if (MOD_EVO_SKIP == 1 && EVO_SEQUENCE_DATA.state < 3) {
-		modPlate(0x80, 0x60, "START", 5, 0, 0, 0); /* MOD (evolution skip): the hint, white (mod_qol.c) */
+		modSkipPlate(); /* MOD (evolution skip): the hint (mod_qol.c) */
 	}
 }
 
