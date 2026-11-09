@@ -69,6 +69,7 @@ void renderTMDModel(uint8_t *buffer, int32_t id, GsCOORDINATE2 *coord, GsCOORDIN
 void calculateBoneMatrix(Entity *entity, int32_t boneId, MATRIX *out);
 int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
 int32_t getOriginalType(int32_t type);
+int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed); /* MOD (dcb-import) */
 void createCloudFX(SVECTOR *pos);
 int32_t addEntityParticleFX(Entity *owner, int32_t timer);
 void setInt16WithStride(int16_t *ptr, int16_t value, int32_t count, int32_t stride);
@@ -4706,6 +4707,11 @@ void STD_checkTechCompatibility(void)
 	}
 
 	EFE_BONE_OFFSET = &entry->offset;
+	/* MOD (dcb-import): a new species with its own skeleton moves the borrowed origin */
+	if (entry->type >= 0) {
+		EFE_BONE_OFFSET = (EfeBoneOffset *)getSpeciesEffectOrigin(EFE_SCRIPT_CONTEXT->sourceEntity->type,
+									  (int16_t *)&entry->offset);
+	}
 	EFE_SCRIPT_CONTEXT->boneOffset = EFE_BONE_OFFSET;
 }
 
