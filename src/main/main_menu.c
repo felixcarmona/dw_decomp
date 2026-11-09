@@ -278,32 +278,29 @@ static __attribute__((noinline)) void modDrawLanguagePicker(void);
 static __attribute__((noinline)) void modTickLanguagePicker(void);
 static __attribute__((noinline)) void modRenderLanguagePicker(void);
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
-#define MOD_OPT_BYTES	14 /* byte 13: inverted enemy HUD flags; absent/zero = both ON */
+#define MOD_OPT_BYTES	14 /* byte 13 reserved; zero keeps permanent enemy bars for older readers */
 #define MOD_OPT_HEADER_BYTES 12
 #define MOD_OPT_HEADER_CHEATS 0x80
-#define MOD_OPT_HEADER_OLD_BARS 0x40
-#define MOD_OPT_HEADER_HIDE_BARS 0x20
 #define MOD_OPT_HEADER_COUNT 0x1f
 #define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
 #define MOD_OPT_SHORTCUTS_BIT 2
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
-#define MOD_OPT_ROW_STORY	4 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
-#define MOD_OPT_ROW_DIFF	5 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
-#define MOD_OPT_ROW_QUICK	6 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
-#define MOD_OPT_ROW_FPS	7
+#define MOD_OPT_ROW_STORY	3 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
+#define MOD_OPT_ROW_DIFF	4 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
+#define MOD_OPT_ROW_QUICK	5 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
+#define MOD_OPT_ROW_FPS	6
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	13 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	8
-#define MOD_OPT_ROW_LANG	9
-#else
-#define MOD_OPT_ROWS	12
+#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	7
 #define MOD_OPT_ROW_LANG	8
+#else
+#define MOD_OPT_ROWS	10
+#define MOD_OPT_ROW_LANG	7
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
-#define MOD_OPT_ROW_CHEATS (MOD_OPT_ROWS - 2)
-#define MOD_OPT_ROW_ENEMY (MOD_OPT_ROWS - 1)
+#define MOD_OPT_ROW_CHEATS (MOD_OPT_ROWS - 1)
 static int32_t modOptionValue(int32_t row);
 static int32_t modOptionCount(int32_t row);
 static void modSetOption(int32_t row, int32_t value);
@@ -4730,7 +4727,7 @@ static uint8_t *putRecord(uint8_t *p, int32_t tag, void *data, int32_t len)
 static void modOptionBytes(uint8_t *d)
 {
 	d[0] = MOD_OPT_BUTTONS;
-	d[1] = MOD_OPT_CLOCK;
+	d[1] = 1; /* Reserved digital-clock byte. */
 	d[2] = modFrameRate();
 	d[3] = 1; /* Reserved care-HUD byte: always enabled, including for older readers. */
 #if FONT_SWITCH
@@ -4746,7 +4743,7 @@ static void modOptionBytes(uint8_t *d)
 	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
 	d[11] = MOD_OPT_QUICK_BATTLE;
 	d[12] = (MOD_OPT_CHEATS ? MOD_OPT_CHEATS_BIT : 0) | (MOD_OPT_SHORTCUTS ? MOD_OPT_SHORTCUTS_BIT : 0);
-	d[13] = (!MOD_OPT_ENEMY_BARS ? 1 : 0) | (!BATTLE_TOGGLE_LIFEBAR ? 2 : 0);
+	d[13] = 0; /* Reserved inverted enemy-bar flags: always ON/shown. */
 }
 
 /* MOD (options): a save's options (modOptionBytes, `len` of them), unless OPTIONS changed them since the start */
@@ -4754,17 +4751,13 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 {
 	/* not a row of OPTIONS: a save always decides it. Old saves and the card header: OFF */
 	MOD_OPT_SHORTCUTS = len >= 13 && (d[12] & MOD_OPT_SHORTCUTS_BIT) != 0;
-	BATTLE_TOGGLE_LIFEBAR = len < 14 || !(d[13] & 2);
 	if (MOD_OPT_TOUCHED) {
 		return;
 	}
-	MOD_OPT_ENEMY_BARS = len < 14 || !(d[13] & 1);
 	if (len >= 1) {
 		modSetButtons(d[0]);
 	}
-	if (len >= 2) {
-		MOD_OPT_CLOCK = d[1] != 0;
-	}
+	/* Bytes 1, 3 and 13 are reserved; legacy display choices are ignored. */
 	if (len >= 3 && (d[2] == 20 || d[2] == 30 || d[2] == 60)) {
 		modSetFrameRate(d[2]);
 	}
@@ -4813,9 +4806,7 @@ static void modTitleOptions(void)
 	memset(p, 0, sizeof(SAVE_FILE.pocketStation));
 	MOD_SAVE_NUMBER = (MOD_SAVE_NUMBER + 1) & 0xffff;
 	p[0] = 'O';
-	p[1] = MOD_OPT_HEADER_BYTES | (MOD_OPT_CHEATS ? MOD_OPT_HEADER_CHEATS : 0) |
-	       (!MOD_OPT_ENEMY_BARS ? MOD_OPT_HEADER_OLD_BARS : 0) |
-	       (!BATTLE_TOGGLE_LIFEBAR ? MOD_OPT_HEADER_HIDE_BARS : 0);
+	p[1] = MOD_OPT_HEADER_BYTES | (MOD_OPT_CHEATS ? MOD_OPT_HEADER_CHEATS : 0);
 	p[2] = MOD_SAVE_NUMBER;
 	p[3] = MOD_SAVE_NUMBER >> 8;
 	modOptionBytes(options);
@@ -4887,8 +4878,7 @@ static void modCardOptions(void)
 				memcpy(best, &data[0x54], bestLen);
 				if (bestLen == MOD_OPT_HEADER_BYTES) {
 					best[12] = (data[0x51] & MOD_OPT_HEADER_CHEATS) != 0;
-					best[13] = ((data[0x51] & MOD_OPT_HEADER_OLD_BARS) ? 1 : 0) |
-					           ((data[0x51] & MOD_OPT_HEADER_HIDE_BARS) ? 2 : 0);
+					best[13] = 0;
 					bestLen = MOD_OPT_BYTES;
 				}
 			}
@@ -6015,7 +6005,6 @@ void renderInitialMenu(void)
 
 static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
@@ -6028,7 +6017,6 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_LANG }, /* MOD (language) */
 	{ MOD_OPT_STR_SIGNS, MOD_OPT_STR_ORIGINAL, MOD_OPT_STR_TRANSLATED },
 	{ MOD_OPT_STR_CHEATS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_ENEMY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 };
 /* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
  * drawn once (drawOptionsText) */
@@ -6092,10 +6080,8 @@ static int32_t modOptionValue(int32_t row)
 	case 0:
 		return MOD_OPT_BUTTONS == MOD_BUTTONS_JP;
 	case 1:
-		return MOD_OPT_CLOCK != 0;
-	case 2:
 		return MOD_OPT_EVO_GUIDE != 0;
-	case 3:
+	case 2:
 		return MOD_OPT_NEW_DIGIMON != 0;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		return MOD_OPT_STORY != 0;
@@ -6115,8 +6101,6 @@ static int32_t modOptionValue(int32_t row)
             }
             return 0;
         }
-	case MOD_OPT_ROW_ENEMY:
-		return MOD_OPT_ENEMY_BARS != 0;
 	case MOD_OPT_ROW_CHEATS:
 		return MOD_OPT_CHEATS != 0;
 	case MOD_OPT_ROW_SIGNS:
@@ -6141,12 +6125,9 @@ static void modSetOption(int32_t row, int32_t value)
 		modSetButtons(value ? MOD_BUTTONS_JP : MOD_BUTTONS_US);
 		break;
 	case 1:
-		MOD_OPT_CLOCK = value;
-		break;
-	case 2:
 		MOD_OPT_EVO_GUIDE = value;
 		break;
-	case 3:
+	case 2:
 		MOD_OPT_NEW_DIGIMON = value;
 		modApplySpeciesLevels(); /* MOD (canon levels) */
 		break;
@@ -6169,9 +6150,6 @@ static void modSetOption(int32_t row, int32_t value)
 #endif
 	case MOD_OPT_ROW_LANG: /* MOD (language) */
 		modSetLanguage(modLanguageAt(value));
-		break;
-	case MOD_OPT_ROW_ENEMY:
-		MOD_OPT_ENEMY_BARS = value != 0;
 		break;
 	case MOD_OPT_ROW_CHEATS:
 		MOD_OPT_CHEATS = value != 0;

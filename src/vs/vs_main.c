@@ -612,7 +612,6 @@ skipViewpoint:
 			}
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			VS_handleHitReaction(entity, fighter, &attack, i);
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 			fighter->invulnerableTimer = MOVE_DATA[tech].iframes;
 			entity->anim.animFlag &= 0xfe;
@@ -659,7 +658,6 @@ skipViewpoint:
 			if (fighter->hpDamageBuffer >= 0x2710) {
 				fighter->hpDamageBuffer = 0x270f;
 			}
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
 		VS_addFinisherProgress(fighter, fighter->finisherGoal * BM(BLOCK_GAIN_DEF) / 100);
@@ -1242,9 +1240,6 @@ void VS_applyMoveResult(void)
 				fighter->hpDamageBuffer += dmg;
 				if (fighter->hpDamageBuffer >= 0x2710) {
 					fighter->hpDamageBuffer = 0x270f;
-				}
-				if (i != 0) {
-					COMBAT_DATA_PTR->player.unk1[i].unk25 = 0;
 				}
 				addEntityText(entity, i, 0xc, dmg, 0);
 			}
