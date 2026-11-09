@@ -772,8 +772,7 @@ void scriptInstruction10to27(op)
 		break;
 	case SCRIPT_OP_STORE_DIGIMON_TYPE:
 		pollNextScriptUByte(&pstat);
-		value = PARTNER_ENTITY.digimonEntity.entity.type;
-		writePStat(pstat, value);
+		storePartnerSpecies(pstat);
 		break;
 	case SCRIPT_OP_SET_INVENTORY_SIZE:
 		pollNextScriptUByte(&pstat);
@@ -1265,9 +1264,7 @@ void scriptInstruction28to3F(op)
 		break;
 	case SCRIPT_OP_STORE_DIGIMON_VALUE:
 		skipOnePollTwoScriptBytes(&byteArg1, &byteArg2);
-		byteArg1 = readPStat(byteArg1);
-		byteArg1 = DIGI_PARA(byteArg1).type;
-		writePStat(byteArg2, byteArg1);
+		writePStat(byteArg2, DIGI_PARA(pstatSpecies(byteArg1)).type);
 		break;
 	}
 
@@ -2950,6 +2947,31 @@ void scriptInstructionFBtoFF(op)
  * 33 FAALL fonts) until their own steps.
  */
 #define WREG(n) (SCRIPT_STATE_PTR->wregs[(n) & (SCRIPT_NUM_WREGS - 1)])
+
+void storePartnerSpecies(uint8_t index)
+{
+	int32_t type = PARTNER_ENTITY.digimonEntity.entity.type;
+
+	writePStat(index, type < PSTAT_WIDE_SPECIES ? type : PSTAT_WIDE_SPECIES);
+	if (index == PSTAT_SUKAMON_BACKUP_DIGIMON)
+		WREG(WREG_SUKAMON_BACKUP) = type;
+}
+
+int32_t pstatSpecies(uint8_t index)
+{
+	int32_t id = readPStat(index);
+	int32_t type = PARTNER_ENTITY.digimonEntity.entity.type;
+
+	return id == PSTAT_WIDE_SPECIES && type > id ? type : id;
+}
+
+/* A save from before this register has 0 here and the backup in its pstat. */
+int32_t sukamonBackupSpecies(void)
+{
+	int32_t type = WREG(WREG_SUKAMON_BACKUP);
+
+	return type != 0 ? type : readPStat(PSTAT_SUKAMON_BACKUP_DIGIMON);
+}
 
 void scriptSetChosenItem(int32_t item)
 {
