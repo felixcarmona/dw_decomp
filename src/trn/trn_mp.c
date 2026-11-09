@@ -112,7 +112,8 @@ int16_t instanceId;
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRAINING_STATE = 5;
 		}
-		break;
+		/* Count the remaining hours during the return walk, as the x1
+		 * tally already does. Do not add that walk to the block's waits. */
 	case 5:
 		if (TRN_MOD_QUIET) {
 			if (!TRN_modBlockWait()) {
@@ -121,6 +122,9 @@ int16_t instanceId;
 				TRN_modBlockNext();
 			}
 			break;
+		}
+		if (TRAINING_STATE == 4) {
+			break; /* The tally may finish before the partner reaches the exit. */
 		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
