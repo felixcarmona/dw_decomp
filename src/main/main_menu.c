@@ -4898,6 +4898,9 @@ static void prepareSaveFile(int32_t fromRam)
 		swap[1] = MOD_SWAP_TO;
 		p = putRecord(p, SAVE_TAG_VANILLA_SWAP, swap, sizeof(swap));
 	}
+	if (fromRam) { /* MOD (ground items a day) */
+		p = putRecord(p, SAVE_TAG_GROUND_PICKED, MOD_GROUND_PICKED, sizeof(MOD_GROUND_PICKED));
+	}
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -5169,6 +5172,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_SPECIES_RECRUITED:
 	case SAVE_TAG_OPTIONS:
 	case SAVE_TAG_VANILLA_SWAP:
+	case SAVE_TAG_GROUND_PICKED:
 		return 1;
 	}
 	return 0;
@@ -5201,6 +5205,7 @@ static void applyRecords(uint8_t *e)
 	int32_t tag, len, i, n;
 	uint8_t *d;
 
+	modForgetGroundPicked(); /* MOD (ground items a day): a save without the record picked nothing today */
 	for (;;) {
 		tag = e[at] | (e[at + 1] << 8);
 		len = e[at + 2] | (e[at + 3] << 8);
@@ -5249,6 +5254,17 @@ static void applyRecords(uint8_t *e)
 				MOD_SWAP_FROM = readRecord16(d);
 				MOD_SWAP_TO = readRecord16(d + 2);
 			}
+			break;
+		case SAVE_TAG_GROUND_PICKED:
+			n = len / 4 < MOD_GROUND_PICKED_MAX ? len / 4 : MOD_GROUND_PICKED_MAX;
+			for (i = 0; i < n; i++) {
+				MOD_GROUND_PICKED[i].screen = readRecord16(d + 4 * i);
+				MOD_GROUND_PICKED[i].tileX = d[4 * i + 2];
+				MOD_GROUND_PICKED[i].tileY = d[4 * i + 3];
+			}
+			for (i = 0; i < MOD_GROUND_PICKED_MAX && MOD_GROUND_PICKED[i].screen != -1; i++) {
+			}
+			MOD_GROUND_NEXT = i % MOD_GROUND_PICKED_MAX; /* the first free spot (a full ring: the first) */
 			break;
 		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
 			MOD_SAVE_STORY = len >= 10 ? d[9] != 0 : 1;
