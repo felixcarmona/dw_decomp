@@ -4272,7 +4272,7 @@ int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE] = { [0 ... MOD_NEWGAME_SIZE - 1] = -1 };
 int32_t modNewGameStarter(void)
 {
 	uint32_t index = readPStat(PSTAT_254);
-	return MOD_QUIZ_STARTERS[index < 35 ? index : 0];
+	return MOD_QUIZ_STARTERS[index < MOD_QUIZ_COUNT ? index : 0];
 }
 
 /* MOD (starter quiz): all seven answers contribute. A tie goes to the latest
