@@ -63,9 +63,8 @@ void addTamerLevel(int32_t chance, int32_t amount);
 Inventory INVENTORY;
 TamerItem TAMER_ITEM;
 DroppedItem DROPPED_ITEMS[11];
-GroundSpot MOD_GROUND_PICKED[MOD_GROUND_PICKED_MAX];
-uint8_t MOD_GROUND_NEXT;
-static uint8_t MOD_DROPPED_SPOT[11]; /* MOD (ground items a day): the dropped item came from a script's spot */
+uint8_t MOD_GROUND_PICKED[MOD_GROUND_PICKUP_MAX / 8];
+static uint16_t MOD_DROPPED_SPOT[11]; /* stable pickup ID + 1; 0 for battle/legacy drops */
 int8_t TAMER_WAYPOINT_Y[30];
 int8_t TAMER_WAYPOINT_X[30];
 int8_t PARTNER_WAYPOINT_Y[30];
@@ -2432,35 +2431,40 @@ void modForgetGroundPicked(void)
 {
 	int32_t i;
 
-	for (i = 0; i < MOD_GROUND_PICKED_MAX; i++) {
-		MOD_GROUND_PICKED[i].screen = -1;
+	for (i = 0; i < sizeof(MOD_GROUND_PICKED); i++) {
+		MOD_GROUND_PICKED[i] = 0;
 	}
-	MOD_GROUND_NEXT = 0;
 }
 
-static int32_t modGroundPicked(int16_t tileX, int16_t tileY)
+static int32_t modGroundPicked(int32_t id)
+{
+	return MOD_GROUND_PICKED[id / 8] & (1 << (id % 8));
+}
+
+void spawnDailyItem(ItemId itemId, int16_t tileX, int16_t tileY, int32_t pickupId)
 {
 	int32_t i;
 
-	for (i = 0; i < MOD_GROUND_PICKED_MAX; i++) {
-		if (MOD_GROUND_PICKED[i].screen == CURRENT_SCREEN && MOD_GROUND_PICKED[i].tileX == (uint8_t)tileX &&
-		    MOD_GROUND_PICKED[i].tileY == (uint8_t)tileY) {
-			return 1;
+	/* Invalid/corrupt script IDs must never write outside the bitset or grant an untracked item. */
+	if ((uint32_t)pickupId >= MOD_GROUND_PICKUP_MAX || modGroundPicked(pickupId)) {
+		return;
+	}
+	for (i = 0; i < 11; i++) {
+		if (DROPPED_ITEMS[i].worldItem.type == ITEM_NONE) {
+			spawnItem(itemId, tileX, tileY);
+			MOD_DROPPED_SPOT[i] = pickupId + 1;
+			return;
 		}
 	}
-	return 0;
 }
 
 void spawnItem(ItemId itemId, int16_t tileX, int16_t tileY) /* MOD: was u8 */
 {
 	int32_t i;
 
-	if (modGroundPicked(tileX, tileY)) { /* MOD (ground items a day): picked up here today */
-		return;
-	}
 	for (i = 0; i < 0xb; i++) {
 		if (DROPPED_ITEMS[i].worldItem.type == ITEM_NONE) {
-			MOD_DROPPED_SPOT[i] = 1;
+			MOD_DROPPED_SPOT[i] = 0;
 			DROPPED_ITEMS[i].worldItem.type = itemId;
 			DROPPED_ITEMS[i].tileX = tileX;
 			DROPPED_ITEMS[i].tileY = tileY;
@@ -2662,14 +2666,17 @@ int32_t pickupItem(int16_t itemId)
 	ItemId type; /* MOD: was u8 */
 	int32_t got;
 
+	/* Two spawns of the same authored spot must not yield two pickups either. */
+	if (MOD_DROPPED_SPOT[itemId] && modGroundPicked(MOD_DROPPED_SPOT[itemId] - 1)) {
+		deleteDroppedItem(itemId);
+		return 0;
+	}
 	type = DROPPED_ITEMS[itemId].worldItem.type;
 	got = giveItem(type, 1);
 	if (got != 0) {
-		if (MOD_DROPPED_SPOT[itemId]) { /* MOD (ground items a day) */
-			MOD_GROUND_PICKED[MOD_GROUND_NEXT].screen = CURRENT_SCREEN;
-			MOD_GROUND_PICKED[MOD_GROUND_NEXT].tileX = DROPPED_ITEMS[itemId].tileX;
-			MOD_GROUND_PICKED[MOD_GROUND_NEXT].tileY = DROPPED_ITEMS[itemId].tileY;
-			MOD_GROUND_NEXT = (MOD_GROUND_NEXT + 1) % MOD_GROUND_PICKED_MAX;
+		if (MOD_DROPPED_SPOT[itemId]) {
+			int32_t id = MOD_DROPPED_SPOT[itemId] - 1;
+			MOD_GROUND_PICKED[id / 8] |= 1 << (id % 8);
 		}
 		deleteDroppedItem(itemId);
 	}
