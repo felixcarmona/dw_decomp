@@ -2978,7 +2978,8 @@ void renderDigimon(instanceId)
 		}
 		GsSortObject4(&pos->obj, ACTIVE_ORDERING_TABLE, 2, getScratchAddr(0));
 	}
-	if (instanceId == 1 && y1 > y0) {
+	/* >=: a body drawn from one bone spreads over 0 px and must still replace what the last partner measured */
+	if (instanceId == 1 && y1 >= y0) {
 		modPartnerFitMeasure(y1 - y0, fit);
 	}
 	if (fit != 0x1000) { /* MOD (camera): the tick's root matrix back */
