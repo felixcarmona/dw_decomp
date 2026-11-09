@@ -1,6 +1,7 @@
 #include <dw/anim.h>
 #include <dw/entity.h>
 #include <dw/input.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -159,7 +160,7 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 		if (MAIN_D_80135370 == 1) {
 			r = TRN_getSlotSessionResult();
 		}
-		if ((((MAIN_D_8013537A >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
+		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
 			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
 			startAnimation(ENTITY_TABLE[1], 0x12);
 			loadMapObjectPosition(TRN_D_8008F368, TRN_D_8008F388, MAIN_D_8013536C, MAIN_D_8013536E);
@@ -223,7 +224,7 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 		if (MAIN_D_80135370 == 1) {
 			r = TRN_getSlotSessionResult();
 		}
-		if ((((MAIN_D_8013537A >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
+		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_8013536C, MAIN_D_8013536E, 1);
 			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 6, r);
