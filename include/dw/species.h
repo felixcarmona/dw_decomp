@@ -60,7 +60,15 @@ typedef struct {
 	uint32_t recordsSector;	/* sector of the first record */
 	uint32_t totalSectors;
 	uint32_t indexSector;	/* MOD (scale): SpeciesPartnerList, then SpeciesLinks in the next sector */
+	uint32_t fallbackPortrait; /* MOD (portraits): SPECIES_PORTRAIT_REF of the icon of a species without one (0: none) */
 } SpeciesHeader;
+
+/*
+ * MOD (portraits): the header sector holds, after SpeciesHeader, at SPECIES_HEADER_LEVELS one byte per
+ * entry of SpeciesPartnerList: the level of that partner species (3 Rookie .. 6 Mega), so the tournament
+ * can pick opponents of a level without reading a record per species.
+ */
+#define SPECIES_HEADER_LEVELS	0x40
 
 /*
  * MOD (scale): the two index sectors after the header. The first lists the
@@ -128,7 +136,8 @@ typedef struct {
 	uint8_t numEffectOrigins;	/* 0x13E */
 	uint8_t reserved13F;
 	SpeciesEffectOrigin effectOrigins[SPECIES_EFFECT_ORIGINS]; /* 0x140 */
-	uint8_t reserved1C0[SPECIES_RECORD_SIZE - 0x1C0];
+	uint32_t portrait;		/* 0x1C0 MOD (portraits): SPECIES_PORTRAIT_REF of its icon (0: none, the fallback icon) */
+	uint8_t reserved1C4[SPECIES_RECORD_SIZE - 0x1C4];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
@@ -142,7 +151,8 @@ SPECIES_LAYOUT_CHECK(evoPaths, __builtin_offsetof(SpeciesRecord, evoPaths) == 0x
 SPECIES_LAYOUT_CHECK(item, __builtin_offsetof(SpeciesRecord, itemTakeDistance) == 0x130);
 SPECIES_LAYOUT_CHECK(condfx, __builtin_offsetof(SpeciesRecord, conditionFx) == 0x136);
 SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) == 0x140);
-SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x18);
+SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x1C);
+SPECIES_LAYOUT_CHECK(portrait, __builtin_offsetof(SpeciesRecord, portrait) == 0x1C0);
 SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
 SPECIES_LAYOUT_CHECK(links, sizeof(SpeciesLinks) <= 0x800);
 
@@ -156,6 +166,24 @@ extern uint8_t SPECIES_RECRUITED_BITS[NUM_DIGIMON / 8];
 void resetSpeciesFlags(void);
 int32_t isDigimonRecruited(int32_t type);
 void setDigimonRecruited(int32_t type);
+
+/*
+ * MOD (portraits): the icon of a species (tools/portraits.py, docs/mods/portraits.md): a 0x220-byte
+ * block, a 16-colour CLUT (0x20 bytes, index 0 transparent) and a 32x32 4 bpp image (0x200 bytes) of four
+ * 16x16 frames: idle, idle 2 (the chart's highlighted box), attack, hurt. DIGI.DAT packs three to a
+ * sector; a species reaches its icon through SpeciesRecord.portrait, SPECIES_PORTRAIT_REF(sector, slot).
+ */
+#define SPECIES_PORTRAIT_SIZE	0x220
+#define SPECIES_PORTRAITS_PER_SECTOR 3
+#define SPECIES_PORTRAIT_REF(sector, slot) ((uint32_t)(sector) | (uint32_t)(slot) << 24)
+/* 1: loads the icon of `type` (any species of DIGI.DAT; the fallback icon when it has none, 0 returned) into
+ * `dest` (SPECIES_PORTRAIT_SIZE bytes, word aligned); -1 when the disc has no DIGI.DAT */
+int32_t getSpeciesPortrait(int32_t type, void *dest);
+/* uploads the icon of `type` to VRAM: its top `rows` (16 or 32) pixel rows at (x, y) in halfwords/rows
+ * (a 32-pixel strip is 8 halfwords wide) and its CLUT at (clutX, clutY) */
+void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32_t clutX, int32_t clutY);
+/* the partner species of DIGI.DAT whose level is lo..hi: writes their ids to `out` (at most `max`), returns how many */
+int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t max);
 
 /* partner species of DIGI.DAT: how many, the n-th id, the first Mega (0: none) */
 int32_t getSpeciesPartnerCount(void);

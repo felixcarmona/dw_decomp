@@ -52,7 +52,7 @@ void updateTournamentRegistration(void)
 		minutes = minutesOfDay();
 		partnerType = PARTNER_ENTITY.digimonEntity.entity.type;
 		value = readPStat(PSTAT_TOURNAMENT_DIGIMON);
-		if (partnerType != value) {
+		if ((partnerType & 0xff) != value) { /* MOD (portraits): the pstat is a byte, a species >= 256 wraps */
 			unsetTrigger(TRIGGER_TOURNAMENT_REGISTERED);
 			return;
 		}
