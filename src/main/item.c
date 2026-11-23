@@ -11,6 +11,7 @@
 #include <dw/font.h>
 #include <dw/garbage.h>
 #include <dw/item.h>
+#include <dw/level.h>
 #include <dw/math.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -2180,17 +2181,15 @@ GARBAGE(handleEvoItems, 15);
 void handleEvoItems(int16_t item)
 {
 	int16_t level;
+	ModEvoItem *modItem;
 
 	if (item >= 0x7d) {
-		if (item == 0x7d) {
-			EVOLUTION_TARGET = 0x40;
+		/* MOD (evolution rules as data): Giga Hand, Noble Mane, Metalbanana: MOD_EVO_ITEMS (content/tables/evolution-rules.json) */
+		modItem = getModEvoItem(item);
+		if (modItem == NULL) {
+			return;
 		}
-		if (item == 0x7e) {
-			EVOLUTION_TARGET = 0x3f;
-		}
-		if (item == 0x7f) {
-			EVOLUTION_TARGET = 0x41;
-		}
+		EVOLUTION_TARGET = modItem->target;
 	} else {
 		level = DIGI_PARA(EVOLUTION_ITEM_TARGET[item - 0x47]).level - 1;
 		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
