@@ -4773,6 +4773,13 @@ void unloadMap(void)
  * follow flag is off, so it runs whenever no script camera move is going on) the
  * scroll pans toward the same pair box, 3 px per tick; background and 3D origin move together
  * (cameraX/Y and DRAWING_OFFSET_X/Y, as tickCameraMovement), clamped to the map */
+/*
+ * The camera's lift in a battle. The background's tiles cannot change during
+ * a fight: the load area is the fight's (EFE engine over the .TFS ring,
+ * tfs_stream.c), so the camera stays inside the 4x3 tile window VRAM already
+ * holds (MAP_TILE_X/Y) and asks for no tile; a lift the window cannot show is
+ * shortened (never a jump: where the camera already is stays allowed).
+ */
 static void modCamBattleStep(void)
 {
 	DVECTOR want;
@@ -4780,21 +4787,51 @@ static void modCamBattleStep(void)
 	int16_t oldY;
 	int16_t rx;
 	int16_t ry;
+	int16_t lo;
+	int16_t hi;
 
 	modCamTarget(&want);
 	oldX = MAP_TILE_DATA.cameraX;
 	oldY = MAP_TILE_DATA.cameraY;
 	MAP_TILE_DATA.cameraX += modCamStep(want.vx - MOD_CAM_SHIFT.vx);
 	MAP_TILE_DATA.cameraY += modCamStep(want.vy - MOD_CAM_SHIFT.vy);
-	if (MAP_TILE_DATA.cameraX < 0) {
-		MAP_TILE_DATA.cameraX = 0;
-	} else if (MAP_TILE_DATA.cameraX > MAP_TILE_DATA.width * 128 - 320) {
-		MAP_TILE_DATA.cameraX = MAP_TILE_DATA.width * 128 - 320;
+	lo = MAP_TILE_X * 128;
+	hi = (MAP_TILE_X + 4) * 128 - 320;
+	if (hi > MAP_TILE_DATA.width * 128 - 320) {
+		hi = MAP_TILE_DATA.width * 128 - 320;
 	}
-	if (MAP_TILE_DATA.cameraY < 0) {
-		MAP_TILE_DATA.cameraY = 0;
-	} else if (MAP_TILE_DATA.cameraY > MAP_TILE_DATA.height * 128 - 240) {
-		MAP_TILE_DATA.cameraY = MAP_TILE_DATA.height * 128 - 240;
+	if (lo < 0) {
+		lo = 0;
+	}
+	if (lo > oldX) {
+		lo = oldX;
+	}
+	if (hi < oldX) {
+		hi = oldX;
+	}
+	if (MAP_TILE_DATA.cameraX < lo) {
+		MAP_TILE_DATA.cameraX = lo;
+	} else if (MAP_TILE_DATA.cameraX > hi) {
+		MAP_TILE_DATA.cameraX = hi;
+	}
+	lo = MAP_TILE_Y * 128;
+	hi = (MAP_TILE_Y + 3) * 128 - 240;
+	if (hi > MAP_TILE_DATA.height * 128 - 240) {
+		hi = MAP_TILE_DATA.height * 128 - 240;
+	}
+	if (lo < 0) {
+		lo = 0;
+	}
+	if (lo > oldY) {
+		lo = oldY;
+	}
+	if (hi < oldY) {
+		hi = oldY;
+	}
+	if (MAP_TILE_DATA.cameraY < lo) {
+		MAP_TILE_DATA.cameraY = lo;
+	} else if (MAP_TILE_DATA.cameraY > hi) {
+		MAP_TILE_DATA.cameraY = hi;
 	}
 	rx = MAP_TILE_DATA.cameraX - oldX;
 	ry = MAP_TILE_DATA.cameraY - oldY;
@@ -4807,7 +4844,7 @@ static void modCamBattleStep(void)
 	DRAWING_OFFSET_Y -= ry;
 	PLAYER_OFFSET_X -= rx;
 	PLAYER_OFFSET_Y -= ry;
-	handleTileUpdate(((rx < 0) ? 0x8000 : 0x2000) | ((ry < 0) ? 0x1000 : 0x4000), 0);
+	/* no handleTileUpdate: the window is not touched in a battle (tfs_stream.c would refuse it anyway) */
 }
 
 void tickCameraFollowPlayer(void)
