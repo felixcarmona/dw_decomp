@@ -9,6 +9,8 @@
 #include <dw/btl.h>
 #include <dw/combat.h>
 #include <dw/ids.h>
+#include <dw/pstat.h> /* MOD (timed battle) */
+#include <dw/script.h>
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/mod_present.h>
@@ -1827,10 +1829,23 @@ int32_t BTL_battleMain(void)
 {
 	COMBAT_AREA_X = 0xa0 - DRAWING_OFFSET_X;
 	COMBAT_AREA_Y = 0x78 - DRAWING_OFFSET_Y;
+	int32_t timeLimit; /* MOD (timed battle) */
+	int32_t timedOut;
+
+	timeLimit = readPStat(PSTAT_BATTLE_TIME_LIMIT) * 20;
+	timedOut = 0;
+	writePStat(PSTAT_BATTLE_TIME_LIMIT, 0);
+	writePStat(PSTAT_BATTLE_TIMED_OUT, 0);
 	BTL_initializeCombat();
 	BTL_handleBattleIntro();
 	for (;;) {
 		if (BTL_isBattleFinished() != 0) {
+			break;
+		}
+		if ((timeLimit > 0) && (BATTLE_FRAME_COUNT >= timeLimit) &&
+		    (PARTNER_ENTITY.digimonEntity.stats.current.currentHP - COMBAT_DATA_PTR->fighter[0].hpDamageBuffer > 0)) {
+			timedOut = 1;
+			writePStat(PSTAT_BATTLE_TIMED_OUT, 1);
 			break;
 		}
 		BTL_tickPartnerAI();
@@ -1844,6 +1859,10 @@ int32_t BTL_battleMain(void)
 
 	removePauseBox();
 	BTL_deinitializeCombat();
+	if (timedOut) { /* the time ran out: a battle survived, neither lost nor fled */
+		COMBAT_DATA_PTR->player.currentCommand[0] = 0;
+		return 1;
+	}
 	if (PARTNER_ENTITY.digimonEntity.stats.current.currentHP == 0) {
 		COMBAT_DATA_PTR->player.currentCommand[0] = 0;
 		return -1;

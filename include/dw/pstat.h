@@ -264,5 +264,9 @@
 #define PSTAT_TOURNAMENT_ID		PSTAT_3
 #define PSTAT_TOURNAMENT_DIGIMON	PSTAT_4
 #define PSTAT_SUKAMON_BACKUP_DIGIMON	PSTAT_5
+/* MOD (timed battle): a script sets a field battle's time limit in seconds before START_BATTLE (0 = none); when it runs
+   out with both sides standing the battle ends and PSTAT_BATTLE_TIMED_OUT reads 1 (both are not saved) */
+#define PSTAT_BATTLE_TIMED_OUT		PSTAT_241
+#define PSTAT_BATTLE_TIME_LIMIT		PSTAT_242
 
 #endif
