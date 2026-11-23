@@ -587,6 +587,7 @@ static void modRosterSwitch(int32_t type)
 	rx = entity->posData->rotation.vx;
 	ry = entity->posData->rotation.vy;
 	rz = entity->posData->rotation.vz;
+	modPartnerNameFollow(entity->type, type); /* MOD (optional name) */
 	removeEntity(entity->type, 1);
 	ENTITY_TABLE[1] = NULL;
 	thunkLoadMMD(type, 3);
