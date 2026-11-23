@@ -68,7 +68,7 @@ extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 
 /* a new game and a new partner: MOD_NEWGAME[], every slot -1 = the rule does not exist (modNewGame answers 0), written by tools/balance.py
  * from content/tables/new-game.json */
-#define MOD_NEWGAME_SIZE	76
+#define MOD_NEWGAME_SIZE	78
 #define MOD_NG_MONEY		0 /* the tamer's money in a new game */
 #define MOD_NG_START_HOUR	1 /* the game clock in a new game */
 #define MOD_NG_START_MINUTE	2
@@ -87,10 +87,11 @@ extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 extern int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE];
 int32_t modNewGame(int32_t slot);
 /* Packed tail of MOD_NEWGAME: species ids, three sparse axis/weight bytes per answer, cells. */
+#define MOD_QUIZ_COUNT 38
 #define MOD_QUIZ_STARTERS ((uint16_t *)&MOD_NEWGAME[20])
-#define MOD_QUIZ_WEIGHTS ((uint8_t *)&MOD_NEWGAME[20] + 70)
-#define MOD_QUIZ_CELLS ((uint8_t *)&MOD_NEWGAME[20] + 133)
-#define MOD_QUIZ_VANILLA_CELLS ((uint8_t *)&MOD_NEWGAME[20] + 178) /* read with NEW DIGIMON off: original rookies only */
+#define MOD_QUIZ_WEIGHTS ((uint8_t *)&MOD_NEWGAME[20] + MOD_QUIZ_COUNT * 2)
+#define MOD_QUIZ_CELLS ((uint8_t *)&MOD_NEWGAME[20] + MOD_QUIZ_COUNT * 2 + 63)
+#define MOD_QUIZ_VANILLA_CELLS ((uint8_t *)&MOD_NEWGAME[20] + MOD_QUIZ_COUNT * 2 + 108) /* read with NEW DIGIMON off: original rookies only */
 int32_t modNewGameStarter(void);
 void modInitializeStarterTechniques(int32_t type);
 uint8_t modQuizResult(const uint8_t *answers);
