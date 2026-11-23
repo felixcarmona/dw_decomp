@@ -14,6 +14,7 @@
 #include <dw/ids.h>
 #include <dw/main.h>
 #include <dw/math.h>
+#include <dw/mod_present.h>
 #include <dw/mod_qol.h>
 #include <dw/mod_hard.h>
 #include <dw/model.h>
@@ -680,6 +681,9 @@ void STD_renderArena0(void)
 	MATRIX m;
 	int32_t i;
 
+	if (MOD_TICK_FAST && !MOD_REAL_TICK) {
+		return; /* MOD (battle speed): this frame is thrown away; sorting the arena only cost time */
+	}
 	GsGetLw(&STD_ARENA_COORDS[1].coord, &m);
 	GsSetLightMatrix(&m);
 	GsGetLs(&STD_ARENA_COORDS[1].coord, &m);
@@ -718,6 +722,9 @@ void STD_renderArena1(void)
 	MATRIX m;
 	int32_t i;
 
+	if (MOD_TICK_FAST && !MOD_REAL_TICK) {
+		return; /* MOD (battle speed): this frame is thrown away; sorting the arena only cost time */
+	}
 	if (STD_isBracketFinished() == 1) {
 		GsGetLw(&STD_ARENA_COORDS[3].coord, &m);
 		GsSetLightMatrix(&m);
