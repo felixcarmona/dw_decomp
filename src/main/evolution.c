@@ -1369,6 +1369,8 @@ void reincarnatePartner(unused, stats, partner, digimonId)
  * and Gigadramon, from 48 hours after their own evolution, evolve into
  * Machinedramon when its requirements (EVOLUTION_REQS) score 3 points, like
  * a Champion's targets. Returns -1 otherwise (and for every other type).
+ * The pairs also give an Ultimate with no path row (an original 63..179
+ * without a record) its Mega; an imported Mega waits MOD_EVO_MEGA hours.
  */
 int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 {
@@ -1380,6 +1382,12 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 	for (i = 0; i < MOD_EVO_PAIR_MAX; i++) {
 		target = MOD_EVO_ULTIMATE[i][1];
 		if (MOD_EVO_ULTIMATE[i][0] != currentDigimon || target < 0 || !modSpeciesAllowed(target)) {
+			continue;
+		}
+		/* MOD (ultimate to mega): an imported Mega waits the Mega hours, like a path's;
+		   the original Machinedramon keeps its 48 hours */
+		if (DIGI_PARA(target).level == LEVEL_MEGA && !isVanillaSpecies(target) &&
+		    PARTNER_PARA.evoTimer < MOD_EVO_TIMING[MOD_EVO_MEGA]) {
 			continue;
 		}
 		reqs = &EVO_REQ_ROW(target);
