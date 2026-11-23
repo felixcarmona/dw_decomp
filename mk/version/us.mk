@@ -80,9 +80,17 @@ MAIN_C_SRC := \
 	src/main/vecmath.c \
 	src/main/world_object.c
 
-# PsyQ library code and data is one section per file, so a library file is
-# kept whenever anything in it is referenced
-$(BUILD_DIR)/asm/main/psyq/%.s.o $(BUILD_DIR)/asm/main/data/psyq/%.s.o: \
+# PsyQ library data is one section per file, so a data file is kept whenever
+# anything in it is referenced.
+# MOD (docs/mods/memory.md "Code out of the executable"): the library code is one
+# section per function (glabel), so --gc-sections drops the functions nothing
+# calls and a linker script can place a function by name (the MOV overlay takes
+# the movie-only ones). libapi, libgte and libmcrd stay one section per file:
+# they hold code that is copied by address range (_begin_getb_patch ..
+# _end_getb_patch, _dsr_start, _clr_vector .. _c_vend) or falls through into the
+# next function (oldbug, newnonbug), which must stay whole and in order.
+PSYQ_PLAIN_CODE := libapi libgte libmcrd
+$(BUILD_DIR)/asm/main/data/psyq/%.s.o $(PSYQ_PLAIN_CODE:%=$(BUILD_DIR)/asm/main/psyq/%.s.o): \
 	ASFLAGS += -Wa,--defsym,PLAIN_SECTIONS=1
 
 MAIN_ASM_EXCLUDE := shop vs
