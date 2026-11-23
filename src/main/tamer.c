@@ -13,6 +13,7 @@
 #include <dw/entity.h>
 #include <dw/fade.h>
 #include <dw/font.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/kar.h>
@@ -103,7 +104,6 @@ extern int32_t IS_SCRIPT_PAUSED;
 extern int8_t ITEM_SCOLD_FLAG;
 extern int8_t FADE_PROTECTION_FULL;
 extern uint16_t CURRENT_SCRIPT_ID;
-extern uint8_t CURRENT_SCREEN;
 extern uint8_t ACTIVE_BGM_FONT;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern GsOT *ACTIVE_ORDERING_TABLE;
@@ -744,7 +744,7 @@ void checkMedalConditions(void)
 		MEDAL_AWARD_PENDING = 1;
 	}
 	if (hasMedal(0xC) == 0) {
-		for (i = 0; i < 66; ++i) {
+		for (i = 0; i < NUM_CARDS; ++i) {
 			if (getCardAmount((uint8_t)i) == 0) {
 				break;
 			}
@@ -1652,7 +1652,7 @@ void tamerTickSicknessLostLife(void)
 	case 1:
 		if ((0 > MURD_tick((PartnerEntity *)ENTITY_TABLE[1], 1)) &&
 		    (0 > DOOA_tick((PartnerEntity *)ENTITY_TABLE[1],
-				   GENERAL_BUFFER_PTR + 0x4b000, 1))) {
+				   GENERAL_BUFFER_PTR + DOOA_WORK_OFFSET, 1))) {
 			SOME_SCRIPT_SYNC_BIT = 1;
 		}
 	default:

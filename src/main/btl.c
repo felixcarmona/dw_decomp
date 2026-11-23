@@ -8,6 +8,7 @@
 #include <dw/entity.h>
 #include <dw/garbage.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/math.h>
@@ -20,11 +21,11 @@
 #include <dw/version.h>
 #include <dw/world_object.h>
 
-#define BTL_FINISHER_TIM	((char *)0x80052ae0)
-#define BTL_FINISHER_MODEL	((char *)0x80053800)
-#define BTL_CONFUSION_MODEL	((char *)0x80054838)
-#define BTL_STUN_MODEL		((char *)0x80054d00)
-#define BTL_BUFF_MODEL		((TMDModel *)0x80055328)
+#define BTL_FINISHER_TIM	((char *)BATTLE_FINISHER_TIM_ADDR)
+#define BTL_FINISHER_MODEL	((char *)BATTLE_FINISHER_MODEL_ADDR)
+#define BTL_CONFUSION_MODEL	((char *)BATTLE_CONFUSION_MODEL_ADDR)
+#define BTL_STUN_MODEL		((char *)BATTLE_STUN_MODEL_ADDR)
+#define BTL_BUFF_MODEL		((TMDModel *)BATTLE_BUFF_MODEL_ADDR)
 
 #define NUM_CONCAVE_SCREENS	18
 
@@ -34,7 +35,6 @@ typedef struct {
 	int16_t type;
 } FleeBubbleState;
 
-extern uint8_t CURRENT_SCREEN;
 extern int32_t VIEWPORT_DISTANCE;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern GsOT GS_ORDERING_TABLE[];

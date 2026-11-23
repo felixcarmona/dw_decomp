@@ -2,6 +2,7 @@
 #define DW_EVL_H
 
 #include <dw/entity.h>
+#include <dw/ids.h>
 #include <dw/params.h>
 #include <dw/types.h>
 
@@ -79,8 +80,8 @@ extern EvlSpark EVL_D_80068F84[];
 extern EvoSequenceData EVO_SEQUENCE_DATA;
 
 extern EvoStatsGains EVOLUTION_STATS_GAINS[];
-extern EvolutionPath EVOLUTION_PATHS[62];
-extern EvoRequirements EVOLUTION_REQS[63];
+extern EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1];
+extern EvoRequirements EVOLUTION_REQS[NUM_EVOLVING_DIGIMON];
 
 extern int8_t MAIN_D_801349F4;
 

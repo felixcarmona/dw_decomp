@@ -13,8 +13,10 @@
 #include <dw/combat.h>
 #include <dw/entity.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/math.h>
+#include <dw/memmap.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -26,7 +28,7 @@
 
 #include "common.h"
 
-#define STD_TMD_BUFFER	((uint8_t *)0x80038000)
+#define STD_TMD_BUFFER	((uint8_t *)ARENA_TMD_ADDR)
 
 typedef struct {
 	uint32_t *vertTop;
@@ -46,7 +48,6 @@ extern int8_t GAME_STATE;
 extern GsRVIEW2 GS_VIEWPOINT;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern int32_t VIEWPORT_DISTANCE;
-extern uint8_t CURRENT_SCREEN;
 extern int32_t MAIN_D_801350F0;
 
 void STD_offsetTMDObjectUVs(uint32_t *tmd, int32_t vofs, int32_t nofs, int32_t objIdx);

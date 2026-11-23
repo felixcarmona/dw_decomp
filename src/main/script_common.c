@@ -414,7 +414,7 @@ int32_t CARD_PRICES[5] = {
 	0x00000032,
 };
 
-CardData CARD_DATA[66] = {
+CardData CARD_DATA[NUM_CARDS] = {
 	{ 0x00, 0x05, 0x0000 },
 	{ 0x3b, 0x00, 0x0064 },
 	{ 0x3c, 0x00, 0x0064 },
@@ -680,8 +680,8 @@ int32_t shopFillBuyItemList()
 		}
 	}
 
-	for (itemId = 0; itemId < 128; itemId++) {
-		if (!isTriggerSet(0x180 + itemId)) {
+	for (itemId = 0; itemId < NUM_ITEMS; itemId++) {
+		if (!isTriggerSet(TRIGGER_SHOP_STOCK_BASE + itemId)) {
 			continue;
 		}
 
@@ -1585,8 +1585,8 @@ void openShop(void)
 		SHOP_ACTION_SELECTED = 0;
 
 		found = 0;
-		for (i = 0; i < 0x80; i++) {
-			if (isTriggerSet(i + 0x180)) {
+		for (i = 0; i < NUM_ITEMS; i++) {
+			if (isTriggerSet(i + TRIGGER_SHOP_STOCK_BASE)) {
 				found = 1;
 				break;
 			}
@@ -2925,8 +2925,8 @@ void showMapheadSelection(int32_t idx, uint8_t owner, uint16_t x, int32_t *outSe
 
 void setDigimonRaised(int32_t digimonId)
 {
-	if ((uint32_t)digimonId < 0x3f) {
-		setTrigger(digimonId + 0x200);
+	if ((uint32_t)digimonId < NUM_EVOLVING_DIGIMON) {
+		setTrigger(digimonId + TRIGGER_RAISED_BASE);
 	}
 }
 
@@ -2935,7 +2935,7 @@ int32_t hasDigimonRaised(digimonId)
 	uint16_t digimonId;
 // clang-format on
 {
-	return isTriggerSet(digimonId + 0x200);
+	return isTriggerSet(digimonId + TRIGGER_RAISED_BASE);
 }
 
 void unlockMedal(uint16_t medal)

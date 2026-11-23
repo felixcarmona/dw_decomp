@@ -2,12 +2,13 @@
 #define DW_MAIN_H
 
 #include <dw/entity.h>
+#include <dw/memmap.h>
 #include <dw/params.h>
 #include <dw/types.h>
 
-#define GENERAL_BUFFER		((uint8_t *)0x80010000)
-#define TEXTURE_BUFFER		((uint8_t *)0x80088800)
-#define BOSS_EFE_TMD_BUFFER	((uint8_t *)0x80058000)
+#define GENERAL_BUFFER		((uint8_t *)GENERAL_BUFFER_ADDR)
+#define TEXTURE_BUFFER		((uint8_t *)TEXTURE_BUFFER_ADDR)
+#define BOSS_EFE_TMD_BUFFER	((uint8_t *)BOSS_EFE_TMD_BUFFER_ADDR)
 
 typedef struct {
 	VECTOR playerPos;

@@ -215,7 +215,7 @@ level_check:
 		goto check_medal;
 	}
 
-	for (i = 0; i < 0x42; i++) {
+	for (i = 0; i < NUM_CARDS; i++) {
 		if (getCardAmount(i) == 0) {
 			goto ret_neg1;
 		}
