@@ -80,6 +80,8 @@ SECTIONS
 			. = ALIGN(., 4);
 			BUILD_DIR/src/btl/battle_hud.c.o(.bss.*);
 			. = ALIGN(., 4);
+			BUILD_DIR/src/btl/battle_effect.c.o(.bss.*); /* MOD (smooth effects): its logs */
+			. = ALIGN(., 4);
 
 			/*
 			 * MOD (resident code moved, docs/mods/memory.md "Code out of the executable"): code that only
