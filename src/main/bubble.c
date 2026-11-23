@@ -480,8 +480,14 @@ static void drawConditionIcon(int32_t icon, int32_t fc, int32_t x, int32_t y,
 	case 14: {
 		/* Derived ITEM.TIM disks and pixel labels in the existing ETCTIM upload. */
 		GsSPRITE disk = CONDITION_SPRITES[0];
-		disk.u = 224 + (icon - 13) * 16;
+		disk.u = 224;
 		disk.v = 192;
+		if (icon == 14) {
+			/* Wider art keeps both M stems and its valleys after sampling. */
+			disk.v = 208;
+			disk.w = 32;
+			disk.mx = 16;
+		}
 		disk.tpage = 0x1f;
 		disk.cx = 272;
 		disk.cy = 493 + icon - 13;
