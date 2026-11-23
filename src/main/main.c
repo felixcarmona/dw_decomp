@@ -5201,9 +5201,20 @@ static int32_t modLastEndLines;
 
 static ModRollbackSet *modLoopRollback; /* the last loop's set (MOD_PRESENT_PAUSE) */
 
+/* MOD (battle speed): R2 in a battle switches x2 on and off (MOD_BATTLE_FAST, kept until the console resets); the
+ * battle sets MOD_BATTLE_FAST_TICK before each tick when that tick may run fast (not with the item menu open or an
+ * item in hand, not while the defeat countdown runs). A fast tick lasts 2 and 1 refreshes in turn (40 ticks a second)
+ * with one render each; MOD_REAL_TICK is 0 on the second tick of a pair, so what counts real time (the play time)
+ * skips it. The fight's logic is the same per tick: only the real time between ticks changes. */
+int8_t MOD_BATTLE_FAST;
+int8_t MOD_BATTLE_FAST_TICK;
+int8_t MOD_TICK_FAST;
+int8_t MOD_REAL_TICK = 1;
+static int32_t modTickPeriod = 3;
+
 static int32_t modTickRefreshes(void)
 {
-	return MOD_FPS_TEST_TICK > 0 ? MOD_FPS_TEST_TICK : 3;
+	return MOD_FPS_TEST_TICK > 0 ? MOD_FPS_TEST_TICK : modTickPeriod;
 }
 
 void modTickStart(int32_t flags)
@@ -5216,6 +5227,15 @@ void modTickStart(int32_t flags)
 	modFlushRemovals();
 	MOD_RENDER_PASS = 0;
 	now = VSync(-1);
+	MOD_TICK_FAST = (flags & MOD_PRESENT_BATTLE) && MOD_BATTLE_FAST_TICK;
+	MOD_BATTLE_FAST_TICK = 0; /* armed again by the battle before its next tick */
+	if (MOD_TICK_FAST) {
+		MOD_REAL_TICK ^= 1;
+		modTickPeriod = MOD_REAL_TICK ? 2 : 1;
+	} else {
+		MOD_REAL_TICK = 1;
+		modTickPeriod = 3;
+	}
 	if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < modTickRefreshes()) {
 		/* VSync(3) counts from the previous tick's last VSync: the battle
 		 * AI, which runs before the loop function, is part of this tick */
@@ -5262,7 +5282,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	tickV = modTickV;
 	l0 = modTickL0;
 	/* the thirds of the tick at which a frame is shown */
-	if (MOD_FPS_MODE <= 0) {
+	if (MOD_FPS_MODE <= 0 || period < 3) { /* a fast battle tick: one frame */
 		n = 1;
 		thirds[0] = 3;
 	} else if (MOD_FPS_MODE == 1) {
