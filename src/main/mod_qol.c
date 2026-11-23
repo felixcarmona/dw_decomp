@@ -7,7 +7,7 @@
  *
  * Training block. After each session of a block (src/trn/trn_block.h), modTrainStopReason says whether the block
  * stops: the partner is hungry, needs the toilet, is sleepy, tired, hurt or sick, is due to digivolve or at the end of
- * its life, or the gym's own box (a technique or new orders) is open.
+ * its life (the gym's own box, a technique or new orders, is the block's own check).
  */
 #include <sys/types.h>
 #include <libgte.h>
@@ -20,7 +20,6 @@
 #include <dw/mod_qol.h>
 #include <dw/params.h>
 #include <dw/partner.h>
-#include <dw/ui.h>
 
 #include "common.h"
 
@@ -96,9 +95,6 @@ int32_t modTrainStopReason(int32_t t0, int32_t tiredAt)
 	int32_t level = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
 	int32_t d;
 
-	if (UI_BOX_DATA[2].state != 0) {
-		return MOD_TB_LEARNED;
-	}
 	if (PARTNER_PARA.remainingLifetime <= 0) {
 		return MOD_TB_LIFE;
 	}
