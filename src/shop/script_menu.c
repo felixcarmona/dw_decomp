@@ -2550,7 +2550,7 @@ void renderMojyaTradeMenu(void)
 	renderString(0, bx + 0x14, by + 5, 0x3c, 0xc, x, y, 5, 1);
 	renderString(0, bx + 0x7a, by + 5, 0x3c, 0xc, x + 0x3c, y, 5, 1);
 #else
-	DRAW_STRING_CELLS(MAIN_D_801307CC, x, y);
+	DRAW_STRING_PIECES(MAIN_D_801307CC, x, y, 0, 0x42);
 	renderString(0, bx + 0x14, by + 5, 0x42, 0xc, x, y, 5, 1);
 	renderString(0, bx + 0x7a, by + 5, 0x4e, 0xc, x + 0x42, y, 5, 1);
 #endif

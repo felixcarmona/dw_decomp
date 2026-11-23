@@ -28,6 +28,24 @@ extern uint8_t TEXTBOX_CELLS;
 #define DRAW_STRING_CELLS(str, x, y) drawString(str, x, y)
 #endif
 
+/*
+ * a C string whose row a screen copies in pieces (the crops' offsets in pixels from x: 0, then each next crop's srcX - x;
+ * PIECE_CENTRE marks a piece centred in its original span): each piece drawn with the font's spacing (font.c
+ * drawStringPieces); the original font draws it as drawString
+ */
+#define PIECE_CENTRE 0x8000
+#define PIECES_END   0xffff
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
+#define DRAW_STRING_PIECES(str, x, y, ...)                                         \
+	do {                                                                       \
+		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \
+		drawStringPieces(str, x, y, PIECES_);                              \
+	} while (0)
+#else
+#define DRAW_STRING_PIECES(str, x, y, ...) drawString(str, x, y)
+#endif
+
 /* the rows of a text box (script_textbox.c) that a screen cuts into pieces: after createTextbox, in the original's cells */
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 #define TEXTBOX_IN_CELLS(boxId) (TEXTBOX_CELLS |= 1 << (boxId))
