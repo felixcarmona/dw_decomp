@@ -363,6 +363,10 @@ static void modTitleNameTail(void);
 static void modDrawSlotName(char *name, int32_t y);
 static int32_t MOD_REG_LIST_LONG;
 static int32_t MOD_SAVE_SLOTS_LONG;
+/* MOD (sleep menu): its rows as wide as the longer option measures, never narrower than the original's 0x54 */
+#define SLEEP_TEXT_W		0x54
+static int32_t MOD_SLEEP_W = SLEEP_TEXT_W;
+static void modSleepMenuWidth(void);
 #define REG_NAME_X		0x64 /* the registration screen's value column (text area x) */
 #define REG_TEXT_W		0xD6 /* its text as the original copied it, to the box's edge */
 #define REG_LONG_TEXT_W		0xEC /* long layout: the box as wide as the title's (0xF6), its text to the edge */
@@ -1461,11 +1465,31 @@ void renderSleepMenu(void)
 {
 	POLY_FT4 *cur;
 
+	int32_t x;
+
+	/* centred on 0xA0 as the original (box 0x6C + 0x68 / 2), text 10 px inside it */
+	x = 0xA0 - MOD_SLEEP_W / 2;
 	cur = (POLY_FT4 *)GsGetWorkBase();
-	renderText(cur++, 0x76, 0x6A, 0, 0, 0x54, 0xC, 0);
-	renderText(cur++, 0x76, 0x7A, 0, 0xC, 0x54, 0xC, 0);
+	renderText(cur++, x, 0x6A, 0, 0, MOD_SLEEP_W, 0xC, 0);
+	renderText(cur++, x, 0x7A, 0, 0xC, MOD_SLEEP_W, 0xC, 0);
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x6C, 0x65, 0x68, 0x26);
+	renderMenuBox(x - 10, 0x65, MOD_SLEEP_W + 20, 0x26);
+}
+
+static void modSleepMenuWidth(void)
+{
+	int32_t w;
+	int32_t w2;
+
+	w = measureStringMode(MAIN_D_8013136C, FIT_VANILLA);
+	w2 = measureStringMode(MAIN_D_80131378, FIT_VANILLA);
+	if (w2 > w) {
+		w = w2;
+	}
+	w = (w + 2) & ~1; /* 1 px of air after the last glyph, even so the box stays centred */
+	MOD_SLEEP_W = w > SLEEP_TEXT_W ? w : SLEEP_TEXT_W;
+	MENU_HIGHLIGHTS[11].x = 0xA0 - MOD_SLEEP_W / 2;
+	MENU_HIGHLIGHTS[11].w = MOD_SLEEP_W;
 }
 
 void renderConfirmOverwrite(void)
@@ -1883,6 +1907,7 @@ void drawMainMenuStrings(int32_t menu)
 	case 11:
 		drawString(MAIN_D_8013136C, 0, 0);
 		drawString(MAIN_D_80131378, 0, 0xc);
+		modSleepMenuWidth();
 		break;
 	case 12:
 		drawString(MAIN_D_80131390, 0, 0);
@@ -2158,6 +2183,7 @@ void drawMainMenuStrings(int32_t menu)
 	case 11:
 		drawString(MAIN_D_8013136C, 0, 0);
 		drawString(MAIN_D_80131378, 0, 0xC);
+		modSleepMenuWidth();
 		break;
 	case 12:
 		drawString(MAIN_D_80131390, 0, 0);
