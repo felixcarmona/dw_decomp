@@ -7,6 +7,7 @@
 #include <libgte.h>
 
 #include <dw/mod_font.h>
+#include <dw/mod_options.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/mod_fps.h>
 #include <dw/clock.h>
@@ -3924,11 +3925,11 @@ void renderEvoChartDetail(void)
 	}
 
 	/* MOD (chart criteria): the partner's tree lights the met evolutions; a "to" box under the cursor shows its card */
-	mine = chartIsPartnerTree();
+	mine = MOD_OPT_EVO_GUIDE && chartIsPartnerTree(); /* OPTIONS' EVOLUTION GUIDE off: the original chart */
 	if (mine) {
 		chartUpdateLit(ep);
 	}
-	cardId = CHART_CURSOR_SIDE == 1 ? chartDetailBox(1, CHART_CURSOR_J, &cx, &cy) : 0;
+	cardId = MOD_OPT_EVO_GUIDE && CHART_CURSOR_SIDE == 1 ? chartDetailBox(1, CHART_CURSOR_J, &cx, &cy) : 0;
 	dx = cardId > 0 ? CHART_CARD_SHIFT : 0;
 
 	if ((count1 % 2) == 0) {
