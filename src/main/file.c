@@ -25,7 +25,7 @@ char *modFontFile(char *path, char *originalFont)
 {
 	FileEntry *entry;
 
-	if (!MOD_FONT_ORIGINAL) {
+	if (MOD_FONT == MOD_FONT_NEW) {
 		return path;
 	}
 	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
