@@ -5,6 +5,7 @@
 #include <libgte.h>
 
 #include <dw/mod_battle.h>
+#include <dw/caps.h>
 #include <dw/attack_object.h>
 #include <dw/combat.h>
 #include <dw/entity.h>
@@ -535,7 +536,7 @@ void VS_buffStats(digimon, slot, value, stat, color, flag)
 	uint8_t flag;
 // clang-format on
 {
-	addWithLimit(stat, value, 0x3e7);
+	addWithLimit(stat, value, STAT_CAP);
 	addEntityText(&digimon->entity, slot, color, value, flag);
 }
 
