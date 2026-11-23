@@ -1293,7 +1293,6 @@ int32_t newGameStateMachine(void)
 	case 0x23:
 		if (question == 7) {
 			writePStat(PSTAT_254, modQuizResult(answers));
-			modPartnerNameSetSpecies(modNewGameStarter());
 			showNewGameDialogue(0x39, 0x12);
 		} else {
 			showNewGameDialogue(0x24 + question * 3, 0x24);
