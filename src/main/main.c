@@ -22,6 +22,7 @@
 #include <dw/main.h>
 #include <dw/map.h>
 #include <dw/map_object.h>
+#include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/partner.h>
@@ -3890,8 +3891,8 @@ void recalculatePPandArena(void)
  * per vertical refresh, ~2146 CPU cycles per line). Root counter 1 counts
  * hblanks and runs free (16 bits), so differences of it are elapsed lines
  * even across VSync waits. Set MOD_PERF_RESET to clear everything.
- *   TICK    loop start .. after tickObjects (input, script, tickObjects):
- *           CPU of the game logic
+ *   TICK    loop start .. after lateTickObjects (input, script, tickObjects,
+ *           late tick): CPU of the game logic
  *   RENDER  renderObjects + applyDrawOffset of the first pass: render CPU
  *   GPU     DrawSync(0) after that: wait for the GPU to finish the previous
  *           displayed frame
@@ -3914,8 +3915,14 @@ int32_t MOD_PERF_XGPU_SUM;
 int32_t MOD_PERF_XGPU_MAX;
 int32_t MOD_PERF_XPASSES;
 int32_t MOD_PERF_PERIOD;
+int32_t MOD_PERF_LATE;      /* passes swapped after their refresh */
+int32_t MOD_PERF_XSTART;    /* lines since tick start when the last extra pass began */
+int32_t MOD_PERF_XEND;      /* ... and when it ended (after DrawSync) */
+int32_t MOD_PERF_XSTARTV;   /* refreshes since tick start at those two points */
+int32_t MOD_PERF_XENDV;
 int32_t MOD_PERF_RESET;
 static int32_t modPerfPrevStart = -1;
+static int32_t modPassSetupLines = 40;
 
 static int32_t modLines(void)
 {
@@ -3940,18 +3947,21 @@ static void modPerfReset(void)
 	MOD_PERF_XRENDER_SUM = MOD_PERF_XRENDER_MAX = 0;
 	MOD_PERF_XGPU_SUM = MOD_PERF_XGPU_MAX = 0;
 	MOD_PERF_XPASSES = 0;
+	MOD_PERF_LATE = 0;
 }
 
 /* MOD (fps): fixed-timestep loop. The game logic (input, scripts,
- * tickObjects: movement, clock, timers, animation) runs
+ * tickObjects: movement, clock, timers, animation, then the late tick) runs
  * once per tick, and a tick always lasts 3 vertical refreshes (20 Hz) as in
  * the original. The scene is rendered MOD_FPS_RENDERS_PER_TICK times per tick
  * (3 = 60 fps, 1 = original 20 fps), pass r being shown at refresh
- * tickStart + (r + 1) * 3 / n. A pass that would be shown too late is skipped;
- * the logic never is. */
+ * tickStart + (r + 1) * 3 / n. A pass that would be shown too late, or would
+ * not end before the next tick is due (judging by the previous pass's cost),
+ * is skipped; the logic never is. See dw/mod_fps.h for how renders stay idempotent. */
 int32_t MOD_FPS_RENDERS_PER_TICK = 3;
 int32_t MOD_FPS_TICKS;
 int32_t MOD_FPS_RENDERS;
+int32_t MOD_RENDER_PASS;
 
 static void modFpsBeginFrame(void)
 {
@@ -3968,6 +3978,120 @@ static void modFpsSetView(void)
 	GsSetProjection(VIEWPORT_DISTANCE);
 }
 
+/* The libgs view state the first pass rendered with: the camera set before
+ * tickObjects (DRAWING_OFFSET as it was before the tick, the one-tick lag the
+ * tiles rely on) plus whatever the tick changed. The extra passes render with
+ * exactly the same, not with the post-tick DRAWING_OFFSET/GS_VIEWPOINT. */
+long ReadGeomScreen(void);
+static _GsPOSITION modPass0Position;
+static MATRIX modPass0WsMatrix;
+static MATRIX modPass0WsMatrixOrg;
+static MATRIX modPass0LightWsMatrix;
+static long modPass0Projection;
+
+static void modSavePass0View(void)
+{
+	modPass0Position = POSITION;
+	modPass0WsMatrix = GsWSMATRIX;
+	modPass0WsMatrixOrg = GsWSMATRIX_ORG;
+	modPass0LightWsMatrix = GsLIGHTWSMATRIX;
+	modPass0Projection = ReadGeomScreen();
+}
+
+static void modRestorePass0View(void)
+{
+	POSITION = modPass0Position;
+	GsWSMATRIX = modPass0WsMatrix;
+	GsWSMATRIX_ORG = modPass0WsMatrixOrg;
+	GsLIGHTWSMATRIX = modPass0LightWsMatrix;
+	GsSetProjection(modPass0Projection);
+}
+
+/* Prims some ticks add straight into the first pass's ordering table, before
+ * any render: they are added again, in the same order, at the start of the
+ * extra passes. */
+int32_t MOD_TICK_PRIM_MAIN_MENU; /* scriptTickMainMenu, tickSaveMachine */
+int32_t MOD_TICK_PRIM_MERAMON;   /* tickMeramonShake */
+void modReplayMainMenu(void);
+void addMeramonShakePrim(void);
+
+static void modReplayTickPrims(void)
+{
+	if (MOD_TICK_PRIM_MAIN_MENU) {
+		modReplayMainMenu();
+	}
+	if (MOD_TICK_PRIM_MERAMON) {
+		addMeramonShakePrim();
+	}
+}
+
+/* Render-only counters: extra passes start from the value they had before the
+ * first pass, and get the first pass's result back afterwards. */
+extern int8_t MENU_STATE;
+extern int8_t MENU_SUB_STATE;
+extern SVECTOR MEDAL_ROTATION;
+extern int16_t MONOCHROMON_BUBBLE_TIMER;
+extern uint8_t TEXTBOX_OPEN_TIMER;
+
+typedef struct {
+	void *ptr;
+	int32_t size;
+} ModRollbackVar;
+
+static ModRollbackVar MOD_ROLLBACK_VARS[] = {
+	{ &MENU_STATE, sizeof(MENU_STATE) },
+	{ &MENU_SUB_STATE, sizeof(MENU_SUB_STATE) },
+	{ &MEDAL_ROTATION, sizeof(MEDAL_ROTATION) },
+	{ &MONOCHROMON_BUBBLE_TIMER, sizeof(MONOCHROMON_BUBBLE_TIMER) },
+	{ &TEXTBOX_OPEN_TIMER, sizeof(TEXTBOX_OPEN_TIMER) },
+	{ UI_BOX_DATA, sizeof(UIBoxData) * 6 },
+};
+#define MOD_NUM_ROLLBACK_VARS (sizeof(MOD_ROLLBACK_VARS) / sizeof(MOD_ROLLBACK_VARS[0]))
+#define MOD_ROLLBACK_SIZE (1 + 1 + sizeof(SVECTOR) + 2 + 1 + sizeof(UIBoxData) * 6)
+static uint8_t modRollbackPre[MOD_ROLLBACK_SIZE];
+static uint8_t modRollbackPost[MOD_ROLLBACK_SIZE];
+
+static void modRollbackCopy(uint8_t *buf, int32_t toVars)
+{
+	uint32_t i;
+
+	for (i = 0; i < MOD_NUM_ROLLBACK_VARS; i++) {
+		if (toVars) {
+			memcpy(MOD_ROLLBACK_VARS[i].ptr, buf, MOD_ROLLBACK_VARS[i].size);
+		} else {
+			memcpy(buf, MOD_ROLLBACK_VARS[i].ptr, MOD_ROLLBACK_VARS[i].size);
+		}
+		buf += MOD_ROLLBACK_VARS[i].size;
+	}
+}
+
+void modRenderRollbackSave(void)
+{
+	modRollbackCopy(modRollbackPre, 0);
+}
+
+void modRenderRollbackBegin(void)
+{
+	modRollbackCopy(modRollbackPost, 0);
+	modRollbackCopy(modRollbackPre, 1);
+}
+
+void modRenderRollbackEnd(void)
+{
+	modRollbackCopy(modRollbackPost, 1);
+}
+
+static uint32_t modRenderLcg = 0x1234567;
+
+int32_t modRenderRand(void)
+{
+	if (MOD_RENDER_PASS == 0) {
+		return rand();
+	}
+	modRenderLcg = modRenderLcg * 1103515245 + 12345;
+	return (modRenderLcg >> 16) & 0x7FFF;
+}
+
 void gameLoop(void)
 {
 	int32_t n;
@@ -3979,6 +4103,9 @@ void gameLoop(void)
 	int32_t l2;
 	int32_t l3;
 	int32_t tickLines;
+	int32_t passLines = 0;
+	int32_t lc = 0;
+	int32_t vLast = 0;
 
 	n = MOD_FPS_RENDERS_PER_TICK;
 	if (n < 1) {
@@ -3990,12 +4117,16 @@ void gameLoop(void)
 	if (MOD_PERF_RESET != 0) {
 		modPerfReset();
 	}
+	modFlushRemovals();
+	MOD_RENDER_PASS = 0;
 	tickV = VSync(-1);
 	l0 = modLines();
 	if (modPerfPrevStart >= 0) {
 		MOD_PERF_PERIOD = (l0 - modPerfPrevStart) & 0xFFFF;
 	}
 	modPerfPrevStart = l0;
+	MOD_TICK_PRIM_MAIN_MENU = 0;
+	MOD_TICK_PRIM_MERAMON = 0;
 	pollInputGame();
 	modFpsBeginFrame();
 	processInput();
@@ -4011,40 +4142,68 @@ void gameLoop(void)
 	DRAWING_OFFSET_X_COPY = DRAWING_OFFSET_X;
 	DRAWING_OFFSET_Y_COPY = DRAWING_OFFSET_Y;
 	tickObjects();
+	lateTickObjects();
 	MOD_FPS_TICKS++;
 	l1 = modLines();
 	tickLines = (l1 - l0) & 0xFFFF;
 	modPerfAdd(&MOD_PERF_TICK_SUM, &MOD_PERF_TICK_MAX, tickLines);
 
+	MOD_RENDER_MULTIPASS = 1;
 	for (r = 0; r < n; r++) {
 		endV = tickV + (r + 1) * 3 / n;
 		if (r > 0) {
 			if (VSync(-1) >= endV) {
 				continue; /* this pass would be shown late: skip it */
 			}
+			/* lines left before the vblank that ends the tick, counted from
+			 * the last vblank waited for; the pass costs about what the first
+			 * one did plus its setup (OT clear, rollback, view) */
+			lc = modLines();
+			if ((tickV + 3 - vLast) * 263 - VSync(1) <
+			    passLines + modPassSetupLines + 4) {
+				break; /* it would not end before the next tick is due */
+			}
+			MOD_RENDER_PASS = r;
+			modRenderRollbackBegin();
 			modFpsBeginFrame();
-			modFpsSetView();
+			modRestorePass0View();
+			modReplayTickPrims();
+		} else {
+			modSavePass0View();
 		}
 		l1 = modLines();
+		if (r > 0) {
+			modPassSetupLines = (l1 - lc) & 0xFFFF;
+			MOD_PERF_XSTART = (l1 - l0) & 0xFFFF;
+			MOD_PERF_XSTARTV = VSync(-1) - tickV;
+		}
 		renderObjects();
 		applyDrawOffset(ACTIVE_FRAMEBUFFER);
 		l2 = modLines();
 		DrawSync(0);
 		l3 = modLines();
 		if (r == 0) {
+			passLines = (l3 - l1) & 0xFFFF;
 			modPerfAdd(&MOD_PERF_RENDER_SUM, &MOD_PERF_RENDER_MAX, (l2 - l1) & 0xFFFF);
 			modPerfAdd(&MOD_PERF_GPU_SUM, &MOD_PERF_GPU_MAX, (l3 - l2) & 0xFFFF);
 			MOD_PERF_LAST = tickLines + ((l3 - l1) & 0xFFFF);
 			modPerfAdd(&MOD_PERF_SUM, &MOD_PERF_MAX, MOD_PERF_LAST);
 			MOD_PERF_FRAMES++;
 		} else {
+			modRenderRollbackEnd();
 			modPerfAdd(&MOD_PERF_XRENDER_SUM, &MOD_PERF_XRENDER_MAX, (l2 - l1) & 0xFFFF);
 			modPerfAdd(&MOD_PERF_XGPU_SUM, &MOD_PERF_XGPU_MAX, (l3 - l2) & 0xFFFF);
 			MOD_PERF_XPASSES++;
+			MOD_PERF_XEND = (l3 - l0) & 0xFFFF;
+			MOD_PERF_XENDV = VSync(-1) - tickV;
+		}
+		if (VSync(-1) >= endV) {
+			MOD_PERF_LATE++;
 		}
 		do {
 			VSync(0); /* like VSync(3): always swap on a vertical blank */
 		} while (VSync(-1) < endV);
+		vLast = VSync(-1);
 		GsSwapDispBuff();
 		GsSortClear(0, 0, 0, &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
 		GsDrawOt(&GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
@@ -4053,6 +4212,9 @@ void gameLoop(void)
 	while (VSync(-1) < tickV + 3) {
 		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
+	MOD_RENDER_PASS = 0;
+	MOD_RENDER_MULTIPASS = 0;
+	modFlushRemovals();
 	handlePause();
 }
 
