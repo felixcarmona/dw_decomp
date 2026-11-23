@@ -19,9 +19,10 @@
  *                      partners-npc-a), "To Icemon" (94), "To Meteormon"
  *                      (113), the partners of MOD partners-npc-b, "To
  *                      Machinedramon" (115; MOD machinedramon), "To Jijimon"
- *                      (117), "To Analogman" (116), and the species imported
- *                      from other games, Veemon (180), Puppetmon (181),
- *                      Kimeramon (182) (MOD dcb-import), and "To Mega <name>"
+ *                      (117), "To Analogman" (116), then every partner species
+ *                      of DIGI.DAT in id order (MOD scale: the imported ones,
+ *                      Veemon 180, Puppetmon, Kimeramon..., any id up to
+ *                      NUM_DIGIMON; L1/R1 jump 10), and "To Mega <name>"
  *                      (MOD mega: the Mega the partner, an Ultimate, evolves
  *                      to, otherwise the first Mega species in DIGI.DAT,
  *                      docs/mods/mega.md); a species the disc's DIGI.DAT
@@ -65,6 +66,8 @@
 #define PAD_DOWN	0x4000
 #define PAD_LEFT	0x8000
 #define PAD_RIGHT	0x2000
+#define PAD_L1		0x4
+#define PAD_R1		0x8
 #define PAD_TRIANGLE	0x10
 #define PAD_CROSS	0x40
 
@@ -87,8 +90,8 @@ void partnerSetState(int32_t state);
 int32_t tamerGetState(void);
 void tamerSetState(int32_t state);
 
-static int32_t modLabCursor;
-static int32_t modLabEvoChoice; /* MOD (cherrymon): index into MOD_LAB_EVO_TARGETS */
+int32_t MOD_LAB_CURSOR; /* the lab menu's cursor (global for tests) */
+int32_t MOD_LAB_EVO_CHOICE; /* MOD (cherrymon): the evolve entry (global so tests can read and set it) */
 static char *modLabMessage;
 
 static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
@@ -120,14 +123,9 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 	DIGIMON_MACHINEDRAMON, /* MOD (machinedramon) */
 	DIGIMON_JIJIMON,       /* MOD (jijimon) */
 	DIGIMON_ANALOGMAN,     /* MOD (analogman) */
-	/* MOD (dcb-import): the species imported from other games
-	 * (content/species/: 180 Veemon and 181 Puppetmon from Digimon Digital
-	 * Card Battle, 182 Kimeramon from Digimon World 2) */
-	180,
-	181,
-	182,
-	MOD_LAB_EVO_MEGA, /* MOD (mega): "To Mega <name>" */
 };
+/* MOD (scale): after these come the partner species of DIGI.DAT (getSpeciesPartnerId), then the Mega entry */
+#define MOD_LAB_EVO_FIXED ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
 
 static char *MOD_LAB_EVO_TEXT[] = {
 	"To MasterTyrannomon",
@@ -141,12 +139,12 @@ static char *MOD_LAB_EVO_TEXT[] = {
 	"To Machinedramon", /* MOD (machinedramon) */
 	"To Jijimon",       /* MOD (jijimon) */
 	"To Analogman",     /* MOD (analogman) */
-	"To Veemon",        /* MOD (dcb-import) */
-	"To Puppetmon",
-	"To Kimeramon",
-	NULL, /* MOD (mega): modLabMegaText */
 };
-#define MOD_LAB_EVO_COUNT ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
+/* the entries: fixed originals, the species of DIGI.DAT, the Mega */
+static int32_t modLabEvoCount(void)
+{
+	return MOD_LAB_EVO_FIXED + getSpeciesPartnerCount() + 1;
+}
 
 static char *MOD_LAB_FPS_TEXT[3] = {
 	"Frame rate  20 fps",
@@ -188,25 +186,26 @@ static int32_t modLabMegaTarget(void)
 			}
 		}
 	}
-	for (type = NUM_ORIGINAL_DIGIMON; type < SPECIES_COUNT; type++) {
-		if (DIGI_PARA(type).level == LEVEL_MEGA) {
-			return type;
-		}
-	}
-	return -1;
+	/* MOD (scale): the first Mega partner species, from the DIGI.DAT index */
+	type = getFirstMegaSpecies();
+	return type > 0 ? type : -1;
 }
 
 static char modLabMegaText[32];
+static char modLabSpeciesText[32]; /* MOD (scale): "To <name>" of a DIGI.DAT species */
 
 /* MOD (integration): the species of the current evolve entry, -1 when the disc has none */
 static int32_t modLabEvoTarget(void)
 {
 	int32_t t;
 
-	t = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
-	if (t == MOD_LAB_EVO_MEGA) {
+	if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED + getSpeciesPartnerCount()) {
 		return modLabMegaTarget();
 	}
+	if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED) {
+		return getSpeciesPartnerId(MOD_LAB_EVO_CHOICE - MOD_LAB_EVO_FIXED); /* defined partner species */
+	}
+	t = MOD_LAB_EVO_TARGETS[MOD_LAB_EVO_CHOICE];
 	return isValidDigimonType(t) ? t : -1;
 }
 
@@ -215,8 +214,11 @@ static void modLabStepEvoChoice(int32_t step)
 {
 	int32_t i;
 
-	for (i = 0; i < MOD_LAB_EVO_COUNT; i++) {
-		modLabEvoChoice = (modLabEvoChoice + step) % MOD_LAB_EVO_COUNT;
+	int32_t count;
+
+	count = modLabEvoCount();
+	for (i = 0; i < count; i++) {
+		MOD_LAB_EVO_CHOICE = ((MOD_LAB_EVO_CHOICE + step) % count + count) % count;
 		if (modLabEvoTarget() >= 0) {
 			break;
 		}
@@ -274,15 +276,20 @@ static void modLabDrawText(void)
 		if (i == MOD_LAB_OPT_FPS) {
 			drawString(MOD_LAB_FPS_TEXT[modLabFpsMode()], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		} else if (i == MOD_LAB_OPT_EVOLVE) {
-			mega = MOD_LAB_EVO_TARGETS[modLabEvoChoice];
-			if (mega == MOD_LAB_EVO_MEGA) {
+			if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED + getSpeciesPartnerCount()) {
 				/* MOD (mega): "To Mega <name>" */
 				p = appendStr(modLabMegaText, "To Mega ");
 				mega = modLabMegaTarget();
 				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
 				drawString(modLabMegaText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+			} else if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED) {
+				/* MOD (scale): "To <name>" of a species of DIGI.DAT */
+				p = appendStr(modLabSpeciesText, "To ");
+				mega = modLabEvoTarget();
+				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
+				drawString(modLabSpeciesText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 			} else {
-				drawString(MOD_LAB_EVO_TEXT[modLabEvoChoice], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
+				drawString(MOD_LAB_EVO_TEXT[MOD_LAB_EVO_CHOICE], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 			}
 		} else {
 			drawString(MOD_LAB_OPTION_TEXT[i], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
@@ -309,7 +316,7 @@ static void modLabRender(int32_t instanceId)
 		renderString(color, pos->x + 12, pos->y + 8 + row * ROW_PITCH, BOX_W - 24, 0xC,
 			     0, TEXT_ROW_Y(row), 0, 1);
 	}
-	renderSelectionCursor(pos->x + 9, pos->y + 6 + (ROW_OPTIONS + modLabCursor) * ROW_PITCH,
+	renderSelectionCursor(pos->x + 9, pos->y + 6 + (ROW_OPTIONS + MOD_LAB_CURSOR) * ROW_PITCH,
 			      BOX_W - 18, 0x10, 0);
 }
 
@@ -338,7 +345,7 @@ static void modLabApply(void)
 	Stats *stats = &PARTNER_ENTITY.digimonEntity.stats;
 	int32_t mega;
 
-	switch (modLabCursor) {
+	switch (MOD_LAB_CURSOR) {
 	case 0:
 		MONEY += 1000;
 		modLabShowMessage("Bits +1000");
@@ -364,8 +371,8 @@ static void modLabApply(void)
 		/* MOD (master-tyrannomon, mega): as handleEvoItems does, with natural gains */
 		mega = modLabEvoTarget();
 		if (mega < 0) {
-			modLabShowMessage(MOD_LAB_EVO_TARGETS[modLabEvoChoice] == MOD_LAB_EVO_MEGA ? "No Mega on this disc"
-												 : "Not on this disc");
+			modLabShowMessage(MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED + getSpeciesPartnerCount()
+						  ? "No Mega on this disc" : "Not on this disc");
 		} else if (!isPartnerModelFit(mega)) {
 			modLabShowMessage("Model too big for it");
 		} else if (PARTNER_ENTITY.digimonEntity.entity.type == mega) {
@@ -397,7 +404,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 	}
 
 	removeStaticUIBox(MOD_LAB_BOX);
-	modLabCursor = 0;
+	MOD_LAB_CURSOR = 0;
 	modLabMessage = NULL;
 	modLabDrawText();
 	setRECT(&pos, -BOX_W / 2 + BOX_SHIFT_X, -BOX_H / 2, BOX_W, BOX_H);
@@ -412,24 +419,27 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 		if (pressed & (PAD_TRIANGLE | PAD_SELECT)) {
 			break;
 		}
-		if (pressed & (PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT | PAD_CROSS)) {
+		if (pressed & (PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT | PAD_L1 | PAD_R1 | PAD_CROSS)) {
 			modLabMessage = NULL;
 		}
 		if (pressed & PAD_UP) {
-			modLabCursor = (modLabCursor + MOD_LAB_OPTIONS - 1) % MOD_LAB_OPTIONS;
+			MOD_LAB_CURSOR = (MOD_LAB_CURSOR + MOD_LAB_OPTIONS - 1) % MOD_LAB_OPTIONS;
 			playSound(0, 2);
 		} else if (pressed & PAD_DOWN) {
-			modLabCursor = (modLabCursor + 1) % MOD_LAB_OPTIONS;
+			MOD_LAB_CURSOR = (MOD_LAB_CURSOR + 1) % MOD_LAB_OPTIONS;
 			playSound(0, 2);
-		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && modLabCursor == MOD_LAB_OPT_FPS) {
+		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && MOD_LAB_CURSOR == MOD_LAB_OPT_FPS) {
 			playSound(0, 2);
 			modLabSetFps((pressed & PAD_RIGHT) ? 1 : -1);
-		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && modLabCursor == MOD_LAB_OPT_EVOLVE) {
+		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && MOD_LAB_CURSOR == MOD_LAB_OPT_EVOLVE) {
 			/* MOD (cherrymon): choose the evolution target */
 			playSound(0, 2);
-			modLabStepEvoChoice((pressed & PAD_RIGHT) ? 1 : MOD_LAB_EVO_COUNT - 1);
+			modLabStepEvoChoice((pressed & PAD_RIGHT) ? 1 : -1);
+		} else if ((pressed & (PAD_L1 | PAD_R1)) && MOD_LAB_CURSOR == MOD_LAB_OPT_EVOLVE) {
+			playSound(0, 2);
+			modLabStepEvoChoice((pressed & PAD_R1) ? 10 : -10);
 		} else if (pressed & PAD_CROSS) {
-			if (modLabCursor == MOD_LAB_OPTIONS - 1) {
+			if (MOD_LAB_CURSOR == MOD_LAB_OPTIONS - 1) {
 				break;
 			}
 			playSound(0, 3);

@@ -746,7 +746,7 @@ void VS__renderSelectDigimonPlayer(id)
 		type = fighters[st->slotIds[baseIdx + i]].digimonId;
 		VS__setPolyFT4White(prim);
 		prim->tpage = 14;
-		prim->clut = GetClut(0x120, DIGIMON_SPRITE_CLUT[type] + 0x1e0);
+		prim->clut = GetClut(0x120, DIGIMON_SPRITE_CLUT[type < 68 ? type : 0] + 0x1e0); /* MOD (scale): the table covers 68 types */
 		if (type == 0x73) {
 			spriteU = (st->unk4 * 16) + 0x3e0;
 			spriteV = 0xe0;

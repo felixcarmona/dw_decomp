@@ -780,11 +780,11 @@ void scriptInstruction10to27(op)
 
 void scriptUpdateEnergyBoundaries(int32_t a0, int32_t a1)
 {
-	if (PARTNER_PARA.energyLevel > RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap) {
-		PARTNER_PARA.energyLevel = RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap;
+	if (PARTNER_PARA.energyLevel > RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap) {
+		PARTNER_PARA.energyLevel = RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap;
 	}
 	if (PARTNER_PARA.condition & 4) {
-		if (RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold <= PARTNER_PARA.energyLevel) {
+		if (RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold <= PARTNER_PARA.energyLevel) {
 			PARTNER_PARA.condition &= ~4;
 			setFoodTimer(PARTNER_ENTITY.digimonEntity.entity.type);
 			PARTNER_PARA.starvationTimer = 0;

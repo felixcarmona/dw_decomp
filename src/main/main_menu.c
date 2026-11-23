@@ -17,6 +17,7 @@
 #include <dw/script.h>
 #include <dw/sjis.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/utils.h>
 #include <dw/version.h>
@@ -187,12 +188,14 @@ typedef struct {
 	uint16_t wregs[SAVE_EXT_SAVED_WREGS];
 	DigimonId registeredTypes[40];	/* battle registration ids (u8 in RAM for now) */
 	ScreenId poopMaps[100];		/* WORLD_POOP screens (u8 in RAM for now) */
-	uint8_t reserved[0x1000 - 0x188 - 4];
+	uint8_t speciesRaised[NUM_DIGIMON / 8];	/* MOD (scale): SPECIES_RAISED_BITS, one bit per type */
+	uint8_t speciesRecruited[NUM_DIGIMON / 8]; /* SPECIES_RECRUITED_BITS */
+	uint8_t reserved[0x1000 - 0x188 - 4 - 2 * (NUM_DIGIMON / 8)];
 	int32_t checksum;		/* byte sum of everything before it */
 } SaveExtension;
 
 SAVE_LAYOUT_CHECK(extension, sizeof(SaveExtension) == 0x1000);
-SAVE_LAYOUT_CHECK(extensionTail, __builtin_offsetof(SaveExtension, reserved) == 0x188);
+SAVE_LAYOUT_CHECK(extensionTail, __builtin_offsetof(SaveExtension, reserved) == 0x188 + 2 * (NUM_DIGIMON / 8));
 
 typedef struct {
 	char id[2];
@@ -3917,6 +3920,7 @@ int32_t tickSelectSlotInput(MenuCursor *cursor, int32_t which)
 
 void initializeDefaultSavegame(void)
 {
+	resetSpeciesFlags(); /* MOD (scale) */
 	InventoryTable defaultInventoryCounts;
 	InventoryTable defaultInventoryItems;
 	SavegamePayload *savegame;
@@ -4245,6 +4249,10 @@ static void prepareSaveFile(int32_t fromRam)
 		for (i = 0; i < SAVE_EXT_SAVED_WREGS; i++) {
 			ext->wregs[i] = SCRIPT_STATE_PTR->wregs[i];
 		}
+		for (i = 0; i < NUM_DIGIMON / 8; i++) {
+			ext->speciesRaised[i] = SPECIES_RAISED_BITS[i];
+			ext->speciesRecruited[i] = SPECIES_RECRUITED_BITS[i];
+		}
 	} else {
 		ext->currentScreen = savegame->currentScreen;
 		ext->previousScreen = savegame->previousScreen;
@@ -4312,8 +4320,13 @@ static int32_t loadSaveCopy(int32_t copy)
 	for (i = 0; i < SCRIPT_NUM_WREGS; i++) {
 		SCRIPT_STATE_PTR->wregs[i] = 0;
 	}
+	resetSpeciesFlags();
 	if (isExtensionValid(0)) {
 		ext = &SAVE_FILE.ext[0];
+		for (i = 0; i < NUM_DIGIMON / 8; i++) {
+			SPECIES_RAISED_BITS[i] = ext->speciesRaised[i];
+			SPECIES_RECRUITED_BITS[i] = ext->speciesRecruited[i];
+		}
 		SAVED_STATE.currentScreen = ext->currentScreen;
 		SAVED_STATE.previousScreen = ext->previousScreen;
 		for (i = 0; i < 30; i++) {
@@ -4477,7 +4490,9 @@ void registerBattleData(void)
 	rec->speed = PARTNER_ENTITY.digimonEntity.stats.base.speed;
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
-	rec->digimonId = PARTNER_ENTITY.digimonEntity.entity.type;
+	/* MOD (scale): the record keeps a u8; a species >= 256 registers as the original it is based on */
+	rec->digimonId = PARTNER_ENTITY.digimonEntity.entity.type < 256 ? PARTNER_ENTITY.digimonEntity.entity.type
+			 : getOriginalType(PARTNER_ENTITY.digimonEntity.entity.type);
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
 	memcpy(rec->moves, PARTNER_ENTITY.digimonEntity.stats.base.moves, 3);
 }

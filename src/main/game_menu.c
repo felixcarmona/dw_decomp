@@ -2289,11 +2289,11 @@ void renderDigimonStatsView(void)
 		if (DIGI_PARA(ENTITY_TABLE[1]->type).type != 0) {
 			renderRectPolyFT4(0x3b, -0x33, 0xc, 0xc, (DIGI_PARA(ENTITY_TABLE[1]->type).type - 1) * 0xc, 0x80, 5, 0x7a06, 5, 0);
 		}
-		if (RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].sleepCycle == 5) {
+		if (RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).sleepCycle == 5) {
 			renderString(0, 0x55, -0x33, 0x30, 0xc, 0xcc, 0x30, 5, 0);
 		}
-		if (RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].sleepCycle < 5) {
-			renderString(0, 0x55, -0x33, 0x30, 0xc, RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].sleepCycle * 0x30, 0x18, 5, 0);
+		if (RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).sleepCycle < 5) {
+			renderString(0, 0x55, -0x33, 0x30, 0xc, RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).sleepCycle * 0x30, 0x18, 5, 0);
 		}
 		for (i = 0; i < 3; i++) {
 			if (i < PARTNER_ENTITY.lives) {
@@ -3525,9 +3525,9 @@ int8_t entityId;
 		savedPos = modDigiviceSavedPos;
 		savedRot = modDigiviceSavedRot;
 	}
-	setEntityPosition(entityId, RAISE_DATA[type].viewX,
-	                  RAISE_DATA[type].viewY,
-	                  RAISE_DATA[type].viewZ);
+	setEntityPosition(entityId, RAISE_ROW(type).viewX,
+	                  RAISE_ROW(type).viewY,
+	                  RAISE_ROW(type).viewZ);
 	setEntityRotation(entityId, 0, 0, 0);
 	setupEntityMatrix(entityId);
 	startAnimation(entity, 0);
