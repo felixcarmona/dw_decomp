@@ -969,8 +969,6 @@ SECTIONS
 			. = ALIGN(., 4);
             /* Resident helpers reached only by this loaded overlay (xref). */
             BUILD_DIR/src/main/main_menu.c.o(.text.modFlagPixel);
-            BUILD_DIR/src/main/main_menu.c.o(.text.modFlagRect);
-            BUILD_DIR/src/main/main_menu.c.o(.text.modOptionBytes);
             BUILD_DIR/src/main/main_menu.c.o(.text.modOptionCount* .text.setRegisteredSpecies*);
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
             BUILD_DIR/src/main/mod_options.c.o(.text.modFrameRate);
