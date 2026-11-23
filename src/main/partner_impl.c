@@ -277,6 +277,35 @@ SleepPattern SLEEP_PATTERN[8] = {
 	{0, 0, 0, 0, 8, 3},
 };
 
+/*
+ * MOD (species JSON): the stats a Fresh species hatches with from the reincarnation egg, and the technique the
+ * new-game partner starts with; were literals in initializeReincarnatedPartner and initializePartner. Written from
+ * content/species/*.json ("reincarnation_stats", "new_game_technique") after linking (tools/balance.py build);
+ * unused rows have type -1.
+ */
+typedef struct {
+	int16_t type;
+	int16_t hp, mp, offense, defense, speed, brains;
+} ReincarnationStats;
+
+typedef struct {
+	int16_t type;
+	uint8_t technique;	/* learnMove id */
+	uint8_t animation;	/* 0x2E + its index in the species' techniques: moves[0] */
+} NewGameTechnique;
+
+ReincarnationStats REINCARNATION_STATS[4] = {
+	{ 1, 90, 110, 10, 11, 9, 10 },
+	{ 15, 120, 100, 16, 8, 8, 6 },
+	{ 29, 100, 140, 12, 6, 6, 8 },
+	{ 43, 100, 120, 8, 8, 8, 8 },
+};
+
+NewGameTechnique NEW_GAME_TECHNIQUES[2] = {
+	{ 3, 2, 0x2e },
+	{ 0x11, 0x2b, 0x30 },
+};
+
 int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	10, 10, 10, 10, 15, 10, 10, 15, 10, 15, 10, 15, 10, 10, 10, 10, 10,
 	10, 15, 10, 10, 15, 10, 15, 10, 25, 10, 10, 10, 10, 10, 10, 10, 10,
@@ -568,13 +597,11 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 #endif
 
 	PARTNER_ENTITY.lives = 3;
-	if (type == 3) {
-		PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x2e;
-		learnMove(2);
-	}
-	if (type == 0x11) {
-		PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x30;
-		learnMove(0x2b);
+	for (i = 0; i < 2; i++) {	/* MOD (species JSON): was Agumon and Gabumon by literal */
+		if (NEW_GAME_TECHNIQUES[i].type == type) {
+			PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = NEW_GAME_TECHNIQUES[i].animation;
+			learnMove(NEW_GAME_TECHNIQUES[i].technique);
+		}
 	}
 
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[1] = 0xff;
@@ -831,6 +858,8 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 				    int32_t posZ, int32_t rotX, int32_t rotY,
 				    int32_t rotZ)
 {
+	int32_t i;
+
 	removeObject((int16_t)type, 1);
 	applyMMD(type, 3,
 		 (EvoModelData *)&DOOA_REINCARNATION_SEQ.modelData);
@@ -845,14 +874,13 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 	STOP_DISTANCE_TIMER = 0;
 	PARTNER_ENTITY.digimonEntity.stats.current.vabId = 4;
 
-	if (type == 1)
-		setReincarnateStats(90, 110, 10, 11, 9, 10);
-	if (type == 15)
-		setReincarnateStats(120, 100, 16, 8, 8, 6);
-	if (type == 29)
-		setReincarnateStats(100, 140, 12, 6, 6, 8);
-	if (type == 43)
-		setReincarnateStats(100, 120, 8, 8, 8, 8);
+	for (i = 0; i < 4; i++) {	/* MOD (species JSON): was four literal rows */
+		if (REINCARNATION_STATS[i].type == type) {
+			setReincarnateStats(REINCARNATION_STATS[i].hp, REINCARNATION_STATS[i].mp,
+					    REINCARNATION_STATS[i].offense, REINCARNATION_STATS[i].defense,
+					    REINCARNATION_STATS[i].speed, REINCARNATION_STATS[i].brains);
+		}
+	}
 
 	PARTNER_PARA.condition = 0;
 	setSleepTimes(&PARTNER_PARA, type);
