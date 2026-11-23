@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""MOD (language): lang_files.h, the rows of modLangFile (src/main/mod_options.c) from the Makefile's LANG_FILES.
+"""Generate active-language file routes for modLangFile.
 
-A row is the hash of the file's name (FNV-1a, 32 bits) and the place of its Spanish copy and of its copy with English
-signs among the new files (NEW_FILES: the entries after FILE_TABLE_NEW_FIRST), 0xFFFF for none. The names themselves are
-already in FILE_OFFSET_TABLE: a row of three names cost 40 bytes of the executable's heap, this one 8 (the bilingual
-disc has some 140 rows). A name of the disc whose hash meets a row's stops the build.
+Each language has identical row layout: a 24-bit collision-checked FNV key in
+u32, a u16 copy index and a u16 original-story index (0xFFFF when absent).
+LANGxx.BIN patches just the active language's eight-byte rows. All filenames
+in the original table and NEW_FILES must have distinct nonzero keys.
 
-  gen_lang_files.py OUT.h --lang "NAME:ES:EN ..." --new "NAME ..." --table src/main/file_table_us.c
+  gen_lang_files.py OUT.h --lang "NAME:ES:EN[:PT:FR:DE:IT:JA:CA] ..."
+                         --new "NAME ..." --table src/main/file_table_us.c
 """
 import argparse, os, re, sys
 
@@ -15,7 +16,7 @@ def fnv1a(name):
     h = 0x811C9DC5
     for c in name.encode('ascii'):
         h = ((h ^ c) * 0x01000193) & 0xFFFFFFFF
-    return h
+    return h & 0xFFFFFF
 
 
 def main():

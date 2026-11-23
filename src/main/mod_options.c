@@ -352,7 +352,7 @@ int32_t modFileOnDisc(char *name)
 {
 	FileEntry *entry;
 
-	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
+	for (entry = FILE_OFFSET_TABLE; entry->sizeCode != 0; ++entry) {
 		if (fileEntryIs(entry, name)) {
 			return entry->sector != 0;
 		}
@@ -387,7 +387,7 @@ static uint32_t modNameHash(char *name)
 	while (*name != '\0') {
 		h = (h ^ (uint8_t)*name++) * 0x01000193;
 	}
-	return h;
+	return h & 0xFFFFFF;
 }
 
 char *modLangFile(char *name)

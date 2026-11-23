@@ -3479,7 +3479,7 @@ static char *getPartnerModelName(int32_t type)
 			continue;
 		}
 		concatStrings(file, p->name, MAIN_D_801340E4);
-		for (f = FILE_OFFSET_TABLE; f->size != 0; f++) {
+		for (f = FILE_OFFSET_TABLE; f->sizeCode != 0; f++) {
 			if (f->sector != 0 && fileEntryIs(f, file)) {
 				return p->name;
 			}
