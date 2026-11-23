@@ -323,7 +323,7 @@ static int32_t cupListHasType(uint8_t *typePtr, DigimonId partnerType)
 	int32_t hasOther;
 	uint8_t type;
 
-	if (partnerType < NUM_ORIGINAL_DIGIMON) {
+	if (partnerType < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(partnerType)) { /* MOD (record originals): by level */
 		while ((type = *typePtr++) < 0xfe) {
 			if (type == partnerType) {
 				return 1;
