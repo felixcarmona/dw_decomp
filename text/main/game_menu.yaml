@@ -352,3 +352,15 @@ CHART_TEXT:
     CHART_STR_HAVE:
       ja: "You have"
       en_us: "You have"
+    CHART_STR_TIME:
+      ja: "Time (h)"
+      en_us: "Time (h)"
+    CHART_STR_WAIT:
+      ja: "  In %d h"
+      en_us: "  In %d h"
+    CHART_STR_LIFE:
+      ja: "Life runs out first (%d h left)"
+      en_us: "Life runs out first (%d h left)"
+    CHART_STR_SPECIAL:
+      ja: "Special route"
+      en_us: "Special route"
