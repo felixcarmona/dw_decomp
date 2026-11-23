@@ -6074,7 +6074,7 @@ static int32_t modOptionCount(int32_t row)
         return count - (MOD_COLD_CACHE_TYPE < 0 && (MOD_LANGUAGE_AVAILABLE & (1u << MOD_LANG_ZH)));
     }
 #if FONT_SWITCH
-    if (row == MOD_OPT_ROW_FONT) return 3;
+    if (row == MOD_OPT_ROW_FONT) return MOD_LANG == MOD_LANG_ZH ? 1 : 3;
 #endif
     return 2;
 }
