@@ -3,6 +3,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_battle.h>
 #include <dw/attack_object.h>
 #include <dw/combat.h>
 #include <dw/entity.h>
@@ -258,33 +259,26 @@ int16_t VS_getAttackTech(AttackObject *attack)
 int32_t VS_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 {
 	Stats *stats;
+	int32_t row;
 
 	stats = &digimon->stats;
-	switch (anim) {
-	case 0x29:
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.off * 3 / 10), &stats->base.off, 0xb, 3);
-		break;
-	case 0x2a:
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.off / 10), &stats->base.off, 0xb, 3);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.def * 5 / 100), &stats->base.def, 0xb, 4);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.speed / 10), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x22:
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.def / 5), &stats->base.def, 0xb, 4);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.speed / 10), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x15:
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.off * 7 / 100), &stats->base.off, 0xb, 3);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.def * 8 / 100), &stats->base.def, 0xb, 4);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.speed * 7 / 100), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x1e:
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.off / 4), &stats->base.off, 0xb, 3);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.def * 3 / 20), &stats->base.def, 0xb, 4);
-		VS_buffStats(digimon, slot, (int16_t)(stats->base.speed * 3 / 20), &stats->base.speed, 0xb, 5);
-		break;
-	default:
+	/* MOD (battle as data): the buff moves and what they add, in percent of the stat (the rows of MOD_BATTLE) */
+	for (row = 0; row < 5; row++) {
+		if (BMV(BUFF_MOVE0 + row) == anim) {
+			break;
+		}
+	}
+	if (row == 5) {
 		return 0;
+	}
+	if (BM(BUFF_OFF0 + row) > 0) {
+		VS_buffStats(digimon, slot, (int16_t)(stats->base.off * BM(BUFF_OFF0 + row) / 100), &stats->base.off, 0xb, 3);
+	}
+	if (BM(BUFF_DEF0 + row) > 0) {
+		VS_buffStats(digimon, slot, (int16_t)(stats->base.def * BM(BUFF_DEF0 + row) / 100), &stats->base.def, 0xb, 4);
+	}
+	if (BM(BUFF_SPD0 + row) > 0) {
+		VS_buffStats(digimon, slot, (int16_t)(stats->base.speed * BM(BUFF_SPD0 + row) / 100), &stats->base.speed, 0xb, 5);
 	}
 
 	return 1;
@@ -327,9 +321,9 @@ int16_t VS_applyPartnerStatsToFighter(DigimonEntity *attacker, DigimonEntity *de
 		return 0;
 	}
 
-	x = (MOVE_DATA[move].accuracy / 2) * (defender->stats.base.speed - (attacker->stats.base.speed / 10)) / 999;
+	x = BMD(BMD(MOVE_DATA[move].accuracy, HIT_ACC_DIV) * (defender->stats.base.speed - BMD(attacker->stats.base.speed, HIT_SPEED_DIV)), HIT_SPEED_NORM);
 	if ((defender->entity.anim.animId == 0x21) || (defender->entity.anim.animId == 0x22)) {
-		x = x * 6 / 5;
+		x = x * BM(HIT_MOVING_PCT) / 100;
 	}
 
 	result = (int16_t)(MOVE_DATA[move].accuracy - x);
@@ -357,35 +351,35 @@ int32_t VS_rollAttackOutcome(DigimonEntity *attacker, DigimonEntity *defender, i
 		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
 			eff[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
-			eff[i] = 10;
+			eff[i] = BM(NEUTRAL_MULT);
 		}
 	}
 
 	atk = attacker->stats.base.off;
 	def = defender->stats.base.def;
 	if (move == 0x2d) {
-		def = def * 3 / 10;
+		def = def * BM(GUARD_PCT) / 100; /* MOD (battle as data) */
 	}
 
 	if (move >= 0x3a && move < 0x71) {
-		dmg = (atk + MOVE_DATA[move].power) * (eff[2] + (eff[0] + eff[1])) / 30;
-		if (COMBAT_DATA_PTR->player.finisherChargeup[0] >= 0x29) {
-			dmg = dmg * COMBAT_DATA_PTR->player.finisherChargeup[0] / 40;
+		dmg = BMD((atk + MOVE_DATA[move].power) * (eff[2] + (eff[0] + eff[1])), DMG_DIV);
+		if (COMBAT_DATA_PTR->player.finisherChargeup[0] >= BM(CHARGE_FROM)) {
+			dmg = BMD(dmg * COMBAT_DATA_PTR->player.finisherChargeup[0], CHARGE_DIV);
 		}
-		dmg = dmg * (randomLimit(0x15) + 0x5a) / 100;
+		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	} else {
 		diff = atk - def;
-		if (diff >= 0x1f5) {
-			diff = 0x1f4;
+		if (diff > BM(DIFF_CLAMP)) {
+			diff = BM(DIFF_CLAMP);
 		}
-		if (diff < -0x1f4) {
-			diff = -0x1f4;
+		if (diff < -BM(DIFF_CLAMP)) {
+			diff = -BM(DIFF_CLAMP);
 		}
-		dmg = (eff[2] + (eff[0] + eff[1])) * (MOVE_DATA[move].power + diff * MOVE_DATA[move].power / 500) / 30 * (randomLimit(0x15) + 0x5a) / 100;
+		dmg = BMD((eff[2] + (eff[0] + eff[1])) * (MOVE_DATA[move].power + BMD(diff * MOVE_DATA[move].power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 
-	if (dmg <= 0) {
-		dmg = 1;
+	if (dmg <= BM(DMG_MIN) - 1) {
+		dmg = BM(DMG_MIN);
 	}
 	if (dmg >= 0x2710) {
 		dmg = 0x270f;
@@ -468,14 +462,14 @@ void VS_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t mo
 		case 1:
 			if (!(fighter->flags & FIGHTER_FLAG_POISONED)) {
 				fighter->flags |= FIGHTER_FLAG_POISONED;
-				fighter->poisonTimer = 100;
+				fighter->poisonTimer = BM(POISON_FRAMES);
 				VS_addPoisonStatusVisual(digimon, fighter);
 			}
 			break;
 		case 2:
 			if (!(fighter->flags & FIGHTER_FLAG_CONFUSED)) {
 				fighter->flags |= FIGHTER_FLAG_CONFUSED;
-				fighter->confusionTimer = randomLimit(0x65) + 200;
+				fighter->confusionTimer = randomLimit(BMS(CONF_SPAN)) + BM(CONF_BASE);
 				VS_addConfusionStatusVisual(digimon, fighter);
 				VS_resetFighterAction(fighter);
 			}
@@ -483,7 +477,7 @@ void VS_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t mo
 		case 3:
 			if (!(fighter->flags & FIGHTER_FLAG_STUNNED)) {
 				fighter->flags |= FIGHTER_FLAG_STUNNED;
-				fighter->stunTimer = randomLimit(0x29) + 200;
+				fighter->stunTimer = randomLimit(BMS(STUN_SPAN)) + BM(STUN_BASE);
 				VS_addStunStatusVisual(digimon, fighter);
 				VS_resetFighterAction(fighter);
 			}
@@ -635,7 +629,7 @@ skipViewpoint:
 		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
-				if (((DigimonEntity *)entity)->stats.current.currentMP < 0xa5) {
+				if (((DigimonEntity *)entity)->stats.current.currentMP < BM(BLOCK_MIN_MP)) {
 					break;
 				}
 				if ((moves[j] != 0xff) && (DIGI_PARA(entity->type).moves[moves[j] - 0x2e] == 0x2d)) {
@@ -663,7 +657,7 @@ skipViewpoint:
 		}
 		if (MOVE_DATA[tech].range == 1) {
 			dmg = VS_rollAttackOutcome((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
-			dmg = dmg * (randomLimit(0x15) + 0xa) / 100;
+			dmg = dmg * (randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN)) / 100;
 			if (dmg <= 0) {
 				dmg = 1;
 			}
@@ -674,10 +668,10 @@ skipViewpoint:
 			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
-		VS_addFinisherProgress(fighter, fighter->finisherGoal * 3 / 50);
+		VS_addFinisherProgress(fighter, fighter->finisherGoal * BM(BLOCK_GAIN_DEF) / 100);
 		for (j = 0; ENEMY_COUNT >= j; j++) {
 			if (attacker == ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[j]]) {
-				VS_addFinisherProgress(&COMBAT_DATA_PTR->fighter[j], COMBAT_DATA_PTR->fighter[j].finisherGoal * 4 / 50);
+				VS_addFinisherProgress(&COMBAT_DATA_PTR->fighter[j], COMBAT_DATA_PTR->fighter[j].finisherGoal * BM(BLOCK_GAIN_ATK) / 100);
 				break;
 			}
 		}
@@ -692,7 +686,7 @@ skipViewpoint:
 		startAnimation(entity, 0x25);
 		entity->anim.animFlag &= 0xfe;
 blocked:
-		fighter->invulnerableTimer = 3;
+		fighter->invulnerableTimer = BM(BLOCK_INVULN);
 		((DigimonEntity *)entity)->stats.current.isHit = 0;
 	}
 }
@@ -840,7 +834,7 @@ void VS_startFighterMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 	}
 	if ((MOVE_DATA[tech].unk3 & 2) != 0) {
 		if (&digimon->entity == ENTITY_TABLE[1]) {
-			FLEE_DISABLED[1] = 0x6e;
+			FLEE_DISABLED[1] = BM(FLEE_LOCK);
 		} else {
 			P2_AOE_TIMER = 0x6e;
 		}
@@ -929,7 +923,7 @@ void VS_playMoveEffect(DigimonEntity *digimon, DigimonEntity *target, FighterDat
 	}
 
 	if (!((tech >= 0x3a) && (tech < 0x71))) {
-		cost = MOVE_DATA[tech].mpCost * 3;
+		cost = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 		brain = digimon->stats.base.brain;
 		if (brain >= 0x2bc) {
 			if (brain == 0x3e7) {
@@ -962,8 +956,8 @@ void VS_playMoveEffect(DigimonEntity *digimon, DigimonEntity *target, FighterDat
 	}
 
 	fighter->speedBuffer -= MOVE_DATA[tech].power;
-	if (fighter->speedBuffer < -0x9b) {
-		fighter->speedBuffer = -0x9b;
+	if (fighter->speedBuffer < -BM(SPEED_FLOOR)) {
+		fighter->speedBuffer = -BM(SPEED_FLOOR);
 	}
 
 	if (VS_CAMERA_STATE == 3) {
@@ -1243,8 +1237,8 @@ void VS_applyMoveResult(void)
 				fighter->poisonTimer--;
 			}
 			if (fighter->poisonTimer == 0) {
-				fighter->poisonTimer = 100;
-				dmg = stats->base.hp * (randomLimit(3) + 1) / 100;
+				fighter->poisonTimer = BM(POISON_FRAMES);
+				dmg = stats->base.hp * (randomLimit(BMS(POISON_SPAN)) + BM(POISON_MIN)) / 100;
 				fighter->hpDamageBuffer += dmg;
 				if (fighter->hpDamageBuffer >= 0x2710) {
 					fighter->hpDamageBuffer = 0x270f;
@@ -1323,7 +1317,7 @@ void VS_applyMoveResult(void)
 				break;
 			case 0:
 				fighter->flags |= FIGHTER_FLAG_FLATTENED;
-				fighter->flatTimer = randomLimit(0x51) + 0xe0;
+				fighter->flatTimer = randomLimit(BMS(FLAT_SPAN)) + BM(FLAT_BASE);
 				stats->current.isHit = 0;
 				fighter->flags &= ~FIGHTER_FLAG_TRANSFORMING;
 				break;
@@ -1386,7 +1380,7 @@ void VS_removeStatusEffects(DigimonEntity *digimon, FighterData *fighter)
 
 void VS_setFighterCooldown(DigimonEntity *digimon, FighterData *fighter)
 {
-	fighter->cooldown = 0x50;
+	fighter->cooldown = BM(CD_IDLE);
 	fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 }
 
@@ -1484,7 +1478,7 @@ int16_t VS_getCheapestMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = MOVE_DATA[tech].mpCost * 3;
+			score[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 		} else {
 			score[i] = 1000;
 		}
@@ -1660,7 +1654,7 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 				values[i] = 10000;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = MOVE_DATA[tech].mpCost * 3;
+				values[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 			}
 		}
 		VS_sortScoresAscending(values, keys, groups, 3);
@@ -1749,7 +1743,7 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 	if (digimon->stats.base.moves[i] != 0xff) {
 		VS_setupQueuedMove(digimon, fighter, index, i);
 	} else {
-		fighter->cooldown = 0x50;
+		fighter->cooldown = BM(CD_IDLE);
 		fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 	}
 }
@@ -1805,7 +1799,7 @@ void VS_queueRandomMove(DigimonEntity *digimon, FighterData *fighter, int32_t te
 {
 	int16_t flags[4];
 
-	if (randomLimit(10) < 7) {
+	if (randomLimit(10) < BM(CONF_NOTARGET)) {
 		fighter->targetId = 0xff;
 	} else {
 		if (&digimon->entity == ENTITY_TABLE[1]) {
