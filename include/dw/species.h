@@ -193,7 +193,8 @@ typedef struct {
 	 * rows are on bones (shots, breaths): bone, x, y, z of this species (SPECIES_FLAG_EFFECT_DEFAULT; efe.c) */
 	int16_t effectDefault[4];	/* 0x1C4 */
 	int16_t vanillaAs;		/* 0x1CC MOD (options): NEW DIGIMON off, the vanilla species a loaded partner becomes */
-	uint8_t reserved1CE[SPECIES_RECORD_SIZE - 0x1CE];
+	uint8_t statusAnchorBone;	/* 0x1CE: Status-only camera follows this bone; 0 keeps the native view */
+	uint8_t reserved1CF[SPECIES_RECORD_SIZE - 0x1CF];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
