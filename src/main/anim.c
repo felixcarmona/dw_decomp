@@ -7,6 +7,7 @@
 #include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
+#include <dw/species.h>
 #include <dw/sound.h>
 #include <dw/types.h>
 
@@ -222,7 +223,14 @@ void startAnimation(entity, animId)
 		return;
 
 	modInterpAnimStarted(entity); /* MOD (fps): a pose jump */
-	instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
+	if (animTable[animId] & COLD_ANIM_FLAG) {
+		/* MOD (cold animations): read from the disc into COLD_ANIM_BUFFER (species.h) */
+		instrPtr = (int16_t *)loadColdAnimation(entity, animTable[animId]);
+		if (instrPtr == NULL)
+			return;
+	} else {
+		instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
+	}
 	if ((*instrPtr & 0x7fff) == 1) {
 		/* MOD (memreclaim): an NPC slot trimmed away (npc_anim_trim.c);
 		 * no original animation is 1 frame long */
