@@ -6521,7 +6521,10 @@ void renderTMDModel(buffer, id, coord, super, trans, rot, scale)
 	GsGetLs(obj.coord2, &m);
 	GsSetLsMatrix(&m);
 
-	GsSortObject4(&obj, ACTIVE_ORDERING_TABLE, 2, getScratchAddr(0));
+	/* MOD (packet budget): at most one POLY_GT4 per primitive (attribute 0) */
+	if (modPacketFits(((struct TMD_STRUCT *)obj.tmd)->primn * sizeof(POLY_GT4))) {
+		GsSortObject4(&obj, ACTIVE_ORDERING_TABLE, 2, getScratchAddr(0));
+	}
 }
 
 void initializeSomeArenaArrays(int32_t count, int32_t arg1, int32_t arg2,
