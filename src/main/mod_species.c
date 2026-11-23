@@ -90,6 +90,22 @@ void modApplySpeciesLevels(void)
 		target = &EVOLUTION_STATS_GAINS[row[0]].hp;
 		for (k = 0; k < 6; k++) target[k] = row[1 + (MOD_OPT_NEW_DIGIMON ? 0 : 6) + k];
 	}
+	/* Explicit on/off path and requirement rows live in a separate sector. */
+	i = ((uint32_t *)SPECIES_SECTOR)[SPECIES_HEADER_EVOLUTION_OFF / 4];
+	if (!i) return;
+	readSpeciesSector(i);
+	row = (uint16_t *)SPECIES_SECTOR;
+	j = *row++;
+	if (j > SPECIES_EVOLUTION_SWAP_MAX) j = SPECIES_EVOLUTION_SWAP_MAX;
+	for (i = 0; i < j; i++, row += 51) {
+		int32_t k;
+		int16_t *path;
+		if (row[0] < 1 || row[0] > 62) continue;
+		path = &EVOLUTION_PATHS[row[0] - 1].from[0];
+		for (k = 0; k < 11; k++) path[k] = row[1 + (MOD_OPT_NEW_DIGIMON ? 0 : 11) + k];
+		target = &EVOLUTION_REQS[row[0]].digimon;
+		for (k = 0; k < 14; k++) target[k] = row[23 + (MOD_OPT_NEW_DIGIMON ? 0 : 14) + k];
+	}
 }
 
 int32_t modOriginalLevel(int32_t type)

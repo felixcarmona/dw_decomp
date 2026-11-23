@@ -104,6 +104,9 @@ typedef struct {
 /* Header: u16 count, then {u16 id, u16 on[6], u16 off[6]}. */
 #define SPECIES_HEADER_STATS_OFF 0x580
 #define SPECIES_STATS_SWAP_MAX 19
+/* Header u32 sector pointer; sector: u16 count, then 102-byte rows. */
+#define SPECIES_HEADER_EVOLUTION_OFF 0x3c
+#define SPECIES_EVOLUTION_SWAP_MAX 20
 void modApplySpeciesLevels(void);
 /* the level the original game gives a species (its NEW DIGIMON off level): the original evolution items keep their rule with it */
 int32_t modOriginalLevel(int32_t type);
