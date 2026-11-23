@@ -2297,7 +2297,7 @@ void handleChips(int16_t chipId)
 	addWithLimit(&PARTNER_ENTITY.digimonEntity.stats.base.brain, brain, STAT_CAP);
 	modifyLifetime(lifetime);
 	if ((0x1c < chipId) && (chipId < 0x20)) {
-		addTamerLevel(10, -1);
+		modTamerLevelEvent(MOD_TL_CHIP_CHANCE, -1); /* MOD (tamer level as data) */
 	}
 }
 

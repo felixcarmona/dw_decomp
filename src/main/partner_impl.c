@@ -920,8 +920,9 @@ void setReincarnateStats(int16_t hp, int16_t mp, int16_t offense,
 	int16_t inheritedSpeed;
 	int16_t inheritedBrains;
 
-	if (IS_NATURAL_DEATH == 1) {
-		percentage = TAMER_ENTITY.tamerLevel;
+	/* MOD (tamer level as data): the percent per tamer level is MOD_TAMER_LEVEL's (-1: nothing is inherited) */
+	if (IS_NATURAL_DEATH == 1 && MOD_TAMER_LEVEL[MOD_TL_REBIRTH_PERCENT] >= 0) {
+		percentage = TAMER_ENTITY.tamerLevel * MOD_TAMER_LEVEL[MOD_TL_REBIRTH_PERCENT];
 	} else {
 		percentage = 0;
 	}
@@ -1115,7 +1116,7 @@ void tickSleepMechanics(void)
 		PARTNER_PARA.condition &= ~1;
 		PARTNER_PARA.careMistakes++;
 		updateConditionAnimation();
-		addTamerLevel(1, -1);
+		modTamerLevelEvent(MOD_TL_SLEEPS_LATE_CHANCE, -1); /* MOD (tamer level as data) */
 	}
 
 	if (wasSleepy == 0) {

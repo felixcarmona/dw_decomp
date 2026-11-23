@@ -8,6 +8,7 @@
 #include <dw/evl.h>
 #include <dw/fade.h>
 #include <dw/ids.h>
+#include <dw/level.h>
 #include <dw/item.h>
 #include <dw/kar.h>
 #include <dw/main.h>
@@ -618,7 +619,7 @@ void tickWildPoop(void)
 			tamerSetState(0);
 			PARTNER_STATE = 1;
 			setCameraFollowPlayer();
-			addTamerLevel(1, -1);
+			modTamerLevelEvent(MOD_TL_EATS_POOP_CHANCE, -1); /* MOD (tamer level as data) */
 		}
 		break;
 	default:
