@@ -5746,8 +5746,13 @@ void modVersionDraw(void)
 
 void modVersionRender(void)
 {
+	modVersionRenderAt(MOD_VERSION_TOP);
+}
+
+void modVersionRenderAt(int top)
+{
 	if (MOD_VERSION_TEXT[0] != '\0') {
-		renderString(MOD_VERSION_COLOR, MOD_VERSION_LEFT - 0xA0, MOD_VERSION_TOP - 0x78, MOD_VERSION_W, 0xC, 0,
+		renderString(MOD_VERSION_COLOR, MOD_VERSION_LEFT - 0xA0, top - 0x78, MOD_VERSION_W, 0xC, 0,
 			     MOD_VERSION_ROW, 0, 1);
 	}
 }
