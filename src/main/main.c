@@ -3706,6 +3706,8 @@ void runLandingScreen(void)
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 	SECRET_CODE = -1;
 #endif
+	/* The movie replaced EVL; restore title storage before installing its display. */
+	loadTitleMenuOverlays();
 	addObject(0xfa3, 0, NULL, (RenderFunction)renderPressStartToContinue);
 	modNoticeDraw(); /* MOD (emulator notice) */
 	modVersionDraw(); /* MOD (version) */

@@ -4944,31 +4944,46 @@ void modBootOptions(void)
 	modNoticeProbe();
 }
 
-/*
- * MOD (emulator notice): the title screen lists the settings the game plays best with when it could not find one of them, each on its own
- * row from its own check; with both there, nothing shows. RAM: modProbeRam. CPU: the reads of the hblank
- * counter that fit in MOD_CPU_LINES lines. The counter follows the screen whatever the emulated CPU does, so the count grows with
- * an overclock: DuckStation 3801 at 100 %, 7389 at 200 %, 9303 at 250 %, 10977 at 300 %. MOD_CPU_SPINS_FAST sits between 200 and 250.
+/* MOD (detected settings): polling counts calibrated in docs/reference/frame-rate.md.
+ * RAM stays boot-only. The title redraws when the selector's latest reading or mode changes.
+ * Drawing, calibration and scratch live in the title overlay; the boot probe stays resident.
  */
 #define MOD_NOTICE_NO_RAM	1
 #define MOD_NOTICE_SLOW_CPU	2
-#define MOD_NOTICE_LEFT		-148 /* the panel, over the top of the logo */
+#define MOD_NOTICE_LEFT		-148
 #define MOD_NOTICE_TOP		12
 #define MOD_NOTICE_WIDTH	296
-#define MOD_NOTICE_HEIGHT	72
-#define MOD_NOTICE_STRS		6
-#define MOD_NOTICE_NAME_W	0x96 /* the two columns of a row, with any font */
-#define MOD_NOTICE_STATE_W	0x78
-#define MOD_NOTICE_V(i)		(((i) + ((i) == 5)) * 0xC) /* row 5 of the text area is the version's */
+#define MOD_NOTICE_HEIGHT	66
+#define MOD_NOTICE_STRS		5
+#define MOD_NOTICE_V(i)		((i) * 0xC) /* stop before the version's row at 0x3C */
 void modPlateRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z);
 void renderString(int32_t color, int16_t x, int16_t y, int16_t width, int16_t height, int16_t u, int16_t v, int32_t depth, int32_t shadow);
 
 int32_t MOD_CPU_SPINS;
 static int32_t MOD_NOTICE;
-static uint8_t MOD_NOTICE_W[MOD_NOTICE_STRS];
-static char *MOD_NOTICE_TEXT[MOD_NOTICE_STRS] = {
-	MOD_NOTICE_STR_HEAD1, MOD_NOTICE_STR_HEAD2, MOD_NOTICE_STR_RAM, MOD_NOTICE_STR_CPU, MOD_NOTICE_STR_MISSING, MOD_NOTICE_STR_READY,
-};
+/* One object above the compiler's eight-byte small-data cutoff, so it can
+ * live in the title overlay without gp-relative accesses to resident RAM. */
+static struct {
+	int32_t spins, mode;
+	uint8_t widths[MOD_NOTICE_STRS];
+} MOD_NOTICE_CACHE;
+static const int16_t MOD_NOTICE_CALIBRATION[][2] = {{3801, 100}, {7389, 200}, {9303, 250}, {10977, 300}};
+
+static int32_t modNoticePercent(int32_t spins)
+{
+	int32_t i, percent;
+	const int16_t *lo, *hi;
+
+	/* Stay within the measured range, including a corrupt/restored reading. */
+	if (spins <= 3801) return 100;
+	if (spins >= 10977) return 300;
+	for (i = 1; i < 3 && spins > MOD_NOTICE_CALIBRATION[i][0]; i++) { }
+	lo = MOD_NOTICE_CALIBRATION[i - 1];
+	hi = MOD_NOTICE_CALIBRATION[i];
+	percent = lo[1] + (spins - lo[0]) * (hi[1] - lo[1]) / (hi[0] - lo[0]);
+	percent = ((percent + 12) / 25) * 25;
+	return percent;
+}
 
 /* Keep this loop identical at boot and during idle presentation waits. */
 int32_t modCpuProbe(void)
@@ -4998,48 +5013,58 @@ void modNoticeProbe(void)
 void modNoticeDraw(void)
 {
 	RECT rect;
-	int32_t i;
-	int32_t mode;
-	char *str;
+	int32_t i, mode;
+	char ram[32], cpu[32], fps[32];
+	char *text[MOD_NOTICE_STRS];
+	static const int16_t widths[MOD_NOTICE_STRS] = {254, 254, 80, 104, 64};
 
-	if (MOD_NOTICE == 0) {
-		return;
-	}
+	MOD_NOTICE_CACHE.spins = MOD_CPU_SPINS;
+#if FPS != 20
+	MOD_NOTICE_CACHE.mode = MOD_FPS_MODE_RUN;
+#else
+	MOD_NOTICE_CACHE.mode = 0;
+#endif
+	sprintf(ram, MOD_NOTICE_STR_RAM, MOD_NOTICE & MOD_NOTICE_NO_RAM ? 2 : 8);
+	sprintf(cpu, MOD_NOTICE_STR_CPU, modNoticePercent(MOD_NOTICE_CACHE.spins));
+	sprintf(fps, MOD_NOTICE_STR_FPS, MOD_NOTICE_CACHE.mode == 2 ? 60 : 20);
+	text[0] = MOD_NOTICE_STR_HEAD1;
+	text[1] = MOD_NOTICE_STR_HEAD2;
+	text[2] = ram;
+	text[3] = cpu;
+	text[4] = fps;
 	setRECT(&rect, 0, 0, 0x100, MOD_NOTICE_V(MOD_NOTICE_STRS));
 	clearTextSubArea(&rect);
 	for (i = 0; i < MOD_NOTICE_STRS; i++) {
-		str = MOD_NOTICE_TEXT[i];
-		mode = fitStringMode(str, i < 2 ? 0xFE : i < 4 ? MOD_NOTICE_NAME_W : MOD_NOTICE_STATE_W);
-		drawStringMode(str, 0, MOD_NOTICE_V(i), mode);
+		mode = fitStringMode(text[i], widths[i]);
+		drawStringMode(text[i], 0, MOD_NOTICE_V(i), mode);
 		DrawSync(0);
-		mode = measureStringMode(str, mode) + 1; /* and the shadow */
-		MOD_NOTICE_W[i] = mode < 0xFF ? mode : 0xFF; /* a u of 8 bits */
+		mode = measureStringMode(text[i], mode) + 1;
+		MOD_NOTICE_CACHE.widths[i] = mode < 0xFF ? mode : 0xFF;
 	}
 }
 
 static void modNoticeString(int32_t color, int32_t x, int32_t y, int32_t i)
 {
-	renderString(color, x, y - 0x78, MOD_NOTICE_W[i], 0xC, 0, MOD_NOTICE_V(i), 0, 1);
+	renderString(color, x, y - 0x78, MOD_NOTICE_CACHE.widths[i], 0xC, 0, MOD_NOTICE_V(i), 0, 1);
 }
 
 void modNoticeRender(void)
 {
-	int32_t i;
-	int32_t missing;
-
-	if (MOD_NOTICE == 0) {
-		return;
+	if (MOD_NOTICE_CACHE.spins != MOD_CPU_SPINS
+#if FPS != 20
+	    || MOD_NOTICE_CACHE.mode != MOD_FPS_MODE_RUN
+#endif
+	) {
+		modNoticeDraw();
 	}
 	modPlateRect(MOD_NOTICE_LEFT, MOD_NOTICE_TOP - 0x78, MOD_NOTICE_WIDTH, MOD_NOTICE_HEIGHT, 0x46, 0xBE, 0xEB, 2);
 	modPlateRect(MOD_NOTICE_LEFT + 1, MOD_NOTICE_TOP - 0x77, MOD_NOTICE_WIDTH - 2, MOD_NOTICE_HEIGHT - 2, 8, 10, 0x38, 1);
-	modNoticeString(4, -MOD_NOTICE_W[0] / 2, MOD_NOTICE_TOP + 8, 0);
-	modNoticeString(4, -MOD_NOTICE_W[1] / 2, MOD_NOTICE_TOP + 20, 1);
-	for (i = 0; i < 2; i++) {
-		missing = (MOD_NOTICE >> i) & 1;
-		modNoticeString(0, MOD_NOTICE_LEFT + 12, MOD_NOTICE_TOP + 38 + i * 14, 2 + i);
-		modNoticeString(missing ? 6 : 7, MOD_NOTICE_LEFT + MOD_NOTICE_WIDTH - 12 - MOD_NOTICE_W[5 - missing], MOD_NOTICE_TOP + 38 + i * 14,
-				5 - missing);
-	}
+	modNoticeString(4, -MOD_NOTICE_CACHE.widths[0] / 2, MOD_NOTICE_TOP + 8, 0);
+	modNoticeString(4, -MOD_NOTICE_CACHE.widths[1] / 2, MOD_NOTICE_TOP + 22, 1);
+	/* Separate crops and fixed columns include a pixel for each shadow. */
+	modNoticeString(MOD_NOTICE & MOD_NOTICE_NO_RAM ? 6 : 7, -136, MOD_NOTICE_TOP + 48, 2);
+	modNoticeString(MOD_CPU_SPINS >= MOD_CPU_SPINS_FAST ? 7 : 6, -48, MOD_NOTICE_TOP + 48, 3);
+	modNoticeString(MOD_NOTICE_CACHE.mode == 2 ? 7 : 6, 136 - MOD_NOTICE_CACHE.widths[4], MOD_NOTICE_TOP + 48, 4);
 }
 
 static void prepareSaveFile(int32_t fromRam)
