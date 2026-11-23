@@ -25,6 +25,8 @@
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
+
+int32_t modPacketFits(int32_t bytes); /* MOD (packet budget): dw/world_object.h */
 #include <text/main/utils2.h>
 
 #define shop_START		((char *)OVL_SHOP_BASE)
@@ -209,6 +211,10 @@ void drawEntityText(int32_t color, int16_t n, int16_t x, int16_t y,
 	 * right edge stays); the original drew only the first n digits */
 	x -= CAPS_SHIFT(n, value, 7);
 	n = CAPS_DIGITS(n, value);
+	/* MOD (packet budget): see dw/world_object.h */
+	if (!modPacketFits(n * (int32_t)sizeof(POLY_FT4))) {
+		return;
+	}
 	convertValueToDigits(n, value, &count, buf);
 
 	for (i = count - 1; i >= 0; i--) {
@@ -381,6 +387,10 @@ void drawEntityTextIcon(int16_t x, int16_t y, uint8_t u, int32_t otOffset)
 {
 	POLY_FT4 *prim;
 
+	/* MOD (packet budget): see dw/world_object.h */
+	if (!modPacketFits(sizeof(POLY_FT4))) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	setEntityTextDigit(prim, 0x100, 0x1E6);
 	setRGB0(prim, 0x80, 0x80, 0x80);

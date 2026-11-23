@@ -2966,6 +2966,11 @@ void renderDigimon(instanceId)
 		if (ENTITY_TABLE[instanceId]->flatSprite != -1) {
 			continue;
 		}
+		/* MOD (packet budget): a bone emits at most one POLY_GT4 (52 B)
+		 * per primitive (attribute 0, no subdivision) */
+		if (!modPacketFits(((struct TMD_STRUCT *)pos->obj.tmd)->primn * sizeof(POLY_GT4))) {
+			continue;
+		}
 		if (instanceId == 1) {
 			if (PARTNER_WIREFRAME_TOTAL != 0x10) {
 				renderWireframed(&pos->obj, PARTNER_WIREFRAME_TOTAL);

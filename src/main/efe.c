@@ -647,6 +647,10 @@ void renderEntityParticleFX(int32_t id)
 	fx = &ENTITY_PARTICLE_FX_DATA[id];
 	owner = fx->owner;
 	owner = fx->owner;
+	/* MOD (packet budget): see dw/world_object.h */
+	if (!modPacketFits(sizeof(POLY_FT4))) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	boneId = fx->boneId;
 	sprite = &ENTITY_PARTICLE_FX_MODES[fx->unk8];
@@ -1121,6 +1125,10 @@ void renderParticleFlash(ParticleFlashData *params)
 	cellH = (sy + 1) / (rows + 1);
 	uStep = (w1 + 1) / (cols + 1);
 	vStep = (h1 + 1) / (rows + 1);
+	/* MOD (packet budget): four mirrored grids of (rows+1)*(cols+1) quads */
+	if (!modPacketFits((rows + 1) * (cols + 1) * 4 * (int32_t)sizeof(POLY_FT4))) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
 	for (j = 0; j <= rows; j++) {
