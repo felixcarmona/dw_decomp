@@ -1398,6 +1398,7 @@ void initializeFontCLUT(void)
 void clearTextArea(void)
 {
 	RECT rect;
+    if (MOD_LANG == MOD_LANG_ZH) zhVsReset();
 
 	setRECT(&rect, 0, 0, TEXT_AREA_SIZE, TEXT_AREA_SIZE);
 	clearTextSubArea(&rect);

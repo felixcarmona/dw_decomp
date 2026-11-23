@@ -881,7 +881,7 @@ SECTIONS
 			 * messages, labels and the save icon. Nothing that is ever written goes here: a reload would undo it */
 			BUILD_DIR/src/main/main_menu.c.o(
 				.data.PLAIN_LETTERS .data.SAVE_ICON_FRAME_1 .data.MENU_VIEWS
-				.data.MEMORY_CARD_ERROR_MESSAGES .data.MAIN_D_801315A0
+				.data.MEMORY_CARD_ERROR_MESSAGES
 				.data.MAIN_D_80131390 .data.MAIN_D_8013134C .data.MAIN_D_801311D4 .data.MAIN_D_80131580
 				.data.MAIN_D_80131500 .data.MAIN_D_801313E4 .data.MAIN_D_80131264 .data.MAIN_D_80131200
 				.data.MAIN_D_801311EC .data.MAIN_D_801315C0 .data.MAIN_D_8013154C .data.MAIN_D_801314B0
