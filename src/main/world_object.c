@@ -196,6 +196,7 @@ void tickObjects(void)
 void renderObjects(void)
 {
 	int32_t i;
+	WorldObject *banner = NULL;
 
 	/* loops that do not call lateTickObjects() themselves (battle, menus)
 	 * get it here, once per tick, still before anything is drawn */
@@ -206,8 +207,18 @@ void renderObjects(void)
 	for (i = 0; i < NUM_WORLD_OBJECTS; ++i) {
 		if ((WORLD_OBJECTS[i].objectId != -1) &&
 		    (WORLD_OBJECTS[i].render != NULL)) {
-			WORLD_OBJECTS[i].render(WORLD_OBJECTS[i].instanceId);
+			/* addObject reuses holes, so the banner can otherwise run before
+			 * models. It must budget against all of this frame's scene. */
+			if (WORLD_OBJECTS[i].objectId == OBJECT_ID_BATTLE_START_TEXT) {
+				banner = &WORLD_OBJECTS[i];
+			} else {
+				WORLD_OBJECTS[i].render(WORLD_OBJECTS[i].instanceId);
+			}
 		}
+	}
+	/* Another renderer can remove/reuse a slot; only call a surviving banner. */
+	if (banner != NULL && banner->objectId == OBJECT_ID_BATTLE_START_TEXT && banner->render != NULL) {
+		banner->render(banner->instanceId);
 	}
 	if (!MOD_RENDER_MULTIPASS) {
 		modFlushRemovals();

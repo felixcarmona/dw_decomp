@@ -288,7 +288,7 @@ void BTL_tickQuickStartText(void)
 void BTL_endQuickStartText(void)
 {
 	if (BTL_QUICK_TEXT_STATE != 0) {
-		BTL_removeBattleStartText(); /* the gathering and the burst are the same object, 0x1A6 */
+		BTL_removeBattleStartText(); /* the gathering and burst share one object */
 		BTL_QUICK_TEXT_STATE = 0;
 	}
 }
