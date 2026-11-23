@@ -1,5 +1,7 @@
 extern int MOD_CHEATS_TRANSITION;
 void modCheatsCleanup(void);
+/* Psy-Q has eight VBlank slots: sound uses 4, memory cards use 7. */
+int VSyncCallbacks(int slot, void (*callback)(void));
 #include <stdlib.h>
 
 #include <__rts_info_t__.h>
@@ -18,6 +20,7 @@ void modCheatsCleanup(void);
 #include <dw/combat.h>
 #include <dw/efe.h>
 #include <dw/entity.h>
+#include <dw/evolution.h>
 #include <dw/fade.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
@@ -3457,6 +3460,7 @@ int32_t main(void)
 	SetGraphDebug(0);
 	initializeFramebuffer();
 	PadInit(0);
+	VSyncCallbacks(6, mixEvolutionInput);
 	CdInit();
 	MemCardInit(1);
 	MemCardStart();
@@ -5945,7 +5949,8 @@ void applyDrawOffset(int32_t offset)
 		&DR_OFFSETS[offset]);
 }
 
-void pollInputGame(void)
+/* Share the polling path so the entropy pool costs no additional heap budget. */
+static __attribute__((noinline)) void pollInput(int32_t *timer, int32_t delay, int32_t repeat)
 {
 	int32_t held;
 
@@ -5955,36 +5960,25 @@ void pollInputGame(void)
 	held = POLLED_INPUT & POLLED_INPUT_PREVIOUS;
 	held &= 0xf000f000;
 	if (held != 0) {
-		if (++GAME_INPUT_REPEAT_TIMER >= 5) {
-			GAME_INPUT_REPEAT_TIMER -= 2;
+		if (++*timer >= delay) {
+			*timer -= repeat;
 		} else {
 			held = 0;
 		}
 	} else {
-		GAME_INPUT_REPEAT_TIMER = 0;
+		*timer = 0;
 	}
 	CHANGED_INPUT |= held;
 }
 
+void pollInputGame(void)
+{
+	pollInput(&GAME_INPUT_REPEAT_TIMER, 5, 2);
+}
+
 void pollInputMenu(void)
 {
-	int32_t held;
-
-	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
-	POLLED_INPUT = PadRead(0);
-	CHANGED_INPUT = POLLED_INPUT & ~POLLED_INPUT_PREVIOUS;
-	held = POLLED_INPUT & POLLED_INPUT_PREVIOUS;
-	held &= 0xf000f000;
-	if (held != 0) {
-		if (++MENU_INPUT_REPEAT_TIMER >= 0xf) {
-			MENU_INPUT_REPEAT_TIMER -= 6;
-		} else {
-			held = 0;
-		}
-	} else {
-		MENU_INPUT_REPEAT_TIMER = 0;
-	}
-	CHANGED_INPUT |= held;
+	pollInput(&MENU_INPUT_REPEAT_TIMER, 15, 6);
 }
 
 /* MOD (language): the title screen's "Press Start Button" (x, y, w, h, u, v in TITLE256.TIM); the Spanish "Pulsa el

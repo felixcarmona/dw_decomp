@@ -8,6 +8,8 @@
 /* Callers check the due hour. The lookup previews eligibility without RNG/state changes. */
 int16_t getNaturalEvolutionTarget(int32_t currentDigimon);
 int16_t rollNaturalEvolutionTarget(int32_t currentDigimon);
+/* VBlank callback: fold physical pad changes into unsaved evolution entropy. */
+void mixEvolutionInput(void);
 int16_t getFreshEvolutionTarget(int32_t currentDigimon);
 int16_t getInTrainingEvolutionTarget(int32_t currentDigimon);
 int16_t getRookieEvolutionTarget(int32_t currentDigimon, int32_t roll);
