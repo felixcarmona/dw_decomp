@@ -350,9 +350,6 @@ MOD_OPTIONS:
     MOD_OPT_STR_JP:
       ja: "JAPANESE CONTROLS"
       en_us: "JAPANESE CONTROLS"
-    MOD_OPT_STR_CLOCK:
-      ja: "DIGITAL CLOCK"
-      en_us: "DIGITAL CLOCK"
     MOD_OPT_STR_OFF:
       ja: "OFF"
       en_us: "OFF"
@@ -446,9 +443,6 @@ MOD_OPTIONS:
     MOD_OPT_STR_SPANISH:
       ja: "ESPANOL"
       en_us: "ESPANOL"
-    MOD_OPT_STR_ENEMY:
-      ja: "敵の新HPバー"
-      en_us: "NEW ENEMY BARS"
     MOD_OPT_STR_CHEATS:
       ja: "CHEATS"
       en_us: "CHEATS"

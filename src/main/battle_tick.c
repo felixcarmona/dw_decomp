@@ -26,7 +26,6 @@ extern int8_t TAMER_START_TILE_Y;
 extern int8_t TAMER_WAYPOINT_COUNT;
 extern int8_t TAMER_WAYPOINT_X[];
 extern int8_t TAMER_WAYPOINT_Y[];
-extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int32_t IS_TAMERLESS_BATTLE;
 
 void BTL_getRemainingEnemies(Entity *self, int16_t *out, int16_t *count);
@@ -275,10 +274,6 @@ void tamerTickBattle(instanceId)
 					startAnimation(tamer, 0xa);
 				}
 			}
-		}
-
-		if (((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x100) != 0) {
-			BATTLE_TOGGLE_LIFEBAR = (BATTLE_TOGGLE_LIFEBAR + 1) & 1;
 		}
 
 		handleCommands();

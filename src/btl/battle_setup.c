@@ -10,7 +10,6 @@
 #include <dw/script.h>
 #include <dw/mod_options.h> /* MOD (quick battle start) */
 
-extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int16_t DEATH_COUNTDOWN;
 extern int32_t IS_TAMERLESS_BATTLE;
 extern int8_t TAMER_START_TILE_X;
@@ -97,7 +96,6 @@ void BTL_initializeCombat(void)
 		f->mpDamageBuffer = 0;
 		f->flags = 0;
 		f->moveRange = 0;
-		COMBAT_DATA_PTR->player.unk1[i].unk25 = 0xff;
 		f->flatTimer = 0;
 		f->invulnerableTimer = 0;
 		f->cooldown = 0;

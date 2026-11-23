@@ -61,11 +61,9 @@
 
 extern uint8_t COLORCODE_LOWBITS; /* font.c: the text's colour */
 
-int32_t MOD_OPT_ENEMY_BARS = 1;
 int32_t MOD_OPT_CHEATS = 0;
 int32_t MOD_OPT_SHORTCUTS = 0;
 int32_t MOD_OPT_BUTTONS = MOD_BUTTONS_US;
-int32_t MOD_OPT_CLOCK = 1;
 int32_t MOD_OPT_EVO_GUIDE = 1;
 int32_t MOD_OPT_NEW_DIGIMON = 1;
 int16_t MOD_SWAP_FROM;
