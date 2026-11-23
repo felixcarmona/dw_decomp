@@ -896,6 +896,14 @@ SECTIONS
                 .text.modLabDrawText .text.modLabRowY .text.modLabRender
                 .text.modLabMenuLoaded* .text.labInt
                 .rodata.modLabMenuLoaded*);
+            /* UI-only storage: the anonymous translated-literal pool, immutable
+             * field/home tables and redraw cache. Roster captions, their level
+             * table and all shared state remain resident. labText is scratch:
+             * modLabMenuLoaded clears it before the first read on every entry;
+             * the BIOS does not zero overlay bss. Card reloads occur only after
+             * the lab's render callback has been removed. */
+            BUILD_DIR/src/main/mod_lab.c.o(.rodata .rodata.LAB_FIELDS
+                .rodata.LAB_HOME_TEXT .bss.labText);
             . = ALIGN(., 4);
 
 			LONG(0);
