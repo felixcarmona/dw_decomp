@@ -817,6 +817,10 @@ void renderItemPickupTextbox(int32_t instanceId)
 	++TEXTBOX_OPEN_TIMER;
 }
 
+extern int8_t MOD_TFS_SAME_MAP; /* tfs_stream.c */
+void modResumeFieldMusic(void); /* sound_async.c */
+void tfsStreamHoldPrefetch(void); /* tfs_stream.c */
+
 int8_t startBattle(int16_t instanceId)
 {
 	int8_t result;
@@ -848,8 +852,17 @@ int8_t startBattle(int16_t instanceId)
 		handlePostBattleTiredness();
 		SKIP_DAYTIME_TRANSITION = 1;
 	} else if (result == 1) {
-		playBGM(ACTIVE_BGM_FONT);
+		/*
+		 * MOD (post-battle stall): the two reads that stood the picture still on the way back, the field's music font
+		 * (playBGM) and the background's header (readMapTFS, a seek to the start of the .TFS for palettes already
+		 * resident). The header is not read again, and the font goes through the file queue like the battle's (QUICK
+		 * BATTLES on); the ring opens at once and leaves the slots under the font alone until it is in.
+		 */
+		modResumeFieldMusic();
+		MOD_TFS_SAME_MAP = 1;
 		readMapTFS(CURRENT_SCREEN);
+		MOD_TFS_SAME_MAP = 0;
+		tfsStreamHoldPrefetch();
 		STORED_TAMER_POS = TAMER_ENTITY.entity.posData->location;
 		partnerSetState(1);
 		PARTNER_PARA.happiness += careAmt(MOD_CARE_WON_HAPPY);

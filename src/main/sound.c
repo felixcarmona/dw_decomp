@@ -1068,8 +1068,11 @@ int32_t loadMusicFont(int32_t font)
 	return 1;
 }
 
+void modFieldMusicWait(void); /* sound_async.c */
+
 int32_t playMusic(int32_t font, int32_t track)
 {
+	modFieldMusicWait(); /* MOD (post-battle stall): the field's font read after a battle is in and playing first */
 	/* MOD (sound limits): every font of the index, not 1..0x21 */
 	if ((font <= 0) || (SOUND_CHUNK_COUNT[SOUND_FILE_FAALL] < font)) {
 		return 0;
