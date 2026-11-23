@@ -363,7 +363,7 @@ int32_t BTL_isBattleFinished(void)
 	}
 
 	if ((entity->anim.animId == 0x2b) && !(entity->anim.animFlag & 1)) {
-		if (TAMER_ITEM.worldItem.type == 0xff) {
+		if (TAMER_ITEM.worldItem.type == ITEM_NONE) {
 			DEATH_COUNTDOWN++;
 		}
 		if (DEATH_COUNTDOWN == 0x14) {

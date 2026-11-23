@@ -32,7 +32,7 @@ void renderSelectionCursor(int32_t x, int32_t y, int16_t w, int16_t h, int32_t l
 void swapByte(uint8_t *a, uint8_t *b);
 void playSound(int32_t vabId, uint32_t note);
 void sortItems(int16_t mode);
-void renderItemSprite(int32_t type, int32_t x, int32_t y, int32_t layer);
+void renderItemSprite(ItemId type, int16_t x, int16_t y, int32_t layer);
 void renderItemAmount(int32_t color, int32_t n, int32_t x, int32_t y,
                       int32_t value, int32_t layer);
 
@@ -281,7 +281,7 @@ void initializeInventoryUI(void)
 void addInventoryUI(void)
 {
 	if ((IS_INVENTORY_INITIALIZED != 1) && (UI_BOX_DATA[0].state == 0) &&
-	    (TAMER_ITEM.worldItem.type == 0xff)) {
+	    (TAMER_ITEM.worldItem.type == ITEM_NONE)) {
 		IS_INVENTORY_INITIALIZED = 1;
 		INVENTORY_ACTION = 1;
 		addObject(0x1a5, 0, tickInventoryUI, 0);
@@ -886,7 +886,7 @@ void selectRegularInventory(void)
 			moveItem();
 			return;
 		}
-		if ((INVENTORY_ACTION < 5) && (TAMER_ITEM.worldItem.type == 0xff) &&
+		if ((INVENTORY_ACTION < 5) && (TAMER_ITEM.worldItem.type == ITEM_NONE) &&
 		    (UI_BOX_DATA[1].state == 1)) {
 			INVENTORY_ACTION = 3;
 		}

@@ -2018,7 +2018,7 @@ void setSleepDisabled(int16_t arg)
 
 void startFeedingItem(ItemId arg) /* MOD: was u8 */
 {
-	if (TAMER_ITEM.worldItem.type == 0xff) {
+	if (TAMER_ITEM.worldItem.type == ITEM_NONE) {
 		TAMER_ITEM.worldItem.type = arg;
 		tamerSetState(6);
 		partnerSetState(5);

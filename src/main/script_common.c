@@ -63,7 +63,7 @@ extern char *MAP_NAME_PTR[];
 extern char *ITEM_DESCS[];
 
 void renderSelectionCursor(int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4);
-void renderItemSprite(int32_t itemId, int32_t x, int32_t y, int32_t depth);
+void renderItemSprite(ItemId itemId, int16_t x, int16_t y, int32_t depth);
 void setPosDataPolyFT4(POLY_FT4 *prim, int32_t posX, int32_t posY, int32_t width, int32_t height);
 void setUVDataPolyFT4(POLY_FT4 *prim, int32_t xPos, int32_t yPos, int32_t width, int32_t height);
 void renderString(int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6, int32_t a7, int32_t a8);

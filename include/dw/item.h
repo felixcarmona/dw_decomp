@@ -41,9 +41,6 @@ typedef struct {
 	uint8_t array[30];
 } InventoryTable;
 
-/* MOD: item ids in RAM are ItemId (ids.md step 3); -1 = no item */
-#define ITEM_NONE (-1)
-
 typedef struct {
 	ItemId array[30];
 } ItemIdTable;
@@ -93,8 +90,8 @@ void swapItemId(ItemId *a, ItemId *b);
 
 void initializeDroppedItems(void);
 void clearDroppedItems(void);
-void spawnItem(uint8_t type, int16_t tileX, int16_t tileY);
-void spawnDroppedItems(Entity *e, uint8_t type);
+void spawnItem(ItemId type, int16_t tileX, int16_t tileY);
+void spawnDroppedItems(Entity *e, ItemId type);
 int32_t pickupItem(int16_t itemId);
 void removeTamerItem(void);
 void renderOverworldItem(WorldItem *item);
