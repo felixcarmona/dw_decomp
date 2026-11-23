@@ -50,6 +50,8 @@ uint8_t HOUR_POINT_Y[24] = {
 };
 
 uint16_t SUBFRAME_COUNT;
+int16_t MOD_CLOCK[MOD_CLOCK_SIZE] = { -1 };       /* MOD (clock as data): written by tools/balance.py from content/tables/clock.json */
+static int32_t CLOCK_ACC;                       /* the fraction of a frame the clock owes (in 1/(2 x day ticks)) */
 int16_t CLOCK_OFFSET_X;
 int8_t IS_GAMETIME_RUNNING;
 
@@ -87,6 +89,7 @@ void addClock(void)
 void tickGameClock(int32_t instanceId)
 {
 	uint8_t timeSpeed;
+	int32_t steps;
 
 	LAST_HANDLED_FRAME = CURRENT_FRAME;
 
@@ -107,23 +110,23 @@ void tickGameClock(int32_t instanceId)
 		return;
 	}
 
-	if (timeSpeed == 0) {
-		CURRENT_FRAME++;
-	} else if (timeSpeed == 1) {
-		CURRENT_FRAME += 2;
-		if ((CURRENT_FRAME % 2) != 0) {
-			CURRENT_FRAME--;
-		}
-	} else if (timeSpeed == 2) {
-		SUBFRAME_COUNT++;
-		if ((SUBFRAME_COUNT % 2) == 0) {
-			CURRENT_FRAME++;
-		}
+	/*
+	 * MOD (clock as data): a day lasts MOD_CLOCK[MOD_CLK_DAY_SECONDS] real seconds (28800 frames = 24 h x 60 min x 20): the frames
+	 * this tick adds accumulate in halves (speed 0 = 1 frame at a 1440 s day, speed 1 = twice that, speed 2 = half) and every
+	 * frame is run one by one, so a minute never slips by. No value: game time does not run.
+	 */
+	steps = 0;
+	if (MOD_CLOCK[MOD_CLK_DAY_SECONDS] > 0) {
+		CLOCK_ACC += 28800 * (timeSpeed == 0 ? 2 : (timeSpeed == 1 ? 4 : 1));
+		steps = CLOCK_ACC / (MOD_CLOCK[MOD_CLK_DAY_SECONDS] * 40);
+		CLOCK_ACC %= MOD_CLOCK[MOD_CLK_DAY_SECONDS] * 40;
 	}
 
-	if (((timeSpeed != 2) && ((CURRENT_FRAME % 20) == 0)) ||
-	    ((timeSpeed == 2) && ((SUBFRAME_COUNT % 2) == 0) &&
-	     ((CURRENT_FRAME % 20) == 0))) {
+	for (; steps > 0; steps--) {
+		CURRENT_FRAME++;
+		if ((CURRENT_FRAME % 20) != 0) {
+			continue;
+		}
 		MINUTE++;
 		if (MINUTE == 60) {
 			HOUR++;
@@ -324,4 +327,33 @@ void stopGameTime(void)
 void startGameTime(void)
 {
 	IS_GAMETIME_RUNNING = 1;
+}
+
+/* MOD (clock as data): frames the clock advanced since the last tick (CURRENT_FRAME - LAST_HANDLED_FRAME, across the midnight wrap);
+ * a script's jump in time (advanceToTime) counts as one */
+int32_t clockAdvance(void)
+{
+	int32_t d = (int32_t)CURRENT_FRAME - (int32_t)LAST_HANDLED_FRAME;
+
+	if (d < 0) {
+		d += 28800;
+	}
+	return (d >= 1 && d <= 64) ? d : 1;
+}
+
+/* a multiple of period (frames) was reached or passed this tick: the clock ticks one frame at the default day, more on a short one */
+int32_t clockCrossed(int32_t period)
+{
+	int32_t d = (int32_t)CURRENT_FRAME - (int32_t)LAST_HANDLED_FRAME;
+
+	if (period <= 0) {
+		return 0;
+	}
+	if (d < 0) {
+		d += 28800;
+	}
+	if (d < 1 || d > 64) {
+		return 0;
+	}
+	return ((int32_t)CURRENT_FRAME / period) != ((int32_t)LAST_HANDLED_FRAME / period);
 }
