@@ -451,9 +451,13 @@ void handlePause(void)
 			PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
 			modLabMenu(&PAUSE_INPUT, &PAUSE_INPUT_PREVIOUS);
 			MAIN_D_80134E7C = 0;
-			createPauseBox();
-			pauseFrame();
-			pauseFrame();
+			if (PAUSE_STATE != 0) {
+				createPauseBox();
+				pauseFrame();
+				pauseFrame();
+			} else {
+				PAUSE_BOX_VISIBLE = 0;
+			}
 			continue;
 		}
 		PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
