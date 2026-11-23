@@ -98,20 +98,9 @@ extern EvoRequirements EVOLUTION_REQS[NUM_ORIGINAL_DIGIMON];
 /* MOD (scale): rows of species >= NUM_ORIGINAL_DIGIMON come from their DIGI.DAT record (partner.h) */
 EvoStatsGains *getSpeciesEvoGains(int32_t type);
 EvoRequirements *getSpeciesEvoReqs(int32_t type);
-static inline EvoStatsGains *evoGainsRow(int32_t type)
-{
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
-		return &EVOLUTION_STATS_GAINS[type];
-	}
-	return getSpeciesEvoGains(type);
-}
-static inline EvoRequirements *evoReqRow(int32_t type)
-{
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
-		return &EVOLUTION_REQS[type];
-	}
-	return getSpeciesEvoReqs(type);
-}
+/* MOD (heap): functions, not inline: inlined at every EVO_GAINS_ROW and EVO_REQ_ROW they cost the main executable 128 bytes */
+EvoStatsGains *evoGainsRow(int32_t type);
+EvoRequirements *evoReqRow(int32_t type);
 #define EVO_GAINS_ROW(type) (*evoGainsRow(type))
 #define EVO_REQ_ROW(type) (*evoReqRow(type))
 
