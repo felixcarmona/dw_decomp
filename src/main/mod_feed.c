@@ -114,7 +114,8 @@ static int32_t feedState;
 #define RANK_CURE	2	/* the surest cure of what it has first */
 #define RANK_POTTY	3
 #define RANK_FOOD	4	/* its favourite first */
-#define RANK_HEAL	5	/* HP or MP short of the maximum */
+#define RANK_HEAL	5	/* HP or MP below 30% */
+#define RANK_RECOVERY	7	/* optional recovery above the care threshold */
 #define RANK_SLEEP	6	/* fed and cared for first: sleeping hungry or sick costs */
 
 static int32_t isFavourite(ItemId type)
@@ -163,12 +164,20 @@ static int32_t needRank(ItemId type)
 	}
 	hpShort = PARTNER_ENTITY.digimonEntity.stats.current.currentHP < PARTNER_ENTITY.digimonEntity.stats.base.hp;
 	mpShort = PARTNER_ENTITY.digimonEntity.stats.current.currentMP < PARTNER_ENTITY.digimonEntity.stats.base.mp;
-	heals = (hpShort && (fn == (ItemFunction)handleHPHealingItem || fn == (ItemFunction)handleRestore)) ||
-	        (mpShort && fn == (ItemFunction)handleMPHealingItem);
+	heals = (fn == (ItemFunction)handleHPHealingItem || fn == (ItemFunction)handleRestore) ? 1 : 0;
+	heals |= fn == (ItemFunction)handleMPHealingItem ? 2 : 0;
 	if (fn == (ItemFunction)handleDoubleFloppy || fn == (ItemFunction)handleStatusItems) {
-		heals |= (hpShort && MOD_FX(fx, MOD_FX_HEAL_HP) > 0) || (mpShort && MOD_FX(fx, MOD_FX_HEAL_MP) > 0);
+		heals |= (MOD_FX(fx, MOD_FX_HEAL_HP) > 0 ? 1 : 0) | (MOD_FX(fx, MOD_FX_HEAL_MP) > 0 ? 2 : 0);
 	}
-	return heals ? RANK_HEAL * 0x100 : 0;
+	heals &= (hpShort ? 1 : 0) | (mpShort ? 2 : 0);
+	if (!heals) {
+		return 0;
+	}
+	return (((heals & 1) && modResourceNeed(PARTNER_ENTITY.digimonEntity.stats.current.currentHP,
+	                                     PARTNER_ENTITY.digimonEntity.stats.base.hp)) ||
+	        ((heals & 2) && modResourceNeed(PARTNER_ENTITY.digimonEntity.stats.current.currentMP,
+	                                     PARTNER_ENTITY.digimonEntity.stats.base.mp))) ?
+	       RANK_HEAL * 0x100 : RANK_RECOVERY * 0x100;
 }
 
 static void feedAdd(uint8_t slot, int32_t rank)
@@ -185,7 +194,7 @@ static void feedAdd(uint8_t slot, int32_t rank)
 	feedCount++;
 }
 
-static int32_t feedCollect(void)
+static int32_t feedCollect(int32_t needsOnly)
 {
 	int32_t i;
 	int32_t rank;
@@ -198,7 +207,8 @@ static int32_t feedCollect(void)
 		feedAdd(FEED_SLEEP, RANK_SLEEP * 0x100);
 	}
 	for (i = 0; i < INVENTORY.size; i++) {
-		if (INVENTORY.amounts.array[i] != 0 && (rank = needRank(INVENTORY.types.array[i])) != 0) {
+		if (INVENTORY.amounts.array[i] != 0 && (rank = needRank(INVENTORY.types.array[i])) != 0 &&
+		    (!needsOnly || rank < RANK_RECOVERY * 0x100)) {
 			feedAdd(i, rank);
 		}
 	}
@@ -473,7 +483,7 @@ static int32_t feedOpen(void)
 	int32_t i;
 	int32_t color;
 
-	if (feedCollect() == 0) {
+	if (feedCollect(0) == 0) {
 		return 0;
 	}
 	feedCursor = 0; /* the most urgent */
@@ -499,11 +509,10 @@ int32_t modFeedTick(void)
 	if (GAME_STATE != 0 || IS_IN_MENU != 0 || TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
 	    UI_BOX_DATA[FEED_LIST_BOX].state != 0 || UI_BOX_DATA[FEED_LIST_BOX].frame != 0 ||
 	    UI_BOX_DATA[FEED_DESC_BOX].state != 0 || UI_BOX_DATA[FEED_DESC_BOX].frame != 0 ||
-	    PARTNER_STATE != PARTNER_NORMAL || TAMER_ITEM.worldItem.type != ITEM_NONE ||
-	    feedCollect() == 0) {
+	    PARTNER_STATE != PARTNER_NORMAL || TAMER_ITEM.worldItem.type != ITEM_NONE) {
 		return 0;
 	}
-	MOD_FEED_HINT = 1;
+	MOD_FEED_HINT = feedCollect(1) != 0;
 	/* A simultaneous Confirm goes to talking/training, never to both actions. */
 	if ((CHANGED_INPUT & CONFIRM_BUTTON) != 0 || (CHANGED_INPUT & 0x80) == 0 || !feedOpen()) {
 		return 0;
