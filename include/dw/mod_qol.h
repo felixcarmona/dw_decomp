@@ -22,6 +22,11 @@ void modSpeedPlateRemove(void);
 void modEvoSkipInput(void);
 void modSkipHintDraw(void);
 void modSkipPlate(void);
+/* the tallies' skip hint: modCountHintDraw when the counting box opens (draws the line into the text area); each frame
+   modCountHintRow draws the divider at y of the box (x, w) and, when show, the line centred 4 below it */
+#define MOD_COUNT_ROW_H 17 /* what the box grows by: the divider and the line under it */
+void modCountHintDraw(void);
+void modCountHintRow(int32_t x, int32_t w, int32_t y, int32_t show, int32_t layer);
 
 /* why a block stops (MOD_TB_LEARNED is the block's own check) after a session that started at minute t0 of the day, with the gym's tiredness rule tiredAt */
 enum { MOD_TB_GO, MOD_TB_HUNGRY, MOD_TB_TOILET, MOD_TB_SLEEPY, MOD_TB_TIRED, MOD_TB_UNWELL, MOD_TB_EVOLVE, MOD_TB_LIFE,
