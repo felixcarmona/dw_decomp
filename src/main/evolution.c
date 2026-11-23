@@ -1209,6 +1209,17 @@ int32_t evoPartnerTopStat(void)
 
 /* MOD (chart): which of the four scored requirements of `target` the partner meets (EVO_MET_CARE, _WEIGHT, _STATS,
  * _BONUS); calculateRequirementScore turns them into points, the chart's tree shows them */
+/* Optional parent-specific Rookie weight: preserve the target's other routes. */
+int16_t MOD_EVO_ROOKIE_WEIGHTS[3] __attribute__((section(".data.MOD_EVO_ROOKIE_WEIGHTS"))) = { -1, -1, -1 };
+
+int32_t evoTargetWeight(int32_t current, DigimonId target)
+{
+  if (MOD_OPT_NEW_DIGIMON && current == MOD_EVO_ROOKIE_WEIGHTS[0] &&
+      target == MOD_EVO_ROOKIE_WEIGHTS[1])
+    return MOD_EVO_ROOKIE_WEIGHTS[2];
+  return EVO_REQ_ROW(target).weight;
+}
+
 int32_t evoRequirementsMet(int32_t current, DigimonId target, int8_t isMaxCM, int8_t isMaxBattles)
 {
   EvoRequirements *reqs;
@@ -1216,6 +1227,7 @@ int32_t evoRequirementsMet(int32_t current, DigimonId target, int8_t isMaxCM, in
   PartnerPara *partner;
   int16_t reqArray[6];
   int32_t met;
+  int32_t weight;
   int8_t numMoves;
 
   reqs = &EVO_REQ_ROW(target);
@@ -1230,8 +1242,9 @@ int32_t evoRequirementsMet(int32_t current, DigimonId target, int8_t isMaxCM, in
     met |= EVO_MET_CARE;
   }
 
-  if (reqs->weight - evoAmt(MOD_EVF_SCORE_WEIGHT_TOL) <= partner->weight &&
-      partner->weight <= reqs->weight + evoAmt(MOD_EVF_SCORE_WEIGHT_TOL))
+  weight = evoTargetWeight(current, target);
+  if (weight - evoAmt(MOD_EVF_SCORE_WEIGHT_TOL) <= partner->weight &&
+      partner->weight <= weight + evoAmt(MOD_EVF_SCORE_WEIGHT_TOL))
     met |= EVO_MET_WEIGHT;
 
   if (DIGI_PARA(target).level == 3U) {
