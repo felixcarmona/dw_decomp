@@ -6,6 +6,7 @@
 #include <dw/btl.h>
 #include <dw/mod_present.h>
 #include <dw/script.h>
+#include <dw/species.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
 #include <text/btl/command_shout.h>
@@ -61,8 +62,8 @@ void BTL_drawCommandShout(uint32_t command)
 
 	if ((command >= 8) && (command < 12)) {
 		tech = entityGetTechFromAnim(ENTITY_TABLE[1], PARTNER_ENTITY.digimonEntity.stats.base.moves[(int32_t)command - 8]);
-		drawString(MOVE_NAMES[tech], 0, 204);
-		length = strlen(MOVE_NAMES[tech]);
+		drawString(modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, tech), 0, 204);
+		length = strlen(modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, tech));
 	} else {
 		drawString(BTL_SHOUTS[(int32_t)command - 1], 0, 204);
 		length = strlen(BTL_SHOUTS[(int32_t)command - 1]);

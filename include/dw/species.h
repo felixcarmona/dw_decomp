@@ -121,6 +121,11 @@ int32_t getSpeciesVanillaAs(int32_t type);
 /* MOD (signature effects): the EFEDAT.EFE effect id that species `type` loads for `move`, a move byte of its stats
  * (0x2e + an index into its DIGI_PARA moves) */
 int32_t getSpeciesTechEffect(int32_t type, int32_t move);
+#define SPECIES_FINISHER_PRESENT 1	/* finisherFlags: finisherMove replaces the shared Move */
+#define SPECIES_FINISHER_SPREADS 2	/* finisherFlags: an area finisher over a one-target effect (BTL_spreadAreaHit) */
+/* MOD (unique finishers): the name technique `move` shows for species `type` (its own finisher name, else MOVE_NAMES);
+ * a new species or language reads DIGI.DAT once: never call it in the battle tick for anyone but a loaded partner */
+char *modMoveName(int32_t type, int32_t move);
 /* 1 if the original type is carried by its DIGI.DAT record (always 0 for ids >= NUM_ORIGINAL_DIGIMON) */
 int32_t isRecordOriginal(int32_t type);
 
@@ -201,8 +206,23 @@ typedef struct {
 	 * effect of its own, instead of the chunk the technique shares (0: none); getSpeciesTechEffect */
 	uint8_t ownEffectTech;		/* 0x1CF */
 	int16_t ownEffectChunk;		/* 0x1D0 */
-	uint8_t reserved1D2[SPECIES_RECORD_SIZE - 0x1D2];
+	/* MOD (unique finishers, docs/mods/unique-finishers.md): finisherMove is what technique finisherTech does for this
+	 * species (finisherFlags SPECIES_FINISHER_PRESENT; the build's neutral switch leaves it clear); language L's name is
+	 * at byte finisherNameOffset of sector finisherNameSector + L * finisherNameStride (finisherName 0: none) */
+	uint8_t finisherTech;		/* 0x1D2: the technique id it replaces (58..112), 0 none */
+	uint8_t finisherFlags;		/* 0x1D3 */
+	Move finisherMove;		/* 0x1D4: the native Move with the designed numbers (unk3 bit 0: needs a target) */
+	uint16_t finisherName;		/* 0x1E4: 1-based name reference */
+	uint16_t finisherNameOffset;	/* 0x1E6 */
+	uint32_t finisherNameSector;	/* 0x1E8 */
+	uint8_t finisherNameStride;	/* 0x1EC */
+	uint8_t finisherHits;		/* 0x1ED: shown only */
+	uint8_t reserved1EE[SPECIES_RECORD_SIZE - 0x1EE];
 } SpeciesRecord;
+
+/* MOD (unique finishers): the cached record of species `type` when it carries its own finisher for technique `move`
+ * (finisherFlags `flag`), else NULL. A fighter's record is cached from its battle load on, so no DIGI.DAT read. */
+SpeciesRecord *modFinisherRecord(int32_t type, int32_t move, int32_t flag);
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
 SPECIES_LAYOUT_CHECK(size, sizeof(SpeciesRecord) == SPECIES_RECORD_SIZE);
@@ -220,6 +240,7 @@ SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x20);
 SPECIES_LAYOUT_CHECK(portrait, __builtin_offsetof(SpeciesRecord, portrait) == 0x1C0);
 SPECIES_LAYOUT_CHECK(effectDefault, __builtin_offsetof(SpeciesRecord, effectDefault) == 0x1C4);
 SPECIES_LAYOUT_CHECK(ownEffect, __builtin_offsetof(SpeciesRecord, ownEffectChunk) == 0x1D0);
+SPECIES_LAYOUT_CHECK(finisher, __builtin_offsetof(SpeciesRecord, finisherMove) == 0x1D4 && __builtin_offsetof(SpeciesRecord, finisherNameSector) == 0x1E8);
 SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
 SPECIES_LAYOUT_CHECK(links, sizeof(SpeciesLinks) <= 0x800);
 

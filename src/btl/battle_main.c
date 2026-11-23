@@ -94,6 +94,8 @@ int32_t BTL_addFinisherAura(Entity *entity, int32_t arg1);
 void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, FighterData *fighter);
 int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender, FighterData *fighter, int16_t move);
 void BTL_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t move);
+/* MOD (unique finishers): the species whose technique BTL_applyMoveStatus applies (-1: the shared numbers) */
+static int16_t BTL_STATUS_CASTER = -1;
 int32_t BTL_battleMain(void);
 void BTL_getWeakestEnemy(Entity *self, FighterData *fighter, int16_t *outScore, int16_t *outIndex);
 int16_t BTL_calculateTargetScore(DigimonEntity *self, DigimonEntity *other);
@@ -1358,7 +1360,7 @@ void BTL_tickRangedAttack(DigimonEntity *digimon, DigimonEntity *target, Fighter
 
 	dist = BTL_getDistanceSquared(&digimon->entity, &target->entity);
 	total = DIGI_PARA(digimon->entity.type).radius + DIGI_PARA(target->entity.type).radius;
-	total = *(uint32_t *)&MOVE_DATA[move].distance + (total * total);
+	total = *(uint32_t *)&modSpeciesMove(digimon->entity.type, move)->distance + (total * total);
 	if (dist > (total + (total * 3 / 10))) {
 		BTL_setWalking(&digimon->entity, &digimon->stats, fighter->flags);
 		BTL_moveTowardLocation(digimon, &target->entity.posData->location, 0x118, 0xc8);
@@ -1417,8 +1419,8 @@ uint32_t BTL_getMoveWithHighestDistance(DigimonEntity *digimon)
 		anim = digimon->stats.base.moves[i];
 		if (anim != 0xff) {
 			tech = entityGetTechFromAnim(&digimon->entity, anim);
-			if (best < MOVE_DATA[tech].distance) {
-				best = MOVE_DATA[tech].distance;
+			if (best < modSpeciesMove(digimon->entity.type, tech)->distance) {
+				best = modSpeciesMove(digimon->entity.type, tech)->distance;
 			}
 		}
 	}
@@ -2012,12 +2014,12 @@ int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender,
 	if (speedDiff < -BM(HIT_SPEED_CLAMP)) {
 		speedDiff = -BM(HIT_SPEED_CLAMP);
 	}
-	x = BMD(BMD(MOVE_DATA[move].accuracy, HIT_ACC_DIV) * speedDiff, HIT_SPEED_NORM);
+	x = BMD(BMD(modSpeciesMove(attacker->entity.type, move)->accuracy, HIT_ACC_DIV) * speedDiff, HIT_SPEED_NORM);
 	if ((defender->entity.anim.animId == 0x21) || (defender->entity.anim.animId == 0x22)) {
 		x = x * BM(HIT_MOVING_PCT) / 100;
 	}
 
-	result = MOVE_DATA[move].accuracy - x;
+	result = modSpeciesMove(attacker->entity.type, move)->accuracy - x;
 	if (result < 0) {
 		result = 0;
 	}
@@ -2143,7 +2145,37 @@ void BTL_startHitAnimation(Entity *entity, AttackObject *attack, uint8_t animId)
 
 	tech = BTL_getAttackTech(attack);
 	startAnimation(entity, animId);
-	createParticleFX(modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->special, 1, &attack->position, entity, MOVE_DATA[tech].iframes + 0x10);
+	createParticleFX(modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->special, 1, &attack->position, entity, modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->iframes + 0x10);
+}
+
+int16_t BTL_calculateAttackHitPosition(SVECTOR *out, Entity *self, Entity *other, int32_t y);
+
+/* MOD (unique finishers): a species' own area finisher (range 3) over a technique whose effect hits one fighter
+ * (SPECIES_FINISHER_SPREADS): the first hit reaches every other living fighter on the victim's side too, as DW1's own area
+ * effects do */
+static void BTL_spreadAreaHit(int32_t victim, AttackObject *attack, int32_t tech)
+{
+	int32_t k;
+	SVECTOR pos;
+	Entity *e;
+
+	if (modFinisherRecord(ENTITY_TABLE[attack->casterId]->type, tech, SPECIES_FINISHER_SPREADS) == NULL) {
+		return;
+	}
+	for (k = 0; k <= ENEMY_COUNT; k++) {
+		e = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[k]];
+		if (k == victim || (k == 0) != (victim == 0) || (COMBAT_DATA_PTR->fighter[k].flags & FIGHTER_FLAG_DEAD) ||
+		    ((DigimonEntity *)e)->stats.current.isHit != 0) {
+			continue;
+		}
+		BTL_calculateAttackHitPosition(&pos, e, ENTITY_TABLE[attack->casterId], DIGI_PARA(e->type).radius);
+		pos.vy = -DIGI_PARA(e->type).height / 2;
+		/* active 2: a spread hit spreads no further */
+		if (addAttackObject(COMBAT_DATA_PTR->player.entityIds[k], 2, &pos, attack->effectId, attack->subEffectIndex,
+		                    attack->casterId)) {
+			((DigimonEntity *)e)->stats.current.isHit = 1;
+		}
+	}
 }
 
 void BTL_tickAttackHits(void)
@@ -2178,6 +2210,9 @@ void BTL_tickAttackHits(void)
 		}
 		entity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		tech = BTL_getAttackTech(&attack);
+		if (attack.active == 1) {
+			BTL_spreadAreaHit(i, &attack, tech);
+		}
 		if (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] == 0x2d) {
 			if (COMBAT_DATA_PTR->player.entityIds[fighter->targetId] == attack.casterId) {
 				((DigimonEntity *)entity)->stats.current.isHit = 0;
@@ -2216,13 +2251,15 @@ void BTL_tickAttackHits(void)
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			BTL_handleHitReaction(entity, fighter, &attack, i);
 			addEntityText(entity, i, 0, dmg, 0);
-			fighter->invulnerableTimer = MOVE_DATA[tech].iframes;
+			fighter->invulnerableTimer = modSpeciesMove(attacker->type, tech)->iframes;
 			entity->anim.animFlag &= 0xfe;
+			BTL_STATUS_CASTER = attacker->type; /* MOD (unique finishers): whose numbers the status uses */
 			BTL_applyMoveStatus((DigimonEntity *)entity, fighter, tech);
+			BTL_STATUS_CASTER = -1;
 			continue;
 		}
 		handled = 0;
-		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
+		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (modSpeciesMove(attacker->type, tech)->range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
 				if (((DigimonEntity *)entity)->stats.current.currentMP < BM(BLOCK_MIN_MP)) {
@@ -2251,7 +2288,7 @@ void BTL_tickAttackHits(void)
 		if ((fighter->flags & FIGHTER_FLAG_BLOCKING) && (fighter->invulnerableTimer > 0)) {
 			goto blocked;
 		}
-		if (MOVE_DATA[tech].range == 1) {
+		if (modSpeciesMove(attacker->type, tech)->range == 1) {
 			dmg = BTL_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
 			blockPercent = randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN);
 			dmg = modHardBlockedFloor(dmg * blockPercent / 100, BTL_HARD_ZERO_DAMAGE, blockPercent);
@@ -2334,11 +2371,11 @@ int32_t BTL_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 		return 0;
 	}
 
-	if ((MOVE_DATA[tech].range == 4) && (fighter->buffsRemaining == 0)) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining == 0)) {
 		return 0;
 	}
 
-	if ((fighter->targetId == 0xff) && ((MOVE_DATA[tech].unk3 & 1) == 1)) {
+	if ((fighter->targetId == 0xff) && ((modSpeciesMove(digimon->entity.type, tech)->unk3 & 1) == 1)) {
 		return 0;
 	}
 
@@ -2381,7 +2418,7 @@ void BTL_setupQueuedMove(DigimonEntity *digimon, FighterData *fighter, int16_t a
 	stats = &digimon->stats;
 	fighter->queuedAnim = stats->base.moves[moveIndex];
 	tech = entityGetTechFromAnim(&digimon->entity, fighter->queuedAnim);
-	fighter->moveRange = MOVE_DATA[tech].range;
+	fighter->moveRange = modSpeciesMove(digimon->entity.type, tech)->range;
 	BTL_applyChargeRequirement(digimon, fighter, tech);
 	fighter->flags |= FIGHTER_FLAG_TRANSFORMING;
 }
@@ -2459,7 +2496,7 @@ void BTL_startQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 		}
 	}
 
-	if (MOVE_DATA[tech].unk3 & 2) {
+	if (modSpeciesMove(digimon->entity.type, tech)->unk3 & 2) {
 		FLEE_DISABLED[1] = BM(FLEE_LOCK);
 	}
 
@@ -2477,7 +2514,7 @@ int32_t BTL_isMoveOnCooldown(Entity *entity, FighterData *fighter)
 	int16_t tech;
 
 	tech = entityGetTechFromAnim(entity, fighter->queuedAnim);
-	if ((MOVE_DATA[tech].unk3 & 2) && (FLEE_DISABLED[1] > 0)) {
+	if ((modSpeciesMove(entity->type, tech)->unk3 & 2) && (FLEE_DISABLED[1] > 0)) {
 		return 1;
 	}
 
@@ -2496,7 +2533,7 @@ void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	if (fighter->moveRange != 4) {
 		BATTLE_TARGETED_DIGIMON = target;
 		if (target == NULL) {
-			if (MOVE_DATA[tech].unk3 & 1) {
+			if (modSpeciesMove(digimon->entity.type, tech)->unk3 & 1) {
 				if (digimon != (DigimonEntity *)ENTITY_TABLE[1]) {
 					BATTLE_TARGETED_DIGIMON = (DigimonEntity *)ENTITY_TABLE[1];
 					fighter->targetId = 0;
@@ -2556,7 +2593,7 @@ void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		fighter->activeEffectSlot = fighter->effectSlot[i];
 	}
 
-	if ((MOVE_DATA[tech].range == 4) && (fighter->buffsRemaining != 0)) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining != 0)) {
 		fighter->buffsRemaining--;
 	}
 
@@ -3203,13 +3240,13 @@ void BTL_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t m
 		return;
 	}
 
-	if (MOVE_DATA[move].statusChance == 0) {
+	if (modSpeciesMove(BTL_STATUS_CASTER, move)->statusChance == 0) {
 		return;
 	}
 
-	chance = MOVE_DATA[move].statusChance;
+	chance = modSpeciesMove(BTL_STATUS_CASTER, move)->statusChance;
 	if (randomLimit(100) < chance) {
-		switch (MOVE_DATA[move].status) {
+		switch (modSpeciesMove(BTL_STATUS_CASTER, move)->status) {
 		case 1:
 			if (!(fighter->flags & FIGHTER_FLAG_POISONED)) {
 				fighter->flags |= FIGHTER_FLAG_POISONED;
@@ -3547,12 +3584,12 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 			continue;
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-		if (MOVE_DATA[tech].range == 4) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer + BTL_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
 		weights[i] += BTL_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
-		if (MOVE_DATA[tech].range != 3) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range != 3) {
 			continue;
 		}
 		count = BTL_countLivingEnemies();
@@ -3576,7 +3613,7 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 						values[i] = -1;
 					} else {
 						tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-						values[i] = MOVE_DATA[tech].distance;
+						values[i] = modSpeciesMove(digimon->entity.type, tech)->distance;
 					}
 				}
 				BTL_sortScoresDescending(values, keys, groups, 3);
@@ -3895,12 +3932,12 @@ void BTL_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 		}
 		if (j != (ENEMY_COUNT + 1)) {
 			if (NPC_ENTITIES[BTL_getNpcEntityIndex(&digimon->entity)].unk1 == 0) {
-				if (MOVE_DATA[tech].range == 3) {
+				if (modSpeciesMove(digimon->entity.type, tech)->range == 3) {
 					weights[i] += BM(AI_ENEMY_GROUP_WEIGHT);
 				}
 			}
 		}
-		if (MOVE_DATA[tech].range == 4) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer;
 		}
 	}

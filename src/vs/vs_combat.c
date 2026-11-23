@@ -451,6 +451,7 @@ void VS_setupDemoCombat(void)
 	moveCount = 0;
 	VS_initializeEFEEngine((char *)GENERAL_BUFFER_PTR);
 
+	modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, 0); /* MOD (unique finishers): the name read before the battle ticks */
 	for (i = 0; i <= ENEMY_COUNT; ++i) {
 		entity = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		entity->stats.current.unk1 = -1;
@@ -782,6 +783,7 @@ void VS__combatSetup(void)
 	moveCount = 0;
 	VS_initializeEFEEngine((char *)GENERAL_BUFFER_PTR);
 
+	modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, 0); /* MOD (unique finishers): the name read before the battle ticks */
 	for (i = 0; i <= ENEMY_COUNT; ++i) {
 		entity = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		entity->stats.current.unk1 = -1;
@@ -1952,7 +1954,7 @@ void VS__tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 
 	distance = VS_getDistanceSquared(&entity->entity, &other->entity);
 	total = DIGI_PARA(entity->entity.type).radius + DIGI_PARA(other->entity.type).radius;
-	total = *(uint32_t *)&MOVE_DATA[move].distance + total * total;
+	total = *(uint32_t *)&modSpeciesMove(entity->entity.type, move)->distance + total * total;
 
 	if (distance > total + total * 3 / 10) {
 		VS__setWalking(&entity->entity, &entity->stats, data->flags);
@@ -1993,8 +1995,8 @@ uint32_t VS__entityGetMoveWithHighestDistance(DigimonEntity *entity)
 		move = entity->stats.base.moves[i];
 		if (move != 0xff) {
 			tech = entityGetTechFromAnim(&entity->entity, move);
-			if (highest < MOVE_DATA[tech].distance) {
-				highest = MOVE_DATA[tech].distance;
+			if (highest < modSpeciesMove(entity->entity.type, tech)->distance) {
+				highest = modSpeciesMove(entity->entity.type, tech)->distance;
 			}
 		}
 	}

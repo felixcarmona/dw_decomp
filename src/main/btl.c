@@ -547,6 +547,7 @@ void modBattleLoadStep(void)
 		}
 		BTL_initializeEFEEngine((char *)GENERAL_BUFFER_PTR);
 		n = 0;
+		modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, 0); /* MOD (unique finishers): the name read before the battle ticks */
 		for (i = 0; i <= ENEMY_COUNT; i++) {
 			e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 			for (j = 0; j < 4; j++) {
@@ -754,6 +755,7 @@ void loadBattleData(int32_t entityId, int32_t count)
 		partnerTickCollision();
 	}
 	loadBattleDataTick();
+	modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, 0); /* MOD (unique finishers): the name read before the battle ticks */
 	for (i = 0; i <= ENEMY_COUNT; i++) {
 		e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		e->stats.current.unk1 = -1;
