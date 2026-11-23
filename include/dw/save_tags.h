@@ -34,6 +34,7 @@
 #define SAVE_TAG_GROUND_PICKED		0x000B /* {i16 screen, u8 tileX, u8 tileY}[64]: the ground spots picked up today (retired; a zero-length record writes an empty legacy history) */
 #define SAVE_TAG_GROUND_PICKUP_BITS	0x000C /* bit array: stable ground pickup IDs collected today; registry content/ground-items.json */
 #define SAVE_TAG_REQUIRED		0x8000
+#define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots; required to prevent silent downgrade substitution */
 /* engine tier 2 */
 #define SAVE_TAG_STORY_FLAGS		0x8001 /* bit array: story flag n = trigger 800 + n */
 #define SAVE_TAG_STORY_VARS		0x8002 /* i32[n] story variables */
