@@ -2892,7 +2892,10 @@ int32_t drawMoveViewHelpStrings(void)
 		clearTextSubArea(&rect);
 	}
 
-	drawString(STATUS_VIEW_LABELS[MENU_SUB_STATE + 9], 0, MENU_SUB_STATE * 0xc + 0x18);
+	/* The original indexed STATUS_VIEW_LABELS[MENU_SUB_STATE + 9], past its 8 entries: the
+	 * help lines are TECH_VIEW_LABELS[1..8], which follow it in the original's data. GCC
+	 * places TECH_VIEW_LABELS elsewhere, so the help read garbage pointers and hung. */
+	drawString(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18);
 	MENU_SUB_STATE++;
 
 	if (MENU_SUB_STATE == 8) {
