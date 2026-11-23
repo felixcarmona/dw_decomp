@@ -80,6 +80,8 @@ void runMapHeadScript(int32_t section);
 void setupMap(int32_t param_1, int32_t param_2);
 void loadMap(uint16_t mapId);
 uint8_t *getScriptSection(uint8_t *script, int32_t section);
+void scriptInstruction80to9F(uint8_t op); /* MOD: wide opcodes */
+static int32_t scriptCompareWide(uint8_t condOp);
 int32_t addFileReadRequestPath(char *path, int32_t buffer, uint8_t *isRunning,
                                void *callback, void *callbackParam);
 
@@ -545,6 +547,8 @@ setjmp_retry:
 			scriptInstruction5Ato5F(op);
 		} else if (op >= 0x64 && op < 0x7f) {
 			scriptInstruction64to7E(op);
+		} else if (op >= SCRIPT_OP_WIDE_FIRST && op < SCRIPT_OP_WIDE_END) {
+			scriptInstruction80to9F(op); /* MOD: wide opcodes */
 		} else {
 			IS_SCRIPT_PAUSED = 1;
 			longjmp(SCRIPT_JMP_BUF, 2);
@@ -908,6 +912,16 @@ void scriptIfInstruction(void)
 			case 5:
 				cond = scriptCompareMoney();
 				break;
+			case 6: /* MOD: item16 */
+			case 7: /* MOD: wreg */
+				cond = scriptCompareWide(condOp);
+				break;
+			}
+			break;
+		case (5 << 3):
+			/* MOD: move16 (0x28) and card16 (0x29); 0x2A-0x2F stay free */
+			if ((condOp & 7) < 2) {
+				cond = scriptCompareWide(condOp);
 			}
 			break;
 		}
@@ -2781,4 +2795,207 @@ void scriptInstructionFBtoFF(op)
 		longjmp(SCRIPT_JMP_BUF, 1);
 		break;
 	}
+}
+
+/*
+ * MOD: wide opcodes 0x80-0x9F and wide IF conditions (docs/mods/ids.md
+ * § 8.3, docs/mods/scripts.md). Each one does what its 8-bit original does,
+ * with the id read as a u16, or works on the wide registers w0..w63. The
+ * callees still take u8 ids (giveItem, spawnItem, playBGM...), so ids
+ * above 255 are cut to their low byte until the carriers are widened
+ * (ids.md § 10, step 3).
+ */
+#define WREG(n) (SCRIPT_STATE_PTR->wregs[(n) & (SCRIPT_NUM_WREGS - 1)])
+
+void scriptSetChosenItem(int32_t item)
+{
+	writePStat(PSTAT_254, item);
+	WREG(SCRIPT_WREG_CHOSEN_ITEM) = (item == LEGACY_ID_NONE) ? 0xffff : item;
+}
+
+/*
+ * IF conditions; the condition byte and its padding are already read.
+ *   0x26 item16  u16 item, u8 compare, _, u16 count
+ *   0x27 wreg    u8 wreg, u8 compare, u16 value
+ *   0x28 move16  u16 move, u8 negate, _
+ *   0x29 card16  u16 card, u8 compare, _, u16 count
+ */
+static int32_t scriptCompareWide(uint8_t condOp)
+{
+	uint16_t id;
+	uint16_t value;
+	uint8_t op;
+	uint8_t pad;
+	int32_t res;
+
+	if (condOp & 0x08) {
+		/* 0x28, 0x29 */
+		pollNextScriptUShort(&id);
+		pollNextTwoScriptBytes(&op, &pad);
+		if ((condOp & 7) == 0) {
+			res = _hasMove(id);
+			if (op == 0) {
+				return res;
+			}
+			return (res != 0) ^ 1;
+		}
+		pollNextScriptUShort(&value);
+		return scriptCompareValue(op, getCardAmount(id), value);
+	}
+	if ((condOp & 7) == 6) {
+		pollNextScriptUShort(&id);
+		pollNextTwoScriptBytes(&op, &pad);
+		pollNextScriptUShort(&value);
+		return scriptCompareValue(op, getItemCount(id), value);
+	}
+	pollNextTwoScriptBytes(&pad, &op);
+	pollNextScriptUShort(&value);
+	return scriptCompareValue(op, WREG(pad), value);
+}
+
+void scriptInstruction80to9F(uint8_t op)
+{
+	StackEntry entry;
+	int16_t posX;
+	int16_t posY;
+	int16_t posZ;
+	int16_t posW;
+	uint16_t id;
+	uint16_t value;
+	uint8_t byteArg1;
+	uint8_t byteArg2;
+	int32_t newValue;
+
+	switch (op) {
+	case SCRIPT_OP_LOAD_DIGIMON16:
+		skipOneReadOneUShort(&id);
+		scriptLoadModel(id);
+		break;
+	case SCRIPT_OP_SET_DIGIMON16:
+		scriptPauseGame(0xff);
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptBytes(&byteArg1, &byteArg2);
+		scriptSetDigimon(id, byteArg1, byteArg2);
+		break;
+	case SCRIPT_OP_UNLOAD_DIGIMON16:
+		skipOneReadOneUShort(&id);
+		scriptUnloadModel(id);
+		break;
+	case SCRIPT_OP_WARP_TO16:
+		scriptPauseGame(0xff);
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptBytes(&byteArg1, &byteArg2);
+		SCRIPT_PARAM_1 = id;
+		SCRIPT_STATE_2 = byteArg1;
+		consumeMapChangeShowName();
+		entry.smth[0] = 4;
+		entry.smth[1] = byteArg2;
+		pushScriptStack(&entry);
+		longjmp(SCRIPT_JMP_BUF, 3);
+	case SCRIPT_OP_GIVE_ITEM16:
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptBytes(&byteArg1, &byteArg2);
+		if (giveItem(id, byteArg1) != 0) {
+			unsetTrigger(0);
+		} else {
+			setTrigger(0);
+		}
+		break;
+	case SCRIPT_OP_REMOVE_ITEM16:
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptBytes(&byteArg1, &byteArg2);
+		removeItem(id, byteArg1);
+		break;
+	case SCRIPT_OP_SPAWN_ITEM16:
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptShorts(&posX, &posY);
+		spawnItem(id, posX, posY);
+		break;
+	case SCRIPT_OP_SPAWN_CHEST16:
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptShorts(&posX, &posY);
+		pollNextTwoScriptShorts(&posZ, &posW);
+		pollNextScriptUShort(&value);
+		spawnChest(posX, posY, posZ, posW, id, value);
+		break;
+	case SCRIPT_OP_LEARN_MOVE16:
+		skipOneReadOneUShort(&id);
+		learnMove(id);
+		break;
+	case SCRIPT_OP_GIVE_CARD16:
+		skipOneReadOneUShort(&id);
+		byteArg1 = getCardAmount(id);
+		if (byteArg1 < 9) {
+			setCardAmount(id, byteArg1 + 1);
+		}
+		break;
+	case SCRIPT_OP_TAKE_CARD16:
+		skipOneReadOneUShort(&id);
+		byteArg1 = getCardAmount(id);
+		if (byteArg1 != 0) {
+			setCardAmount(id, byteArg1 - 1);
+		}
+		break;
+	case SCRIPT_OP_SET_BGM16:
+		skipOneReadOneUShort(&id);
+		playBGM(id == 0xffff ? 0xff : id);
+		break;
+	case SCRIPT_OP_SET_WREG:
+		pollOneUByteOneUShort(&byteArg1, &value);
+		WREG(byteArg1) = value;
+		break;
+	case SCRIPT_OP_STORE_DIGIMON_TYPE_W:
+		pollNextScriptUByte(&byteArg1);
+		WREG(byteArg1) = PARTNER_ENTITY.digimonEntity.entity.type;
+		break;
+	case SCRIPT_OP_STORE_MAP_ID_W:
+		pollNextScriptUByte(&byteArg1);
+		WREG(byteArg1) = CURRENT_SCREEN_ID;
+		break;
+	case SCRIPT_OP_TELEPORT_W:
+		scriptPauseGame(0xff);
+		pollNextScriptUByte(&byteArg1);
+		SCRIPT_PARAM_1 = WREG(byteArg1);
+		SCRIPT_STATE_2 = WREG(byteArg1 + 1);
+		consumeMapChangeShowName();
+		entry.smth[0] = 4;
+		entry.smth[1] = 0xff;
+		pushScriptStack(&entry);
+		longjmp(SCRIPT_JMP_BUF, 3);
+	case SCRIPT_OP_COPY_W:
+		skipOnePollTwoScriptBytes(&byteArg1, &byteArg2);
+		WREG(byteArg2) = WREG(byteArg1);
+		break;
+	case SCRIPT_OP_ADD_W:
+		pollOneUByteOneUShort(&byteArg1, &value);
+		newValue = WREG(byteArg1) + value;
+		if (newValue > 0xffff) {
+			newValue = 0xffff;
+		}
+		WREG(byteArg1) = newValue;
+		break;
+	case SCRIPT_OP_SUB_W:
+		pollOneUByteOneUShort(&byteArg1, &value);
+		newValue = WREG(byteArg1) - value;
+		if (newValue < 0) {
+			newValue = 0;
+		}
+		WREG(byteArg1) = newValue;
+		break;
+	case SCRIPT_OP_SWITCH_W:
+		pollOneUByteOneUShort(&byteArg1, &id);
+		value = WREG(byteArg1);
+		if (value >= id) {
+			value = id - 1;
+		}
+		value = *(uint16_t *)(SCRIPT_POINTER + (value << 1));
+		SCRIPT_POINTER = (uint8_t *)((uint32_t)ACTIVE_SCRIPT + value);
+		break;
+	default:
+		/* 0x94-0x9F: reserved, they end the script like any unknown opcode */
+		IS_SCRIPT_PAUSED = 1;
+		longjmp(SCRIPT_JMP_BUF, 2);
+	}
+
+	longjmp(SCRIPT_JMP_BUF, 1);
 }

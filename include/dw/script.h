@@ -118,6 +118,35 @@
 #define SCRIPT_OP_SET_RECT_IMPASSABLE		0x7C	/* u8, s16 x, s16 z, u8 w, u8 h */
 #define SCRIPT_OP_SPAWN_SPRITE_AT_LOCATION	0x7D	/* u8 sprite, s16 x, y, z, w */
 #define SCRIPT_OP_SPAWN_SPRITE_AT_ENTITY	0x7E	/* id, u8 node, u8 sprite */
+/*
+ * MOD: wide opcodes (docs/mods/ids.md § 8.3). 16-bit variants of the
+ * opcodes that carry a Digimon, screen, item, technique, card or music id,
+ * and the wide registers w0..w63. Every u16 sits at an even offset and
+ * every instruction has an even length. 0x94-0x9F are reserved: like
+ * every other unknown opcode, they end the script.
+ */
+#define SCRIPT_OP_WIDE_FIRST			0x80
+#define SCRIPT_OP_LOAD_DIGIMON16		0x80	/* _, u16 digimon */
+#define SCRIPT_OP_SET_DIGIMON16			0x81	/* _, u16 digimon, u8 slot, u8 autotalk */
+#define SCRIPT_OP_UNLOAD_DIGIMON16		0x82	/* _, u16 digimon */
+#define SCRIPT_OP_WARP_TO16			0x83	/* _, u16 screen, u8 exit, u8 section */
+#define SCRIPT_OP_GIVE_ITEM16			0x84	/* _, u16 item, u8 amount, _ */
+#define SCRIPT_OP_REMOVE_ITEM16			0x85	/* _, u16 item, u8 amount, _ */
+#define SCRIPT_OP_SPAWN_ITEM16			0x86	/* _, u16 item, s16 x, s16 z */
+#define SCRIPT_OP_SPAWN_CHEST16			0x87	/* _, u16 item, s16 x, y, z, w, u16 trigger */
+#define SCRIPT_OP_LEARN_MOVE16			0x88	/* _, u16 move */
+#define SCRIPT_OP_GIVE_CARD16			0x89	/* _, u16 card */
+#define SCRIPT_OP_TAKE_CARD16			0x8A	/* _, u16 card */
+#define SCRIPT_OP_SET_BGM16			0x8B	/* _, u16 bgm (0xFFFF stops it, like 0xFF) */
+#define SCRIPT_OP_SET_WREG			0x8C	/* wreg, u16 value */
+#define SCRIPT_OP_STORE_DIGIMON_TYPE_W		0x8D	/* wreg */
+#define SCRIPT_OP_STORE_MAP_ID_W		0x8E	/* wreg */
+#define SCRIPT_OP_TELEPORT_W			0x8F	/* wreg: screen in wN, exit in wN+1 */
+#define SCRIPT_OP_COPY_W			0x90	/* _, wreg from, wreg to */
+#define SCRIPT_OP_ADD_W				0x91	/* wreg, u16 value; saturates at 0xFFFF */
+#define SCRIPT_OP_SUB_W				0x92	/* wreg, u16 value; stops at 0 */
+#define SCRIPT_OP_SWITCH_W			0x93	/* wreg, u16 count, u16 offsets[count] */
+#define SCRIPT_OP_WIDE_END			0xA0	/* first opcode after the wide block */
 #define SCRIPT_OP_SET_SCRIPT			0xFB	/* _, u16 script, u16 map */
 #define SCRIPT_OP_UNUSED_FC			0xFC
 #define SCRIPT_OP_UNUSED_FD			0xFD
@@ -155,13 +184,27 @@ typedef struct {
 	uint8_t smth[2];
 } StackEntry;
 
+/*
+ * MOD: wide registers w0..w63 (docs/mods/ids.md § 8.3): u16 script
+ * variables for ids that do not fit in a pstat. They are appended to
+ * ScriptState, so every original offset stays the same; they are zeroed
+ * with the rest at boot and are not saved yet (save v2, ids.md § 8.4).
+ * CALL_ROUTINE 0 (choose an item) also leaves the item in
+ * SCRIPT_WREG_CHOSEN_ITEM (0xFFFF = none), next to p254.
+ */
+#define SCRIPT_NUM_WREGS		64
+#define SCRIPT_WREG_CHOSEN_ITEM		62
+
 typedef struct {
 	uint8_t smth[212];
 	uint8_t cards[33];
 	uint8_t triggers[100];
 	uint8_t pstats[256];
 	StackEntry stack[8];
+	uint16_t wregs[SCRIPT_NUM_WREGS]; /* MOD */
 } ScriptState;
+
+void scriptSetChosenItem(int32_t item); /* MOD: p254 and SCRIPT_WREG_CHOSEN_ITEM */
 
 typedef struct {
 	uint8_t mapId;
