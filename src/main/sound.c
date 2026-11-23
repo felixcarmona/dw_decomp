@@ -122,6 +122,13 @@ uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON 
 	0x03,	/* Panjyamon */
 	0x02,	/* Gigadramon */
 	0x0c,	/* MetalEtemon */
+	/*
+	 * MOD (master-tyrannomon): the table covers every type. Types that
+	 * were outside it keep the voice the guards gave them (15);
+	 * MasterTyrannomon uses Tyrannomon's partner sounds.
+	 */
+	[NUM_PARTNER_DIGIMON ... NUM_DIGIMON - 1] = 15,
+	[DIGIMON_MASTER_TYRANNOMON] = 0x02,
 };
 
 uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {

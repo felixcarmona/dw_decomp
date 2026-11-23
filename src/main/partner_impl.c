@@ -171,6 +171,14 @@ RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	  80, 45, 11, 36, 1200, 14, 48, 4, 3, 0, 50, 0, 460, -940 },
 	{ { 2, 6, 10, 14, 18, 22, -1, -1 },
 	  80, 40, 10, 36, 1200, 10, 55, 1, 3, 1, 20, 500, 230, -1870 },
+	/*
+	 * MOD (master-tyrannomon): Tyrannomon's row (8) for MasterTyrannomon,
+	 * with the default weight and the view offsets 1.5 times larger (its
+	 * model is Tyrannomon's at 1.5 times). Types without a row are zero:
+	 * they never become partners.
+	 */
+	[DIGIMON_MASTER_TYRANNOMON] = { { 1, 5, 9, 13, 17, 21, -1, -1 },
+	  80, 55, 14, 36, 1200, 13, 51, 3, 0, 0, 45, 75, 510, -1410 },
 };
 
 typedef struct {
@@ -198,6 +206,8 @@ int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	10, 15, 10, 10, 15, 10, 15, 10, 25, 10, 10, 10, 10, 10, 10, 10, 10,
 	15, 15, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15,
 	10, 10, 10, 10, 10, 10, 10, 10, 15, 15, 10, 10, 10, 10, 10,
+	/* MOD (master-tyrannomon): by type - 1; Tyrannomon's 15 at 1.5 times */
+	[DIGIMON_MASTER_TYRANNOMON - 1] = 22,
 };
 
 extern uint8_t ITEM_CLUT_DATA[];
