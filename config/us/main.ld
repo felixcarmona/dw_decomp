@@ -1069,7 +1069,7 @@ ASSERT(OVL_READ_END(.MOV) <= OVL_TRN_BASE, "MOV overlay overlaps TRN's slot (TEX
  * OVL_EVL_BASE except ENDI during the game-clear save (load_ending), whose first sector the last sector of MENU may
  * overlap: start_ending reads ENDI again. Whole sectors: one more would need that read to be proved again. */
 ASSERT(OVL_READ_END(.MENU) <= OVL_EVL_BASE + 0x800, "MENU overlay (in whole sectors) reaches past ENDI's first sector")
-ASSERT(renderCardsView >= OVL_BTL_BASE + 0x800 && CARD_SPRITE_CLUT >= OVL_BTL_BASE + 0x800,
+ASSERT(renderCardsView >= OVL_BTL_BASE + 0x800 && modCardMove >= OVL_BTL_BASE + 0x800 && CARD_SPRITE_CLUT >= OVL_BTL_BASE + 0x800,
        "Card metadata sector overlaps the album renderer")
 ASSERT(title_ui_START >= OVL_READ_END(.MENU), "MENU sector read overwrites the title UI in EVL")
 ASSERT(title_ui_END <= OVL_END(.EVL), "Title UI is outside EVL")

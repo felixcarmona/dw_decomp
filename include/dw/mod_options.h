@@ -18,6 +18,7 @@
 
 extern int32_t MOD_OPT_BUTTONS;	/* JAPANESE CONTROLS: MOD_BUTTONS_JP (input.h reads it) */
 extern int32_t MOD_OPT_EVO_GUIDE; /* EVOLUTION GUIDE: the evolution chart's requirement card and lit lines (patch 0176), 0 = the original chart */
+extern int32_t MOD_OPT_NEW_CARDS; /* NEW CARDS: OFF hides ids >= 66 without clearing saved counts. */
 extern int32_t MOD_OPT_NEW_DIGIMON; /* NEW DIGIMON: the species the mod made raisable; 0 = the original's only */
 extern int32_t MOD_OPT_CHEATS; /* CHEATS: lab menu, off by default */
 extern int32_t MOD_OPT_SHORTCUTS; /* the Cheats menu's row: Select + L1/R1/L2/R2 under CHEATS, off by default */

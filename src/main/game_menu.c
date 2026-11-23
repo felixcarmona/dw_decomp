@@ -5662,10 +5662,11 @@ void renderMedalView(void)
 
 int32_t modCardMove(int32_t id, int32_t input)
 {
+	int32_t limit = MOD_OPT_NEW_CARDS ? NUM_CARDS : 66;
 	if ((input & 0x8000) && id % 11 != 0) id--;
-	if ((input & 0x2000) && id % 11 != 10 && id + 1 < NUM_CARDS) id++;
+	if ((input & 0x2000) && id % 11 != 10 && id + 1 < limit) id++;
 	if ((input & 0x1000) && id >= 11) id -= 11;
-	if ((input & 0x4000) && id + 11 < NUM_CARDS) id += 11;
+	if ((input & 0x4000) && id + 11 < limit) id += 11;
 	return id;
 }
 
@@ -5700,7 +5701,7 @@ void renderCardsView(void)
 	case 1:
 		renderNumber(0, 0x35, -0x50, 3, SELECTED_CARD, 5);
 		drawLine2P(0xbebebe, 0x5e, -0x45, 0x63, -0x50, 5, 0);
-		renderNumber(0, 0x68, -0x50, 3, NUM_CARDS - 1, 5);
+		renderNumber(0, 0x68, -0x50, 3, (MOD_OPT_NEW_CARDS ? NUM_CARDS : 66) - 1, 5);
 		for (i = 0; i < 6; i++) {
 			for (j = 0; j < 11; j++) {
 				card = j + (i + CARD_TOP_ROW) * 11;
