@@ -51,6 +51,7 @@
 #include <dw/font.h>
 #include <dw/script.h>
 #include <dw/screen.h>
+#include <dw/mod_options.h>
 #include <dw/tamer.h>
 #include <dw/clock.h>
 #include <dw/sound.h>
@@ -619,7 +620,7 @@ static int32_t modScreenJump(int32_t step)
 {
 	int32_t id = findNewScreen(CURRENT_SCREEN, step);
 
-	if (id < 0 || id == CURRENT_SCREEN) {
+	if (id < 0 || id == CURRENT_SCREEN || !MOD_OPT_STORY) { /* MOD (story): the new screens are the extended story's */
 		playSound(0, 4);
 		return 0;
 	}
