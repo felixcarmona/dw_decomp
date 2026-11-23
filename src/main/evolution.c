@@ -876,35 +876,42 @@ int16_t getFreshEvolutionTarget(int32_t currentDigimon) {
   return result; // possible undefined behavior: 'result' may be uninitialized
 }
 
-int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
-  DigimonId *targetPtr; /* MOD: was int8_t */
+/* MOD (evolution): one Rookie target of a Baby II, scored as the original loop did; the best so far in *best/*bestScore */
+static void scoreInTrainingTarget(int32_t currentDigimon, DigimonId target, int32_t *best, int8_t *bestScore)
+{
   int8_t requirementScore;
-  int32_t currentBest;
-  int32_t i;
   int8_t isMaxCM;
   int8_t isMaxBattles;
+
+  if (target == -1 || target == 0 || !isPartnerModelFit(target)) /* MOD (scale): a model that does not fit is no target */
+    return;
+  isMaxCM = (EVO_REQ_ROW(target).flags & 0x10) >> 4;
+  isMaxBattles = EVO_REQ_ROW(target).flags & 1;
+  requirementScore = calculateRequirementScore(currentDigimon, target, isMaxCM, isMaxBattles, *best);
+  if (*bestScore < requirementScore && requirementScore >= 3) {
+    *best = target;
+    *bestScore = requirementScore;
+  }
+}
+
+int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
+  DigimonId *targetPtr; /* MOD: was int8_t */
+  DigimonId *extra;
+  int32_t currentBest;
+  int32_t i;
+  int32_t n;
   int8_t bestScore;
 
   currentBest = -1;
   bestScore = 0;
   targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
-
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
-      targetPtr++;
-      continue;
-    }
-
-    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
-    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
-    requirementScore = calculateRequirementScore(
-        currentDigimon, *targetPtr, isMaxCM, isMaxBattles, currentBest);
-
-    if (bestScore < requirementScore && requirementScore >= 3) {
-      currentBest = *targetPtr;
-      bestScore = requirementScore;
-    }
-    targetPtr++;
+    scoreInTrainingTarget(currentDigimon, targetPtr[i], &currentBest, &bestScore);
+  }
+  /* MOD (evolution): the Rookies past the 6 slots (getEvolutionExtraTargets) */
+  n = getEvolutionExtraTargets(currentDigimon, &extra);
+  for (i = 0; i < n; i++) {
+    scoreInTrainingTarget(currentDigimon, extra[i], &currentBest, &bestScore);
   }
 
   return currentBest;
