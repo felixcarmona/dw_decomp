@@ -236,6 +236,8 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
  * their ids, tab after tab, in the chart's order; the sectors after it the icons in the same order,
  * SPECIES_CHART_ICONS_PER_SECTOR to a sector: a 16-colour CLUT and the two 16x16 4 bpp idle frames (blank for the species
  * of the chart sheet, which keep their hand-drawn icon).
+ * MOD (chart lists): after the ids, the first sector holds a count and that many {child, parent} pairs: the parents of
+ * the chart's species without an evolution path row (an original 63..179 without a record), which no row lists.
  */
 #define SPECIES_CHART_TABS		5
 #define SPECIES_CHART_ICON_SIZE		0x120
@@ -301,6 +303,9 @@ EvolutionPath *getEvolutionPath(int32_t type);
 #define SPECIES_EXTRA_PARENTS	4
 #define SPECIES_EXTRA_TARGETS	12
 int32_t getEvolutionExtraTargets(int32_t type, DigimonId **targets);
+/* MOD (chart lists): the Baby II of extra list k (< SPECIES_EXTRA_PARENTS; 0: unused) and its SPECIES_EXTRA_TARGETS
+ * targets (0: empty), for the chart's "from" boxes */
+int32_t getEvolutionExtraParent(int32_t k, DigimonId **targets);
 /* MOD (dcb-import): the bone offset a technique effect of `type` starts
  * from: `borrowed` (the originalType's EFE entry) or this species' own one */
 int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed);

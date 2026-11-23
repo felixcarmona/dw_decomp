@@ -898,13 +898,15 @@ SECTIONS
 				.data.MAIN_D_8013468C
 			);
 			. = ALIGN(., 4);
-            /* Player chart opens MENU before reaching its modal renderer.
+            /* Player chart opens MENU before reaching its modal renderer (and the detail view's lists, built while it is open).
              * The cell writer and primitive/number helpers stay resident to reserve scrolling room below EVL. */
             BUILD_DIR/src/main/game_menu.c.o(
                 .text.chartCardBuild .text.chartCardBuild.*
                 .text.chartCardRender .text.chartCardRender.*
                 .text.chartCardPrompt .text.chartCardPrompt.*
                 .text.chartAppend .text.chartAppend.*
+                .text.chartBuildLists .text.chartBuildLists.*
+                .text.chartListAdd .text.chartListAdd.*
                 .rodata.CHART_POPUP_AUTOMATIC
                 .rodata.CHART_POPUP_BATTLES
                 .rodata.CHART_POPUP_BONUS_ANY
