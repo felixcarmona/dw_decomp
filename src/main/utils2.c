@@ -70,6 +70,9 @@ int32_t STD_tournamentMain(uint8_t *arg);
 extern uint8_t ITEM_CLUT_DATA[];
 extern uint8_t MAP_LAYER_ENABLED;
 extern RGB8 TEXT_COLORS[];
+extern int32_t ACTIVE_FRAMEBUFFER;
+extern GsOT GS_ORDERING_TABLE[2];
+extern PACKET GS_WORK_BASES[2][0x14000];
 extern char btl_START[];
 extern char dget_START[];
 extern char doo2_START[];
@@ -661,6 +664,15 @@ void startTournament(void)
 	loadDynamicLibrary(STD_REL, &isComplete, 0, NULL, NULL);
 	result = STD_tournamentMain(&t.cup);
 	thunkReinitializeAfterTournament();
+	/* MOD (original game bug): gameLoop resumes the frame STD interrupted
+	 * with STD's last, already sent ordering table; its applyDrawOffset
+	 * would then link a DR_OFFSET tag to itself (endless GPU list). Start
+	 * a fresh frame, as tamerTickBattle does after BTL. No DrawSync is
+	 * needed: STD's last frame already waited for this buffer's list. */
+	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
+	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
+	GsClearOt(0, 0, GS_ORDERING_TABLE + ACTIVE_FRAMEBUFFER);
+	ACTIVE_ORDERING_TABLE = GS_ORDERING_TABLE + ACTIVE_FRAMEBUFFER;
 	unsetTrigger(0x25);
 	id = readPStat(3);
 	if (id != 5) {
