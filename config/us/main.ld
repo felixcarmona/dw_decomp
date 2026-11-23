@@ -1017,6 +1017,8 @@ ASSERT(OVL_END(.STD) <= LOAD_AREA_END, "STD overlay overflows the load area")
 ASSERT(OVL_END(.VS) <= LOAD_AREA_END, "VS overlay overflows the load area")
 ASSERT(OVL_END(.KAR) <= LOAD_AREA_END, "KAR overlay overflows the load area")
 ASSERT(OVL_END(.EVL) <= LOAD_AREA_END, "EVL overlay overflows the load area")
+/* MOD: readFile loads whole sectors; FISH/DOO2 start at OVL_FISH_BASE (the shard scratch grew the overlay) */
+ASSERT(ADDR(.EVL) + ((SIZEOF(.EVL) + 0x7FF) & ~0x7FF) <= OVL_FISH_BASE, "EVL overlay (in whole sectors) overlaps FISH")
 ASSERT(OVL_END(.ENDI) <= LOAD_AREA_END, "ENDI overlay overflows the load area")
 ASSERT(OVL_END(.EAB) <= LOAD_AREA_END, "EAB overlay overflows the load area")
 ASSERT(OVL_END(.FISH) <= LOAD_AREA_END, "FISH overlay overflows the load area")
