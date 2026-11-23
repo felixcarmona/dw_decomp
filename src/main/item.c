@@ -2215,7 +2215,6 @@ void handleEvoItems(int16_t item)
 		}
 		EVOLUTION_TARGET = EVOLUTION_ITEM_TARGET[item - 0x47];
 	}
-	HAS_USED_EVOITEM = 1;
 	removeTamerItem();
 	closeInventoryBoxes();
 	tamerSetState(6);
