@@ -6224,6 +6224,9 @@ void renderRectPolyFT4(int16_t posX, int16_t posY, uint8_t width,
 	}
 	if (flag & 1) {
 		setRGB0(prim, 0x32, 0x32, 0x32);
+	} else if (flag & 8) {
+		/* Care warning: 45/128 modulation is approximately 35% brightness. */
+		setRGB0(prim, 45, 45, 45);
 	} else {
 		setRGB0(prim, 0x80, 0x80, 0x80);
 	}
