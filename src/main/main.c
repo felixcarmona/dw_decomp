@@ -4102,8 +4102,8 @@ static void modPerfReset(void)
 /* MOD (fps): fixed-timestep loop. The game logic (input, scripts,
  * tickObjects: movement, clock, timers, animation, then the late tick) runs
  * once per tick, and a tick always lasts 3 vertical refreshes (20 Hz) as in
- * the original. MOD_FPS_MODE (dw/mod_fps.h: a compile-time constant from the
- * build's FPS, Makefile `FPS=20|30|60`) chooses at which of the tick's 3
+ * the original. MOD_FPS_MODE (dw/mod_fps.h: from the build's FPS, Makefile
+ * `FPS=20|30|60`, and the title's FRAME RATE option) chooses at which of the tick's 3
  * refreshes a new frame is shown:
  *   0 = 20 fps: the third (the original, one render per tick);
  *   1 = 30 fps: every other refresh, so the ticks alternate between one
@@ -4117,6 +4117,9 @@ static void modPerfReset(void)
 /* the build's frame rate (dw/mod_fps.h), for tools; kept by the linker
  * although no code reads it */
 const int32_t MOD_FPS_BUILD __attribute__((used, retain)) = FPS;
+#if FPS != 20
+int32_t MOD_FPS_MODE_RUN = FPS == 60 ? 2 : 1; /* MOD (options): FRAME RATE, 30 or 60 */
+#endif
 /* test switch (state checks with the slow interpreter CPU, where the extra
  * passes rarely fit): with N > 0 every tick lasts N refreshes instead of 3,
  * in any mode, and every pass is rendered, the one of the k-th third shown at
