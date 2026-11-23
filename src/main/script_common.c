@@ -1355,10 +1355,11 @@ void handleItemLoss(void)
 		recycleId = INVENTORY.types.array[slot];
 		recycleId = getRecycleId(recycleId);
 		if (recycleId != 0xff) {
+			int32_t cap = econCap(MOD_ECON_STACK_CAP, 255); /* MOD: 0133 left a template placeholder here */
 			SCRIPT_STATE_PTR->smth[recycleId + 6] +=
 				INVENTORY.amounts.array[slot];
-			if (SCRIPT_STATE_PTR->smth[recycleId + 6] > ' + STACK + ') {
-				SCRIPT_STATE_PTR->smth[recycleId + 6] = ' + STACK + ';
+			if (SCRIPT_STATE_PTR->smth[recycleId + 6] > cap) {
+				SCRIPT_STATE_PTR->smth[recycleId + 6] = cap;
 			}
 		}
 
