@@ -188,6 +188,29 @@ RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	 */
 	[DIGIMON_CHERRYMON] = { { 3, 8, 13, 18, 23, -1, -1, -1 },
 	  80, 35, 8, 36, 1200, 14, 49, 0, 5, 2, 30, -511, 630, -232 },
+	/*
+	 * MOD (partners-npc-a): Sukamon's row (39) for King of Sukamon, with
+	 * bigger poop and weight 40. The status screen draws the model at
+	 * (viewX, viewY, viewZ) seen from DIGIVICE_ENTITY_VIEW (1300, 0,
+	 * -3280): Sukamon's point pushed 1.71 times as far from the eye, so
+	 * the 1.71 times larger King fills the Condition panel the same way.
+	 */
+	[DIGIMON_KING_SUKAMON] = { { 0, 3, 6, 9, 12, 15, 18, 21 },
+	  80, 35, 11, 36, 1200, 16, 68, 1, 6, 4, 40, -410, 445, -99 },
+	/*
+	 * MOD (partners-npc-a): Frigimon's row (23) for Icemon, weight 40 (a
+	 * rock); the status-screen view is Frigimon's point brought 0.82
+	 * times as far from the eye (Icemon is 310 high, Frigimon 380).
+	 */
+	[DIGIMON_ICEMON] = { { 1, 5, 9, 13, 17, 21, -1, -1 },
+	  80, 42, 11, 36, 1200, 11, 45, 3, 1, 2, 40, 305, 277, -1436 },
+	/*
+	 * MOD (partners-npc-a): Monochromon's row (47) for Meteormon, weight
+	 * 50; the status-screen view is Monochromon's point brought 1.21
+	 * times as far from the eye (Meteormon is 400 high, Monochromon 330).
+	 */
+	[DIGIMON_METEORMON] = { { 2, 6, 10, 14, 18, 22, -1, -1 },
+	  80, 53, 12, 36, 1200, 13, 66, 1, 0, 3, 50, -273, 424, -364 },
 };
 
 typedef struct {
@@ -219,6 +242,10 @@ int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	[DIGIMON_MASTER_TYRANNOMON - 1] = 22,
 	/* MOD (cherrymon): long branch arms */
 	[DIGIMON_CHERRYMON - 1] = 20,
+	/* MOD (partners-npc-a): long claws */
+	[DIGIMON_KING_SUKAMON - 1] = 16,
+	[DIGIMON_ICEMON - 1] = 10, /* MOD (partners-npc-a) */
+	[DIGIMON_METEORMON - 1] = 15, /* MOD (partners-npc-a) */
 };
 
 extern uint8_t ITEM_CLUT_DATA[];
@@ -1307,7 +1334,9 @@ int32_t createPoopPile(int16_t tileX, int16_t tileY)
 		}
 	}
 
-	if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27)
+	/* MOD (partners-npc-a): the King of Sukamon catches no virus either */
+	if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27 &&
+	    PARTNER_ENTITY.digimonEntity.entity.type != DIGIMON_KING_SUKAMON)
 		PARTNER_PARA.virusBar++;
 	if (CURRENT_POOP_ID >= 100)
 		CURRENT_POOP_ID = 0;
@@ -2108,7 +2137,18 @@ void tickConditions(void)
 		else if (level == 3 && evoTimer >= 72)
 			EVOLUTION_TARGET = getRookieEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (level == 4 && evoTimer >= 144)
+		/*
+		 * MOD (partners-npc-a): only types with an EVOLUTION_PATHS row
+		 * (Panjyamon, type 63, read past the table); and an Ultimate
+		 * with a path (Etemon -> MetalEtemon) is evaluated after 96
+		 * hours like a Champion. The other Ultimates have no targets.
+		 */
+		else if (level == 4 && evoTimer >= 144 &&
+			 PARTNER_ENTITY.digimonEntity.entity.type < NUM_EVOLVING_DIGIMON)
+			EVOLUTION_TARGET = getChampionEvolutionTarget(
+				PARTNER_ENTITY.digimonEntity.entity.type);
+		else if (level == 5 && evoTimer >= 96 &&
+			 PARTNER_ENTITY.digimonEntity.entity.type < NUM_EVOLVING_DIGIMON)
 			EVOLUTION_TARGET = getChampionEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
 		if (level == 4 && evoTimer == 360)
@@ -2116,7 +2156,9 @@ void tickConditions(void)
 				3, ENTITY_TABLE[1]);
 	}
 	if (PARTNER_PARA.virusBar >= 16) {
-		if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27L) {
+		/* MOD (partners-npc-a): nor does it turn back into a Sukamon */
+		if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27L &&
+		    PARTNER_ENTITY.digimonEntity.entity.type != DIGIMON_KING_SUKAMON) {
 			EVOLUTION_TARGET = 0x27;
 			writePStat(5, PARTNER_ENTITY.digimonEntity.entity.type);
 			PARTNER_PARA.sukaBackupHP =

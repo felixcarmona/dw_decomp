@@ -15,7 +15,9 @@
  *                      the way an evolution item does, but with the natural
  *                      stat gains (HAS_USED_EVOITEM = 0). Left/right choose
  *                      the target: "To MasterTyrannomon" or "To Cherrymon"
- *                      (type 121; MOD cherrymon)
+ *                      (type 121; MOD cherrymon), "To King of Sukamon"
+ *                      (type 120; MOD partners-npc-a), "To Icemon" (94),
+ *                      "To Meteormon" (113)
  *   - "Close"
  *
  * The result of an option replaces the stats line until the next key, so the
@@ -88,15 +90,21 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 };
 
 /* MOD (cherrymon): the evolve option cycles through these targets */
-#define MOD_LAB_EVO_COUNT 2
+#define MOD_LAB_EVO_COUNT 5
 static int16_t MOD_LAB_EVO_TARGETS[MOD_LAB_EVO_COUNT] = {
 	DIGIMON_MASTER_TYRANNOMON,
 	DIGIMON_CHERRYMON,
+	DIGIMON_KING_SUKAMON, /* MOD (partners-npc-a) */
+	DIGIMON_ICEMON,       /* MOD (partners-npc-a) */
+	DIGIMON_METEORMON,    /* MOD (partners-npc-a) */
 };
 
 static char *MOD_LAB_EVO_TEXT[MOD_LAB_EVO_COUNT] = {
 	"To MasterTyrannomon",
 	"To Cherrymon",
+	"To King of Sukamon", /* MOD (partners-npc-a) */
+	"To Icemon",          /* MOD (partners-npc-a) */
+	"To Meteormon",       /* MOD (partners-npc-a) */
 };
 
 static char *MOD_LAB_FPS_TEXT[3] = {

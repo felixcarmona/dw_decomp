@@ -53,9 +53,38 @@ typedef uint16_t CardId;
 #define DIGIMON_VEGIEMON		25
 #define DIGIMON_PIXIMON			55
 #define DIGIMON_CHERRYMON		121
+/*
+ * MOD (partners-npc-a): King of Sukamon is a partner too, reached from
+ * Sukamon, with Sukamon's animations and techniques on its own (scaled)
+ * model. Its rows are at index 120 of the same tables; its raised flag is
+ * trigger 0x200 + 120 = 632 (free).
+ */
+#define DIGIMON_SUKAMON			39
+#define DIGIMON_KING_SUKAMON		120
+/*
+ * MOD (partners-npc-a): Icemon is a partner too, reached from Frigimon, on
+ * its own model with a full animation set. Its raised flag would be
+ * trigger 0x200 + 94 = 606, which script 221 uses ("X came to the city"),
+ * so it has none (hasDigimonRaised returns 0 for it).
+ */
+#define DIGIMON_FRIGIMON		23
+#define DIGIMON_GOTSUMON		68
+#define DIGIMON_ICEMON			94
+/*
+ * MOD (partners-npc-a): Meteormon is a partner too, reached from
+ * Monochromon, on its own model (the engine draws type 113 1.5 times
+ * larger). No raised flag either: 0x200 + 113 = 625 is script 221's.
+ */
+#define DIGIMON_MERAMON			9
+#define DIGIMON_MONOCHROMON		47
+#define DIGIMON_METEORMON		113
+/* MOD (partners-npc-a): natural evolutions for the item-only partners */
+#define DIGIMON_PANJYAMON		63
+#define DIGIMON_GIGADRAMON		64
+#define DIGIMON_METALETEMON		65
 #define HAS_RAISED_FLAG(type)                                                 \
 	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_CHERRYMON || \
-	 (type) == DIGIMON_MASTER_TYRANNOMON)
+	 (type) == DIGIMON_MASTER_TYRANNOMON || (type) == DIGIMON_KING_SUKAMON)
 
 /* Screens (maps) */
 #define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */

@@ -1751,17 +1751,28 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(ICEMON)
+		/*
+		 * MOD (partners-npc-a): a partner. Was a Rookie NPC with
+		 * three techniques; now an Ultimate (reached from Frigimon)
+		 * with Ice and Battle techniques and Frigimon's finisher
+		 * Subzero Ice Punch (0x69, animation 0x36). Its partner model
+		 * (ICEM.MMD rebuilt by mods/experimental/partners-npc-a) has
+		 * an animation for each: Megaton Punch, Giga Freeze, Ice
+		 * Needle (its own), Tremar, Buster Dive (Gotsumon's), Ice
+		 * Statue, Winter Blast, Muscle Charge (SnowAgumon's) and the
+		 * finisher (Frigimon's). Size unchanged.
+		 */
 		0x00000016,
 		0x0069,
 		0x0136,
 		0x02,
-		0x03,
+		0x05,
 		{ 0x04, 0xff, 0x01 },
 		0x05,
 		0x0a,
 		{
-			0x2e, 0x10, 0x13, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0x2e, 0x10, 0x13, 0x28, 0x2f, 0x11, 0x12, 0x29,
+			0x69, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		},
 		0x00,
 	},
@@ -2072,17 +2083,28 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(METEORMON)
+		/*
+		 * MOD (partners-npc-a): a partner. Was a Rookie NPC with
+		 * four techniques; now an Ultimate (reached from Monochromon)
+		 * with Fire and Battle techniques and Meramon's finisher
+		 * Fireball (0x3D, animation 0x37). Its partner model
+		 * (INSE.MMD rebuilt by mods/experimental/partners-npc-a) has
+		 * an animation for each: Magma Bomb, Meltdown, Megaton Punch,
+		 * Tremar (its own), Buster Dive (Gotsumon's), Spit Fire, Heat
+		 * Laser, Red Inferno, Prominence Beam and Fireball
+		 * (Meramon's). Size unchanged.
+		 */
 		0x00000016,
 		0x00a0,
 		0x0190,
 		0x01,
-		0x03,
+		0x05,
 		{ 0x00, 0x01, 0xff },
 		0x1b,
 		0x64,
 		{
-			0x04, 0x07, 0x2e, 0x28, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0x04, 0x07, 0x2e, 0x28, 0x2f, 0x02, 0x05, 0x03,
+			0x01, 0x3d, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		},
 		0x00,
 	},
@@ -2184,17 +2206,26 @@ DigimonPara DIGIMON_DATA[180] = {
 	},
 	{
 		DIGIMON_PARA_NAME(KING_SUKAMON)
+		/*
+		 * MOD (partners-npc-a): a partner. Was a Champion with no
+		 * techniques (an NPC); now an Ultimate with Sukamon's Filth
+		 * techniques and finisher Party time (0x41, animation 0x36):
+		 * its partner model plays Sukamon's animations. The model is
+		 * 0.62 times the NPC's (SCUD.MMD rebuilt by
+		 * mods/experimental/partners-npc-a), so radius and height go
+		 * from 450/800 to 279/496.
+		 */
 		0x00000015,
-		0x01c2,
-		0x0320,
+		0x0117,
+		0x01f0,
 		0x03,
-		0x04,
+		0x05,
 		{ 0x06, 0xff, 0xff },
 		0x00,
 		0x0a,
 		{
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0x37, 0x31, 0x32, 0x33, 0x35, 0x36, 0x34, 0x38,
+			0x41, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		},
 		0x00,
 	},

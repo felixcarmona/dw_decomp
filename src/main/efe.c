@@ -1309,6 +1309,11 @@ EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 	EfeTechBoneOffset *entry;
 	EfeBoneOffset *out;
 
+	/* MOD (partners-npc-a): King of Sukamon, Icemon, Meteormon (below) */
+	out = getModDonorTechBoneOffset(type, table);
+	if (out != NULL) {
+		return out;
+	}
 	if (type != DIGIMON_CHERRYMON) {
 		return NULL;
 	}
@@ -1334,4 +1339,100 @@ EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 		out->positionZ = -110;
 	}
 	return out;
+}
+
+/*
+ * MOD (partners-npc-a): technique origins for King of Sukamon, Icemon and
+ * Meteormon, the same idea as Cherrymon's above but table driven. For a type
+ * without its own row in a technique's table, the first donor (in the order
+ * of MOD_TECH_DONORS) that has a row lends it:
+ *   - bone 0 rows (a point in front of the Digimon, in the entity's frame)
+ *     are scaled by `scale` / 100;
+ *   - other bones go through `map` (donor bone -> own bone and offset; a
+ *     `from` of -2 matches any bone); when nothing matches and `sameRig` is
+ *     set (the donor's skeleton has the same bones), the bone is kept and its
+ *     offset scaled.
+ * Returns NULL when no donor has a row (the effect is dropped, as before).
+ */
+typedef struct {
+	int8_t from;
+	int8_t to;
+	int16_t x, y, z;
+} ModTechBoneMap;
+
+typedef struct {
+	int16_t type;
+	int16_t donor;
+	int16_t scale;
+	int16_t sameRig;
+	ModTechBoneMap map[2];
+} ModTechDonor;
+
+static ModTechDonor MOD_TECH_DONORS[] = {
+	/* King of Sukamon is Sukamon (same skeleton) built 2.76 times larger,
+	 * shrunk to 0.62 by its partner model: 1.71 times Sukamon */
+	{ DIGIMON_KING_SUKAMON, DIGIMON_SUKAMON, 171, 1, { { -1 }, { -1 } } },
+	/* Icemon has its own rows for Megaton Punch, Giga Freeze and Ice Needle.
+	 * Tremar and Buster Dive: Gotsumon's (the same model, 280 high);
+	 * Ice Statue, Winter Blast, Muscle Charge: Agumon's (the same bones,
+	 * 250 high; SnowAgumon uses Agumon's rows); Subzero Ice Punch:
+	 * Frigimon's point in front of it (380 high), other Frigimon bones
+	 * to Icemon's head. */
+	{ DIGIMON_ICEMON, DIGIMON_GOTSUMON, 110, 1, { { -1 }, { -1 } } },
+	{ DIGIMON_ICEMON, 3, 124, 1, { { -1 }, { -1 } } },
+	{ DIGIMON_ICEMON, DIGIMON_FRIGIMON, 82, 0, { { -2, 4, 60, 35, 0 }, { -1 } } },
+	/* Meteormon has its own rows for Magma Bomb, Meltdown, Megaton Punch and
+	 * Tremar (in its unscaled model units, like these). Buster Dive:
+	 * Gotsumon's; Spit Fire, Heat Laser, Red Inferno, Prominence Beam,
+	 * Fireball: Meramon's (the same bones, its animations are Meramon's) */
+	{ DIGIMON_METEORMON, DIGIMON_GOTSUMON, 100, 1, { { -1 }, { -1 } } },
+	{ DIGIMON_METEORMON, DIGIMON_MERAMON, 100, 1, { { -1 }, { -1 } } },
+};
+
+EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
+{
+	static EfeBoneOffset ring[8];
+	static int32_t next;
+	EfeTechBoneOffset *entry;
+	EfeBoneOffset *out;
+	ModTechDonor *d;
+	ModTechBoneMap *m;
+	int32_t i, k;
+
+	for (i = 0; i < (int32_t)(sizeof(MOD_TECH_DONORS) / sizeof(MOD_TECH_DONORS[0])); i++) {
+		d = &MOD_TECH_DONORS[i];
+		if (d->type != type) {
+			continue;
+		}
+		for (entry = table; entry->type >= 0 && entry->type != d->donor;
+		     entry = (EfeTechBoneOffset *)((int32_t)entry + 0xa)) {
+		}
+		if (entry->type != d->donor) {
+			continue;
+		}
+		out = &ring[next];
+		next = (next + 1) & 7;
+		out->boneId = entry->offset.boneId;
+		out->positionX = entry->offset.positionX * d->scale / 100;
+		out->positionY = entry->offset.positionY * d->scale / 100;
+		out->positionZ = entry->offset.positionZ * d->scale / 100;
+		if (entry->offset.boneId == 0) {
+			return out;
+		}
+		for (k = 0; k < 2; k++) {
+			m = &d->map[k];
+			if (m->from == entry->offset.boneId || m->from == -2) {
+				out->boneId = m->to;
+				out->positionX = m->x;
+				out->positionY = m->y;
+				out->positionZ = m->z;
+				return out;
+			}
+		}
+		if (d->sameRig) {
+			return out;
+		}
+		/* a donor bone with no counterpart: try the next donor */
+	}
+	return NULL;
 }
