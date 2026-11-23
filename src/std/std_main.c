@@ -687,6 +687,13 @@ static uint8_t STD_PORTRAIT_ROW[8];
 #define STD_PORTRAIT_FIRST_FREE_ROW 8
 
 // clang-format off
+#if VERSION_IS(US)
+/* MOD (player data): the USA renderers discard these Japanese sprite glyphs:
+ * their AddPrim calls are compiled out. Keep empty authored rows rather than
+ * inheriting a Japanese name table that western player discs cannot supply.
+ * Row counts stay fixed for the existing bounded lookups. */
+uint8_t STD_INTRO_DIGIMON_NAMES[112][14] = { { 0 } };
+#else
 uint8_t STD_INTRO_DIGIMON_NAMES[112][14] = {
 	{
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1137,6 +1144,7 @@ uint8_t STD_INTRO_DIGIMON_NAMES[112][14] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	},
 };
+#endif
 
 char STD_PATH_ARENA_MODEL_STDDAT_T_TOGI_TMD[] = "\\STDDAT\\T_TOGI.TMD";
 
