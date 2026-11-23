@@ -3994,6 +3994,9 @@ int32_t MOD_FPS_FORCE_PASSES;
 int32_t MOD_FPS_TICKS;
 int32_t MOD_FPS_RENDERS;
 int32_t MOD_RENDER_PASS;
+/* effect render scripts not rolled back on an extra pass for lack of room
+ * (BTL_renderEFEEngine): expected to stay 0 */
+int32_t MOD_FPS_EFE_NO_ROOM;
 
 static void modFpsBeginFrame(void)
 {

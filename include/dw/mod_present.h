@@ -31,6 +31,8 @@ extern int32_t MOD_RENDER_PASS;
 extern int32_t MOD_RENDER_MULTIPASS;
 /* rand() for render code: the real one on the first pass of a tick */
 int32_t modRenderRand(void);
+int32_t modRenderCustomRandom(long min, long max);
 void removeObjectAfterRender(int32_t objectId, int32_t instanceId);
+extern int32_t MOD_FPS_EFE_NO_ROOM;
 
 #endif
