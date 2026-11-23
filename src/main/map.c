@@ -21,6 +21,7 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
+#include <dw/screen.h>
 #include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/tfs_stream.h>
@@ -54,6 +55,7 @@ void handleBattleIdle(DigimonEntity *entity, Stats *stats, int32_t flags);
 void initializeLoadedNPCModels(void);
 int32_t isInvisible(Entity *entity);
 void loadDoors(int32_t doorEntryId);
+void loadDoorData(void *door); /* MOD: a DoorStruct (map_object.c) */
 void loadMapCollisionData(uint8_t *data);
 void loadMapImage1(uint8_t *tim);
 void loadMapImage2(uint8_t *tim, int8_t id);
@@ -441,7 +443,7 @@ char *MAP_NAME_PTR[70] = {
 	STR_MAP_NAME_AMIDA_FOREST,
 };
 
-MapEntry MAP_ENTRIES[NUM_SCREENS] = {
+MapEntry MAP_ENTRIES[NUM_ORIGINAL_SCREENS] = { /* MOD: the original screens; the others are SCRN.DAT records (screen.h) */
 	{
 		"MAYO01",
 		0x03,
@@ -4096,7 +4098,7 @@ void lateTickMap(int32_t arg0)
 
 	tickCameraFollowPlayer();
 
-	skipTimeOfDay = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
+	skipTimeOfDay = SCREEN_ENTRY(CURRENT_SCREEN).flags & 0x40;
 	if ((skipTimeOfDay == 0) && (clockCrossed(1200))) {
 		/* MOD (rules as data): the hours come from MOD_DAYTIME (-1: no transition) */
 		if (HOUR == MOD_DAYTIME[MOD_DT_DUSK]) {
@@ -4182,9 +4184,11 @@ void loadMap(int16_t mapId)
 	char path[32];
 	int32_t result;
 
+	MapEntry *entry = getScreenEntry(mapId); /* MOD (screens beyond 255): MAP_ENTRIES or the record */
+
 	offsets = (int32_t *)GENERAL_BUFFER_PTR;
 	if (SKIP_MAP_FILE_READ == 0) {
-		buildMapPath(path, MAP_ENTRIES[mapId].filename, MAP_FILE_EXT_MAP, mapId);
+		buildMapPath(path, entry->filename, MAP_FILE_EXT_MAP, mapId);
 		readFile(path, (void *)offsets);
 	}
 
@@ -4192,17 +4196,17 @@ void loadMap(int16_t mapId)
 	result = loadMapSetup((int32_t *)(GENERAL_BUFFER_PTR + setupOffset));
 	clearMapObjects(MAP_TILE_DATA.objects);
 
-	if ((MAP_ENTRIES[mapId].num8bppImages != 0) ||
-	    (MAP_ENTRIES[mapId].num4bppImages != 0)) {
-		if (MAP_ENTRIES[mapId].num8bppImages != 0) {
-			for (i = 0; i < MAP_ENTRIES[mapId].num8bppImages; i++) {
+	if ((entry->num8bppImages != 0) ||
+	    (entry->num4bppImages != 0)) {
+		if (entry->num8bppImages != 0) {
+			for (i = 0; i < entry->num8bppImages; i++) {
 				image8Offset = *offsets++;
 				loadMapImage1(GENERAL_BUFFER_PTR + image8Offset);
 			}
 		}
 
-		if (MAP_ENTRIES[mapId].num4bppImages != 0) {
-			for (i = 0; i < MAP_ENTRIES[mapId].num4bppImages; i++) {
+		if (entry->num4bppImages != 0) {
+			for (i = 0; i < entry->num4bppImages; i++) {
 				image4Offset = *offsets++;
 				loadMapImage2(GENERAL_BUFFER_PTR + image4Offset, i);
 			}
@@ -4219,8 +4223,10 @@ void loadMap(int16_t mapId)
 	loadMapEntities(GENERAL_BUFFER_PTR + entityOffset, mapId,
 			CURRENT_EXIT);
 
-	if (MAP_ENTRIES[mapId].doorsId != 0) {
-		loadDoors(MAP_ENTRIES[mapId].doorsId - 1);
+	if (entry->doorsId == SCREEN_OWN && isNewScreen(mapId)) {
+		loadDoorData(getScreenDoor(mapId)); /* MOD: the record's own door */
+	} else if (entry->doorsId != 0) {
+		loadDoors(entry->doorsId - 1);
 	}
 	if ((mapId > 100) && (mapId < 104)) {
 		loadWarpCrystals(mapId);
@@ -4363,14 +4369,14 @@ int32_t loadMapSetup(int32_t *data)
 
 int32_t getMapSoundId(int16_t mapId)
 {
-	return MAP_ENTRIES[mapId].flags & 0x1f;
+	return SCREEN_ENTRY(mapId).flags & 0x1f;
 }
 
 void readMapTFS(int32_t mapId)
 {
 	char path[32];
 
-	buildMapPath(path, MAP_ENTRIES[mapId].filename, MAP_FILE_EXT_TFS, mapId);
+	buildMapPath(path, SCREEN_ENTRY(mapId).filename, MAP_FILE_EXT_TFS, mapId);
 	/* MOD (memreclaim): only the header; tiles are streamed (tfs_stream.c) */
 	tfsStreamOpen(path);
 }
@@ -4466,7 +4472,7 @@ void updateTimeOfDay(void)
 		removeObject(0xfbe, DAYTIME_TRANSITION_TARGET);
 	}
 
-	if ((MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40) != 0) {
+	if ((SCREEN_ENTRY(CURRENT_SCREEN).flags & 0x40) != 0) {
 		LoadClut(MAP_CLUTS[0], 0, 480);
 	} else {
 		red = green = 10;
@@ -5697,7 +5703,7 @@ static char *mapCaption(int16_t mapId, char *buf)
 	char *s;
 	int32_t n;
 
-	s = MAP_NAME_PTR[MAP_ENTRIES[mapId].loadingName];
+	s = getScreenCaption(mapId); /* MOD (screens beyond 255) */
 	while (*s == ' ') {
 		s++;
 	}
@@ -5725,7 +5731,7 @@ void addMapNameObject(mapId)
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 	drawString(mapCaption(mapId, buf), 0, 0);
 #else
-	drawString(MAP_NAME_PTR[MAP_ENTRIES[mapId].loadingName], 0, 0);
+	drawString(getScreenCaption(mapId), 0, 0);
 #endif
 	addObject(0xfa1, mapId, NULL, renderMapName);
 }
@@ -5838,7 +5844,7 @@ void renderMapName(mapId)
 	renderString(0, -length / 2, -6, length, 12, 0, 0, 0, 0);
 	return;
 #endif
-	length = strlen(MAP_NAME_PTR[MAP_ENTRIES[mapId].loadingName]);
+	length = strlen(getScreenCaption(mapId));
 #if !VERSION_IS(US)
 	renderString(0, -12 - (length / 2) * 6, -6, (length / 2) * 12, 12, 0,
 		     0, 0, 0);

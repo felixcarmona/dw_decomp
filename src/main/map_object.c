@@ -7,6 +7,7 @@
 #include <dw/entity.h>
 #include <dw/ids.h>
 #include <dw/map_object.h>
+#include <dw/screen.h>
 #include <dw/params.h>
 #include <dw/trigger.h>
 #include <dw/types.h>
@@ -247,7 +248,13 @@ void loadStaticTMD(char *path, char *buffer, GsDOBJ2 *obj,
 	obj->coord2 = coord;
 }
 
+/* MOD (screens beyond 255): the doors of a DOOR_MAPDATA row, or of a new screen's record (screen.h) */
 void loadDoors(int16_t doorEntryId)
+{
+	loadDoorData(&DOOR_MAPDATA[doorEntryId]);
+}
+
+void loadDoorData(DoorStruct *door)
 {
 	char path[32];
 	char *pathSrc = DOOR_PATH_PREFIX;
@@ -269,10 +276,10 @@ void loadDoors(int16_t doorEntryId)
 	for (i = 0; i < NUM_MAP_3D_OBJECTS; i++) {
 		for (slot = 0; slot < 4; slot++) {
 			if (LOADED_DOOR_MODELS[slot] == -1) {
-				LOADED_DOOR_MODELS[slot] = DOOR_MAPDATA[doorEntryId].modelId[i];
+				LOADED_DOOR_MODELS[slot] = door->modelId[i];
 				break;
 			}
-			if (LOADED_DOOR_MODELS[slot] == DOOR_MAPDATA[doorEntryId].modelId[i]) {
+			if (LOADED_DOOR_MODELS[slot] == door->modelId[i]) {
 				break;
 			}
 		}
@@ -298,14 +305,14 @@ void loadDoors(int16_t doorEntryId)
 	}
 
 	for (slot = 0; slot < NUM_MAP_3D_OBJECTS; slot++) {
-		MAP_3D_OBJ[slot].modelId = DOOR_MAPDATA[doorEntryId].modelId[slot];
-		MAP_3D_OBJ[slot].translation.vx = DOOR_MAPDATA[doorEntryId].posX[slot];
-		MAP_3D_OBJ[slot].translation.vy = DOOR_MAPDATA[doorEntryId].posY[slot];
-		MAP_3D_OBJ[slot].translation.vz = DOOR_MAPDATA[doorEntryId].posZ[slot];
+		MAP_3D_OBJ[slot].modelId = door->modelId[slot];
+		MAP_3D_OBJ[slot].translation.vx = door->posX[slot];
+		MAP_3D_OBJ[slot].translation.vy = door->posY[slot];
+		MAP_3D_OBJ[slot].translation.vz = door->posZ[slot];
 		MAP_3D_OBJ[slot].rotation.vx = 0;
-		MAP_3D_OBJ[slot].rotation.vy = DOOR_MAPDATA[doorEntryId].rotation[slot];
+		MAP_3D_OBJ[slot].rotation.vy = door->rotation[slot];
 		MAP_3D_OBJ[slot].rotation.vz = 0;
-		MAP_3D_OBJ[slot].direction = DOOR_MAPDATA[doorEntryId].rotation[slot];
+		MAP_3D_OBJ[slot].direction = door->rotation[slot];
 	}
 
 	MAP_OBJ_ROTATE_TIMER = 0;
