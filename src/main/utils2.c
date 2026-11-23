@@ -386,9 +386,13 @@ void loadDynamicLibrary(Overlay lib, uint8_t *isComplete, uint8_t isAsync,
 	if (!isAsync) {
 		readFile(REL_BIN_FILES[lib - 1], (nv = REL_BIN_OFFSETS[lib - 1]));
 	} else {
-		addFileReadRequestPath(REL_BIN_FILES[lib - 1],
-				       (nv = REL_BIN_OFFSETS[lib - 1]), isComplete,
-				       (FileRequestCallback)callback, param);
+		/* MOD (file table): found through FILE_OFFSET_TABLE like readFile. CdSearchFile sees only the first sector of
+		   the root directory, which the mod's disc outgrows (TRN_REL, TRN2_REL and VS_REL were in the second: a gym
+		   waited for TRN forever), and it would read a translated overlay's English copy */
+		if (addFileReadRequestLookup(REL_BIN_FILES[lib - 1], (nv = REL_BIN_OFFSETS[lib - 1]), isComplete,
+					     (FileRequestCallback)callback, param) < 0) {
+			addFileReadRequestPath(REL_BIN_FILES[lib - 1], nv, isComplete, (FileRequestCallback)callback, param);
+		}
 	}
 }
 
