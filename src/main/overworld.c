@@ -663,8 +663,8 @@ void renderMist(void)
 		if (i < 4) {
 			prim->tpage = GetTPage(0, 3, 0x2c0, 0);
 			prim->clut = GetClut(0, 0x1e6);
-			setPosDataPolyFT4(prim, MIST_X_OFFSETS[i % 2],
-			                  MIST_Y_OFFSETS[i / 2], 0x140,
+			setPosDataPolyFT4(prim, MIST_X_OFFSETS[i % 2] + MOD_MIST_SHIFT[0],
+			                  MIST_Y_OFFSETS[i / 2] + MOD_MIST_SHIFT[1], 0x140,
 			                  0xf0);
 			setRGB0(prim, 0x96, 0x96, 0x96);
 		} else {
@@ -678,14 +678,15 @@ void renderMist(void)
 				prim->clut = GetClut(MIST_CLUT_Y[1],
 				                     0x1e6);
 			}
-			prim->x0 = MAIN_D_80134228[i % 2];
-			prim->x1 = MAIN_D_80134228[i % 2] - 0x140;
-			prim->x2 = MAIN_D_80134228[i % 2];
-			prim->x3 = MAIN_D_80134228[i % 2] - 0x140;
-			prim->y0 = MIST_Y_OFFSETS[(i - 4) / 2];
-			prim->y1 = MIST_Y_OFFSETS[(i - 4) / 2];
-			prim->y2 = MIST_Y_OFFSETS[(i - 4) / 2] + 0xf0;
-			prim->y3 = MIST_Y_OFFSETS[(i - 4) / 2] + 0xf0;
+			/* MOD (fps): + the camera interpolation of the pass */
+			prim->x0 = MAIN_D_80134228[i % 2] + MOD_MIST_SHIFT[2];
+			prim->x1 = MAIN_D_80134228[i % 2] + MOD_MIST_SHIFT[2] - 0x140;
+			prim->x2 = MAIN_D_80134228[i % 2] + MOD_MIST_SHIFT[2];
+			prim->x3 = MAIN_D_80134228[i % 2] + MOD_MIST_SHIFT[2] - 0x140;
+			prim->y0 = MIST_Y_OFFSETS[(i - 4) / 2] + MOD_MIST_SHIFT[1];
+			prim->y1 = MIST_Y_OFFSETS[(i - 4) / 2] + MOD_MIST_SHIFT[1];
+			prim->y2 = MIST_Y_OFFSETS[(i - 4) / 2] + MOD_MIST_SHIFT[1] + 0xf0;
+			prim->y3 = MIST_Y_OFFSETS[(i - 4) / 2] + MOD_MIST_SHIFT[1] + 0xf0;
 			setRGB0(prim, 0x50, 0x50, 0x50);
 		}
 		setUVDataPolyFT4(prim, 0, 0, 0xff, 0xc8);

@@ -144,6 +144,7 @@ void readMapTFS(int32_t mapId);
 void renderFXParticle(SVECTOR *pos, int32_t size, RGB8 *color);
 void renderMap(int32_t arg0);
 void lateTickMap(int32_t arg0);
+extern int32_t MOD_INTERP_MAP_GEN; /* MOD (fps), main.c */
 /* MOD (fps): see dw/mod_fps.h (not included: this file declares addObject
  * with other parameter types) */
 int32_t addObjectLate(int32_t objectId, int32_t instanceId,
@@ -4406,6 +4407,7 @@ void setupMap(void)
 		}
 	}
 
+	MOD_INTERP_MAP_GEN++; /* MOD (fps): no interpolation across a map load */
 	MAP_TILE_DATA.cameraX = ((MAP_TILE_DATA.width * 128) / 2) - 160;
 	MAP_TILE_DATA.cameraY = ((MAP_TILE_DATA.height * 128) / 2) - 120;
 	DRAW_OFFSET_LIMIT_X_MAX = MAP_TILE_DATA.cameraX + 160;
@@ -4597,6 +4599,7 @@ void unloadMap(void)
 		MAP_TILE_DATA.tiles[i].texU = MAP_TILE_DATA.tiles[i].texV = 0;
 	}
 
+	MOD_INTERP_MAP_GEN++; /* MOD (fps) */
 	MAP_TILE_DATA.width = MAP_TILE_DATA.height = 0;
 	MAP_TILE_DATA.cameraX = MAP_TILE_DATA.cameraY = 0;
 	DRAWING_OFFSET_X = 160;
