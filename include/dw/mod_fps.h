@@ -4,6 +4,23 @@
 #include <dw/types.h>
 #include <dw/world_object.h>
 #include <dw/mod_present.h>
+#include <fps.h> /* FPS: the build's frame rate (Makefile `FPS=20|30|60`, generated) */
+
+/* MOD (fps): the frame rate is a build parameter, not a setting: FPS is 20,
+ * 30 or 60 (Makefile, default there) and MOD_FPS_MODE the compile-time mode
+ * modPresent works with: 0 = 20 fps (one render per tick, the original; the
+ * extra passes and the interpolation compile out), 1 = 30, 2 = 60. */
+#if FPS == 20
+#define MOD_FPS_MODE 0
+#elif FPS == 30
+#define MOD_FPS_MODE 1
+#elif FPS == 60
+#define MOD_FPS_MODE 2
+#else
+#error "FPS must be 20, 30 or 60"
+#endif
+/* the same value in RAM (read-only), so tools can tell which build runs */
+extern const int32_t MOD_FPS_BUILD;
 
 /* MOD (fps): the scene can be rendered several times per 20 Hz logic tick
  * (see docs/mods/60fps.md). renderObjects() must then be idempotent:
