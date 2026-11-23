@@ -1840,6 +1840,8 @@ void scriptInstruction64to7E(op)
 			break;
 		case 0x35:
 			isSoundLoaded(0, 8);
+			/* MOD (menu overlay): game_clear_save read MENU_REL over ENDI's first bytes (whole sectors) */
+			loadDynamicLibrary(ENDI_REL, NULL, 0, NULL, NULL);
 			tamerSetState(0x10);
 			SOME_SCRIPT_SYNC_BIT = 0;
 			ACTIVE_INSTRUCTION = SCRIPT_OP_CALL_ROUTINE;
