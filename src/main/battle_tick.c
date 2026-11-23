@@ -232,6 +232,7 @@ void handleFleeing(void)
 
 extern int8_t MOD_BATTLE_LOADING; /* MOD (quick battle start), btl.c */
 void modBattleLoadStep(void);
+void modBattleFleeTick(void);
 
 // clang-format off
 void tamerTickBattle(instanceId)
@@ -245,6 +246,7 @@ void tamerTickBattle(instanceId)
 	tamer = ENTITY_TABLE[instanceId];
 
 	modBattleLoadStep(); /* MOD (quick battle start), btl.c */
+	modBattleFleeTick();
 	if (GAME_STATE == 1) {
 		if (COMBAT_DATA_PTR->player.currentCommand[0] != 1) {
 			partner = ENTITY_TABLE[1];
