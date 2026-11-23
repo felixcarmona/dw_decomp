@@ -279,8 +279,14 @@ void drawInventoryTextLine(int16_t startSlot)
 	DrawSync(0);
 }
 
+/* MOD (battle item list): modBag* in mod_feed.c */
+void modBagFilterForBattle(void);
+void modBagRestoreAfterBattle(void);
+void modBagForget(void);
+
 void initializeInventoryUI(void)
 {
+	modBagForget();
 	INVENTORY_ACTION = 0;
 	IS_INVENTORY_INITIALIZED = 0;
 }
@@ -291,6 +297,9 @@ void addInventoryUI(void)
 	    (TAMER_ITEM.worldItem.type == ITEM_NONE)) {
 		IS_INVENTORY_INITIALIZED = 1;
 		INVENTORY_ACTION = 1;
+		if (GAME_STATE == 1) {
+			modBagFilterForBattle();
+		}
 		addObject(0x1a5, 0, tickInventoryUI, 0);
 	}
 }
@@ -430,6 +439,7 @@ void closeInventoryBoxes(void)
 	if (IS_INVENTORY_INITIALIZED != 0) {
 		IS_INVENTORY_INITIALIZED = 0;
 		INVENTORY_ACTION = 0;
+		modBagRestoreAfterBattle();
 		for (i = 0; i < 4; i++) {
 			if (UI_BOX_DATA[i].state != 0) {
 				removeStaticUIBox(i);

@@ -553,3 +553,85 @@ int32_t modFeedTick(void)
 	addObject(FEED_OBJECT_ID, 0, feedTick, NULL);
 	return 1;
 }
+
+/* MOD (battle item list): in a fight the bag shows only what can be thrown. The real bag waits here while the list is
+ * open; closing puts it back, the usable items in the order the list left them (Move and Sort still count). */
+ItemId MOD_BAG_TYPES[30];
+uint8_t MOD_BAG_AMOUNTS[30];
+uint8_t MOD_BAG_HELD;
+
+static int32_t isBattleItem(ItemId type)
+{
+	return (type != ITEM_NONE) && ((ITEM_PARA[type].itemColor == 1) || (ITEM_PARA[type].itemColor == 2));
+}
+
+void modBagFilterForBattle(void)
+{
+	int32_t i;
+	int32_t n;
+
+	if (MOD_BAG_HELD != 0) {
+		return;
+	}
+	MOD_BAG_HELD = 1;
+	n = 0;
+	for (i = 0; i < INVENTORY.size; i++) {
+		MOD_BAG_TYPES[i] = INVENTORY.types.array[i];
+		MOD_BAG_AMOUNTS[i] = INVENTORY.amounts.array[i];
+	}
+	for (i = 0; i < INVENTORY.size; i++) {
+		if (isBattleItem(MOD_BAG_TYPES[i])) {
+			INVENTORY.types.array[n] = MOD_BAG_TYPES[i];
+			INVENTORY.amounts.array[n] = MOD_BAG_AMOUNTS[i];
+			INVENTORY.names.array[n] = n;
+			n++;
+		}
+	}
+	for (; n < INVENTORY.size; n++) {
+		INVENTORY.types.array[n] = ITEM_NONE;
+		INVENTORY.amounts.array[n] = 0;
+		INVENTORY.names.array[n] = 0xff;
+	}
+}
+
+void modBagRestoreAfterBattle(void)
+{
+	int32_t i;
+	int32_t n;
+	ItemId held;
+
+	if (MOD_BAG_HELD == 0) {
+		return;
+	}
+	MOD_BAG_HELD = 0;
+	held = INVENTORY.types.array[INVENTORY_POINTER];
+	n = 0;
+	for (i = 0; i < INVENTORY.size; i++) {
+		if (isBattleItem(MOD_BAG_TYPES[i])) {
+			while ((n < INVENTORY.size) && (INVENTORY.types.array[n] == ITEM_NONE)) {
+				n++;
+			}
+			if (n < INVENTORY.size) {
+				MOD_BAG_TYPES[i] = INVENTORY.types.array[n];
+				MOD_BAG_AMOUNTS[i] = INVENTORY.amounts.array[n];
+				n++;
+			} else {
+				MOD_BAG_TYPES[i] = ITEM_NONE;
+				MOD_BAG_AMOUNTS[i] = 0;
+			}
+		}
+	}
+	for (i = 0; i < INVENTORY.size; i++) {
+		INVENTORY.types.array[i] = MOD_BAG_TYPES[i];
+		INVENTORY.amounts.array[i] = MOD_BAG_AMOUNTS[i];
+		INVENTORY.names.array[i] = (MOD_BAG_TYPES[i] != ITEM_NONE) ? i : 0xff;
+		if ((held != ITEM_NONE) && (MOD_BAG_TYPES[i] == held)) {
+			INVENTORY_POINTER = i; /* the throw that follows reads the slot by number */
+		}
+	}
+}
+
+void modBagForget(void)
+{
+	MOD_BAG_HELD = 0;
+}
