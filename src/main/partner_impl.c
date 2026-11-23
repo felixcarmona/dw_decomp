@@ -211,6 +211,27 @@ RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	 */
 	[DIGIMON_METEORMON] = { { 2, 6, 10, 14, 18, 22, -1, -1 },
 	  80, 53, 12, 36, 1200, 13, 66, 1, 0, 3, 50, -273, 424, -364 },
+	/*
+	 * MOD (partners-npc-b): Monzaemon's row (14). The status screen view
+	 * keeps Monzaemon's framing for a model 1.25 times as tall: the same
+	 * point seen from DIGIVICE_ENTITY_VIEW (1300, 0, -3280), 1.25 times as
+	 * far away.
+	 */
+	/*
+	 * MOD (partners-npc-b): Devimon's row (6), weight 30; the status view
+	 * keeps Devimon's framing for a model 430/400 times as tall.
+	 */
+	/*
+	 * MOD (partners-npc-b): Whamon's row (24), weight 60; the status view
+	 * frames the 540-high frog like Cherrymon's tree (Cherrymon's point
+	 * moved 540/650 of the way from DIGIVICE_ENTITY_VIEW).
+	 */
+	[DIGIMON_SHOGUNGEKOMON] = { { 2, 6, 10, 14, 18, 21, -1, -1 },
+	  80, 50, 13, 36, 1200, 15, 48, 1, 4, 3, 60, -203, 523, -748 },
+	[DIGIMON_MYOTISMON] = { { 4, 9, 14, 18, 23, -1, -1, -1 },
+	  80, 30, 6, 36, 1200, 10, 46, 4, 6, 0, 30, 42, 376, -958 },
+	[DIGIMON_WARUMONZAEMON] = { { 2, 6, 11, 16, 21, -1, -1, -1 },
+	  80, 40, 8, 36, 1200, 10, 47, 1, 2, 3, 40, 100, 375, -1005 },
 };
 
 typedef struct {
@@ -246,6 +267,10 @@ int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	[DIGIMON_KING_SUKAMON - 1] = 16,
 	[DIGIMON_ICEMON - 1] = 10, /* MOD (partners-npc-a) */
 	[DIGIMON_METEORMON - 1] = 15, /* MOD (partners-npc-a) */
+	/* MOD (partners-npc-b): Monzaemon's 10, longer claw arm */
+	[DIGIMON_WARUMONZAEMON - 1] = 12,
+	[DIGIMON_MYOTISMON - 1] = 11, /* MOD (partners-npc-b): Devimon's 10 */
+	[DIGIMON_SHOGUNGEKOMON - 1] = 20, /* MOD (partners-npc-b): a wide frog */
 };
 
 extern uint8_t ITEM_CLUT_DATA[];
