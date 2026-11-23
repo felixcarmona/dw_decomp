@@ -144,10 +144,10 @@ extern GsCOORDINATE2Raw VS_ARENA_COORDS[];
 extern GsDOBJ2 VS_ARENA_OBJECTS[];
 extern int16_t VS_D_80071A0C[];
 extern Entity *VS_D_80071A18[];
-extern int32_t VS_D_80071A30[4];
+extern int32_t VS_D_80071A30[]; /* MOD: 22 entries with VS_D_80071A40 (GCC build) */
 extern int32_t VS_D_80071A40[];
 extern int32_t VS_D_80071A88[22];
-extern int32_t VS_D_80071AE0[4];
+extern int32_t VS_D_80071AE0[]; /* MOD: 22 entries with VS_D_80071AF0 (GCC build) */
 extern int32_t VS_D_80071AF0[];
 extern uint8_t VS_BATTLE_START_TEXT_PIECES[155][20];
 extern PositionDataRaw VS_VERSUS_MODEL_OBJECTS[4];
