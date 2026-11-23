@@ -784,7 +784,31 @@ void refreshColdCache(void)
 	}
 }
 
-uint8_t *loadColdAnimation(void *ent, uint32_t entry)
+/*
+ * MOD (cold animations with 2 MB): in the world a cold clip no longer stops the game for the disc. The partner holds its pose,
+ * with the clip as its animation and a frame count nothing reaches, so whatever waits for the clip keeps waiting; the file queue
+ * reads the clip, tickAnimation asks here each tick, and it starts when it has arrived. The clip shares COLD_ANIM_BUFFER with the
+ * one being played, so the animation does not advance meanwhile.
+ */
+uint32_t MOD_COLD_PENDING;		/* the table entry the partner waits for, 0 none */
+static uint32_t COLD_READ_ENTRY;	/* the entry of the last request */
+static uint32_t COLD_READY;		/* the entry COLD_ANIM_BUFFER holds, for startAnimation */
+static uint8_t COLD_READ_BUSY;		/* the file queue's flag */
+static uint8_t COLD_PENDING_ANIM;
+void startAnimation(Entity *entity, uint8_t animId);
+int32_t addFileReadRequestSection(char *path, uint8_t *buffer, int32_t offset, int32_t sectors, uint8_t *isRunning, int32_t a, int32_t b);
+
+/* tickAnimation, for an entity whose animation is off */
+void tickColdAnimation(Entity *entity)
+{
+	if (entity == (Entity *)&PARTNER_ENTITY.digimonEntity.entity && MOD_COLD_PENDING != 0 && !COLD_READ_BUSY) {
+		COLD_READY = COLD_READ_ENTRY;
+		MOD_COLD_PENDING = 0;
+		startAnimation(entity, COLD_PENDING_ANIM);
+	}
+}
+
+uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 {
 	Entity *entity = ent;
 	char *file;
@@ -803,6 +827,10 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry)
 	if (entity->type == MOD_COLD_CACHE_TYPE && offset + length <= COLD_CACHE_SECTORS << 11) {
 		return COLD_CACHE + offset;
 	}
+	if (entry == COLD_READY) {
+		COLD_READY = 0;
+		return COLD_ANIM_BUFFER + (offset & 0x7FF);
+	}
 	if (!getDigimonModelRef(entity->type, &file, &sector, &size) || file == NULL) {
 		return NULL;
 	}
@@ -811,6 +839,21 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry)
 		return NULL;
 	}
 	first = sector + ((size + 0x7FF) >> 11) + (offset >> 11);
+	if (MOD_COLD_CACHE_TYPE < 0 && GAME_STATE == 0) {
+		while (COLD_READ_BUSY) { /* a clip replaced while it was being read */
+			tickFileReadQueue(0);
+		}
+		COLD_READ_ENTRY = entry;
+		addFileReadRequestSection(file, COLD_ANIM_BUFFER, first, count, &COLD_READ_BUSY, 0, 0);
+		entity->anim.animId = animId;
+		entity->anim.animFrame = 1;
+		entity->anim.frameCount = 0x7FFF;
+		entity->anim.loopCount = 0;
+		entity->anim.animFlag &= ~1;
+		MOD_COLD_PENDING = entry;
+		COLD_PENDING_ANIM = animId;
+		return NULL;
+	}
 	readFileSectors(file, COLD_ANIM_BUFFER, first, count);
 	return COLD_ANIM_BUFFER + (offset & 0x7FF);
 }
