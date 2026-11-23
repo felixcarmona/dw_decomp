@@ -1924,6 +1924,7 @@ int32_t BTL_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender, FighterData *fighter, int16_t move)
 {
 	int32_t x;
+	int32_t speedDiff;
 	int16_t result;
 
 	if (DIGI_PARA(defender->entity.type).level < 3) {
@@ -1958,7 +1959,16 @@ int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender,
 		return 0;
 	}
 
-	x = MOVE_DATA[move].accuracy / 2 * (defender->stats.base.speed - (attacker->stats.base.speed / 10)) / 999;
+	/* MOD (caps): the speed difference is limited to +-999, the disc's stat range: identical for the originals' stats, and
+	   a stat past 999 (caps up to 9999) cannot push x past half the accuracy, so the hit chance never reaches 0 or 100 on speed alone */
+	speedDiff = defender->stats.base.speed - (attacker->stats.base.speed / 10);
+	if (speedDiff > 999) {
+		speedDiff = 999;
+	}
+	if (speedDiff < -999) {
+		speedDiff = -999;
+	}
+	x = MOVE_DATA[move].accuracy / 2 * speedDiff / 999;
 	if ((defender->entity.anim.animId == 0x21) || (defender->entity.anim.animId == 0x22)) {
 		x = x * 6 / 5;
 	}
