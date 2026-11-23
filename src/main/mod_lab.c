@@ -102,7 +102,7 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"+1000 bits",
 	"Heal partner",
 	"One-time gift",
-	NULL, /* MOD_LAB_EVO_TEXT */
+	NULL, /* the evolve entry: "To <name>" of its target, drawn from the species data */
 	"Status bubbles  All",
 	"Close",
 };
@@ -131,19 +131,6 @@ static int16_t MOD_LAB_EVO_TARGETS[] = {
 /* MOD (scale): after these come the partner species of DIGI.DAT (getSpeciesPartnerId), then the Mega entry */
 #define MOD_LAB_EVO_FIXED ((int32_t)(sizeof(MOD_LAB_EVO_TARGETS) / sizeof(MOD_LAB_EVO_TARGETS[0])))
 
-static char *MOD_LAB_EVO_TEXT[] = {
-	"To MasterTyrannomon",
-	"To Cherrymon",
-	"To King of Sukamon", /* MOD (partners-npc-a) */
-	"To Icemon",          /* MOD (partners-npc-a) */
-	"To Meteormon",       /* MOD (partners-npc-a) */
-	"To WaruMonzaemon", /* MOD (partners-npc-b) */
-	"To Myotismon",
-	"To ShogunGekomon",
-	"To Machinedramon", /* MOD (machinedramon) */
-	"To Jijimon",       /* MOD (jijimon) */
-	"To Analogman",     /* MOD (analogman) */
-};
 /* the entries: fixed originals, the species of DIGI.DAT, the Mega */
 static int32_t modLabEvoCount(void)
 {
@@ -273,14 +260,13 @@ static void modLabDrawText(void)
 				mega = modLabMegaTarget();
 				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
 				drawString(modLabMegaText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
-			} else if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED) {
-				/* MOD (scale): "To <name>" of a species of DIGI.DAT */
+			} else {
+				/* MOD (scale): "To <name>" of a species of DIGI.DAT; MOD (renames): of the fixed entries too,
+				 * so the menu shows the species' name as the data has it */
 				p = appendStr(modLabSpeciesText, "To ");
 				mega = modLabEvoTarget();
 				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
 				drawString(modLabSpeciesText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
-			} else {
-				drawString(MOD_LAB_EVO_TEXT[MOD_LAB_EVO_CHOICE], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 			}
 		} else {
 			drawString(MOD_LAB_OPTION_TEXT[i], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
