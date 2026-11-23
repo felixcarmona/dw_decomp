@@ -1861,7 +1861,6 @@ void createShopBitsBox(int32_t showBits)
 	setupBoxOrigin(0xfd, &origin);
 	setRECT(&rect, -0x98, -0x62, 0x52, 0x21);
 	createTextbox(2, flags, &rect, &origin, tickShopBitsBox, renderShopBitsBox);
-	TEXTBOX_IN_CELLS(2); /* MOD (font): its row is cut in two (renderShopBitsBox) */
 	registerTextbox(2, 8, 1, 0, 0);
 	tickShopBitsBox();
 }
@@ -3270,13 +3269,8 @@ void renderShopBitsBox(void)
 	x = UI_BOX_DATA[2].finalPos.x + 6;
 	y = UI_BOX_DATA[2].finalPos.y + 4;
 
-#if !VERSION_IS(US)
 	renderString(0, x, y, 0x48, 0xc, 0, rowPx, 4, 1);
 	renderString(0, x, y + 0xd, 0x48, 0xc, 0x48, rowPx, 4, 1);
-#else
-	renderString(0, x + 0x10, y, 0x30, 0xc, 0, rowPx, 4, 1);
-	renderString(0, x + 0x10, y + 0xd, 0x3c, 0xc, 0x30, rowPx, 4, 1);
-#endif
 }
 
 /* MOD (economy as data): written by tools/balance.py from content/tables/economy.json; -1 = the rule does not exist */
