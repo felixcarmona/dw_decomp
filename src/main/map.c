@@ -4861,6 +4861,11 @@ static void modCamBattleStep(void)
 	/* no handleTileUpdate: the window is not touched in a battle (tfs_stream.c would refuse it anyway) */
 }
 
+/* Scroll debt is consumed gradually after a band arrives, including with the
+ * pad released. Entities, animation, input and the file queue keep ticking. */
+static int16_t modCamDebtX;
+static int16_t modCamDebtY;
+
 void tickCameraFollowPlayer(void)
 {
 	SVECTOR worldPos;
@@ -4868,6 +4873,8 @@ void tickCameraFollowPlayer(void)
 	SVECTOR screenEnd;
 	int16_t oldCameraX;
 	int16_t oldCameraY;
+	int16_t debtX = modCamStep(modCamDebtX);
+	int16_t debtY = modCamStep(modCamDebtY);
 
 	if ((GAME_STATE == 0) &&
 	    (CAMERA_FOLLOW_PLAYER == 1) &&
@@ -4875,7 +4882,7 @@ void tickCameraFollowPlayer(void)
 	    (((POLLED_INPUT & 0x1000) != 0) ||
 	     ((POLLED_INPUT & 0x4000) != 0) ||
 	     ((POLLED_INPUT & 0x8000) != 0) ||
-	     ((POLLED_INPUT & 0x2000) != 0) ||
+	     ((POLLED_INPUT & 0x2000) != 0) || modCamDebtX || modCamDebtY ||
 	     (CAMERA_HAS_TARGET == 0 && IS_SCRIPT_PAUSED == 1 && IS_IN_MENU == 0 &&
 	      DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).height > MOD_CAM_CFG.liftFrom))) {
 		SetRotMatrix(&GsWSMATRIX);
@@ -4905,18 +4912,60 @@ void tickCameraFollowPlayer(void)
 			screenEnd.vx += dx;
 			screenEnd.vy += dy;
 		}
+		screenEnd.vx += debtX;
+		screenEnd.vy += debtY;
+		modCamDebtX -= debtX;
+		modCamDebtY -= debtY;
 		oldCameraX = MAP_TILE_DATA.cameraX;
 		oldCameraY = MAP_TILE_DATA.cameraY;
 		MAP_TILE_DATA.cameraX += screenEnd.vx - screenStart.vx;
 		MAP_TILE_DATA.cameraY += screenEnd.vy - screenStart.vy;
 		updateDrawingOffsets((DVECTOR *)&screenStart,
 				   (DVECTOR *)&screenEnd);
+		PLAYER_OFFSET_X += debtX;
+		PLAYER_OFFSET_Y += debtY;
+		{
+			int32_t wx = MAP_TILE_X, wy = MAP_TILE_Y;
+			int32_t nextX, nextY, ready, x, y;
+			int32_t flags = ((MAP_TILE_DATA.cameraX < oldCameraX) ? 0x8000 : 0x2000) |
+				       ((MAP_TILE_DATA.cameraY < oldCameraY) ? 0x1000 : 0x4000);
+
+			/* Calculate the original window without uploading, then preflight it. */
+			handleTileUpdate(flags, 2);
+			nextX = MAP_TILE_X;
+			nextY = MAP_TILE_Y;
+			MAP_TILE_X = wx;
+			MAP_TILE_Y = wy;
+			ready = tfsCameraReady(nextX, nextY);
+			if (!ready) {
+				/* Use the current window's spare pixels while reading. Only hold
+				 * at its visible edge, retaining scroll for a later tick. */
+				x = MAP_TILE_DATA.cameraX;
+				y = MAP_TILE_DATA.cameraY;
+				if (x < wx * 128) x = wx * 128;
+				if (x > (wx + 4) * 128 - 320) x = (wx + 4) * 128 - 320;
+				if (y < wy * 128) y = wy * 128;
+				if (y > (wy + 3) * 128 - 240) y = (wy + 3) * 128 - 240;
+				modCamDebtX += MAP_TILE_DATA.cameraX - x;
+				modCamDebtY += MAP_TILE_DATA.cameraY - y;
+				DRAWING_OFFSET_X += MAP_TILE_DATA.cameraX - x;
+				DRAWING_OFFSET_Y += MAP_TILE_DATA.cameraY - y;
+				MAP_TILE_DATA.cameraX = x;
+				MAP_TILE_DATA.cameraY = y;
+				return;
+			}
+		}
 		/* MOD (camera): the background rows/columns are streamed for the way the scroll
 		 * moved, which the shift can turn against the pad (as tickCameraMovement does) */
 		handleTileUpdate(((MAP_TILE_DATA.cameraX < oldCameraX) ? 0x8000 : 0x2000) |
 				 ((MAP_TILE_DATA.cameraY < oldCameraY) ? 0x1000 : 0x4000), 0);
-	} else if (GAME_STATE == 1 && CAMERA_HAS_TARGET == 0 && MOD_CAM_CFG.battle != 0) {
-		modCamBattleStep(); /* MOD (camera) */
+		tfsCameraDone();
+	} else {
+		modCamDebtX = modCamDebtY = 0;
+		tfsCameraDone();
+		if (GAME_STATE == 1 && CAMERA_HAS_TARGET == 0 && MOD_CAM_CFG.battle != 0) {
+			modCamBattleStep(); /* MOD (camera) */
+		}
 	}
 }
 
@@ -5084,30 +5133,16 @@ extern int8_t TAMER_STATE;
 
 void handleTileUpdate(int32_t input, int32_t force)
 {
+	int32_t band, phase;
+
 	if ((((input & 0x1000) != 0) ||
 	     ((input & 0x8000) != 0) ||
 	     ((input & 0x2000) != 0)) &&
 	    (MAP_TILE_DATA.cameraY <= CAMERA_Y_PREVIOUS)) {
-		if ((MAP_TILE_DATA.height >= 8) &&
-		    (MAP_TILE_DATA.cameraY >= 0x201) &&
-		    (MAP_TILE_DATA.cameraY < 0x281)) {
-			MAP_TILE_Y = 4;
-		} else if ((MAP_TILE_DATA.height >= 7) &&
-			   (MAP_TILE_DATA.cameraY >= 0x181) &&
-			   (MAP_TILE_DATA.cameraY < 0x201)) {
-			MAP_TILE_Y = 3;
-		} else if ((MAP_TILE_DATA.height >= 6) &&
-			   (MAP_TILE_DATA.cameraY >= 0x101) &&
-			   (MAP_TILE_DATA.cameraY < 0x181)) {
-			MAP_TILE_Y = 2;
-		} else if ((MAP_TILE_DATA.height >= 5) &&
-			   (MAP_TILE_DATA.cameraY >= 0x81) &&
-			   (MAP_TILE_DATA.cameraY < 0x101)) {
-			MAP_TILE_Y = 1;
-		} else if ((MAP_TILE_DATA.height >= 4) &&
-			   (MAP_TILE_DATA.cameraY >= 0) &&
-			   (MAP_TILE_DATA.cameraY < 0x81)) {
-			MAP_TILE_Y = 0;
+		/* The upward bands include their upper boundary (0..128, 129..256, ...). */
+		if (MAP_TILE_DATA.cameraY >= 0 && MAP_TILE_DATA.cameraY <= 640) {
+			band = MAP_TILE_DATA.cameraY > 0 ? (MAP_TILE_DATA.cameraY - 1) >> 7 : 0;
+			if (MAP_TILE_DATA.height >= band + 4) MAP_TILE_Y = band;
 		}
 
 		if (force == 0) {
@@ -5117,26 +5152,10 @@ void handleTileUpdate(int32_t input, int32_t force)
 		   ((input & 0x8000) != 0) ||
 		   ((input & 0x2000) != 0)) {
 		if (MAP_TILE_DATA.cameraY >= CAMERA_Y_PREVIOUS) {
-			if ((MAP_TILE_DATA.height >= 8) &&
-			    (MAP_TILE_DATA.cameraY >= 0x280) &&
-			    (MAP_TILE_DATA.cameraY < 0x301)) {
-				MAP_TILE_Y = 5;
-			} else if ((MAP_TILE_DATA.height >= 7) &&
-				   (MAP_TILE_DATA.cameraY >= 0x200) &&
-				   (MAP_TILE_DATA.cameraY < 0x280)) {
-				MAP_TILE_Y = 4;
-			} else if ((MAP_TILE_DATA.height >= 6) &&
-				   (MAP_TILE_DATA.cameraY >= 0x180) &&
-				   (MAP_TILE_DATA.cameraY < 0x200)) {
-				MAP_TILE_Y = 3;
-			} else if ((MAP_TILE_DATA.height >= 5) &&
-				   (MAP_TILE_DATA.cameraY >= 0x100) &&
-				   (MAP_TILE_DATA.cameraY < 0x180)) {
-				MAP_TILE_Y = 2;
-			} else if ((MAP_TILE_DATA.height >= 4) &&
-				   (MAP_TILE_DATA.cameraY >= 0x80)
-				   && (MAP_TILE_DATA.cameraY < 0x100)) {
-				MAP_TILE_Y = 1;
+			if (MAP_TILE_DATA.cameraY >= 128 && MAP_TILE_DATA.cameraY <= 768) {
+				band = MAP_TILE_DATA.cameraY >> 7;
+				if (band > 5) band = 5; /* the last original band includes pixel 768 */
+				if (MAP_TILE_DATA.height >= band + 3) MAP_TILE_Y = band;
 			}
 
 			if (MAP_TILE_DATA.cameraY >= ((MAP_TILE_DATA.height * 128) - 240)) {
@@ -5156,34 +5175,10 @@ void handleTileUpdate(int32_t input, int32_t force)
 	     ((input & 0x1000) != 0) ||
 	     ((input & 0x4000) != 0)) &&
 	    (MAP_TILE_DATA.cameraX <= CAMERA_X_PREVIOUS)) {
-		if ((MAP_TILE_DATA.width >= 0xb) &&
-		    (MAP_TILE_DATA.cameraX >= 0x30a) &&
-		    (MAP_TILE_DATA.cameraX < 0x381)) {
-			MAP_TILE_X = 6;
-		} else if ((MAP_TILE_DATA.width >= 0xa) &&
-			   (MAP_TILE_DATA.cameraX >= 0x28a) &&
-			   (MAP_TILE_DATA.cameraX < 0x301)) {
-			MAP_TILE_X = 5;
-		} else if ((MAP_TILE_DATA.width >= 9) &&
-			   (MAP_TILE_DATA.cameraX >= 0x20a) &&
-			   (MAP_TILE_DATA.cameraX < 0x281)) {
-			MAP_TILE_X = 4;
-		} else if ((MAP_TILE_DATA.width >= 8) &&
-			   (MAP_TILE_DATA.cameraX >= 0x18a) &&
-			   (MAP_TILE_DATA.cameraX < 0x201)) {
-			MAP_TILE_X = 3;
-		} else if ((MAP_TILE_DATA.width >= 7) &&
-			   (MAP_TILE_DATA.cameraX >= 0x10a) &&
-			   (MAP_TILE_DATA.cameraX < 0x181)) {
-			MAP_TILE_X = 2;
-		} else if ((MAP_TILE_DATA.width >= 6) &&
-			   (MAP_TILE_DATA.cameraX >= 0x8a) &&
-			   (MAP_TILE_DATA.cameraX < 0x101)) {
-			MAP_TILE_X = 1;
-		} else if ((MAP_TILE_DATA.width >= 5) &&
-			   (MAP_TILE_DATA.cameraX >= 0xa) &&
-			   (MAP_TILE_DATA.cameraX < 0x81)) {
-			MAP_TILE_X = 0;
+		band = (MAP_TILE_DATA.cameraX - 10) >> 7;
+		phase = (MAP_TILE_DATA.cameraX - 10) & 127;
+		if (band >= 0 && band <= 6 && phase < 119 && MAP_TILE_DATA.width >= band + 5) {
+			MAP_TILE_X = band;
 		}
 
 		if (force == 0) {
@@ -5193,34 +5188,11 @@ void handleTileUpdate(int32_t input, int32_t force)
 		   ((input & 0x1000) != 0) ||
 		   ((input & 0x4000) != 0)) {
 		if (MAP_TILE_DATA.cameraX >= CAMERA_X_PREVIOUS) {
-			if ((MAP_TILE_DATA.width >= 0xb) &&
-			    (MAP_TILE_DATA.cameraX >= 0x38a) &&
-			    (MAP_TILE_DATA.cameraX < 0x3f7)) {
-				MAP_TILE_X = 7;
-			} else if ((MAP_TILE_DATA.width >= 0xa) &&
-				   (MAP_TILE_DATA.cameraX >= 0x30a) &&
-				   (MAP_TILE_DATA.cameraX < 0x377)) {
-				MAP_TILE_X = 6;
-			} else if ((MAP_TILE_DATA.width >= 9) &&
-				   (MAP_TILE_DATA.cameraX >= 0x28a) &&
-				   (MAP_TILE_DATA.cameraX < 0x2f7)) {
-				MAP_TILE_X = 5;
-			} else if ((MAP_TILE_DATA.width >= 8) &&
-				   (MAP_TILE_DATA.cameraX >= 0x20a) &&
-				   (MAP_TILE_DATA.cameraX < 0x277)) {
-				MAP_TILE_X = 4;
-			} else if ((MAP_TILE_DATA.width >= 7) &&
-				   (MAP_TILE_DATA.cameraX >= 0x18a) &&
-				   (MAP_TILE_DATA.cameraX < 0x1f7)) {
-				MAP_TILE_X = 3;
-			} else if ((MAP_TILE_DATA.width >= 6) &&
-				   (MAP_TILE_DATA.cameraX >= 0x10a) &&
-				   (MAP_TILE_DATA.cameraX < 0x177)) {
-				MAP_TILE_X = 2;
-			} else if ((MAP_TILE_DATA.width >= 5) &&
-				   (MAP_TILE_DATA.cameraX >= 0x8a) &&
-				   (MAP_TILE_DATA.cameraX < 0xf6)) {
-				MAP_TILE_X = 1;
+			band = (MAP_TILE_DATA.cameraX - 10) >> 7;
+			phase = (MAP_TILE_DATA.cameraX - 10) & 127;
+			if (band >= 1 && band <= 7 && phase < (band == 1 ? 108 : 109) &&
+			    MAP_TILE_DATA.width >= band + 4) {
+				MAP_TILE_X = band;
 			}
 
 			if (MAP_TILE_DATA.cameraX >= ((MAP_TILE_DATA.width * 128) - 320)) {
