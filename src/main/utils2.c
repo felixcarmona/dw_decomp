@@ -60,6 +60,7 @@ void learnMove(int32_t move);
 void unlearnMove(int32_t move);
 void createPauseBox(void);
 void handlePause(void);
+void modLabMenu(uint32_t *input, uint32_t *previous); /* MOD: mod_lab.c */
 void renderPauseBox(int32_t instanceId);
 void setPosDataPolyFT4(POLY_FT4 *prim, int16_t posX, int16_t posY, int16_t width, int16_t height);
 void setUVDataPolyFT4(POLY_FT4 *prim, int16_t xPos, int16_t yPos, int16_t width, int16_t height);
@@ -419,6 +420,16 @@ void handlePause(void)
 		PAUSE_INPUT = PadRead(1);
 		if ((PAUSE_INPUT & 0x800) && !(PAUSE_INPUT_PREVIOUS & 0x800)) {
 			PAUSE_STATE = (PAUSE_STATE + 1) & 1;
+		}
+		/* MOD: SELECT en pausa abre el menú de laboratorio (mod_lab.c) */
+		if ((PAUSE_INPUT & 0x100) && !(PAUSE_INPUT_PREVIOUS & 0x100)) {
+			PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
+			modLabMenu(&PAUSE_INPUT, &PAUSE_INPUT_PREVIOUS);
+			MAIN_D_80134E7C = 0;
+			createPauseBox();
+			pauseFrame();
+			pauseFrame();
+			continue;
 		}
 		PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
 	}
