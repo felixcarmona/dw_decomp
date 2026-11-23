@@ -9,6 +9,7 @@
 #include <dw/garbage.h>
 #include <dw/graphics.h>
 #include <dw/ids.h>
+#include <dw/mod_options.h> /* MOD (quick battle start) */
 #include <dw/species.h>
 #include <dw/item.h>
 #include <dw/main.h>
@@ -173,6 +174,9 @@ GARBAGE(setFleeBubble, 9);
 
 void setFleeBubble(int16_t id, int16_t v)
 {
+	if (MOD_OPT_QUICK_BATTLE) {
+		return; /* MOD (quick battle start): no bubbles over who joins and who flees */
+	}
 	FLEE_BUBBLE_DATA[id - 2].frame = 0;
 	FLEE_BUBBLE_DATA[id - 2].type = v;
 	addObject(0x196, id, NULL, renderFleeBubble);
@@ -341,6 +345,234 @@ int32_t handleBattleStart(id)
 	return count;
 }
 
+extern int8_t MOD_LOAD_PUMP; /* MOD (quick battle start), main.c */
+void modPlayMusicAsync(int32_t font, int32_t track); /* MOD (quick battle start), sound_async.c */
+extern char btl_START[];
+extern char btl_END[];
+extern int32_t IS_SCRIPT_PAUSED;
+void _tickFileReadQueue(int32_t instanceId);
+int32_t isFileReadQueueIdle(void);
+
+/* MOD (quick battle start): BTL_REL read ahead in the world, at its own address (OVL_BTL_BASE..btl_END is world
+ * scratch on every screen but those that keep an overlay there: FISH, KAR, a shop, the menus; any overlay read
+ * since the screen was set up blocks the read ahead until the next screen). A battle takes it when it is complete
+ * and its checksum is still the one it had (something not listed wrote there: the battle reads it as before);
+ * the battle dirties it, and the world reads it again after. */
+int8_t MOD_BTL_PRELOAD;		/* 0 none, 1 being read, 2 ready */
+int8_t MOD_BTL_PRELOAD_BLOCKED;	/* another overlay was read since the screen was set up */
+static uint8_t modBtlPreloadReading;
+static uint32_t modBtlPreloadSum;
+
+static uint32_t modBtlChecksum(void)
+{
+	uint32_t *p;
+	uint32_t sum;
+
+	sum = 0;
+	for (p = (uint32_t *)btl_START; p < (uint32_t *)btl_END; p++) {
+		sum = ((sum << 1) | (sum >> 31)) + *p;
+	}
+	return sum;
+}
+
+static void modBtlPreloaded(void *unused)
+{
+	(void)unused;
+	modBtlPreloadSum = modBtlChecksum();
+	MOD_BTL_PRELOAD = 2;
+}
+
+/* the world, every tick the tamer walks: start the read when nothing else is reading and no script runs */
+void modBtlPreloadTick(void)
+{
+	if (!MOD_OPT_QUICK_BATTLE || MOD_BTL_PRELOAD != 0 || MOD_BTL_PRELOAD_BLOCKED) {
+		return;
+	}
+	if (GAME_STATE != 0 || IS_SCRIPT_PAUSED != 1 || !isFileReadQueueIdle()) {
+		return;
+	}
+	MOD_BTL_PRELOAD = 1;
+	loadDynamicLibrary(BTL_REL, &modBtlPreloadReading, 1, (FileCallback)modBtlPreloaded, NULL);
+}
+
+/* another overlay is about to be read into the slot: the read ahead must land first, then it is gone */
+void modBtlPreloadDrop(void)
+{
+	while (MOD_BTL_PRELOAD == 1 && !isFileReadQueueIdle()) {
+		_tickFileReadQueue(0);
+	}
+	MOD_BTL_PRELOAD = 0;
+	MOD_BTL_PRELOAD_BLOCKED = 1;
+}
+
+/* the battle: 1 when the overlay is in place, intact */
+static int32_t modBtlPreloadTake(void)
+{
+	int32_t ok;
+
+	while (MOD_BTL_PRELOAD == 1 && !isFileReadQueueIdle()) {
+		_tickFileReadQueue(0);
+	}
+	ok = MOD_BTL_PRELOAD == 2 && modBtlChecksum() == modBtlPreloadSum;
+	MOD_BTL_PRELOAD = 0;
+	return ok;
+}
+
+/* MOD (quick battle start): the battle's track, as loadBattleData chooses it */
+static int32_t modBattleTrack(int32_t entityId)
+{
+	/* MOD (battle as data): the species that makes the battle play the last-battle track, and the track, were 0x73 and 3 */
+	if (BMV(MUSIC_LAST_SPECIES) >= 0 && ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type == BMV(MUSIC_LAST_SPECIES)) {
+		return BM(MUSIC_LAST_TRACK);
+	} else if ((entityId >= 2) && (entityId < 10)) {
+		if (IS_PREDEFINED_BATTLE == 1) {
+			return 0;
+		} else {
+			/* MOD (species JSON): was ENEMY_MUSIC_MAPPING for types 0x43..0x6F, else 1 */
+			return getSpeciesBattleMusic(ENTITY_TABLE[entityId]->type);
+		}
+	} else if (IS_PREDEFINED_BATTLE == 1) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+/* MOD (quick battle start): the fight starts as soon as BTL_REL is in place (read ahead in the world, or read now), and
+ * the rest loads while it runs, in the original's order, because it is staged at GENERAL_BUFFER one file after another
+ * and the EFE engine then lives there: the music font, the battle's sound bank, the enemies' voices (queued here),
+ * then the EFE engine and the techniques' effects (modBattleLoadStep, every tick). No technique starts before its
+ * effect is in (BTL_startQueuedMove waits) and the tamer opens no item menu; the fighters move as usual meanwhile. */
+int8_t MOD_BATTLE_LOADING;	/* 1 the sounds, 2 the effects, 0 done */
+static int16_t modMoveList[18];
+static int16_t modEfeList[18];
+
+static void modLoadBattleDataQuick(int32_t entityId, int32_t count)
+{
+	int8_t loadState;
+	int32_t i;
+	int32_t j;
+	DigimonEntity *e;
+
+	ENEMY_COUNT = count;
+	LOAD_EFE_STATE = -1;
+	MOD_LOAD_PUMP = 1;
+	if (modBtlPreloadTake()) {
+		loadState = 0;
+	} else {
+		loadDynamicLibrary(BTL_REL, (uint8_t *)&loadState, 1, NULL, NULL);
+	}
+	tickPartnerWaypoints();
+	PARTNER_ENTITY.digimonEntity.entity.isOnScreen = 1;
+	COMBAT_DATA_PTR->player.currentCommand[0] = 3;
+	startAnimation(&TAMER_ENTITY.entity, 1);
+	for (i = 2; i < 10; i++) {
+		e = (DigimonEntity *)ENTITY_TABLE[i];
+		if (isInvisible(&e->entity) == 0) {
+			startAnimation(&e->entity, 0x21);
+		}
+	}
+	GAME_STATE = 3;
+	if (IS_PREDEFINED_BATTLE != 1) {
+		startAnimation(ENTITY_TABLE[1], 0x24);
+	}
+	while (loadState > 0) {
+		if (IS_PREDEFINED_BATTLE != 1) {
+			for (i = 1; i <= ENEMY_COUNT; i++) {
+				entityLookAtLocation(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]],
+						     &ENTITY_TABLE[1]->posData->location);
+			}
+			partnerTickCollision();
+		}
+		loadBattleDataTick();
+	}
+	modPlayMusicAsync(0x21, modBattleTrack(entityId));
+	loadSB();
+	for (i = 1; i <= ENEMY_COUNT; i++) {
+		e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+		e->stats.current.vabId = i + 4;
+		readVBALLSection(i + 4, e->entity.type);
+	}
+	BTL_initializeBattleItemParticles();
+	BTL_initializeUnk3();
+	BTL_initializeUnk2();
+	BTL_initializeFinisherAuraModel(BTL_FINISHER_TIM, BTL_FINISHER_MODEL);
+	BTL_initializePoisonBubble();
+	BTL_initializeConfusionEffect(BTL_CONFUSION_MODEL);
+	BTL_initializeStunEffect(BTL_STUN_MODEL);
+	initializeBuffModel(BTL_BUFF_MODEL);
+	initializeBuffModelObject();
+	if (IS_PREDEFINED_BATTLE != 1) {
+		partnerTickCollision();
+	}
+	for (i = 0; i <= ENEMY_COUNT; i++) {
+		e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+		e->stats.current.unk1 = -1;
+		e->stats.current.efeSubEffect = -1;
+		for (j = 0; j < 4; j++) {
+			if ((e->stats.base.moves[j] != 0xff) && (entityGetTechFromAnim(&e->entity, e->stats.base.moves[j]) == 0xff)) {
+				e->stats.base.moves[j] = 0xff;
+			}
+			COMBAT_DATA_PTR->fighter[i].effectSlot[j] = -1;
+		}
+	}
+	MOD_BATTLE_LOADING = 1;
+	handleBattleIdle(&PARTNER_ENTITY.digimonEntity, &PARTNER_ENTITY.digimonEntity.stats, 0);
+	GAME_STATE = 2;
+}
+
+/* every tick of the fight (tamerTickBattle) while MOD_BATTLE_LOADING */
+void modBattleLoadStep(void)
+{
+	int32_t i;
+	int32_t j;
+	int32_t n;
+	DigimonEntity *e;
+
+	if (MOD_BATTLE_LOADING == 1) {
+		if (!isFileReadQueueIdle()) {
+			return; /* music, sound bank, voices: still staged at GENERAL_BUFFER */
+		}
+		BTL_initializeEFEEngine((char *)GENERAL_BUFFER_PTR);
+		n = 0;
+		for (i = 0; i <= ENEMY_COUNT; i++) {
+			e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+			for (j = 0; j < 4; j++) {
+				if (e->stats.base.moves[j] != 0xff) {
+					modMoveList[n++] = DIGI_PARA(e->entity.type).moves[e->stats.base.moves[j] - 0x2e] + 0x100;
+				}
+			}
+		}
+		modMoveList[n] = -1;
+		BTL_loadMoveEFE(modMoveList, modEfeList, &LOAD_EFE_STATE);
+		MOD_BATTLE_LOADING = 2;
+	} else if (MOD_BATTLE_LOADING == 2) {
+		if (LOAD_EFE_STATE > 0) {
+			return;
+		}
+		n = 0;
+		for (i = 0; i <= ENEMY_COUNT; i++) {
+			e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+			for (j = 0; j < 4; j++) {
+				if (e->stats.base.moves[j] != 0xff) {
+					COMBAT_DATA_PTR->fighter[i].effectSlot[j] = modEfeList[n++];
+				}
+			}
+		}
+		MOD_BATTLE_LOADING = 0;
+		MOD_LOAD_PUMP = 0;
+	}
+}
+
+/* the fight ends (BTL_battleMain, before its clean-up): whatever is still loading lands first, as before the fight */
+void modBattleLoadFinish(void)
+{
+	while (MOD_BATTLE_LOADING) {
+		_tickFileReadQueue(0);
+		modBattleLoadStep();
+	}
+}
+
 void loadBattleData(int32_t entityId, int32_t count)
 {
 	int32_t unused;
@@ -354,6 +586,10 @@ void loadBattleData(int32_t entityId, int32_t count)
 	int32_t j;
 	DigimonEntity *e;
 
+	if (MOD_OPT_QUICK_BATTLE) {
+		modLoadBattleDataQuick(entityId, count); /* MOD (quick battle start) */
+		return;
+	}
 	ENEMY_COUNT = count;
 	/* MOD (battle as data): the species that makes the battle play the last-battle track, and the track, were 0x73 and 3 */
 	if (BMV(MUSIC_LAST_SPECIES) >= 0 && ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type == BMV(MUSIC_LAST_SPECIES)) {
