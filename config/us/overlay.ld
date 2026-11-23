@@ -821,6 +821,10 @@ SECTIONS
 	{
 		.MENU {
 			menu_START = .;
+            /* Care captions/notes are read only after feedOpen loads MENU.
+             * The field collector, renderer callbacks and mutable state stay resident. */
+            BUILD_DIR/src/main/mod_feed.c.o(.text.feedNote* .menu_feed .rodata.FEED_COMMANDS);
+            . = ALIGN(., 4);
 			BUILD_DIR/src/main/main_menu.c.o(
 				.text._strncpy
 				.text.awardMachinedramonData

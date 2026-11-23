@@ -66,6 +66,8 @@ extern uint8_t INVENTORY_POINTER;
 extern TamerEntity TAMER_ENTITY;
 extern char *ITEM_DESCS[];
 
+void loadMenuOverlay(void);
+void closeMenuOverlay(void);
 void tamerSetState(int32_t state);
 void startAnimation(Entity *entity, int32_t animId);
 void setPartnerIdling(void);
@@ -86,10 +88,10 @@ void renderRectPolyFT4(int16_t posX, int16_t posY, uint8_t width, uint8_t height
 u_short GetClut(int32_t x, int32_t y);
 
 /* MOD (language): the texts are keyed, text/main/mod_feed.yaml (main.FEED_STR_*) */
-static char FEED_SCOLD_NAME[] = FEED_STR_SCOLD_NAME;
-static char FEED_SCOLD_DESC[] = FEED_STR_SCOLD_DESC;
-static char FEED_SLEEP_NAME[] = FEED_STR_SLEEP_NAME;
-static char FEED_SLEEP_DESC[] = FEED_STR_SLEEP_DESC;
+static char FEED_SCOLD_NAME[] __attribute__((section(".menu_feed"))) = FEED_STR_SCOLD_NAME;
+static char FEED_SCOLD_DESC[] __attribute__((section(".menu_feed"))) = FEED_STR_SCOLD_DESC;
+static char FEED_SLEEP_NAME[] __attribute__((section(".menu_feed"))) = FEED_STR_SLEEP_NAME;
+static char FEED_SLEEP_DESC[] __attribute__((section(".menu_feed"))) = FEED_STR_SLEEP_DESC;
 
 /* by slot - FEED_SCOLD */
 static FeedCommand FEED_COMMANDS[2] = {
@@ -97,9 +99,9 @@ static FeedCommand FEED_COMMANDS[2] = {
 	{ FEED_SLEEP_NAME, FEED_SLEEP_DESC, 0x28, 0x28, PARTNER_SLEEP }, /* MENU_OPTIONS[6] */
 };
 
-static char FEED_NOTE_FAVOURITE[] = FEED_STR_NOTE_FAVOURITE;
-static char FEED_NOTE_MAY_NOT_CURE_SICK[] = FEED_STR_NOTE_MAY_NOT_CURE_SICK;
-static char FEED_NOTE_MAY_NOT_CURE_WOUND[] = FEED_STR_NOTE_MAY_NOT_CURE_WOUND;
+static char FEED_NOTE_FAVOURITE[] __attribute__((section(".menu_feed"))) = FEED_STR_NOTE_FAVOURITE;
+static char FEED_NOTE_MAY_NOT_CURE_SICK[] __attribute__((section(".menu_feed"))) = FEED_STR_NOTE_MAY_NOT_CURE_SICK;
+static char FEED_NOTE_MAY_NOT_CURE_WOUND[] __attribute__((section(".menu_feed"))) = FEED_STR_NOTE_MAY_NOT_CURE_WOUND;
 
 static uint8_t feedSlots[32]; /* the commands and the inventory slots shown, most urgent first */
 static int32_t feedRanks[32];
@@ -453,6 +455,7 @@ static void feedTick(int32_t instanceId)
 	case FEED_CLOSING:
 		if (UI_BOX_DATA[FEED_LIST_BOX].state == 0 && UI_BOX_DATA[FEED_DESC_BOX].state == 0) {
 			removeObject(FEED_OBJECT_ID, 0);
+			closeMenuOverlay();
 			tamerSetState(0);
 			setCameraFollowPlayer();
 			IS_IN_MENU = 0;
@@ -464,11 +467,14 @@ static void feedTick(int32_t instanceId)
 			if (IS_COMMAND(feedSlots[feedCursor])) {
 				removeObject(FEED_OBJECT_ID, 0);
 				/* the tamer, the camera and the clock as the triangle menu's command has them */
-				partnerSetState(FEED_COMMANDS[feedSlots[feedCursor] - FEED_SCOLD].partnerState);
+				int32_t state = FEED_COMMANDS[feedSlots[feedCursor] - FEED_SCOLD].partnerState;
+				closeMenuOverlay();
+				partnerSetState(state);
 				IS_IN_MENU = 0;
 				startGameTime();
 				break;
 			}
+			closeMenuOverlay();
 			INVENTORY_POINTER = feedSlots[feedCursor];
 			startFeedingItem(INVENTORY.types.array[feedSlots[feedCursor]]); /* clock back on, tamer and partner */
 			feedState = FEED_WATCHING;
@@ -486,6 +492,8 @@ static int32_t feedOpen(void)
 	if (feedCollect(0) == 0) {
 		return 0;
 	}
+	/* UI-only notes and command captions live in MENU, not the field heap. */
+	loadMenuOverlay();
 	feedCursor = 0; /* the most urgent */
 	feedRowOffset = 0;
 	feedState = FEED_OPENING;
