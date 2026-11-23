@@ -43,7 +43,7 @@ extern PACKET GS_WORK_BASES[2][0x14000];
 extern DR_OFFSET DR_OFFSETS[2];
 
 // clang-format off
-RGB8 TEXT_COLORS[17] = {
+RGB8 TEXT_COLORS[18] = {
 	{ 0x80, 0x80, 0x80 },
 	{ 0x19, 0x55, 0x80 },
 	{ 0x69, 0xc2, 0xff },
@@ -61,6 +61,7 @@ RGB8 TEXT_COLORS[17] = {
 	{ 0x70, 0x44, 0x2c },
 	{ 0x48, 0x54, 0x7c },
 	{ 0x7c, 0x4c, 0x68 },
+	{ 0x25, 0x1c, 0x73 }, /* MOD (care numbers): the ink of the status screen's cyan labels */
 };
 
 /* six 5-byte formats: "%01d" to "%06d" */
