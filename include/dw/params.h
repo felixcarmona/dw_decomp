@@ -102,16 +102,11 @@ extern DigimonPara DIGIMON_DATA[NUM_ORIGINAL_DIGIMON];
 /*
  * MOD (species): a Digimon's parameters by type. The 180 original species
  * are the resident DIGIMON_DATA; new species (ids NUM_ORIGINAL_DIGIMON and up)
- * come from DIGI.DAT through a small cache (mod_species.c, species.h).
+ * come from DIGI.DAT through a small cache (mod_species.c, species.h). digimonPara is a function, not inline:
+ * inlined at every call site it cost 2,000 bytes of the main executable's heap.
  */
 DigimonPara *getSpeciesPara(int32_t type);
-static inline DigimonPara *digimonPara(int32_t type)
-{
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
-		return &DIGIMON_DATA[type];
-	}
-	return getSpeciesPara(type);
-}
+DigimonPara *digimonPara(int32_t type);
 #define DIGI_PARA(type) (*digimonPara(type))
 
 #if VERSION_IS(EU)

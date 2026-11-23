@@ -600,6 +600,16 @@ SpeciesRecord *getSpeciesRecord(int32_t type)
 	return (SPECIES_CACHE[slot].flags & SPECIES_FLAG_DEFINED) ? &SPECIES_CACHE[slot] : NULL;
 }
 
+/* MOD (heap): out of line, not static inline in params.h: inlined at each of its call sites it cost the main
+ * executable 2,000 bytes more (and the overlays more again) */
+DigimonPara *digimonPara(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &DIGIMON_DATA[type];
+	}
+	return getSpeciesPara(type);
+}
+
 DigimonPara *getSpeciesPara(int32_t type)
 {
 	SpeciesRecord *rec;
