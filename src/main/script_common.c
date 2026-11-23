@@ -2129,7 +2129,7 @@ int32_t createSingleCardShopMenu(RECT *origin)
 	createTextbox(3, flags, &rect, origin, tickSingleCardShop, renderSingleCardShop);
 	/* MOD (font): the answers are cut at fixed offsets (CONFIRM_BOX_LAYOUT): Yes and No each centred in its crop's
 	 * original span, in the font's own spacing */
-	TEXTBOX_ROW_PIECES(3, 1, 0 | PIECE_CENTRE, 0x24 | PIECE_CENTRE);
+	TEXTBOX_ROW_PIECES(3, 1, PIECE_WORDS | PIECE_CENTRE, 0x24 | PIECE_CENTRE);
 	registerTextbox(3, ITEM_MENU_SUB_TEXTBOX_LINE, 2, 0, 0);
 	showMapHeadTextbox(0, 0xff, 3, 0x4d8);
 	SHOP_AMOUNT = 0;

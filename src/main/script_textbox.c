@@ -189,7 +189,7 @@ int32_t drawTextboxStrings(boxId, flag)
 		/* MOD (language): the row on either page (a box that flips writes its back page's rows after its front's) */
 		cellsRow = boxId + 1 == TEXTBOX_PIECES_BOX &&
 		           (box->vramRows != 0 ? box->writeRow % box->vramRows : box->writeRow) == TEXTBOX_PIECES_ROW;
-		DRAW2_PIECES = FONT_PROPORTIONAL && cellsRow ? TEXTBOX_PIECES : NULL;
+		DRAW2_PIECES = cellsRow && (FONT_PROPORTIONAL || (TEXTBOX_PIECES[0] & PIECE_WORDS)) ? TEXTBOX_PIECES : NULL;
 		/* MOD (language): with the original font that row is drawn in the original's cells, never in the name
 		 * keyboard's 12-pixel ones (its labels, NAMING_LABEL_PIECES) */
 		cellsRow = cellsRow && !FONT_PROPORTIONAL;
