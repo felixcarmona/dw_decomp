@@ -21,6 +21,7 @@
 #include <dw/sound.h>
 #include <dw/sound_async.h>
 #include <dw/tamer.h>
+#include <dw/tfs_stream.h>
 #include <dw/tournament.h>
 #include <dw/trigger.h>
 #include <dw/trn.h>
@@ -2735,6 +2736,7 @@ void readFileSection(char *filename, void *dest, uint32_t offset,
 	int32_t sector;
 
 	mode = 0x80;
+	tfsStreamCheckTarget(dest, size); /* MOD (memreclaim) */
 
 	if (LOAD_FILE_SECTION_STARTPOS == 0) {
 		path[0] = '\\';

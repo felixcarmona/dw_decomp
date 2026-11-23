@@ -16,15 +16,27 @@
 /* PS-X EXE header and the main executable */
 #define EXE_HEADER_ADDR		0x80090000
 
-/* Stack (_stack_addr / _stack_size, in KB) and the malloc3 heap between */
-#define STACK_ADDR		0x801FFF00
-#define STACK_SIZE_KB		0x40
 /*
- * The heap the game needs in its worst measured case (Native Forest with
- * five wild Digimon: 197520 - 91080 = 106440 bytes used, memory.md),
- * rounded up. The link fails if main's bss leaves less than this.
+ * Stack (_stack_addr / _stack_size, in KB) and the malloc3 heap between.
+ * The original reserved 64 KB of stack; the deepest use measured in this
+ * build is STACK_MEASURED_MAX bytes (a battle with two enemies and their
+ * effects, Secret Beach Cave; the cup, menus and map loads stay under
+ * 1.7 KB; memory.md "Stack"), so 20 KB keeps a 5x margin and the other
+ * 44 KB go to the heap. A canary at the stack limit counts overflows
+ * (MOD_STACK_GUARD_HITS, main.c).
  */
-#define MIN_HEAP		0x1A000
+#define STACK_ADDR		0x801FFF00
+#define STACK_SIZE_KB		0x14
+#define STACK_MEASURED_MAX	0xF78
+/*
+ * The heap the game needs in its worst case: the MAPHEAD setup path that
+ * takes the most (tools/membudget.py worst --trimmed: File City 198-203,
+ * Betamon + Kunemon + Megadramon, 157680 bytes with NPC models trimmed on
+ * load and the loading peak of the last one; 185304 bytes with whole
+ * models, Ogre Fortress 48), rounded up. The link fails if main's bss
+ * leaves less than this.
+ */
+#define MIN_HEAP		0x26800
 
 /* Overlay bases (config/us/overlay.ld) */
 #define OVL_MOV_BASE		0x80010000	/* videos */
@@ -42,6 +54,25 @@
 /* Fixed buffers in the load area */
 #define GENERAL_BUFFER_ADDR	0x80010000	/* .MAP then .TFS, VHB staging, EFE base */
 #define DOOA_WORK_OFFSET	0x4B000		/* GENERAL_BUFFER + this: DOOA work area */
+/*
+ * Map background streaming (MOD, src/main/tfs_stream.c, docs/mods/memory.md):
+ * the .TFS header (palettes) in its first two sectors, then a ring of
+ * TFS_RING_SLOTS tile slots of 9 sectors (a 128x128 8 bpp tile is 0x4004
+ * bytes in the file and never sector-aligned). The rest of the old TFS area
+ * is free in the world (WORLD_SCRATCH_*): every mode that writes there
+ * (battle, evolution, death, menus, sound staging) is followed by a
+ * readMapTFS, the same as when the whole TFS lived there.
+ */
+#define TFS_HEADER_ADDR		0x80010000
+#define TFS_HEADER_SIZE		0x1000
+#define TFS_RING_ADDR		0x80011000
+#define TFS_SLOT_SIZE		0x4800
+#define TFS_RING_SLOTS		8
+#define TFS_RING_END		0x80035000	/* TFS_RING_ADDR + 8 * TFS_SLOT_SIZE */
+/* free in the world on every screen; above it FISH (0x80070000) and KAR
+ * (0x80053800) coexist with their screens' maps */
+#define WORLD_SCRATCH_START	TFS_RING_END
+#define WORLD_SCRATCH_END	0x80053800
 #define TEXTURE_BUFFER_ADDR	0x80088800	/* temporary TIM, card image, script arrays */
 #define TEXTURE_BUFFER_SIZE	0x7800
 #define BOSS_EFE_TMD_BUFFER_ADDR 0x80058000
