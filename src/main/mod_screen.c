@@ -136,3 +136,47 @@ uint8_t *getMapHeadScript(int32_t section)
 	}
 	return MAPHEAD_SCRIPT_PTR;
 }
+
+/*
+ * MOD (screen jump, temporary test tool): the new screen the disc has `step` (1 or -1) away from `from` in id order,
+ * wrapping at the ends of SCRN.DAT's range; from an original screen, the first (step 1) or the last. -1 when the
+ * disc has none. A sector found empty is remembered, so a gap in the ids is read once.
+ */
+static uint8_t SCREEN_ABSENT[NUM_SCREENS / 8];
+
+int32_t findNewScreen(int32_t from, int32_t step)
+{
+	FileLookup lookup;
+	int32_t count;
+	int32_t i;
+	int32_t k;
+
+	if (lookupFileTable(&lookup, SCREEN_FILE_NAME) == 0) {
+		return -1;
+	}
+	count = lookup.size / SCREEN_RECORD_SIZE - 1;
+	if (count > NUM_SCREENS - NUM_ORIGINAL_SCREENS) {
+		count = NUM_SCREENS - NUM_ORIGINAL_SCREENS;
+	}
+	if (count <= 0) {
+		return -1;
+	}
+	k = from - NUM_ORIGINAL_SCREENS;
+	if (k < 0 || k >= count) {
+		k = step > 0 ? -1 : count;
+	}
+	for (i = 0; i < count; i++) {
+		int32_t id;
+
+		k = (k + step + count) % count;
+		id = NUM_ORIGINAL_SCREENS + k;
+		if (SCREEN_ABSENT[id >> 3] & (1 << (id & 7))) {
+			continue;
+		}
+		if (readScreenRecord(id)) {
+			return id;
+		}
+		SCREEN_ABSENT[id >> 3] |= 1 << (id & 7);
+	}
+	return -1;
+}
