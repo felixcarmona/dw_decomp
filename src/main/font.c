@@ -2161,7 +2161,7 @@ static int32_t measureStringModePixel(char *str, int32_t mode)
 
 static int32_t measureStringModeCells(char *str, int32_t mode);
 static int32_t fitStringModeCells(char *str, int32_t maxW);
-static int32_t drawStringModeCells(char *str, int32_t x, int32_t y, int32_t mode);
+static int32_t drawStringModeCells(char *str, int32_t x, int32_t y, int32_t mode, const uint8_t *colors);
 
 /*
  * NEW: every name fits as font b draws it. ORIGINAL: the original's modes. CLASSIC: the name as the font draws it when it
@@ -2189,7 +2189,7 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 		drawString(str, x, y);
 		return measureStringModePixel(str, mode);
 	}
-	return drawStringModeCells(str, x, y, mode);
+	return drawStringModeCells(str, x, y, mode, NULL);
 }
 
 int32_t textFitCode(char *str, int32_t maxW)
@@ -2220,7 +2220,7 @@ int32_t textFitCode(char *str, int32_t maxW)
 /* MOD (language): the title fits 176 pixels. Two fewer ring slots make room in the same buffer. */
 #define FIT_STRIP_W	176
 #else
-#define FIT_STRIP_W	144
+#define FIT_STRIP_W	156 /* composed reward rows, including a non-switching original-font build */
 #endif
 #if FONT_SWITCH
 /* MOD (font): after the original font's ring (CELL_RENDER_SLOTS), which uses it only with NEW FONT off */
@@ -2260,7 +2260,7 @@ static uint16_t *nextGlyph(char **str, int32_t mode)
 	*str = s;
 	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
 	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
-	if (mode == FIT_CONDENSED && code >= 0x8281 && code <= 0x829a && CONDENSED_GLYPH_DATA[code - 0x8281].width != 0) {
+	if (mode >= FIT_CONDENSED && code >= 0x8281 && code <= 0x829a && CONDENSED_GLYPH_DATA[code - 0x8281].width != 0) {
 		return (uint16_t *)CONDENSED_GLYPH_DATA[code - 0x8281].pixelData;
 	}
 	n = ((code >> 8) - EXTRA_GLYPH_LEAD) * 188 + (code & 0xff) - EXTRA_GLYPH_FIRST;
@@ -2330,7 +2330,7 @@ CELLS_FN int32_t CELLS(measureStringMode)(char *str, int32_t mode)
 			pen += FIT_SPACE;
 		} else {
 			w = pen - left + right;
-			pen = w + FIT_GAP;
+			pen = w + (mode == FIT_COMPACT ? 0 : FIT_GAP);
 		}
 	}
 	return w;
@@ -2350,7 +2350,7 @@ CELLS_FN int32_t CELLS(fitStringMode)(char *str, int32_t maxW)
 }
 
 /* drawString in a mode; returns the ink width (measureStringMode) */
-CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t mode)
+static int32_t drawStringModeCells(char *str, int32_t x, int32_t y, int32_t mode, const uint8_t *colors)
 {
 	RECT rect;
 	uint16_t *p;
@@ -2389,6 +2389,9 @@ CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t 
 	pen = x & 3;
 	while (*str != '\0') {
 		p = nextGlyph(&str, mode);
+		if (colors != NULL) {
+			setTextColor(*colors++);
+		}
 		right = glyphInk(p, &left);
 		if (right == 0) {
 			pen += FIT_SPACE;
@@ -2405,7 +2408,7 @@ CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t 
 				}
 			}
 		}
-		pen = gx + right + FIT_GAP;
+		pen = gx + right + (mode == FIT_COMPACT ? 0 : FIT_GAP);
 	}
 	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, stride / 4, GLYPH_HEIGHT);
 	LoadImage(&rect, (u_long *)FIT_STRIP);
@@ -2414,6 +2417,18 @@ CELLS_FN int32_t CELLS(drawStringMode)(char *str, int32_t x, int32_t y, int32_t 
 	GLYPH_CARRY_Y = -1; /* and the last glyph's slot may be under it */
 #endif
 	return w;
+}
+
+#if !FONT_SWITCH
+int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
+{
+	return drawStringModeCells(str, x, y, mode, NULL);
+}
+#endif
+/* A typed, colored prefix of a row whose mode was chosen from the whole row. */
+int32_t drawFittedRow(char *str, int32_t y, int32_t mode, const uint8_t *colors)
+{
+	return drawStringModeCells(str, 0, y, mode, colors);
 }
 
 #if !FONT_SWITCH
