@@ -6368,7 +6368,8 @@ void fadeoutCLUT2(long fade, int16_t *clut)
 
 int32_t addPolyFT3Prim(POLY_FT3 *prim, int32_t order)
 {
-	if ((order >= 33) && (order < 0x1000)) {
+	/* MOD (packet budget): see dw/world_object.h */
+	if ((order >= 33) && (order < 0x1000) && modPacketFits(sizeof(POLY_FT3))) {
 		AddPrim(&ACTIVE_ORDERING_TABLE->org[order], prim);
 		prim++;
 		GsSetWorkBase((PACKET *)prim);
@@ -6407,7 +6408,8 @@ int32_t addScreenPolyFT4(POLY_FT4 *poly, SVECTOR *v0, SVECTOR *v1, SVECTOR *v2,
 			    (long *)&poly->x2, (long *)&poly->x3,
 			    &p, &flag);
 	otz = otz >> 2;
-	if ((otz > 0x20) && (otz < 0x1000)) {
+	/* MOD (packet budget): see dw/world_object.h */
+	if ((otz > 0x20) && (otz < 0x1000) && modPacketFits(sizeof(POLY_FT4))) {
 		AddPrim(ACTIVE_ORDERING_TABLE->org + otz, poly);
 		poly++;
 		GsSetWorkBase((PACKET *)poly);

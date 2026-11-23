@@ -46,10 +46,10 @@ void renderObjects(void);
  * while the GPU drew them, or into the ordering-table headers, and the game
  * froze. Renderers that can emit many packets ask first and skip the draw
  * (never the logic) when it would not fit. MOD_PACKET_RESERVE is kept for the
- * unchecked HUD renderers, about 6.3 KB in that battle, wherever they fall in
+ * unchecked HUD renderers, 6.3 KB in that battle and up to 9.2 KB measured under added load, wherever they fall in
  * the object order. A cursor outside this frame's area (a loop drawing
  * elsewhere) always fits. */
-#define MOD_PACKET_RESERVE	0x2000
+#define MOD_PACKET_RESERVE	0x2800
 /* The battle item menu (Triangle) draws its windows, 18 item rows and cursor with unchecked renderers, about 4.7 KB
  * for the list and 0.8 KB for the option box, in the object slots before the HUD. While it is open the
  * scene leaves that room too, or a frame already at the limit overflows the packet area. */

@@ -3216,9 +3216,12 @@ void BTL_renderScreenFade(void)
 	setXY4(p, -ofx, -ofy, 0x140 - ofx, -ofy, -ofx, 0xf0 - ofy, 0x140 - ofx, 0xf0 - ofy);
 	setUVWH(p, 0, 0x80, 3, 3);
 	setRGB0(p, c, c, c);
-	AddPrim(ACTIVE_ORDERING_TABLE->org + z, p);
-	p++;
-	GsSetWorkBase((PACKET *)p);
+	/* MOD (packet budget) */
+	if (modPacketFits(sizeof(POLY_FT4))) {
+		AddPrim(ACTIVE_ORDERING_TABLE->org + z, p);
+		p++;
+		GsSetWorkBase((PACKET *)p);
+	}
 }
 
 void BTL_applyBoxAttackHit(void)
@@ -3413,6 +3416,10 @@ void BTL_renderScreenOverlay(void)
 	col = EFE_POP1(EfeColor *);
 	layer = EFE_POP1(int32_t);
 
+	/* MOD (packet budget) */
+	if (!modPacketFits(sizeof(POLY_F4) + sizeof(DR_TPAGE))) {
+		return;
+	}
 	p = (POLY_F4 *)GsGetWorkBase();
 	setXYWH(p, -0xa0, -0x78, 320, 240);
 	setRGB0(p, col->red, col->green, col->blue);
@@ -3457,6 +3464,11 @@ void BTL_renderRingTube(void)
 	center = EFE_POP1(VECTOR *);
 
 	if (n < 2) {
+		return;
+	}
+	/* MOD (packet budget): the quads and, right after them, the n * 10 points (three halfwords each) they are
+	 * built from; n comes from the effect script */
+	if (!modPacketFits((n - 1) * 10 * (int32_t)sizeof(POLY_FT4) + n * 10 * 6)) {
 		return;
 	}
 
@@ -3628,7 +3640,8 @@ void BTL_renderRadialWaves(void)
 					&EFE_WAVE_SCRATCH->quad[3], (long *)&prim->x0, (long *)&prim->x1,
 					(long *)&prim->x2, (long *)&prim->x3, &EFE_PROJ_SCRATCH->p,
 					&EFE_PROJ_SCRATCH->flag);
-				if ((EFE_PROJ_SCRATCH->flag & 0x80000000) == 0) {
+				/* MOD (packet budget) */
+				if ((EFE_PROJ_SCRATCH->flag & 0x80000000) == 0 && modPacketFits(sizeof(POLY_FT4))) {
 					((int32_t *)prim)[1] = BTL_RADIAL_WAVE_COLOR;
 					prim->clut = EFE_WAVE_SCRATCH->clut;
 					prim->tpage = EFE_WAVE_SCRATCH->tpage;
@@ -3681,6 +3694,10 @@ void BTL_addClutLoadPrim(void)
 	y = EFE_POP1(int32_t);
 	z = EFE_POP1(int32_t);
 	src += idx * 2;
+	/* MOD (packet budget) */
+	if (!modPacketFits(sizeof(DR_LOAD))) {
+		return;
+	}
 	prim = (DR_LOAD *)GsGetWorkBase();
 	GsSetWorkBase((PACKET *)(prim + 1));
 	setRECT(&rect, (EFE_DATA_ITERATOR->model->clutPage & 0x3f) << 4, ((EFE_DATA_ITERATOR->model->clutPage >> 6) & 0x1ff) + y, 0x10, 1);
@@ -4015,6 +4032,10 @@ void BTL_renderWireframeBox(void)
 	}
 
 	PopMatrix();
+	/* MOD (packet budget) */
+	if (!modPacketFits(4 * sizeof(LINE_F4))) {
+		return;
+	}
 	ot = ACTIVE_ORDERING_TABLE->org;
 	prim = (LINE_F4 *)GsGetWorkBase();
 	idx = BTL_WIREFRAME_BOX_LINES;
@@ -4133,7 +4154,8 @@ void BTL_render2DTexturedQuad(void)
 	b = EFE_POP1(int32_t);
 	a = EFE_POP1(int32_t);
 
-	if ((depth > 0x20) && (depth < 0x1000)) {
+	/* MOD (packet budget) */
+	if ((depth > 0x20) && (depth < 0x1000) && modPacketFits(sizeof(POLY_FT4))) {
 		m = EFE_DATA_ITERATOR->model;
 		prim = (POLY_FT4 *)GsGetWorkBase();
 		SetPolyFT4(prim);
@@ -4860,7 +4882,8 @@ void BTL_renderParallaxSprites(void)
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
 	while (1) {
-		if (p->size < 0) {
+		/* MOD (packet budget) */
+		if (p->size < 0 || !modPacketFits(sizeof(POLY_FT4))) {
 			break;
 		}
 		SetPolyFT4(prim);
@@ -4928,6 +4951,10 @@ void BTL_renderScrollingBackground(void)
 		ty += 8;
 	}
 
+	/* MOD (packet budget): 9 x 11 tiles */
+	if (!modPacketFits(99 * sizeof(POLY_FT4))) {
+		return;
+	}
 	model = EFE_DATA_ITERATOR->model;
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	y0 = (sy & 0x1f) - 0x98;
@@ -6195,7 +6222,8 @@ void BTL_renderParallelLines(SVECTOR *a, SVECTOR *b, int16_t n, SVECTOR *from, S
 			prim->x1 += (int16_t)(0xa0 - ox);
 			prim->y0 += (int16_t)(0x78 - oy);
 			prim->y1 += (int16_t)(0x78 - oy);
-			if ((depth > 0x200) && (depth < 0x10000)) {
+			/* MOD (packet budget) */
+			if ((depth > 0x200) && (depth < 0x10000) && modPacketFits(sizeof(LINE_F2))) {
 				AddPrim(ACTIVE_ORDERING_TABLE->org + 0xffd, prim);
 				prim++;
 			}
@@ -6292,7 +6320,8 @@ void BTL_renderRibbonStrip(void)
 			&EFE_RIBBON_SCRATCH->edge[i - 1][1], &EFE_RIBBON_SCRATCH->edge[i][1],
 			(long *)&prim->x0, (long *)&prim->x1, (long *)&prim->x2,
 			(long *)&prim->x3, &EFE_RIBBON_SCRATCH->proj.p, &EFE_RIBBON_SCRATCH->proj.flag);
-		if ((EFE_RIBBON_SCRATCH->proj.flag & 0x80000000) == 0) {
+		/* MOD (packet budget) */
+		if ((EFE_RIBBON_SCRATCH->proj.flag & 0x80000000) == 0 && modPacketFits(sizeof(POLY_GT4))) {
 			prim->tpage = EFE_RIBBON_SCRATCH->tpage;
 			prim->clut = EFE_RIBBON_SCRATCH->clut;
 			if (i == 1) {
@@ -6674,6 +6703,10 @@ void BTL_renderStunEffect(int32_t idx)
 	pos.vz = p->entity->posData->location.vz;
 	otz = worldPosToScreenPos(&pos, &screen);
 
+	/* MOD (packet budget): six sprites per effect, up to 25 effects */
+	if (!modPacketFits(6 * (sizeof(POLY_FT4) + sizeof(DR_MODE)))) {
+		return;
+	}
 	BTL_STUN_DIGIT_SPRITE.x = screen.vx;
 	BTL_STUN_DIGIT_SPRITE.y = screen.vy;
 	BTL_STUN_DIGIT_SPRITE.scalex = scale;
