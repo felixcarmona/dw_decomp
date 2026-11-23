@@ -3516,12 +3516,9 @@ int32_t main(void)
 			initializeMusic();
 			loadStackedTIMFile(MAIN_D_8012CE8C);
 			initializeTamer(0, 0, 0, 0, 0, 0, 0);
-			if (readPStat(0xfe) == 0) {
-				partnerId = modNewGame(MOD_NG_STARTER0); /* MOD (new game as data): was 0x3 */
-			} else {
-				partnerId = modNewGame(MOD_NG_STARTER1); /* was 0x11 */
-			}
+			partnerId = modNewGameStarter();
 			initializePartner(partnerId, 0, 0, 0, 0, 0, 0);
+			modInitializeStarterTechniques(partnerId);
 			setDigimonRaised(partnerId);
 			initializeMap();
 			initializeChest();
