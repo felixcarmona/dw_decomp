@@ -1227,6 +1227,12 @@ void renderMonochromonMoodBubble(int32_t instanceId)
 	int16_t scale;
 	uint8_t mood;
 
+	/* Objects outlive the map and only mood 5 removes this one: left up on leaving the shop it drew its sprite, whose
+	 * texture page is gone, over the entity this script id names on other screens (a solid square over a wild Digimon). */
+	if (CURRENT_SCREEN_ID != 49) {
+		removeObject(0x1b1, 0);
+		return;
+	}
 	entityId = readPStat(0xf7);
 	mood = readPStat(0xf8);
 	entityId = scriptIdToEntityId(entityId);
