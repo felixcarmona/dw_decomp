@@ -3984,13 +3984,14 @@ static void modPerfReset(void)
  * not end before the next tick is due (judging by the previous pass's cost),
  * is skipped; the logic never is. See dw/mod_fps.h for how renders stay idempotent. */
 int32_t MOD_FPS_RENDERS_PER_TICK = 3;
-/* test switch (state checks with the slow interpreter CPU): render every pass
- * of a tick even when it is late, so the extra passes always run (with the
- * interpolation fraction they would have had). Ticks then last longer than 3
- * refreshes, which changes on which tick a CD read ends: 1 forces only in
- * battle (GAME_STATE 1 or 2: the battle data is loaded in state 3), 2
- * everywhere (a walk on one map). */
-int32_t MOD_FPS_FORCE_PASSES;
+/* test switch (state checks with the slow interpreter CPU, where the extra
+ * passes rarely fit): with N > 0 every tick lasts N refreshes instead of 3,
+ * with any number of renders, and every pass is rendered, shown at refresh
+ * tickStart + (r + 1) * N / n with that fraction of the tick. Comparing 1 and
+ * 3 renders with the same N (large enough for 3 passes, e.g. 8) keeps the
+ * emulated time per tick equal, so CD reads end on the same tick in both. */
+int32_t MOD_FPS_TEST_TICK;
+static int32_t modTickRefreshes(void);
 int32_t MOD_FPS_TICKS;
 int32_t MOD_FPS_RENDERS;
 int32_t MOD_RENDER_PASS;
@@ -4563,7 +4564,7 @@ static void modInterpSnapshot(void)
 
 	/* a tick much longer than 3 refreshes: a battle or a load ran inside it */
 	snap = !modInterpValid || modInterpMapGen != MOD_INTERP_MAP_GEN ||
-	       modInterpGameState != GAME_STATE || modInterpTickGap > 6 ||
+	       modInterpGameState != GAME_STATE || modInterpTickGap > 2 * modTickRefreshes() ||
 	       modInterpLastBattle != modInterpBattle ||
 	       /* a camera cut that does not go through GS_VIEWPOINT (the battle
 		* effects' fixed camera, EFE opcodes 63/64) */
@@ -4873,6 +4874,11 @@ static int32_t modTickL0;
 static int32_t modLastEndV = -1000;
 static int32_t modLastEndLines;
 
+static int32_t modTickRefreshes(void)
+{
+	return MOD_FPS_TEST_TICK > 0 ? MOD_FPS_TEST_TICK : 3;
+}
+
 void modTickStart(int32_t flags)
 {
 	int32_t now;
@@ -4883,7 +4889,7 @@ void modTickStart(int32_t flags)
 	modFlushRemovals();
 	MOD_RENDER_PASS = 0;
 	now = VSync(-1);
-	if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < 3) {
+	if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < modTickRefreshes()) {
 		/* VSync(3) counts from the previous tick's last VSync: the battle
 		 * AI, which runs before the loop function, is part of this tick */
 		modTickV = modLastEndV;
@@ -4917,8 +4923,8 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	int32_t interp;
 	int32_t shownV;
 	int32_t battle = flags & MOD_PRESENT_BATTLE;
-	int32_t force = MOD_FPS_FORCE_PASSES == 2 ||
-			(MOD_FPS_FORCE_PASSES == 1 && (GAME_STATE == 1 || GAME_STATE == 2));
+	int32_t period = modTickRefreshes(); /* refreshes per tick: 3 */
+	int32_t force = MOD_FPS_TEST_TICK > 0;
 
 	tickV = modTickV;
 	l0 = modTickL0;
@@ -4944,7 +4950,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 
 	MOD_RENDER_MULTIPASS = 1;
 	for (r = 0; r < n; r++) {
-		endV = tickV + (r + 1) * 3 / n;
+		endV = tickV + (r + 1) * period / n;
 		if (r > 0) {
 			lc = modLines();
 			if (force) {
@@ -4952,7 +4958,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 				 * lasts longer, the logic per tick is the same) */
 			} else if (VSync(-1) >= endV) {
 				continue; /* this pass would be shown late: skip it */
-			} else if ((tickV + 3 - vLast) * 263 - VSync(1) <
+			} else if ((tickV + period - vLast) * 263 - VSync(1) <
 				   passLines + modPassSetupLines + 4) {
 				/* lines left before the vblank that ends the tick,
 				 * counted from the last vblank waited for; the pass costs
@@ -4988,11 +4994,11 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			if (shownV < endV || force) {
 				shownV = endV; /* forced: the fraction it would have had */
 			}
-			if (shownV > tickV + 3) {
-				shownV = tickV + 3;
+			if (shownV > tickV + period) {
+				shownV = tickV + period;
 			}
 			l2 = modLines();
-			modInterpApply((shownV - tickV) * 4096 / 3);
+			modInterpApply((shownV - tickV) * 4096 / period);
 			MOD_PERF_INTERP[0] += (modLines() - l2) & 0xFFFF;
 			MOD_PERF_INTERP[2]++;
 		}
@@ -5054,7 +5060,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	if (battle) {
 		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
 	}
-	while (VSync(-1) < tickV + 3) {
+	while (VSync(-1) < tickV + period) {
 		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
 	MOD_RENDER_PASS = 0;
