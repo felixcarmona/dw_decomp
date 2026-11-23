@@ -484,9 +484,19 @@ GameMenuSprite MENU_OPTIONS[8] = {
 
 /* MOD (language): translated labels use FI_INFO's free cells, excluding all five clock
  * frames. tools/localize/textures/fi-info/build.py prints these rows; V is TIM row + 1.
- * DIGIMON keeps the disc's label. */
+ * DIGIMON keeps the disc's label. Chinese uses SYSTEM_W's unused cells for
+ * native 12px labels; its V values are direct rows and its palette uses white. */
 GameMenuLabel GAME_MENU_TEXT_SPRITES[8] = {
-#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+#if MOD_LANG_BUILD == MOD_LANG_ZH
+	{ 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00 },
+	{ 0x0012, 0x005e, 0x18, 0x0d, 0x38, 0x5f },
+	{ 0x0036, 0x005e, 0x18, 0x0d, 0x50, 0x60 },
+	{ 0x0059, 0x005e, 0x18, 0x0d, 0x68, 0x60 },
+	{ 0x0012, 0x0086, 0x18, 0x0d, 0xd0, 0x60 },
+	{ 0x0036, 0x0086, 0x18, 0x0d, 0xe8, 0x60 },
+	{ 0x0059, 0x0086, 0x18, 0x0d, 0xe8, 0x6e },
+	{ 0x0012, 0x0036, 0x18, 0x0d, 0xb0, 0x46 },
+#elif MOD_LANG_BUILD == MOD_LANG_PT_BR
 	{ 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00 },
 	{ 0x0015, 0x0060, 0x13, 0x07, 0x80, 0x31 },
 	{ 0x0035, 0x0060, 0x1c, 0x07, 0x50, 0x1b },
@@ -2145,7 +2155,9 @@ void renderGameMenu(void)
 		                  GAME_MENU_TEXT_SPRITES[i].width,
 		                  GAME_MENU_TEXT_SPRITES[i].height,
 		                  GAME_MENU_TEXT_SPRITES[i].texX,
-		                  GAME_MENU_TEXT_SPRITES[i].texY + 0xbf, 0x1e, 0x7f50, 6,
+                          GAME_MENU_TEXT_SPRITES[i].texY + (MOD_LANG == MOD_LANG_ZH ? 0x80 : 0xbf),
+                          MOD_LANG == MOD_LANG_ZH ? 5 : 0x1e,
+                          MOD_LANG == MOD_LANG_ZH ? 0x7b06 : 0x7f50, 6,
 		                  disabled);
 	}
 #if !VERSION_IS(US)
