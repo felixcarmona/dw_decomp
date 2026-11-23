@@ -15,6 +15,7 @@
 #include <dw/garbage.h>
 #include <dw/ids.h>
 #include <dw/item.h>
+#include <dw/level.h>
 #include <dw/map.h>
 #include <dw/map_object.h>
 #include <dw/math.h>
@@ -2203,14 +2204,21 @@ void tickConditions(void)
 		 *   - partners-npc-c: Megadramon/Gigadramon -> Machinedramon after
 		 *     48 h (getModUltimateEvolutionTarget, evolution.c);
 		 *   - partners-npc-a: an Ultimate with a path (Etemon ->
-		 *     MetalEtemon) after 96 h, like a Champion.
+		 *     MetalEtemon) after 96 h, like a Champion;
+		 *   - mega: an Ultimate looks for a Mega the way a Champion looks
+		 *     for an Ultimate (best requirement score, then best average
+		 *     stat), after MEGA_EVOLUTION_HOURS (120 h).
 		 */
-		else if (level == 5 && evoTimer >= 48) {
+		else if (level == LEVEL_ULTIMATE && evoTimer >= 48) {
 			EVOLUTION_TARGET = getModUltimateEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-			if (EVOLUTION_TARGET == -1 && evoTimer >= 96)
+			if (EVOLUTION_TARGET == -1 && evoTimer >= 96) {
 				EVOLUTION_TARGET = getChampionEvolutionTarget(
 					PARTNER_ENTITY.digimonEntity.entity.type);
+				if (EVOLUTION_TARGET != -1 && evoTimer < MEGA_EVOLUTION_HOURS &&
+				    DIGI_PARA(EVOLUTION_TARGET).level == LEVEL_MEGA)
+					EVOLUTION_TARGET = -1;
+			}
 		}
 		if (level == 4 && evoTimer == 360)
 			EVOLUTION_TARGET = handleSpecialEvolutions(

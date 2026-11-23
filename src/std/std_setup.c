@@ -293,6 +293,10 @@ void STD_initializeOpponent(int16_t type, int16_t slot, uint8_t tier)
 		div = 10;
 		mul = 25;
 		break;
+	case 6: /* MOD (mega): x3.5; without it div and mul were left unset */
+		div = 10;
+		mul = 35;
+		break;
 	}
 	stats = &NPC_ENTITIES[slot].digimonEntity.stats;
 	stats->base.off = mul * (base + base * (0x1e - randomLimit(0x3d)) / 100) / div;
