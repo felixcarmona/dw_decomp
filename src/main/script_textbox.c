@@ -1228,13 +1228,14 @@ void scriptShowSelection(void)
 
 GARBAGE(showTextbox, 1);
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if VERSION_IS(US)
 /* MOD (font): the one-byte form of a two-byte glyph code in a script row, 0 if it keeps two bytes (drawString2 maps it
  * back: letters and digits by convertAsciiToJis, ' and " to the codes the font draws them at) */
 static const uint16_t PACKED_CODES[] = { 0x8140, 0x8142, 0x8143, 0x8146, 0x8147, 0x8148, 0x8149, 0x8175, 0x8176,
 					  0x817b, 0x817c, 0x8181 };
 static const char PACKED_ASCII[] = " .,:;?!'\"+-=";
 
+#if FONT_PROPORTIONAL
 static int32_t packedAscii(uint32_t code)
 {
 	int32_t i;
@@ -1251,6 +1252,31 @@ static int32_t packedAscii(uint32_t code)
 	for (i = 0; i < (int32_t)(sizeof(PACKED_CODES) / sizeof(PACKED_CODES[0])); i++) {
 		if (code == PACKED_CODES[i]) {
 			return PACKED_ASCII[i];
+		}
+	}
+	return 0;
+}
+#endif
+
+/* MOD (script text): a script may store a letter, digit, space or one of ".,:;?!'\"+-=" as one byte, its ASCII form
+ * (tools/dws/bytecode/__main__.py --pack-ascii; the original's text has no unit starting in 0x20..0x7e, so scripts without it read the
+ * same). This is the two-byte glyph code that byte stands for, 0 if the byte is none of those */
+static uint32_t scriptAsciiCode(uint32_t c)
+{
+	int32_t i;
+
+	if (c >= 'A' && c <= 'Z') {
+		return c - 'A' + 0x8260;
+	}
+	if (c >= 'a' && c <= 'z') {
+		return c - 'a' + 0x8281;
+	}
+	if (c >= '0' && c <= '9') {
+		return c - '0' + 0x824f;
+	}
+	for (i = 0; i < (int32_t)(sizeof(PACKED_CODES) / sizeof(PACKED_CODES[0])); i++) {
+		if (c == (uint32_t)PACKED_ASCII[i]) {
+			return PACKED_CODES[i];
 		}
 	}
 	return 0;
@@ -1441,6 +1467,23 @@ top: {
 			goto top;
 		case 15:
 		default:
+#if VERSION_IS(US)
+			/* MOD (script text): a one-byte unit is expanded to the form the box draws: its own byte in a packed row,
+			 * else the two-byte glyph code */
+			if (ctrl >= 0x20 && ctrl < 0x7f && (lines = scriptAsciiCode(ctrl)) != 0) {
+#if FONT_PROPORTIONAL
+				if (boxId == 0) {
+					*out++ = ctrl;
+				} else
+#endif
+				{
+					*out++ = lines >> 8;
+					*out++ = lines & 0xff;
+				}
+				col++;
+				goto top;
+			}
+#endif
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 			/* MOD (font): a letter, digit, space or common punctuation of a dialogue or selection row (box 0) takes one
 			 * byte, its ASCII form, which drawString2 draws as the same glyph: a 64-byte row holds 63 of them */
