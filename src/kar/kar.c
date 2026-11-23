@@ -17,15 +17,54 @@
 #include <dw/input.h>
 #include <dw/kar.h>
 #include <dw/map.h>
+#include <dw/mod_fps.h>
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/types.h>
+#include <dw/tfs_stream.h>
 #include <dw/ui.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
 #include <text/kar/kar.h>
 
 #include "common.h"
+
+extern int32_t MOD_RENDER_ALPHA;
+extern int32_t MOD_PERF_TICK_SUM, MOD_PERF_RENDER_SUM;
+extern int32_t MOD_FPS_TEST_TICK, MOD_FPS_TICKS;
+
+/* Keep the draw history in KAR, outside the resident executable's small-data
+ * sections. A reset or a discontinuity never blends two unrelated stones. */
+typedef struct {
+	VECTOR pos;
+	SVECTOR rotation;
+	int32_t state;
+} KarDrawStone;
+static struct {
+	KarDrawStone previous[15];
+	KarDrawStone current[15];
+	uint8_t blend[15];
+	int32_t valid;
+	int32_t hudState;
+	VECTOR arrowOrigin;
+	SVECTOR arrowRotation;
+	VECTOR previousArrowOrigin;
+	SVECTOR previousArrowRotation;
+	int32_t arrowReady, arrowBlend;
+	uint32_t tickSum, renderSum;
+	int32_t warmup, samples, overBudget, steady30;
+} KAR_MOD __attribute__((section(".bss.kar_mod")));
+
+/* Component copies avoid the SDK's ROM memcpy on every stone/tick. */
+static void KAR_copyVector(VECTOR *to, const VECTOR *from)
+{
+	to->vx = from->vx;
+	to->vy = from->vy;
+	to->vz = from->vz;
+	to->pad = from->pad;
+}
+
+static void KAR_lateStones(int32_t instanceId);
 
 typedef struct {
 	int16_t start;
@@ -666,6 +705,12 @@ void KAR_setupMatch(int32_t mode)
 	int32_t i;
 	KarStone *stone;
 
+	KAR_MOD.valid = 0;
+	KAR_MOD.arrowReady = KAR_MOD.arrowBlend = 0;
+	KAR_MOD.tickSum = MOD_PERF_TICK_SUM;
+	KAR_MOD.renderSum = MOD_PERF_RENDER_SUM;
+	KAR_MOD.warmup = KAR_MOD.samples = KAR_MOD.overBudget = 0;
+	KAR_MOD.steady30 = 1;
 	obstacles = rand() % BKS(OBST_MAX);
 	MAIN_D_8013523A = 0;
 	MAIN_D_8013523C = 0;
@@ -757,7 +802,7 @@ void KAR_start(void)
 	ENTITY_TABLE[0]->isOnMap = 1;
 	MAIN_D_80135244 = 0;
 	KAR_setupMatch(0);
-	addObject(0x1388, 0xf, KAR_tickStones, KAR_renderScene);
+	addObjectLate(0x1388, 0xf, KAR_tickStones, KAR_lateStones, KAR_renderScene);
 	MAIN_D_80135248 = readPStat(0x7a);
 	MAIN_D_80135248 += 2;
 }
@@ -776,7 +821,7 @@ void KAR_tickStones(int32_t instanceId)
 		stone = KAR_D_8005B5A0[p].row.stones;
 		for (i = 0; i < 5; i++, stone++) {
 			if (stone->state != 3 && stone->state != 2) {
-				stone->target = stone->pos;
+				KAR_copyVector(&stone->target, &stone->pos);
 			}
 			if (MAIN_D_80135244 == 5) {
 				if (i == MAIN_D_8013523A && p == MAIN_D_8013523C) {
@@ -825,86 +870,161 @@ void KAR_tickStones(int32_t instanceId)
 	KAR_updateCollisions();
 }
 
+static void KAR_heldPosition(VECTOR *pos)
+{
+	int32_t idx = MAIN_D_8013523C != 0 ? MAIN_D_80135248 : 0;
+	MATRIX world;
+
+	if (idx == 2) {
+		KAR_copyVector(pos, &ENTITY_TABLE[idx]->posData->location);
+		pos->vx -= 0x50;
+	} else {
+		/* Evaluate the hand from this pass's skeleton, not a stale workm.
+		 * The late tick calls this before interpolation for the logic pose. */
+		GsGetLw(&ENTITY_TABLE[idx]->posData[idx == 0 ? 9 : 4].posMatrix, &world);
+		pos->vx = world.t[0];
+		pos->vy = world.t[1] + 0x78;
+		pos->vz = world.t[2];
+	}
+}
+
+static void KAR_lateStones(int32_t instanceId)
+{
+	int32_t p, i, n = 0;
+	KarStone *stone;
+	KarDrawStone *old, *now;
+
+	(void)instanceId;
+	for (p = 0; p < 3; p++) {
+		stone = KAR_D_8005B5A0[p].row.stones;
+		for (i = 0; i < 5; i++, stone++, n++) {
+			if (stone->state == 0) {
+				KAR_heldPosition(&stone->pos);
+				if ((MAIN_D_8013523C != 0 ? MAIN_D_80135248 : 0) != 2) {
+					stone->rotation.vx = stone->rotation.vy = stone->rotation.vz = 0;
+				}
+			}
+			old = &KAR_MOD.previous[n];
+			now = &KAR_MOD.current[n];
+			/* Aggregate assignments call the SDK memcpy once per field.
+			 * Copy the live components directly; padding is never rendered. */
+			old->pos.vx = now->pos.vx;
+			old->pos.vy = now->pos.vy;
+			old->pos.vz = now->pos.vz;
+			old->rotation.vx = now->rotation.vx;
+			old->rotation.vy = now->rotation.vy;
+			old->rotation.vz = now->rotation.vz;
+			old->state = now->state;
+			now->pos.vx = stone->pos.vx;
+			now->pos.vy = stone->pos.vy;
+			now->pos.vz = stone->pos.vz;
+			now->rotation.vx = stone->rotation.vx;
+			now->rotation.vy = stone->rotation.vy;
+			now->rotation.vz = stone->rotation.vz;
+			now->state = stone->state;
+			/* Releasing a held stone is continuous; selection, removal and
+			 * resets are cuts. setupMatch also invalidates the whole history. */
+			KAR_MOD.blend[n] = KAR_MOD.valid &&
+				(old->state == now->state || (old->state == 0 && now->state == 1)) &&
+				abs(now->pos.vx - old->pos.vx) <= 512 &&
+				abs(now->pos.vy - old->pos.vy) <= 512 &&
+				abs(now->pos.vz - old->pos.vz) <= 512 &&
+				(now->state == 0 || now->pos.vx != old->pos.vx || now->pos.vy != old->pos.vy ||
+				 now->pos.vz != old->pos.vz || now->rotation.vx != old->rotation.vx ||
+				 now->rotation.vy != old->rotation.vy || now->rotation.vz != old->rotation.vz);
+		}
+	}
+	KAR_MOD.valid = 1;
+}
+
+static int32_t KAR_lerp(int32_t a, int32_t b)
+{
+	return a + (((b - a) * MOD_RENDER_ALPHA + 2048) >> 12);
+}
+
+static int16_t KAR_lerpAngle(int16_t a, int16_t b)
+{
+	int32_t delta = ((b - a) << 20) >> 20;
+	return a + ((delta * MOD_RENDER_ALPHA + 2048) >> 12);
+}
+
 void KAR_renderScene(int32_t instanceId)
 {
-	MATRIX m;
+	MATRIX lw, ls;
+	VECTOR pos;
+	SVECTOR rotation;
+	VECTOR *drawPos;
+	SVECTOR *drawRotation;
 	KarStone *stone;
-	int32_t p;
-	int32_t i;
-	int8_t idx;
+	KarDrawStone *old;
+	int32_t p, i, n = 0;
+	int32_t view = -1;
+	int32_t preview;
 
+	(void)instanceId;
+	/* These primitives used to be emitted from KAR_tick, so they vanished
+	 * on extra passes. Their animation counters now advance only in the tick. */
+	KAR_renderAimArrow();
+	KAR_renderStoneCursor();
+	KAR_renderScores();
+	KAR_renderPowerMeter();
+	KAR_renderReadyPrompt();
+	KAR_renderNamePlates();
 	GsClearOt(0, 0xa, &KAR_D_800638CC[ACTIVE_FRAMEBUFFER]);
 
 	for (p = 0; p < 3; p++) {
 		stone = KAR_D_8005B5A0[p].row.stones;
-
-		for (i = 0; i < 5;) {
-			if ((p == 1) && (MAIN_D_80135244 != 3) && (MAIN_D_80135244 < 0x10)) {
-				if (MAIN_D_80135250 != 0) {
-					goto next;
-				}
-				if (MAIN_D_80135244 < 5) {
-					goto next;
-				}
+		for (i = 0; i < 5; i++, stone++, n++) {
+			if (p == 1 && MAIN_D_80135244 != 3 && MAIN_D_80135244 < 0x10 &&
+			    (MAIN_D_80135250 != 0 || MAIN_D_80135244 < 5)) {
+				continue;
 			}
-			if (MAIN_D_80135244 < 4) {
-				if (MAIN_D_80135252 < i * 0x3c + 0x3c) {
-					goto next;
-				}
+			if (MAIN_D_80135244 < 4 && MAIN_D_80135252 < i * 0x3c + 0x3c) {
+				continue;
 			}
-
+			if (stone->state < -0x64 || stone->state >= 0x65) {
+				continue;
+			}
+			drawPos = &stone->pos;
+			drawRotation = &stone->rotation;
 			if (stone->state == 0) {
-				idx = (MAIN_D_8013523C != 0) ? MAIN_D_80135248 : 0;
-				if (idx == 2) {
-					stone->pos = ENTITY_TABLE[idx]->posData->location;
-					stone->pos.vx = stone->pos.vx - 0x50;
-				} else if (idx == 0) {
-					stone->pos.vx = ENTITY_TABLE[idx]->posData[9].posMatrix.workm.t[0];
-					stone->pos.vy = ENTITY_TABLE[idx]->posData[9].posMatrix.workm.t[1] + 0x78;
-					stone->pos.vz = ENTITY_TABLE[idx]->posData[9].posMatrix.workm.t[2];
-					stone->rotation.vx = stone->rotation.vy = stone->rotation.vz = 0;
-				} else {
-					stone->pos.vx = ENTITY_TABLE[idx]->posData[4].posMatrix.workm.t[0];
-					stone->pos.vy = ENTITY_TABLE[idx]->posData[4].posMatrix.workm.t[1] + 0x78;
-					stone->pos.vz = ENTITY_TABLE[idx]->posData[4].posMatrix.workm.t[2];
-					stone->rotation.vx = stone->rotation.vy = stone->rotation.vz = 0;
+				if (MOD_RENDER_ALPHA == 4096 || KAR_MOD.blend[n]) {
+					KAR_heldPosition(&pos);
+					drawPos = &pos;
 				}
+			} else if (MOD_RENDER_ALPHA < 4096 && KAR_MOD.blend[n]) {
+				old = &KAR_MOD.previous[n];
+				pos.vx = KAR_lerp(old->pos.vx, stone->pos.vx);
+				pos.vy = KAR_lerp(old->pos.vy, stone->pos.vy);
+				pos.vz = KAR_lerp(old->pos.vz, stone->pos.vz);
+				rotation.vx = KAR_lerpAngle(old->rotation.vx, stone->rotation.vx);
+				rotation.vy = KAR_lerpAngle(old->rotation.vy, stone->rotation.vy);
+				rotation.vz = KAR_lerpAngle(old->rotation.vz, stone->rotation.vz);
+				drawPos = &pos;
+				drawRotation = &rotation;
 			}
-
-			RotMatrix(&stone->rotation, &stone->coord.coord);
-			TransMatrix(&stone->coord.coord, &stone->pos);
+			RotMatrix(drawRotation, &stone->coord.coord);
+			TransMatrix(&stone->coord.coord, drawPos);
 			stone->coord.flg = 0;
 
-			if (stone->state < 0) {
-				GsSetProjection(0x200);
-				GsSetRefView2(&KAR_D_8005B580);
-			} else {
-				GsSetProjection(VIEWPORT_DISTANCE);
-				GsSetRefView2(&GS_VIEWPOINT);
+			/* The fixed preview view and the court view only need rebuilding
+			 * when crossing between them, not once for every stone. */
+			preview = stone->state < 0;
+			if (preview != view) {
+				GsSetProjection(preview ? 0x200 : VIEWPORT_DISTANCE);
+				GsSetRefView2(preview ? &KAR_D_8005B580 : &GS_VIEWPOINT);
+				view = preview;
 			}
-
-			GsGetLw(stone->obj.coord2, &m);
-			GsSetLightMatrix(&m);
-			GsGetLs(stone->obj.coord2, &m);
-			GsSetLsMatrix(&m);
-
-			if (stone->state < 0) {
-				if (stone->state < -0x64) {
-					goto next;
-				}
+			GsGetLws(stone->obj.coord2, &lw, &ls);
+			GsSetLightMatrix(&lw);
+			GsSetLsMatrix(&ls);
+			if (preview) {
 				GsSortObject4(&stone->obj, &KAR_D_800638CC[ACTIVE_FRAMEBUFFER], 5, getScratchAddr(0));
 			} else {
-				if (stone->state >= 0x65) {
-					goto next;
-				}
 				GsSortObject4(&stone->obj, &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER], 2, getScratchAddr(0));
 			}
-next:
-			i++;
-			stone++;
 		}
 	}
-
 	GsSortOt(&KAR_D_800638CC[ACTIVE_FRAMEBUFFER], &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
 	GsSetProjection(VIEWPORT_DISTANCE);
 	GsSetRefView2(&GS_VIEWPOINT);
@@ -938,15 +1058,103 @@ void KAR_finishMatch(void)
 	}
 }
 
+/* The original force-upload was cheap with the whole TFS in RAM. The
+ * streaming build otherwise rereads three CD rows on every qualifying camera
+ * tick. Keep cells already in VRAM, and let the ring serve actual replacements. */
+extern int8_t PREV_TILE_Y;
+
+void KAR_flushTiles(void)
+{
+	MapTileData *tiles = MAP_TILE_DATA.tiles;
+	int32_t stride = MAP_TILE_DATA.width;
+	int32_t count = stride > 3 ? 4 : stride;
+	int32_t first = MAP_TILE_X + MAP_TILE_Y * stride;
+	int32_t row, col, tile, cell;
+	RECT rect;
+
+	for (row = 0; row < 3 && row < MAP_TILE_DATA.height; row++) {
+		for (col = 0; col < count; col++) {
+			tile = first + row * stride + col;
+			rect.x = tiles[tile].texU;
+			rect.y = tiles[tile].texV;
+			rect.w = 64;
+			rect.h = 128;
+			cell = ((rect.x - 768) >> 6) + (rect.y >> 7) * 4;
+			if (cell >= 0 && cell < 12 &&
+			    TFS_CELL[cell] == (tiles[tile].tileId == -1 ? -1 : tile)) {
+				continue;
+			}
+			if (tiles[tile].tileId == -1) {
+				tfsClearTile(&rect);
+			} else {
+				tfsLoadTile(&rect, tile);
+			}
+			DrawSync(0);
+		}
+	}
+	PREV_TILE_Y = MAP_TILE_Y;
+}
+
 void KAR_tick(void)
 {
+	int32_t player;
+	uint32_t tick = (uint32_t)MOD_PERF_TICK_SUM - KAR_MOD.tickSum;
+	uint32_t render = (uint32_t)MOD_PERF_RENDER_SUM - KAR_MOD.renderSum;
+
+	KAR_MOD.tickSum = MOD_PERF_TICK_SUM;
+	KAR_MOD.renderSum = MOD_PERF_RENDER_SUM;
+	/* Decide once during the intro, then keep a steady cadence for the
+	 * match. Ignore entry/loading ticks and an external perf-counter reset.
+	 * Allow half a render of headroom for the HUD and previews appearing
+	 * after this intro. At original CPU speed the participants cost most of a
+	 * refresh; faster CPUs may keep the player's 60 fps request. */
+	if (KAR_MOD.warmup < 10) {
+		if (KAR_MOD.warmup >= 3 && tick < 2000 && render < 2000) {
+			KAR_MOD.samples++;
+			if (tick + render + render / 2 > 245) {
+				KAR_MOD.overBudget = 1;
+			}
+		}
+		if (++KAR_MOD.warmup == 10) {
+			KAR_MOD.steady30 = KAR_MOD.overBudget || KAR_MOD.samples == 0;
+		}
+	}
+	MOD_RENDER_CADENCE = 4;
+	if (MOD_FPS_TEST_TICK == 0 && MOD_FPS_MODE > 0 &&
+		(KAR_MOD.steady30 || MOD_FPS_MODE == 1)) {
+		MOD_RENDER_CADENCE = (MOD_FPS_TICKS & 1) ? 1 : 2;
+	}
+
 	KAR_tickMatchState();
-	KAR_renderAimArrow();
-	KAR_renderStoneCursor();
-	KAR_renderScores();
-	KAR_renderPowerMeter();
-	KAR_renderReadyPrompt();
-	KAR_renderNamePlates();
+	KAR_MOD.hudState = MAIN_D_80135244;
+	KAR_MOD.arrowBlend = KAR_MOD.arrowReady;
+	KAR_MOD.arrowReady = MAIN_D_80135244 >= 6 && MAIN_D_80135244 < 8;
+	KAR_MOD.arrowBlend &= KAR_MOD.arrowReady;
+	/* These were advanced by the tick's drawing functions. Keep their exact
+	 * order and integer behaviour, but draw their result on every pass. */
+	if (MAIN_D_80135244 >= 6 && MAIN_D_80135244 < 8) {
+		if (MAIN_D_80135252-- != 0) {
+			MAIN_D_80135252 += 0xbf;
+		}
+		if (MAIN_D_80135238++ >= 0x28) {
+			MAIN_D_80135238 = 0;
+		}
+		player = MAIN_D_8013523C != 0 ? MAIN_D_80135248 : 0;
+		KAR_copyVector(&KAR_MOD.previousArrowOrigin, &KAR_MOD.arrowOrigin);
+		KAR_MOD.previousArrowRotation = KAR_MOD.arrowRotation;
+		KAR_copyVector(&KAR_MOD.arrowOrigin, &KAR_D_8005B5A0[MAIN_D_8013523C].row.stones[MAIN_D_8013523A].pos);
+		KAR_MOD.arrowRotation = ENTITY_TABLE[player]->posData->rotation;
+		KAR_MOD.arrowBlend &=
+			abs(KAR_MOD.arrowOrigin.vx - KAR_MOD.previousArrowOrigin.vx) <= 512 &&
+			abs(KAR_MOD.arrowOrigin.vz - KAR_MOD.previousArrowOrigin.vz) <= 512;
+	}
+	if (MAIN_D_80135244 == 3) {
+		if (MAIN_D_80135220++ >= 0x31) {
+			MAIN_D_80135220 = 0x30;
+		}
+	} else {
+		MAIN_D_80135220 = 0;
+	}
 	KAR_handleAimScroll();
 	KAR_updateRingMarkers();
 	KAR_checkStonesStopped();
@@ -955,6 +1163,8 @@ void KAR_tick(void)
 void KAR_renderAimArrow(void)
 {
 	MATRIX m;
+	VECTOR origin;
+	SVECTOR rotation;
 	SVECTOR out;
 	SVECTOR prev;
 	SVECTOR vec;
@@ -967,39 +1177,34 @@ void KAR_renderAimArrow(void)
 	int32_t rot;
 	int32_t k;
 	int16_t w;
-	int8_t player;
 	uint8_t shade;
 
-	player = (MAIN_D_8013523C != 0) ? MAIN_D_80135248 : 0;
-
-	if (MAIN_D_80135244 < 6) {
+	if (KAR_MOD.hudState < 6) {
 		return;
 	}
-	if (MAIN_D_80135244 >= 8) {
+	if (KAR_MOD.hudState >= 8) {
 		return;
 	}
 
 	ot = ACTIVE_ORDERING_TABLE->org;
 
-	if (MAIN_D_80135244 >= 2) {
-		if (MAIN_D_80135252-- != 0) {
-			MAIN_D_80135252 += 0xbf;
-		}
-		if (MAIN_D_80135238++ >= 0x28) {
-			MAIN_D_80135238 = 0;
-		}
-	} else {
-		MAIN_D_80135238 = 0;
+	KAR_copyVector(&origin, &KAR_MOD.arrowOrigin);
+	rotation = KAR_MOD.arrowRotation;
+	if (MOD_RENDER_ALPHA < 4096 && KAR_MOD.arrowBlend) {
+		origin.vx = KAR_lerp(KAR_MOD.previousArrowOrigin.vx, origin.vx);
+		origin.vz = KAR_lerp(KAR_MOD.previousArrowOrigin.vz, origin.vz);
+		rotation.vx = KAR_lerpAngle(KAR_MOD.previousArrowRotation.vx, rotation.vx);
+		rotation.vy = KAR_lerpAngle(KAR_MOD.previousArrowRotation.vy, rotation.vy);
+		rotation.vz = KAR_lerpAngle(KAR_MOD.previousArrowRotation.vz, rotation.vz);
 	}
-
+	RotMatrix(&rotation, &m);
 	for (i = 0; i < 0xf; i++) {
 		vec.vx = 0;
 		vec.vy = 0;
 		vec.vz = (i + 1) * -200;
-		RotMatrix(&ENTITY_TABLE[player]->posData->rotation, &m);
 		ApplyMatrixSV(&m, &vec, &out);
-		out.vx += KAR_D_8005B5A0[MAIN_D_8013523C].row.stones[MAIN_D_8013523A].pos.vx;
-		out.vz += KAR_D_8005B5A0[MAIN_D_8013523C].row.stones[MAIN_D_8013523A].pos.vz;
+		out.vx += origin.vx;
+		out.vz += origin.vz;
 		if ((shade = MAIN_D_80135252 + (i * 0xbf) / 15) >= 0xbf) {
 			shade -= 0xbf;
 		}
@@ -1075,7 +1280,7 @@ void KAR_renderStoneCursor(void)
 
 	sprite = KAR_D_8005B478;
 	stone = KAR_D_8005B5A0[0].row.stones;
-	if (MAIN_D_80135244 == 5) {
+	if (KAR_MOD.hudState == 5) {
 		sprite.x = (MAIN_D_8013523C != 0) ? 0x64 : -0x78;
 		sprite.y = (MAIN_D_8013523A * 30) - 0x2d;
 		KAR_renderSprite(&sprite);
@@ -1125,7 +1330,7 @@ void KAR_renderPowerMeter(void)
 
 	arr = KAR_D_8005B4CC;
 	step = 250;
-	if ((MAIN_D_80135244 >= 8) && (MAIN_D_80135244 < 0xa)) {
+	if ((KAR_MOD.hudState >= 8) && (KAR_MOD.hudState < 0xa)) {
 		arr.sprite[1].x = (MAIN_D_8013523C != 0) ? 0x32 : -0x32;
 		arr.sprite[1].clutX = (MAIN_D_8013523C != 0) ? 0x80 : 0x70;
 
@@ -1149,15 +1354,10 @@ void KAR_renderReadyPrompt(void)
 	KarSprite sprite;
 
 	sprite = KAR_D_8005B56C;
-	if (MAIN_D_80135244 == 3) {
-		if (MAIN_D_80135220++ >= 0x31) {
-			MAIN_D_80135220 = 0x30;
-		}
+	if (KAR_MOD.hudState == 3) {
 		if ((MAIN_D_80135220 & 8) != 0) {
 			KAR_renderSprite(&sprite);
 		}
-	} else {
-		MAIN_D_80135220 = 0;
 	}
 }
 
@@ -1329,103 +1529,69 @@ void KAR_checkStonesStopped(void)
 
 void KAR_updateCollisions(void)
 {
-#if !VERSION_IS(JP) && !VERSION_IS(US)
-	int32_t a;
+	KarStone *active[15];
 	KarStone *stone;
-	int32_t i;
-	int32_t p;
-	int32_t b;
-	int32_t step;
-	VECTOR cur[15];
-	VECTOR prev[15];
-	int32_t tx1;
-	int32_t tx2;
-	int32_t tz1;
-	int32_t tz2;
-	int32_t dist;
-	int8_t collided;
-#else
-	int32_t i;
-	int32_t p;
-	int32_t step;
-	VECTOR cur[15];
-	VECTOR prev[15];
-	KarStone *stone;
-	int32_t tx1;
-	int32_t tx2;
-	int32_t tz1;
-	int32_t tz2;
-	int32_t dist;
-	int32_t a;
-	int32_t b;
-	int8_t collided;
-#endif
-
-#if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-	collided = 0;
-#endif
-
-	for (i = 0; i < 15; i++) {
-		prev[i].vy = 0;
-	}
+	VECTOR cur[15], prev[15];
+	int32_t count = 0;
+	int32_t p, i, a, b, step;
+	int32_t tx1, tx2, tz1, tz2, dist;
+	int8_t collided = 0;
 
 	KAR_bounceOffWall();
-
-	for (i = 0; i < 15; i++) {
-		cur[i].vy = 0;
-	}
-
 	if (MAIN_D_80135244 != 0xb) {
 		return;
 	}
-
-	for (step = 0; step < 0xb; step++) {
-		for (p = 0; p < 3; p++) {
-			stone = KAR_D_8005B5A0[p].row.stones;
-
-			for (i = 0; i < 5; i++, stone++) {
-				if (stone->state > 0) {
-					tx1 = stone->target.vx * (10 - step);
-					tx2 = stone->pos.vx * step;
-					tz1 = stone->target.vz * (10 - step);
-					tz2 = stone->pos.vz * step;
-					cur[p * 5 + i].vx = (tx1 + tx2) / 10;
-					cur[p * 5 + i].vz = (tz1 + tz2) / 10;
-#if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-					cur[p * 5 + i].vy = stone->target.vy;
-#endif
-				}
+	/* Collision resolution only changes positive states to other positive
+	 * states (the pegged stone becomes 3). Keep all positive stones, even
+	 * stationary ones, in the original row/slot order. No pairs are pruned. */
+	for (p = 0; p < 3; p++) {
+		stone = KAR_D_8005B5A0[p].row.stones;
+		for (i = 0; i < 5; i++, stone++) {
+			if (stone->state > 0) {
+				active[count] = stone;
+				cur[count].vy = prev[count].vy = 0;
+				cur[count].pad = prev[count].pad = 0;
+				count++;
 			}
 		}
-
-		for (a = 0; a < 15; a++) {
-			if (KAR_D_8005B5A0[a / 5].row.stones[a % 5].state > 0) {
-				for (b = a + 1; b < 15; b++) {
-					if (KAR_D_8005B5A0[b / 5].row.stones[b % 5].state > 0) {
-						dist = KAR_distance(cur[a].vx - cur[b].vx, cur[a].vz - cur[b].vz);
-						if (dist < 0x96) {
+	}
+	for (step = 0; step < 0xb; step++) {
+		for (i = 0; i < count; i++) {
+			stone = active[i];
+			tx1 = stone->target.vx * (10 - step);
+			tx2 = stone->pos.vx * step;
+			tz1 = stone->target.vz * (10 - step);
+			tz2 = stone->pos.vz * step;
+			cur[i].vx = (tx1 + tx2) / 10;
+			cur[i].vz = (tz1 + tz2) / 10;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-							collided = 1;
+			cur[i].vy = stone->target.vy;
 #endif
-							if (step == 0) {
-								KAR_resolveStoneCollision(&KAR_D_8005B5A0[b / 5].row.stones[b % 5], cur[b],
-								                          &KAR_D_8005B5A0[a / 5].row.stones[a % 5], cur[a]);
-							} else {
-								KAR_resolveStoneCollision(&KAR_D_8005B5A0[b / 5].row.stones[b % 5], prev[b],
-								                          &KAR_D_8005B5A0[a / 5].row.stones[a % 5], prev[a]);
-							}
-						}
+		}
+		for (a = 0; a < count; a++) {
+			for (b = a + 1; b < count; b++) {
+				/* Keep the SDK approximation and its exact cutoff. */
+				dist = KAR_distance(cur[a].vx - cur[b].vx, cur[a].vz - cur[b].vz);
+				if (dist < 0x96) {
+#if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
+					collided = 1;
+#endif
+					if (step == 0) {
+						KAR_resolveStoneCollision(active[b], cur[b], active[a], cur[a]);
+					} else {
+						KAR_resolveStoneCollision(active[b], prev[b], active[a], prev[a]);
 					}
 				}
 			}
 		}
-
-		for (i = 0; i < 15; i++) {
-			prev[i] = cur[i];
+		for (i = 0; i < count; i++) {
+			prev[i].vx = cur[i].vx;
+			prev[i].vy = cur[i].vy;
+			prev[i].vz = cur[i].vz;
+			prev[i].pad = cur[i].pad;
 		}
-
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-		if ((collided != 0) && (step == 0xa)) {
+		if (collided != 0 && step == 0xa) {
 			step--;
 		}
 		collided = 0;
@@ -2211,9 +2377,6 @@ int8_t KAR_tickScoreTally(void)
 		if (KAR_D_800639C0[MAIN_D_80135256]->ring != KAR_D_800639C0[MAIN_D_80135256]->prevRing) {
 			done = tickCameraMoveTo(KAR_D_800639C0[MAIN_D_80135256]->pos.vx,
 			                        KAR_D_800639C0[MAIN_D_80135256]->pos.vz, 5);
-			if ((MAP_TILE_DATA.cameraY % 0x80) == 0 || (MAP_TILE_DATA.cameraY % 0x80) >= 0x6a) {
-				uploadMapTileImages(MAP_TILE_DATA.tiles, MAP_TILE_X + (MAP_TILE_Y * (int16_t)MAP_TILE_DATA.width));
-			}
 			if (done == 1) {
 				MAIN_D_8013522E = 1;
 			} else {
@@ -2917,9 +3080,6 @@ void KAR_tickMatchState(void)
 		MAIN_D_80135224 = tickCameraMoveTo(
 			KAR_D_8005B5A0[MAIN_D_8013523C].row.stones[MAIN_D_8013523A].pos.vx,
 			KAR_D_8005B5A0[MAIN_D_8013523C].row.stones[MAIN_D_8013523A].pos.vz, 0x14);
-		if (((MAP_TILE_DATA.cameraY % 0x80) == 0) || ((MAP_TILE_DATA.cameraY % 0x80) >= 0x6A)) {
-			uploadMapTileImages(MAP_TILE_DATA.tiles, MAP_TILE_X + (MAP_TILE_Y * (int16_t)MAP_TILE_DATA.width));
-		}
 		if (MAIN_D_80135224 == 1) {
 			MAIN_D_80135244 = 8;
 		}
@@ -3021,9 +3181,6 @@ void KAR_tickMatchState(void)
 		break;
 	case 0xE:
 		MAIN_D_80135224 = tickCameraMoveTo(0, -0x6A4, 0xA);
-		if (((MAP_TILE_DATA.cameraY % 0x80) == 0) || ((MAP_TILE_DATA.cameraY % 0x80) >= 0x6A)) {
-			uploadMapTileImages(MAP_TILE_DATA.tiles, MAP_TILE_X + (MAP_TILE_Y * (int16_t)MAP_TILE_DATA.width));
-		}
 		if (MAIN_D_80135224 == 1) {
 			MAIN_D_80135244 = 0xF;
 		}
@@ -3043,9 +3200,6 @@ void KAR_tickMatchState(void)
 			if (MAIN_D_80135250 != 0) {
 				MAIN_D_80135224 = tickCameraMoveTo(ENTITY_TABLE[player]->posData->location.vx,
 				                                   ENTITY_TABLE[player]->posData->location.vz, 0x14);
-				if (((MAP_TILE_DATA.cameraY % 0x80) == 0) || ((MAP_TILE_DATA.cameraY % 0x80) >= 0x6A)) {
-					uploadMapTileImages(MAP_TILE_DATA.tiles, MAP_TILE_X + (MAP_TILE_Y * (int16_t)MAP_TILE_DATA.width));
-				}
 				if (MAIN_D_80135224 == 1) {
 					ENTITY_TABLE[player]->posData->rotation.vy = 0;
 					MAIN_D_80135250 = 0;
@@ -3082,9 +3236,6 @@ void KAR_tickMatchState(void)
 	case 0x10:
 		MAIN_D_80135224 = tickCameraMoveTo(ENTITY_TABLE[player]->posData->location.vx,
 		                                   ENTITY_TABLE[player]->posData->location.vz, 0x14);
-		if (((MAP_TILE_DATA.cameraY % 0x80) == 0) || ((MAP_TILE_DATA.cameraY % 0x80) >= 0x6A)) {
-			uploadMapTileImages(MAP_TILE_DATA.tiles, MAP_TILE_X + (MAP_TILE_Y * (int16_t)MAP_TILE_DATA.width));
-		}
 		if (MAIN_D_80135224 == 1) {
 			if ((KAR_D_8005B5A0[0].row.thrown >= 5) && (KAR_D_8005B5A0[1].row.thrown >= 5)) {
 				MAIN_D_80135250 = 1;

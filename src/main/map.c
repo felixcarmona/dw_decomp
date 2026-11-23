@@ -5629,6 +5629,8 @@ void setCameraFollowPlayer(void)
 }
 
 // clang-format off
+extern int8_t TAMER_STATE;
+
 void updateTileRow(bottom)
 	int8_t bottom;
 // clang-format on
@@ -5638,6 +5640,11 @@ void updateTileRow(bottom)
 	int16_t count;
 	int16_t start;
 	int32_t i;
+
+	/* Curling flushes the complete window after CPU render preparation. */
+	if (TAMER_STATE == 12) {
+		return;
+	}
 
 	if (MAP_TILE_Y != PREV_TILE_Y) {
 		base = MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width);
