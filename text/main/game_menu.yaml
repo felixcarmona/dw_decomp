@@ -343,6 +343,9 @@ CHART_TEXT:
     CHART_STR_VERDICT:
       ja: "Met %d of 4. Need %d."
       en_us: "Met %d of 4. Need %d."
+    CHART_STR_RANDOM:
+      ja: "Random among qualifiers."
+      en_us: "Random among qualifiers."
     CHART_STR_SHORT:
       ja: "%d more needed."
       en_us: "%d more needed."
