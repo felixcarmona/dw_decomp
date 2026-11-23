@@ -3,6 +3,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_rules.h>
 #include <dw/garbage.h>
 #include <dw/ids.h>
 #include <dw/input.h>
@@ -177,17 +178,17 @@ void TRN2_tickSlotMachine(arg)
 			if ((TRN2_D_8008DAA8[0][p->reelPos[0]] == TRN2_D_8008DAA8[1][p->reelPos[1]]) && (TRN2_D_8008DAA8[0][p->reelPos[0]] == TRN2_D_8008DAA8[2][p->reelPos[2]])) {
 				if (TRN2_D_8008DAA8[0][p->reelPos[0]] == 7) {
 					playSound(8, 0xc);
-					p->payout = 100;
+					p->payout = MOD_TRAIN2_RULES[MOD_TR_PAY_JACKPOT] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PAY_JACKPOT] : 0; /* MOD (training as data) */
 				} else if ((TRN2_D_8008DAA8[0][p->reelPos[0]] - 1) == p->stat) {
 					playSound(8, 0xb);
-					p->payout = 0x28;
+					p->payout = MOD_TRAIN2_RULES[MOD_TR_PAY_MATCH] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PAY_MATCH] : 0;
 				} else {
 					playSound(8, 0xb);
-					p->payout = 0x14;
+					p->payout = MOD_TRAIN2_RULES[MOD_TR_PAY_TRIPLE] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PAY_TRIPLE] : 0;
 				}
 			} else {
 				playSound(8, 0xd);
-				p->payout = 5;
+				p->payout = MOD_TRAIN2_RULES[MOD_TR_PAY_MISS] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PAY_MISS] : 0;
 			}
 		} else if ((p->resultTimer >= 0x1e) || ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & CONFIRM_BUTTON)) {
 			p->state++;
