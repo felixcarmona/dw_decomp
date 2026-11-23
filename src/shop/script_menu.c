@@ -527,7 +527,7 @@ static char *NAMING_PAGE_LABELS[NAMING_PAGES] = { "ABC", "\xF0\x4C\xF0\x56\xF0\x
  * the three page keys, Back and OK. The Spanish words do not fit 12-pixel cells, so their row is laid out in pieces
  * (NAMING_LABEL_PIECES) */
 int16_t NAMING_CTRL_BOXES[18] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0x000e, 0x0006, 0x0034, 0x000e, 0x0022, 0x0024, 0x000e, 0x0030,
 	0x0024, 0x000e, 0x003e, 0x0018, 0x000e, 0x005a, 0x0034, 0x000e,
 	0x0076, 0x0018,
@@ -541,7 +541,7 @@ int16_t NAMING_CTRL_BOXES[18] = {
 /* MOD (language): the label row ("Name" "ABC" "ÁÑÇ" "!?#" "Back" "OK") in pieces at these offsets in the original's
  * cells, or (PIECES_END first) in the keyboard's 12-pixel cells as the US drew it */
 uint16_t NAMING_LABEL_PIECES[7] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0, 0x34, 0x58, 0x7c, 0x94, 0xc8, PIECES_END,
 #else
 	PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END,
@@ -2568,7 +2568,7 @@ void tickJukeboxMenu(void)
 
 /* MOD (language): the jukebox's TITLE header's y in the box; the Spanish TÍTULO is 9 rows tall (the accent), 2 higher */
 int16_t JUKEBOX_TITLE_Y =
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	3;
 #else
 	5;

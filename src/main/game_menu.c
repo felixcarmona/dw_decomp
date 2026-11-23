@@ -480,7 +480,16 @@ GameMenuSprite MENU_OPTIONS[8] = {
 /* MOD (language): the Spanish build's labels are in FI_INFO.TIM's Spanish copy, where the disc has its unused status
  * words (tools/localize/textures/fi-info/build.py prints these rows); DIGIMON keeps the disc's */
 GameMenuLabel GAME_MENU_TEXT_SPRITES[8] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD == MOD_LANG_PT_BR
+	{ 0, 0, 0, 0, 0, 0 },
+	{ 0x0015, 0x0060, 0x13, 0x07, 0x80, 0x21 },
+	{ 0x0035, 0x0060, 0x1c, 0x07, 0x50, 0x1b },
+	{ 0x0057, 0x0060, 0x1c, 0x07, 0xa0, 0x21 },
+	{ 0x0012, 0x0088, 0x19, 0x07, 0x80, 0x28 },
+	{ 0x0036, 0x0088, 0x19, 0x07, 0xa0, 0x2f },
+	{ 0x005a, 0x0088, 0x17, 0x07, 0xa0, 0x28 },
+	{ 0x0012, 0x0038, 0x18, 0x07, 0x80, 0x2f },
+#elif MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00 },
 	{ 0x0010, 0x0060, 0x1c, 0x07, 0x80, 0x21 },
 	{ 0x0035, 0x0060, 0x1c, 0x07, 0x50, 0x1b },
@@ -598,7 +607,7 @@ Line DIGIMON_MOVE_INFO_LINES_RIGHT[18] = {
 
 /* MOD (language): POTENCIA, ALC., EFECTO in the Spanish SYSTEM_W.TIM (tools/localize/textures/systemw/NOTES.md) */
 IconRect MOVES_VIEW_TECHSET_TEXT[13] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0x000e, 0xffb4, 0x20, 0x07, 0x00, 0x29 },
 	{ 0x0062, 0xffb4, 0x0f, 0x07, 0x20, 0x29 },
 	{ 0x0075, 0xffb4, 0x19, 0x07, 0x4d, 0x29 },
@@ -716,7 +725,7 @@ StringRect STATS_VIEW_TEXT[9] = {
 /* MOD (language): the Spanish labels in SYSTEM_W.TIM's Spanish copy (tools/localize/textures/systemw/NOTES.md):
  * NOMBRE, ESPECIE, PESO, EDAD, ESPECIAL, FELICIDAD, VELOCIDAD, INTELECTO */
 IconRect STATS_VIEW_ELEMENTS[21] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0xff74, 0xffaf, 0x35, 0x0b, 0x00, 0x4b },
 	{ 0xff74, 0xfff4, 0x35, 0x0b, 0x00, 0x56 },
 	{ 0xffee, 0xfff4, 0x35, 0x0b, 0x00, 0x61 },
@@ -769,7 +778,7 @@ IconRect STATS_VIEW_ELEMENTS[21] = {
  * 100; posY unused; texY with the 0x80 of the texture's v). The Spanish words are not all 20 wide (COMBATE, TIERRA,
  * MUGRE): each has its own cell and the left column is right-aligned, 3 px before the grid */
 IconRect MOVES_VIEW_ELEMENT_NAMES[7] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0xffbf, 0x0000, 0x14, 0x0a, 0x00, 0x98 },
 	{ 0xffb5, 0x0000, 0x1e, 0x0a, 0x14, 0x98 },
 	{ 0xffc5, 0x0000, 0x0e, 0x0a, 0x32, 0x98 },
@@ -792,7 +801,7 @@ IconRect MOVES_VIEW_ELEMENT_NAMES[7] = {
  * with the 0x80 of the texture's v); Spanish DATOS TEC. (9 rows for the accent, 2 px higher), POTENCIA, MP, ALCANCE,
  * EFECTO */
 IconRect MOVES_SELECTED_LABELS[5] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0xff74, 0xfffc, 0x25, 0x09, 0x90, 0xe0 },
 	{ 0xff74, 0x001d, 0x20, 0x07, 0x00, 0xa9 },
 	{ 0xff74, 0x002e, 0x0b, 0x07, 0x74, 0xa2 },
@@ -852,7 +861,7 @@ StringRect TAMER_WINDOW_NAME_STRING[11] = {
 #else
 /* MOD (language): Spanish Nombre is wider than Name (taken further left) and Nivel starts further (PLAYER_LABEL_PIECES) */
 StringRect TAMER_WINDOW_NAME_STRING[11] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0xff76, 0xffaf, 0x0034, 0x00, 0x0c },
 	{ 0xffdb, 0xffca, 0x0040, 0x38, 0x0c },
 #else
@@ -997,7 +1006,7 @@ char *CARD_CHART_LABELS[5] = {
  * drawStringPieces lays each piece out in the font's spacing (dw/mod_font.h). MOD (language): Spanish "Nombre" is
  * wider than Name's crop, so Nivel starts further (TAMER_WINDOW_NAME_STRING) */
 uint16_t PLAYER_LABEL_PIECES[3][6] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0, 0x38, 0x78, 0xcc, PIECES_END },
 #else
 	{ 0, 0x24, 0x78, 0xcc, PIECES_END },
@@ -1021,7 +1030,7 @@ typedef struct {
 
 /* the Digimon screen's tabs ("Status  Tech"): Técnicas takes the whole tab */
 LabelCrop DIGIMON_TAB_CROPS[2] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x8a, 0x00, 0x3c },
 	{ -0x46, 0x3c, 0x40 },
 #else
@@ -1032,7 +1041,7 @@ LabelCrop DIGIMON_TAB_CROPS[2] = {
 
 /* the player screen's tabs ("Player  Chart  Med. Card Fish"): Cartas takes the whole tab, Fish (never shown) is left out */
 LabelCrop PLAYER_TAB_CROPS[4] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x89, 0x00, 0x3c },
 	{ -0x3e, 0x3c, 0x3c },
 	{ 0x0d, 0x78, 0x24 },
@@ -1046,7 +1055,7 @@ LabelCrop PLAYER_TAB_CROPS[4] = {
 };
 
 uint16_t PLAYER_TAB_PIECES[6] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xd4 | PIECE_CENTRE, PIECES_END,
 #else
 	0 | PIECE_CENTRE, 0x3c | PIECE_CENTRE, 0x78 | PIECE_CENTRE, 0x9c | PIECE_CENTRE, 0xc0 | PIECE_CENTRE, PIECES_END,
@@ -1055,7 +1064,7 @@ uint16_t PLAYER_TAB_PIECES[6] = {
 
 /* the technique screen's titles ("TechsetFinal  Techs"): Equipadas, Final, Técnicas */
 LabelCrop TECH_TITLE_CROPS[3] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x8e, 0x00, 0x48 },
 	{ -0x8e, 0x48, 0x24 },
 	{ -0x8e, 0x6c, 0x40 },
@@ -1067,7 +1076,7 @@ LabelCrop TECH_TITLE_CROPS[3] = {
 };
 
 uint16_t TECH_TITLE_PIECES[4] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0, 0x48, 0x6c, PIECES_END,
 #else
 	0, 0x3c, 0x60, PIECES_END,
@@ -1076,7 +1085,7 @@ uint16_t TECH_TITLE_PIECES[4] = {
 
 /* the technique grid's "Tech" over "help" (the Digimon tab's word): Técnicas is wider, centred over ayuda */
 LabelCrop TECH_GRID_TITLE_CROP = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	-0x95, 0x3c, 0x40,
 #else
 	-0x87, 0x3c, 0x30,
@@ -1085,7 +1094,7 @@ LabelCrop TECH_GRID_TITLE_CROP = {
 
 /* the technique grid's "help" label: ayuda is wider */
 LabelCrop TECH_HELP_CROP = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	-0x81, 0x00, 0x28,
 #else
 	-0x81, 0x00, 0x24,
@@ -1095,7 +1104,7 @@ LabelCrop TECH_HELP_CROP = {
 /* the technique panel's status effects ("poisconfstunflat", the row drawn at MOVE_STATUS_ROW_X; x unused): the Spanish
  * words need the row to start further left (its last glyph must start before 244, drawGlyph's limit) */
 LabelCrop MOVE_STATUS_CROPS[4] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ 0, 0x40, 0x1c },
 	{ 0, 0x60, 0x2c },
 	{ 0, 0x8c, 0x30 },
@@ -1109,7 +1118,7 @@ LabelCrop MOVE_STATUS_CROPS[4] = {
 };
 
 int16_t MOVE_STATUS_ROW_X = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0x40,
 #else
 	0x84,
@@ -1117,7 +1126,7 @@ int16_t MOVE_STATUS_ROW_X = {
 };
 
 uint16_t MOVE_STATUS_PIECES[5] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0, 0x20, 0x4c, 0x7c, PIECES_END,
 #else
 	0, 0x1c, 0x38, 0x57, PIECES_END,
@@ -1127,7 +1136,7 @@ uint16_t MOVE_STATUS_PIECES[5] = {
 /* the card list's row ("Card List×Select   △Cancel": the title, ×, Select, △, Cancel; 0xd8 is the card count's
  * suffix, renderCardCount): Cartas centred, Cancelar wider, so × and Cancelar start further left */
 LabelCrop CARD_LIST_CROPS[5] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x1a, 0x00, 0x34 },
 	{ -0x23, 0x48, 0x0c },
 	{ -0x17, 0x54, 0x30 },
@@ -1143,7 +1152,7 @@ LabelCrop CARD_LIST_CROPS[5] = {
 };
 
 uint16_t CARD_LIST_PIECES[7] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0 | PIECE_CENTRE, 0x48, 0x54, 0x84, 0x90, 0xd8, PIECES_END,
 #else
 	0 | PIECE_CENTRE, 0x48, 0x54, 0x90, 0x9c, 0xd8, PIECES_END,
@@ -1153,7 +1162,7 @@ uint16_t CARD_LIST_PIECES[7] = {
 /* the medal screen's row ("Medals Chart   ×△ Select  Cancel": the title, ×, Select in two crops, △, Cancel):
  * Medallas centred, Cancelar wider and further left (its last glyph must start before 244, drawGlyph's limit) */
 LabelCrop MEDAL_VIEW_CROPS[6] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x1e, 0x00, 0x3c },
 	{ -0x23, 0x6c, 0x0c },
 	{ -0x17, 0x84, 0x18 },
@@ -1171,7 +1180,7 @@ LabelCrop MEDAL_VIEW_CROPS[6] = {
 };
 
 uint16_t MEDAL_VIEW_PIECES[6] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xb4, PIECES_END,
 #else
 	0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xc0, PIECES_END,
@@ -1180,7 +1189,7 @@ uint16_t MEDAL_VIEW_PIECES[6] = {
 
 /* the original evolution chart's keys ("×Select   △Cancel", NEW DIGIMON off): Cancelar is wider */
 LabelCrop EVO_CHART_KEY_CROPS[4] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x1a, 0x00, 0x0c },
 	{ -0x0e, 0x0c, 0x3c },
 	{ 0x3a, 0x48, 0x0c },
@@ -1196,7 +1205,7 @@ LabelCrop EVO_CHART_KEY_CROPS[4] = {
 /* the chart detail's "Tree" (x from the card's shift) and level names (x from dx: each centred at dx - 0x44), rows 0x18
  * ("Tree FreshTraining"), 0x24 ("RookieChampion"), 0x3c ("Ultimate"): Árbol, Novato and Perfecto are wider */
 LabelCrop CHART_TREE_CROP = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	-0x16, 0x00, 0x28,
 #else
 	-0x14, 0x00, 0x24,
@@ -1204,7 +1213,7 @@ LabelCrop CHART_TREE_CROP = {
 };
 
 LabelCrop CHART_LEVEL_CROPS[5] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	{ -0x58, 0x28, 0x28 },
 	{ -0x61, 0x50, 0x3a },
 	{ -0x5e, 0x00, 0x34 },
@@ -1220,7 +1229,7 @@ LabelCrop CHART_LEVEL_CROPS[5] = {
 };
 
 uint16_t CHART_TREE_ROW_PIECES[5] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0 | PIECE_CENTRE, 0x28 | PIECE_CENTRE, 0x50 | PIECE_CENTRE, 0xcc, PIECES_END,
 #else
 	0 | PIECE_CENTRE, 0x24 | PIECE_CENTRE, 0x52 | PIECE_CENTRE, 0xcc, PIECES_END,
@@ -1228,7 +1237,7 @@ uint16_t CHART_TREE_ROW_PIECES[5] = {
 };
 
 uint16_t CHART_LEVEL_ROW_PIECES[3] = {
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 	0 | PIECE_CENTRE, 0x34 | PIECE_CENTRE, PIECES_END,
 #else
 	0 | PIECE_CENTRE, 0x2f | PIECE_CENTRE, PIECES_END,

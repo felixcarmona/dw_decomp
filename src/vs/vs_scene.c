@@ -322,7 +322,7 @@ VsTextPiece VS_VERSUS_TEXT_PIECES[21] = {
 	},
 	/* MOD (language): VS MODE; the Spanish MODO VS (TAISEN2.TIM) is 2 px wider, 1 px further left */
 	{
-#if MOD_LANG_BUILD == MOD_LANG_ES
+#if MOD_LANG_BUILD != MOD_LANG_EN
 		0x004f,
 		0x000e,
 		0x0070,
