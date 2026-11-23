@@ -2285,44 +2285,11 @@ void tickConditions(void)
 		/* MOD (evolution rules as data): the hours of each level come from MOD_EVO_TIMING (-1 = never) */
 		due = level >= 1 && level <= LEVEL_ULTIMATE && MOD_EVO_TIMING[level] >= 0 &&
 		      evoTimer >= MOD_EVO_TIMING[level];
-		if (due && level == 1)
-			EVOLUTION_TARGET = getFreshEvolutionTarget(
-				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (due && level == 2)
-			EVOLUTION_TARGET = getInTrainingEvolutionTarget(
-				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (due && level == 3)
-			EVOLUTION_TARGET = getRookieEvolutionTarget(
-				PARTNER_ENTITY.digimonEntity.entity.type);
-		/*
-		 * MOD (partners-npc-a): Panjyamon (type 63) has no EVOLUTION_PATHS
-		 * row: getEvolutionPath (species) gives it, and every type past
-		 * the table, an empty one, so no type guard is needed here.
-		 */
-		else if (due && level == 4)
-			EVOLUTION_TARGET = getChampionEvolutionTarget(
-				PARTNER_ENTITY.digimonEntity.entity.type);
-		/*
-		 * MOD (integration): an Ultimate may evolve again:
-		 *   - partners-npc-c: Megadramon/Gigadramon -> Machinedramon after
-		 *     48 h (getModUltimateEvolutionTarget, evolution.c);
-		 *   - partners-npc-a: an Ultimate with a path (Etemon ->
-		 *     MetalEtemon) after 96 h, like a Champion;
-		 *   - mega: an Ultimate looks for a Mega the way a Champion looks
-		 *     for an Ultimate (best requirement score, then best average
-		 *     stat), after MOD_EVO_TIMING[MOD_EVO_MEGA] hours.
-		 */
-		else if (due && level == LEVEL_ULTIMATE) {
-			EVOLUTION_TARGET = getModUltimateEvolutionTarget(
-				PARTNER_ENTITY.digimonEntity.entity.type);
-			if (EVOLUTION_TARGET == -1 && MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN] >= 0 &&
-			    evoTimer >= MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN]) {
-				EVOLUTION_TARGET = getChampionEvolutionTarget(
-					PARTNER_ENTITY.digimonEntity.entity.type);
-				if (EVOLUTION_TARGET != -1 && evoTimer < MOD_EVO_TIMING[MOD_EVO_MEGA] &&
-				    DIGI_PARA(EVOLUTION_TARGET).level == LEVEL_MEGA)
-					EVOLUTION_TARGET = -1;
-			}
+		if (due) {
+			EVOLUTION_TARGET = getNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type);
+			/* The Fresh picker is also used to preview training's stop; only the tick resets its timer. */
+			if (level == 1)
+				PARTNER_PARA.evoTimer = 0;
 		}
 		/* MOD (evolution rules as data): the Champion hour that runs the praise-time rules */
 		if (MOD_EVO_SPECIAL[MOD_SPECIAL_CHECK_LEVEL] >= 0 && level == MOD_EVO_SPECIAL[MOD_SPECIAL_CHECK_LEVEL] &&
