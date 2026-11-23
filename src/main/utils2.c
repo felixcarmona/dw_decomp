@@ -1,5 +1,6 @@
 #include <libetc.h>
 
+#include <dw/mod_options.h>
 #include <dw/mod_rules.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/btl.h>
@@ -511,6 +512,7 @@ void loadStackedTIMFile(char *path)
 		GsGetTimInfo((u_long *)p, &img);
 		p += ((img.pw * img.ph) / 2 + 4) * 4;
 		LoadImage((RECT *)&img.px, img.pixel);
+		modButtonsTimLoaded(&img); /* MOD (options): the dialogue box's button follows the layout */
 		if ((img.pmode >> 3) & 1) {
 			LoadImage((RECT *)&img.cx, img.clut);
 			p += ((img.cw * img.ch) / 2 + 3) * 4;

@@ -338,3 +338,18 @@ LABELS:
       ja: デジモン
       en_us: NULL
       en_eu: Digimon
+
+# MOD (options): the title menu's OPTIONS, ours (not the game's), keyed so a text source can translate them
+# (keys main.MOD_OPT_STR_*); `storage: define`, a literal where main_menu.c uses it.
+MOD_OPTIONS:
+  storage: define
+  strings:
+    MOD_OPT_STR_OPTIONS:
+      ja: "OPTIONS"
+      en_us: "OPTIONS"
+    MOD_OPT_STR_JP_OFF:
+      ja: "JAPANESE CONTROLS   OFF"
+      en_us: "JAPANESE CONTROLS   OFF"
+    MOD_OPT_STR_JP_ON:
+      ja: "JAPANESE CONTROLS   ON"
+      en_us: "JAPANESE CONTROLS   ON"

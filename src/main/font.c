@@ -2,6 +2,7 @@
 
 #include <dw/font.h>
 #include <dw/mod_font.h>
+#include <dw/mod_options.h>
 #include <dw/sjis.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -1370,6 +1371,13 @@ void setTextColor(int32_t color)
 /* MOD (font): set while text is laid out in the original's cells (below; with the original font script_textbox.c's
  * rule for a space) */
 int8_t FONT_CELLS;
+
+/* MOD (options): the colour (setTextColor's) of a glyph: a button glyph in its button's colour takes the colour of the
+ * button that now does its job */
+static int32_t glyphColor(uint16_t codepoint)
+{
+	return modButtonColor(((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8), COLORCODE_LOWBITS);
+}
 #endif
 
 #if VERSION_IS(US) && FONT_PROPORTIONAL
@@ -1380,6 +1388,7 @@ static uint16_t *glyphRows(uint16_t codepoint)
 	int32_t n;
 
 	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
 	if (code == FONT_FIGURE_SPACE) {
 		return (uint16_t *)FIGURE_SPACE_GLYPH.pixelData;
 	}
@@ -1603,6 +1612,7 @@ int32_t drawGlyph(codepoint, x, y)
 	int32_t shared;
 	int32_t i;
 	int32_t k;
+	int32_t color;
 
 	p = glyphRows(codepoint);
 	adv = p[GLYPH_HEIGHT] & 0xff;
@@ -1648,10 +1658,11 @@ int32_t drawGlyph(codepoint, x, y)
 		carry = GLYPH_CARRY_SLOT + (cx - GLYPH_CARRY_X) / 2;
 	}
 	/* two pixels a byte, the left one in the low nibble */
+	color = glyphColor(codepoint); /* MOD (options): was COLORCODE_LOWBITS */
 	lut[0] = 0;
-	lut[1] = COLORCODE_HIGHBITS;
-	lut[2] = COLORCODE_LOWBITS;
-	lut[3] = COLORCODE_LOWBITS | COLORCODE_HIGHBITS;
+	lut[1] = color << 4;
+	lut[2] = color;
+	lut[3] = color | (color << 4);
 	for (i = 0; i < GLYPH_HEIGHT; i++) {
 		ink = ((uint16_t)~p[i] & 0xfff0) >> shift; /* 0 = ink; bit 15 = the cell's first column */
 		for (k = 0; k < 8; k++) {
@@ -1711,6 +1722,9 @@ int32_t drawGlyph(codepoint, x, y)
 	}
 
 	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+#if VERSION_IS(US)
+	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
+#endif
 #if !VERSION_IS(US)
 	if (code == 0x8140) {
 		return;
@@ -1740,6 +1754,12 @@ int32_t drawGlyph(codepoint, x, y)
 	}
 	GLYPH_DRAWING_AREA_INDEX = (GLYPH_DRAWING_AREA_INDEX + 1) % NUM_RENDER_SLOTS;
 	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
+#if VERSION_IS(US)
+	tmp = COLORCODE_LOWBITS; /* MOD (options): the glyph's colour (glyphColor), the text's again after it */
+	COLORCODE_LOWBITS = glyphColor(codepoint);
+	COLORCODE_HIGHBITS = COLORCODE_LOWBITS << 4;
+	col = tmp;
+#endif
 
 	for (i = 0; i < GLYPH_HEIGHT; i++) {
 		rowData = *p++;
@@ -1811,6 +1831,10 @@ int32_t drawGlyph(codepoint, x, y)
 
 		*drawRow++ = tmp;
 	}
+#if VERSION_IS(US)
+	COLORCODE_LOWBITS = col; /* MOD (options) */
+	COLORCODE_HIGHBITS = col << 4;
+#endif
 
 	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, GLYPH_WIDTH / 4, GLYPH_HEIGHT);
 	LoadImage(&rect, (u_long *)(GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE));
@@ -1986,6 +2010,7 @@ static uint16_t *nextGlyph(char **str, int32_t mode)
 	}
 	*str = s;
 	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+	code = modButtonGlyph(code); /* MOD (options): the button that does this glyph's job */
 	if (mode == FIT_CONDENSED && code >= 0x8281 && code <= 0x829a && CONDENSED_GLYPH_DATA[code - 0x8281].width != 0) {
 		return (uint16_t *)CONDENSED_GLYPH_DATA[code - 0x8281].pixelData;
 	}
