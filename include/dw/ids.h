@@ -7,9 +7,8 @@
  * The counts are those of the original disc. Every table and loop that
  * means "one per Digimon / screen / item / ..." uses these names, so new
  * content changes one number here (and the tables) instead of literals
- * spread over the code. The typedefs are the target widths; the carriers
- * that are still u8 (CURRENT_SCREEN, the inventory, the save) are widened
- * in later steps of the plan (ids.md § 10).
+ * spread over the code. The typedefs are the widths of the carriers in RAM;
+ * the save keeps the v1 u8 layout until step 4 of the plan (ids.md § 10).
  */
 
 #include <dw/types.h>
@@ -32,7 +31,14 @@ typedef uint16_t CardId;
 
 /* Screens (maps) */
 #define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */
-#define SCREEN_LEGACY_NONE	0xCC	/* TWNA01 doubles as "no screen" at boot */
+/*
+ * Value of CURRENT_SCREEN/PREVIOUS_SCREEN before the first map is loaded
+ * (initializeMap) and the start section of a new game (initializeDefaultSavegame). It is
+ * a real screen (TWNA01, File City) and not compared anywhere: renderMap
+ * reads MAP_ENTRIES[CURRENT_SCREEN] before the first loadMap, so it must
+ * stay a valid row and is not changed to -1 (ids.md, step 3).
+ */
+#define SCREEN_LEGACY_NONE	0xCC
 
 /* Items */
 #define NUM_ITEMS		128	/* ITEM_PARA, ITEM_FUNCTIONS, icons (16x8 grid) */
@@ -51,10 +57,10 @@ typedef uint16_t CardId;
 #define TRIGGER_RAISED_BASE	0x200	/* + Digimon type */
 
 /*
- * The current and previous screen. Still u8 (ids.md § 10 step 3 widens
- * them to ScreenId); declared once here instead of in every file.
+ * The current and previous screen, 16-bit since step 3 of ids.md § 10.
+ * The v1 save keeps them as u8 (exact while screen ids are < 255).
  */
-extern uint8_t CURRENT_SCREEN;
-extern uint8_t PREVIOUS_SCREEN;
+extern ScreenId CURRENT_SCREEN;
+extern ScreenId PREVIOUS_SCREEN;
 
 #endif
