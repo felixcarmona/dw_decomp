@@ -4,6 +4,7 @@
 #include <libgpu.h>
 
 #include <dw/types.h>
+#include <dw/mod_font.h>
 #include <dw/version.h>
 
 void initializeFontCLUT(void);

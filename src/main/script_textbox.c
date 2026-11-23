@@ -745,8 +745,7 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 #if VERSION_IS(US)
 		case 0x16:
 			str++;
-			setRECT(&rect, x + pos - 6, y, 0x69, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos - 6, y, 0x69); /* from 6 px back: after a 0F half space, the pen of the text */
 			pos = 0x69;
 			break;
 		case 0x17:

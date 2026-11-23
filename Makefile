@@ -48,7 +48,7 @@ $(shell mkdir -p $(GEN_DIR); printf '#define FPS %s\n' '$(FPS)' > $(GEN_DIR)/fps
 #   original  the US font on its 4-pixel grid: the original code and glyphs, byte for byte;
 #   a         the US letters placed to the pixel (src/main/font_a.h, tools/fontgen.py);
 #   b         our font redrawn in the game's style, placed to the pixel (src/main/font_b.h, tools/font/b.txt).
-FONT ?= original
+FONT ?= b
 ifeq ($(filter $(FONT),original a b),)
 $(error FONT=$(FONT): the font must be original, a or b)
 endif
