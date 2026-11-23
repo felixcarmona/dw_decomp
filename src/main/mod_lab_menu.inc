@@ -55,7 +55,11 @@ static int32_t labTop, labCount, labField, labPrevious, labPreviousCursor;
 static int32_t labStep;
 static uint16_t *labChoices; /* points into modLabMenu's stack, valid until the UI closes */
 static char *modLabMessage;
-static char labText[LAB_ROWS][96];
+/* What each text row last drew: a hash of its bytes (0 = empty, so the clear below means
+ * "nothing drawn") and its width, all the renderer needs. Not a copy of the rows, to keep
+ * the menu overlay within its sectors. */
+static uint32_t labTextHash[LAB_ROWS];
+static int16_t labTextWidth[LAB_ROWS];
 static char *const LAB_HOME_TEXT[] = { LAB_STR_ADD_BITS, LAB_STR_SATIATE, LAB_STR_PARAMETERS,
     LAB_STR_EVOLVE, LAB_STR_TELEPORT, LAB_STR_HEAL, LAB_STR_SHORTCUTS_OFF, LAB_STR_SAVE_GAME, LAB_STR_LOAD_GAME, LAB_STR_MAIN_MENU, LAB_STR_OLD_AGE,
     LAB_STR_LEARN, LAB_STR_LEARN_ALL, LAB_STR_UNLOCK_CHART, LAB_STR_CLOSE };
@@ -66,6 +70,15 @@ static char *appendStr(char *dst, const char *src)
     while (*src) *dst++ = *src++;
     *dst = '\0';
     return dst;
+}
+
+/* FNV-1a over the bytes, never 0 for a nonempty row */
+static uint32_t labHash(const char *s)
+{
+    uint32_t h = 0x811c9dc5;
+    if (!*s) return 0;
+    while (*s) h = (h ^ (uint8_t)*s++) * 0x01000193;
+    return h | 1;
 }
 
 static char *labInt(char *p, int32_t value)
@@ -342,11 +355,14 @@ static void modLabDrawText(void)
     p = appendStr(p, "    \x81\x7e "); appendStr(p, MOD_LAB_VIEW == LAB_NUMBER || MOD_LAB_VIEW == LAB_CONFIRM ? LAB_STR_SIMPLE_CANCEL : LAB_STR_BACK);
     if (modLabMessage) { lines[9][0] = 0; appendStr(lines[9], modLabMessage); }
     for (row = 0; row < LAB_ROWS; row++) {
+        uint32_t hash;
         modLabFit(lines[row], 248);
-        if (!strcmp(labText[row], lines[row])) continue;
+        hash = labHash(lines[row]);
+        if (labTextHash[row] == hash) continue;
         setRECT(&area, 0, TEXT_ROW_Y(row), 256, 12); clearTextSubArea(&area);
         drawString(lines[row], 0, TEXT_ROW_Y(row));
-        strcpy(labText[row], lines[row]);
+        labTextHash[row] = hash;
+        labTextWidth[row] = measureStringMode(lines[row], FIT_VANILLA);
     }
     DrawSync(0);
 }
@@ -372,6 +388,12 @@ static void modLabFill(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, in
     setRECT(&box, x, y, w, h); GsSortBoxFill(&box, ACTIVE_ORDERING_TABLE, order);
 }
 
+/* The number editor's box (4 sides), then its left and right arrows: x0, y0, x1, y1 from the box's corner */
+static const uint8_t LAB_NUMBER_LINES[8][4] = {
+    { 0, 0, 160, 0 }, { 0, 30, 160, 30 }, { 0, 0, 0, 30 }, { 160, 0, 160, 30 },
+    { 18, 10, 13, 15 }, { 13, 15, 18, 20 }, { 142, 10, 147, 15 }, { 147, 15, 142, 20 },
+};
+
 static void modLabRender(int32_t instanceId)
 {
     RECT *pos = &UI_BOX_DATA[MOD_LAB_BOX].finalPos;
@@ -384,25 +406,20 @@ static void modLabRender(int32_t instanceId)
     drawLine2P(0x778b97, pos->x + 12, pos->y + 196, pos->x + LAB_WIDTH - 12, pos->y + 196, 0, 0);
     /* Texture UVs are bytes: a width of 256 wraps to zero. */
     for (row = 0; row < LAB_ROWS; row++) {
-        if (!labText[row][0]) continue;
+        if (!labTextHash[row]) continue;
         x = pos->x + 16;
         y = pos->y + modLabRowY(row);
-        if (form && row > 0 && row < 9) x = -measureStringMode(labText[row], FIT_VANILLA) / 2;
+        if (form && row > 0 && row < 9) x = -labTextWidth[row] / 2;
         renderString(0, x, y, 248, 12, 0, TEXT_ROW_Y(row), 0, 1);
     }
     if (!form) {
         y = pos->y + modLabRowY(selected);
         modLabFill(pos->x + 10, y - 3, LAB_WIDTH - 20, 18, 61, 81, 100, 0);
     } else if (MOD_LAB_VIEW == LAB_NUMBER) {
+        const uint8_t *l = LAB_NUMBER_LINES[0];
         x = pos->x + 64; y = pos->y + 67;
-        drawLine2P(0x9daeb8, x, y, x + 160, y, 0, 0);
-        drawLine2P(0x9daeb8, x, y + 30, x + 160, y + 30, 0, 0);
-        drawLine2P(0x9daeb8, x, y, x, y + 30, 0, 0);
-        drawLine2P(0x9daeb8, x + 160, y, x + 160, y + 30, 0, 0);
-        drawLine2P(0xeeeeee, x + 18, y + 10, x + 13, y + 15, 0, 0);
-        drawLine2P(0xeeeeee, x + 13, y + 15, x + 18, y + 20, 0, 0);
-        drawLine2P(0xeeeeee, x + 142, y + 10, x + 147, y + 15, 0, 0);
-        drawLine2P(0xeeeeee, x + 147, y + 15, x + 142, y + 20, 0, 0);
+        for (row = 0; row < 8; row++, l += 4)
+            drawLine2P(row < 4 ? 0x9daeb8 : 0xeeeeee, x + l[0], y + l[1], x + l[2], y + l[3], 0, 0);
     }
 }
 
@@ -489,7 +506,7 @@ void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
     removeStaticUIBox(MOD_LAB_BOX);
     setRECT(&pos, 0, MOD_LAB_TEXT_Y, 256, LAB_ROWS * 12); clearTextSubArea(&pos);
     /* MENU scratch is not BIOS-zeroed and may contain another overlay. */
-    memset(labText, 0, sizeof(labText));
+    memset(labTextHash, 0, sizeof(labTextHash));
     modLabDrawText();
     setRECT(&pos, -LAB_WIDTH / 2, -LAB_HEIGHT / 2, LAB_WIDTH, LAB_HEIGHT);
     createStaticUIBox(MOD_LAB_BOX, 1, 0, &pos, NULL, modLabRender);
