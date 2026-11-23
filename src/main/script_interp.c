@@ -4,6 +4,7 @@
 
 #include <dw/clock.h>
 #include <dw/mod_rules.h>
+#include <dw/mod_qol.h>
 #include <dw/doo2.h>
 #include <dw/eab.h>
 #include <dw/fade.h>
@@ -1764,6 +1765,7 @@ void scriptInstruction64to7E(op)
 			break;
 		case 0x1e:
 			SHOP_VARIABLE = 0;
+			if (CURRENT_SCREEN_ID == 49) modShopPlateAdd();
 			break;
 		case 0x1f:
 			posX = readPStat(0xf4) + (readPStat(0xf3) << 8);
