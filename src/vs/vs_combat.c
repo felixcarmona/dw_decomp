@@ -18,6 +18,7 @@
 #include <dw/input.h>
 #include <dw/main.h>
 #include <dw/math.h>
+#include <dw/mod_qol.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -2465,6 +2466,7 @@ int32_t VS__combatMain(void)
 	playMusic(VS_MUSIC, 2);
 	VS__combatInit();
 	VS__combatSetup();
+	modSpeedPlateAdd(); /* MOD (battle speed): R2 x1 / x2 in the fight, not its result screen */
 
 	while (1) {
 		result = VS__checkEndCondition();
@@ -2479,6 +2481,7 @@ int32_t VS__combatMain(void)
 		VS__handlePause();
 	}
 
+	modSpeedPlateRemove();
 	removePauseBox();
 
 	if (result == -1) {
