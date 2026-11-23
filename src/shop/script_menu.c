@@ -3647,16 +3647,16 @@ static void renderPackResults(void)
 	by = UI_BOX_DATA[1].finalPos.y;
 	getVRAMModeCoords(text->vramMode, &u, &w);
 	v = (9 + text->backPage * text->vramRows) * 12;
-	renderString(0, bx + 0xc, by + 5, 0xc0, 0xc, u, v, 5, 1);
-	renderHorizontalLine(1, 4, 0x15, 0xd7);
+	renderString(0, bx + 0xc, by + 3, 0xc0, 0xc, u, v, 5, 1);
+	renderHorizontalLine(1, 4, 0x17, 0xd7);
 	renderItemMenuScrollBar(box);
 	count = box->itemCount;
 	if (PACK_SHOWN < count) {
 		box->itemCount = PACK_SHOWN;
 	} else {
-		renderSelectionCursor(bx + 5, by + box->cursor * 0x12 + 0x19, 0xca, 0x12, 5);
+		renderSelectionCursor(bx + 5, by + box->cursor * 0x12 + 0x1b, 0xca, 0x12, 5);
 	}
-	renderItemMenuItemList(box, bx + 0x1a, by + 0x1b, bx + 8, by + 0x1a, 1);
+	renderItemMenuItemList(box, bx + 0x1a, by + 0x1d, bx + 8, by + 0x1c, 1);
 	box->itemCount = count;
 
 	if (PACK_ART != 0xff && UI_BOX_DATA[1].state == 1) {
@@ -3669,7 +3669,7 @@ static void renderPackResults(void)
 		prim->tpage = GetTPage(1, 0, 576, 256);
 		prim->clut = GetClut(448, 511);
 		setUVDataPolyFT4(prim, 0, 0, 150, 180);
-		setPosDataPolyFT4(prim, bx - 0x50 + (75 - w) / 2, by + 0x14, w, 90);
+		setPosDataPolyFT4(prim, bx - 0x50 + (75 - w) / 2, by + 0x16, w, 90);
 		AddPrim(ACTIVE_ORDERING_TABLE->org + 5, prim++);
 		GsSetWorkBase((PACKET *)prim);
 	}
@@ -3687,7 +3687,7 @@ static void openPackResults(void)
 	int32_t fresh;
 
 	/* the list first: the arrays are a stack (allocateArray), got is freed above it */
-	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1c, 6, 0x56);
+	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1e, 6, 0x56);
 	got = (uint8_t *)allocateArray(NUM_CARDS * 2);   /* how many came, the copies before */
 	for (i = 0; i < NUM_CARDS; i++) {
 		got[i] = 0;
@@ -3739,7 +3739,7 @@ static void openPackResults(void)
 	triggerBoxCloseFlag(0);
 	setInputRepeatMask(0x5000);
 	setupBoxOrigin(readPStat(PSTAT_254), &origin);
-	setRECT(&rect, -0x44, -0x40, 0xde, 0x7a);
+	setRECT(&rect, -0x44, -0x40, 0xde, 0x7c);
 	createTextbox(1, 0xf1, &rect, &origin, tickPackResults, renderPackResults);
 	registerTextbox(1, 9, 6, 1, 0);
 	initItemMenuBox(ITEM_MENU_LEFT, 1, 0xa);
