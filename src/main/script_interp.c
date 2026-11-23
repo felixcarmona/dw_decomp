@@ -608,6 +608,12 @@ uint8_t *getScript(uint16_t mapId)
 	return MAP_SCRIPT_PTR;
 }
 
+/*
+ * MOD (story from zero): a section the script does not have runs nothing. The original returned a null pointer, which every
+ * caller ran or read as code; the story's source may now leave a section or a whole script out (docs/mods/data-sources.md).
+ */
+static uint8_t NO_SECTION[4] = { 0xFE, 0xFE, 0xFE, 0xFE }; /* END_SECTION */
+
 // clang-format off
 uint8_t *getScriptSection(script, section)
 	uint8_t *script;
@@ -622,7 +628,7 @@ uint8_t *getScriptSection(script, section)
 		}
 
 		if (entry[0] == 0xffff) {
-			return 0;
+			return NO_SECTION; /* MOD (story from zero): was 0 */
 		}
 
 		entry += 2;
