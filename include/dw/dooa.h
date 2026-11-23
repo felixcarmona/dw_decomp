@@ -7,6 +7,7 @@
 #include <dw/efe.h>
 #include <dw/entity.h>
 #include <dw/evl.h>
+#include <dw/mod_options.h>
 #include <dw/types.h>
 
 typedef struct {
@@ -59,6 +60,34 @@ extern DooaShardEffect DOOA_SHARD_EFFECT;
 extern DooaSequence DOOA_REINCARNATION_SEQ;
 
 extern int16_t REINCARNATE_BABY_TYPE[4];
+
+/*
+ * MOD (eight eggs): the egg the player picks when the partner dies. Slots 0-3 are the original eggs and babies
+ * (REINCARNATE_BABY_TYPE, which the main executable also reads); with NEW DIGIMON on, slots 4-7 hatch the hand-made
+ * Fresh babies, species 470-473 in slot order (Pabumon, Pichimon, YukimiBotamon, Nyokimon). Their icons and CLUT rows
+ * 497-500 are drawn into the disc's TAMA.TIM at build time (tools/egg_art.py); a new egg borrows the 3D model of an
+ * original group of TAMA.TMD (the buffer has no room for more objects) and its row is copied over that group's.
+ */
+#define EGG_NEW_FIRST_SPECIES	470
+#define EGG_NEW_CLUT_ROW	497	/* TAMA.TIM's CLUT is at VRAM 128,488: rows 488-491 the 3D groups */
+
+static inline int32_t eggCount(void)
+{
+	return modSpeciesAllowed(EGG_NEW_FIRST_SPECIES) ? 8 : 4;
+}
+
+static inline int32_t eggBabyType(int32_t slot)
+{
+	return slot < 4 ? REINCARNATE_BABY_TYPE[slot] : EGG_NEW_FIRST_SPECIES + slot - 4;
+}
+
+/* the TAMA.TMD group (6 objects) the slot's egg is drawn with: Pabumon and Pichimon the plain-coloured group 2,
+ * YukimiBotamon the wave egg (group 1, whose skin carries the zigzags), Nyokimon the spotted group 0 */
+static inline int32_t eggModelGroup(int32_t slot)
+{
+	return slot < 4 ? slot : (0x0122 >> ((slot - 4) * 4)) & 0xf;
+}
+
 extern SVECTOR MAIN_D_80134BB4;
 extern int8_t DOOA_ENTITIES_VISIBLE;
 

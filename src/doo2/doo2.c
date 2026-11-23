@@ -332,22 +332,44 @@ void DOO2_tickEggBox(void)
 	seq->sparkleIndex = 0;
 }
 
+/* MOD (eight eggs): where slot i of n eggs sits in the panel: the original row of four, or with eight two rows, the
+ * original eggs above the new ones (the panel is taller then, DOO2_openEggBox) */
+static void eggPlace(int32_t i, int32_t n, int16_t *x, int16_t *y)
+{
+	*x = ((i & 3) * 36) - 54;
+	*y = (n == 4) ? -30 : (i < 4) ? -51 : -13;
+}
+
 void DOO2_renderEggIcons(void)
 {
 	DooaSequence *panel = &DOOA_REINCARNATION_SEQ;
 	int32_t pri = 1;
 	Doo2EggIcons icons;
 	int32_t i;
+	int32_t n;
 
 	icons = EGG_ICONS;
-	for (i = 0; i < 4; i++) {
-		DOO2_EGG_ICON_SPRITE.x = (i * 36) - 54;
-		DOO2_EGG_ICON_SPRITE.u = (icons.icon[i] * 32) + 96;
-		DOO2_EGG_ICON_SPRITE.cy = i + 492;
+	n = eggCount();
+	for (i = 0; i < n; i++) {
+		eggPlace(i, n, &DOO2_EGG_ICON_SPRITE.x, &DOO2_EGG_ICON_SPRITE.y);
+		if (i < 4) {
+			DOO2_EGG_ICON_SPRITE.u = (icons.icon[i] * 32) + 96;
+			DOO2_EGG_ICON_SPRITE.v = 0;
+			DOO2_EGG_ICON_SPRITE.w = 32;
+			DOO2_EGG_ICON_SPRITE.mx = 16;
+			DOO2_EGG_ICON_SPRITE.cy = i + 492;
+		} else {
+			/* the new icons: 28 texels wide (the originals' drawn columns) at u 136, 164, 192, 220, v 40 */
+			DOO2_EGG_ICON_SPRITE.u = ((i - 4) * 28) + 136;
+			DOO2_EGG_ICON_SPRITE.v = 40;
+			DOO2_EGG_ICON_SPRITE.w = 28;
+			DOO2_EGG_ICON_SPRITE.mx = 14;
+			DOO2_EGG_ICON_SPRITE.cy = (i - 4) + EGG_NEW_CLUT_ROW;
+		}
 		GsSortSprite(&DOO2_EGG_ICON_SPRITE, ACTIVE_ORDERING_TABLE, pri);
 	}
 
-	DOO2_EGG_CURSOR_SPRITE.x = (panel->eggSlot * 36) - 54;
+	eggPlace(panel->eggSlot, n, &DOO2_EGG_CURSOR_SPRITE.x, &DOO2_EGG_CURSOR_SPRITE.y);
 	GsSortSprite(&DOO2_EGG_CURSOR_SPRITE, ACTIVE_ORDERING_TABLE, pri);
 }
 
@@ -723,13 +745,16 @@ void DOO2_openEggBox(void)
 	DooaSequence *seq;
 	int32_t boxId;
 	RECT startPos;
+	RECT panelRect;
 
 	seq = &DOOA_REINCARNATION_SEQ;
 	boxId = 3;
 	startPos = MAIN_D_80134B98;
 	seq->eggSlot = 0;
 	seq->sparkleIndex = -1;
-	createAnimatedUIBox(boxId, 0, 2, &MAIN_D_80134B90, &startPos,
+	/* MOD (eight eggs): two rows need a taller panel, centred on the same point minus 2 pixels */
+	setRECT(&panelRect, -84, -80, 168, 96);
+	createAnimatedUIBox(boxId, 0, 2, (eggCount() == 8) ? &panelRect : &MAIN_D_80134B90, &startPos,
 	                    (TickFunction)DOO2_tickEggBox,
 	                    (RenderFunction)DOO2_renderEggIcons);
 	stopSound();
@@ -741,6 +766,7 @@ int32_t DOO2_tickEggInput(void)
 	DooaSequence *seq;
 	int32_t boxId;
 	RECT boxRect;
+	int32_t n;
 
 	seq = &DOOA_REINCARNATION_SEQ;
 	boxId = 3;
@@ -752,12 +778,18 @@ int32_t DOO2_tickEggInput(void)
 	if (UI_BOX_DATA[boxId].state == 0) {
 		return 1;
 	}
+	/* MOD (eight eggs): left and right go through every egg, up and down change rows */
+	n = eggCount();
 	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x2000) {
-		seq->eggSlot = (seq->eggSlot + 1) % 4;
+		seq->eggSlot = (seq->eggSlot + 1) % n;
 		playSound(0, 2);
 	}
 	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x8000) {
-		seq->eggSlot = (seq->eggSlot + 3) % 4;
+		seq->eggSlot = (seq->eggSlot + n - 1) % n;
+		playSound(0, 2);
+	}
+	if (n == 8 && ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x5000)) {
+		seq->eggSlot ^= 4;
 		playSound(0, 2);
 	}
 	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & CONFIRM_BUTTON) {

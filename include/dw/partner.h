@@ -64,4 +64,12 @@ int32_t modPartnerNameIsSpecies(int32_t type);
 void modPartnerNameSetSpecies(int32_t type);
 void modPartnerNameFollow(int32_t from, int32_t to);
 
+/* MOD (species JSON): a Fresh species' hatching stats (partner_impl.c; the DOOA overlay's new eggs read them too) */
+typedef struct {
+	int16_t type;
+	int16_t hp, mp, offense, defense, speed, brains;
+} ReincarnationStats;
+extern ReincarnationStats REINCARNATION_STATS[4];
+void setReincarnateStats(int16_t hp, int16_t mp, int16_t offense, int16_t defense, int16_t speed, int16_t brains);
+
 #endif
