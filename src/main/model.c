@@ -2873,6 +2873,33 @@ void initializeDigimonObject(int32_t type, int32_t instanceId,
 	addObject((int16_t)type, (int16_t)instanceId, tick, renderDigimon);
 }
 
+int32_t modPartnerFitScale(void); /* MOD (camera), map.c */
+void modPartnerFitMeasure(int32_t px, int32_t s);
+int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
+
+/* MOD (camera): the screen y of a bone's origin (its world matrix from GsGetLws) */
+static int32_t modBoneScreenY(MATRIX *lw)
+{
+	SVECTOR v;
+	DVECTOR out;
+
+	v.vx = lw->t[0];
+	v.vy = lw->t[1];
+	v.vz = lw->t[2];
+	worldPosToScreenPos(&v, &out);
+	return out.vy;
+}
+
+/* MOD (camera): the bones' world matrices are rebuilt by the next GsGetLws */
+static void modFlagBones(PositionData *pos, int32_t boneCount)
+{
+	int32_t i;
+
+	for (i = 0; i < boneCount; i++) {
+		pos[i].posMatrix.flg = 0;
+	}
+}
+
 void renderDigimon(instanceId)
 	int16_t instanceId;
 {
@@ -2881,6 +2908,10 @@ void renderDigimon(instanceId)
 	MATRIX ls;
 	int32_t boneCount;
 	int32_t i;
+	int32_t fit;
+	MATRIX rootSave;
+	int32_t y0 = 0x7fff;
+	int32_t y1 = -0x7fff;
 
 	if (ENTITY_TABLE[instanceId]->isOnMap != 2) {
 		if (ENTITY_TABLE[instanceId]->isOnMap == 0) {
@@ -2892,11 +2923,32 @@ void renderDigimon(instanceId)
 	}
 	pos = ENTITY_TABLE[instanceId]->posData;
 	boneCount = DIGI_PARA(ENTITY_TABLE[instanceId]->type).boneCount;
+	/* MOD (camera): a big partner drawn smaller on a screen it does not fit (map.c) */
+	fit = instanceId == 1 ? modPartnerFitScale() : 0x1000;
+	if (fit != 0x1000) {
+		VECTOR sv;
+
+		rootSave = pos->posMatrix.coord;
+		sv.vx = sv.vy = sv.vz = fit;
+		ScaleMatrix(&pos->posMatrix.coord, &sv);
+		modFlagBones(pos, boneCount);
+	}
 	for (i = 0; i < boneCount; pos++, i++) {
 		if (pos->obj.tmd == NULL) {
 			continue;
 		}
 		GsGetLws(pos->obj.coord2, &lw, &ls);
+		if (instanceId == 1) { /* MOD (camera): the bones' spread on screen */
+			int32_t y;
+
+			y = modBoneScreenY(&lw);
+			if (y < y0) {
+				y0 = y;
+			}
+			if (y > y1) {
+				y1 = y;
+			}
+		}
 		GsSetLightMatrix(&lw);
 		GsSetLsMatrix(&ls);
 		if (ENTITY_TABLE[instanceId]->flatSprite != -1) {
@@ -2923,6 +2975,14 @@ void renderDigimon(instanceId)
 			continue;
 		}
 		GsSortObject4(&pos->obj, ACTIVE_ORDERING_TABLE, 2, getScratchAddr(0));
+	}
+	if (instanceId == 1 && y1 > y0) {
+		modPartnerFitMeasure(y1 - y0, fit);
+	}
+	if (fit != 0x1000) { /* MOD (camera): the tick's root matrix back */
+		pos = ENTITY_TABLE[instanceId]->posData;
+		pos->posMatrix.coord = rootSave;
+		modFlagBones(pos, boneCount);
 	}
 	if (ENTITY_TABLE[instanceId]->flatSprite != -1) {
 		renderFlatDigimon(ENTITY_TABLE[instanceId]);
