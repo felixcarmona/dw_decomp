@@ -12,6 +12,7 @@
 #include <dw/garbage.h>
 #include <dw/item.h>
 #include <dw/level.h>
+#include <dw/mod_rules.h>
 #include <dw/math.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -2559,10 +2560,10 @@ int32_t giveItem(ItemId item, uint8_t amount) /* MOD: was u8 */
 	for (i = 0; i < INVENTORY.size; i++) {
 		if (INVENTORY.types.array[i] == item) {
 			count = &INVENTORY.amounts.array[i];
-			if (*count != 99) {
+			if (*count != econCap(MOD_ECON_STACK_CAP, 255)) { /* MOD (economy as data) */
 				*count += amount;
-				if (*count >= 100) {
-					*count = 99;
+				if (*count > econCap(MOD_ECON_STACK_CAP, 255)) {
+					*count = econCap(MOD_ECON_STACK_CAP, 255);
 				}
 				return 1;
 			}

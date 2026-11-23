@@ -9,7 +9,7 @@
  */
 
 /* tournament registration: reminder times (minutes of the day), the script sections they run, the Beetle cup's registration */
-#define MOD_TOURNAMENT_SIZE	8
+#define MOD_TOURNAMENT_SIZE	15
 #define MOD_TR_REMIND_FROM	0 /* before this minute no reminder; -1: no reminders at all */
 #define MOD_TR_EVENING_FROM	1 /* from here the second reminder (trigger 39) instead of the first (38) */
 #define MOD_TR_MISSED_FROM	2 /* from here a registration is missed */
@@ -18,7 +18,36 @@
 #define MOD_TR_BEETLE_CUP	5 /* routine 0x21 registers this cup (-1: the routine does nothing) */
 #define MOD_TR_BEETLE_DAY	6 /* the day that cup is held */
 #define MOD_TR_BEETLE_OTHER	7 /* the day stored when it is registered on any other day */
+#define MOD_TR_POOL_LOW	8
+#define MOD_TR_POOL_HIGH	9
+#define MOD_TR_POOL_EXTRA_MIN	10
+#define MOD_TR_POOL_EXTRA_DIV	11
+#define MOD_TR_WIN_RESULT	12
+#define MOD_TR_WIN_SPECIAL_CUP	13
+#define MOD_TR_WIN_SPECIAL_RESULT	14
 extern int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE];
+
+/*
+ * MOD (economy as data): money, merit and stack limits, what a defeat costs, the shops' ratios and the card packs, MOD_ECON[] (32-bit slots, -1 = the rule does not exist),
+ * written by tools/balance.py from content/tables/economy.json. A cap left out is the limit of what holds the value (money 2^31 - 1, merit 32767, a stack 255); a
+ * percent left out is 100 (a price ratio) or 0 (the part of the items lost on a defeat); an amount left out is 0.
+ */
+#define MOD_ECON_SIZE		11
+#define MOD_ECON_MONEY_CAP	0
+#define MOD_ECON_MERIT_CAP	1
+#define MOD_ECON_STACK_CAP	2
+#define MOD_ECON_LOSS_PERCENT	3
+#define MOD_ECON_BABY_PERCENT	4
+#define MOD_ECON_SELL_PERCENT	5
+#define MOD_ECON_CARD_CUT0	6
+#define MOD_ECON_CARD_CUT1	7
+#define MOD_ECON_CARD_CUT2	8
+#define MOD_ECON_CARD_CUT3	9
+#define MOD_ECON_CARD_MAX	10
+extern int32_t MOD_ECON[MOD_ECON_SIZE];
+int32_t econCap(int32_t slot, int32_t whenLeftOut);
+int32_t econAmt(int32_t slot);
+int32_t econPercent(int32_t slot);
 
 /* the daily reroll (dailyPStatTrigger): the card shop's stock and the counters */
 #define MOD_DAILY_SIZE		7

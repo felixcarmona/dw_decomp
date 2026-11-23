@@ -702,7 +702,7 @@ int32_t shopFillBuyItemList()
 		if (hasSpace) {
 			for (slotId = 0; slotId < inventorySize; slotId++) {
 				if (INVENTORY.types.array[slotId] == itemId &&
-				    INVENTORY.amounts.array[slotId] == 99) {
+				    INVENTORY.amounts.array[slotId] == econCap(MOD_ECON_STACK_CAP, 255)) {
 					*itemList++ = 0;
 
 					goto end;
@@ -715,7 +715,7 @@ int32_t shopFillBuyItemList()
 		} else {
 			for (slotId = 0; slotId < inventorySize; slotId++) {
 				if (INVENTORY.types.array[slotId] == itemId &&
-				    INVENTORY.amounts.array[slotId] != 99) {
+				    INVENTORY.amounts.array[slotId] != econCap(MOD_ECON_STACK_CAP, 255)) {
 					*itemList++ = 1;
 
 					canBuyAnything = 1;
@@ -1025,8 +1025,8 @@ void updateItemMenuAmountBoxString(void)
 #endif
 
 	total = SHOP_ITEM_PRICE * SHOP_AMOUNT;
-	if (total >= 0xf4240) {
-		total = 0xf423f;
+	if (total > econCap(MOD_ECON_MONEY_CAP, 0x7fffffff)) {
+		total = econCap(MOD_ECON_MONEY_CAP, 0x7fffffff);
 	}
 
 	out = intToStringSJIS(out, total, 6, 0);
@@ -1316,7 +1316,7 @@ void handleItemLoss(void)
 		k++;
 	}
 
-	lose = count * 30 / 100;
+	lose = count * econAmt(MOD_ECON_LOSS_PERCENT) / 100; /* MOD (economy as data) */
 	writePStat(0xc8, lose);
 	if (lose == 0) {
 		freeArray((uint32_t *)pool);
@@ -1340,12 +1340,12 @@ void handleItemLoss(void)
 		if (recycleId != 0xff) {
 			SCRIPT_STATE_PTR->smth[recycleId + 6] +=
 				INVENTORY.amounts.array[slot];
-			if (SCRIPT_STATE_PTR->smth[recycleId + 6] >= 0x64) {
-				SCRIPT_STATE_PTR->smth[recycleId + 6] = 0x63;
+			if (SCRIPT_STATE_PTR->smth[recycleId + 6] > ' + STACK + ') {
+				SCRIPT_STATE_PTR->smth[recycleId + 6] = ' + STACK + ';
 			}
 		}
 
-		removeItem(INVENTORY.types.array[slot], 0x63); /* MOD: the whole id */
+		removeItem(INVENTORY.types.array[slot], econCap(MOD_ECON_STACK_CAP, 255)); /* MOD: the whole id */
 	}
 
 	freeArray((uint32_t *)pool);
@@ -1488,8 +1488,8 @@ void tickItemMenuAmountBox(void)
 		if (ITEM_MENU_TYPE < 3) {
 			if (ITEM_MENU_TYPE == 1) {
 				MONEY += SHOP_AMOUNT * SHOP_ITEM_PRICE;
-				if (MONEY >= 0xf4240) {
-					MONEY = 0xf423f;
+				if (MONEY > econCap(MOD_ECON_MONEY_CAP, 0x7fffffff)) {
+					MONEY = econCap(MOD_ECON_MONEY_CAP, 0x7fffffff);
 				}
 
 				removeItem(SHOP_ITEM_TYPE, SHOP_AMOUNT);
@@ -1497,7 +1497,7 @@ void tickItemMenuAmountBox(void)
 			} else {
 				unitPrice = SHOP_ITEM_PRICE;
 				if (isPartnerBaby() != 0) {
-					unitPrice = unitPrice * 90 / 100;
+					unitPrice = unitPrice * econPercent(MOD_ECON_BABY_PERCENT) / 100;
 					SHOP_VARIABLE = (int16_t)SHOP_AMOUNT * (SHOP_ITEM_PRICE - unitPrice);
 				}
 
@@ -1514,8 +1514,8 @@ void tickItemMenuAmountBox(void)
 			SCRIPT_STATE_2 = 7;
 		} else {
 			MONEY += SHOP_AMOUNT * SHOP_ITEM_PRICE;
-			if (MONEY >= 0xf4240) {
-				MONEY = 0xf423f;
+			if (MONEY > econCap(MOD_ECON_MONEY_CAP, 0x7fffffff)) {
+				MONEY = econCap(MOD_ECON_MONEY_CAP, 0x7fffffff);
 			}
 
 			owner = getCardAmount(SHOP_ITEM_TYPE);
@@ -1998,14 +1998,14 @@ int32_t createItemMenuAmountBox(RECT *origin)
 				goto fail;
 			}
 
-			SHOP_ITEM_PRICE >>= 1;
+			SHOP_ITEM_PRICE = SHOP_ITEM_PRICE * econPercent(MOD_ECON_SELL_PERCENT) / 100; /* MOD (economy as data): was half */
 			MAX_SHOP_AMOUNT = amount & 0x7f;
 		} else {
 			if (ITEM_MENU_TYPE == 0) {
 				if (amount == 0) {
 					goto fail;
 				}
-				MAX_SHOP_AMOUNT = 0x63;
+				MAX_SHOP_AMOUNT = econCap(MOD_ECON_STACK_CAP, 255);
 			} else {
 				if ((amount & 0x80) == 0) {
 					goto fail;
@@ -2013,7 +2013,7 @@ int32_t createItemMenuAmountBox(RECT *origin)
 				MAX_SHOP_AMOUNT = amount & 0x7f;
 			}
 
-			n = 0x63 - getItemCount(SHOP_ITEM_TYPE);
+			n = econCap(MOD_ECON_STACK_CAP, 255) - getItemCount(SHOP_ITEM_TYPE);
 			if (n < MAX_SHOP_AMOUNT) {
 				MAX_SHOP_AMOUNT = n;
 			}
@@ -2025,7 +2025,7 @@ int32_t createItemMenuAmountBox(RECT *origin)
 		}
 	} else {
 		n = CARD_DATA[SHOP_ITEM_TYPE].spriteId;
-		SHOP_ITEM_PRICE = CARD_PRICES[n] >> 1;
+		SHOP_ITEM_PRICE = CARD_PRICES[n] * econPercent(MOD_ECON_SELL_PERCENT) / 100;
 		MAX_SHOP_AMOUNT = amount;
 	}
 
@@ -3149,4 +3149,22 @@ void renderShopBitsBox(void)
 	renderString(0, x + 0x10, y, 0x30, 0xc, 0, rowPx, 4, 1);
 	renderString(0, x + 0x10, y + 0xd, 0x3c, 0xc, 0x30, rowPx, 4, 1);
 #endif
+}
+
+/* MOD (economy as data): written by tools/balance.py from content/tables/economy.json; -1 = the rule does not exist */
+int32_t MOD_ECON[MOD_ECON_SIZE] = { [0 ... MOD_ECON_SIZE - 1] = -1 };
+
+int32_t econCap(int32_t slot, int32_t whenLeftOut)
+{
+	return MOD_ECON[slot] >= 0 ? MOD_ECON[slot] : whenLeftOut;
+}
+
+int32_t econAmt(int32_t slot)
+{
+	return MOD_ECON[slot] > 0 ? MOD_ECON[slot] : 0;
+}
+
+int32_t econPercent(int32_t slot)
+{
+	return MOD_ECON[slot] >= 0 ? MOD_ECON[slot] : 100;
 }

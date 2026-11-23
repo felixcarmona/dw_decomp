@@ -1,5 +1,6 @@
 #include <libetc.h>
 
+#include <dw/mod_rules.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/btl.h>
 #include <dw/clock.h>
@@ -604,7 +605,11 @@ static int32_t addTournamentSpecies(uint16_t *pool, int32_t count, int32_t lo, i
 
 	cand = (uint16_t *)allocateArray(SPECIES_MAX_PARTNERS * 2);
 	n = getSpeciesPartnersByLevel(lo, hi, cand, SPECIES_MAX_PARTNERS);
-	add = count > 7 ? count / 2 : 7;
+	/* MOD (economy as data): MOD_TOURNAMENT's pool rules */
+	add = count > MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN] && MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] > 0 ? count / MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] : MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN];
+	if (add < 0) {
+		add = 0;
+	}
 	if (add > TOURNAMENT_NEW_MAX) {
 		add = TOURNAMENT_NEW_MAX;
 	}
@@ -651,8 +656,8 @@ void startTournament(void)
 	jumpTable = getCupDataJumpTable(10, id);
 	p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
 	count = 0;
-	lo = 3; /* MOD (portraits): the levels of the cup's list: Rookie..Ultimate for a list that is every recruit */
-	hi = 5;
+	lo = MOD_TOURNAMENT[MOD_TR_POOL_LOW]; /* MOD (portraits): the levels of the cup's list: Rookie..Ultimate for a list that is every recruit */
+	hi = MOD_TOURNAMENT[MOD_TR_POOL_HIGH];
 	i = *p;
 	if (i < 0xfe) {
 		lo = 9;
@@ -686,7 +691,8 @@ void startTournament(void)
 	}
 	if (id != 0x16) {
 		/* MOD (portraits): the special cup 0x16 lists its own contestants */
-		count = addTournamentSpecies(pool, count, lo > 5 ? 5 : lo, hi > 5 ? 5 : hi);
+		count = addTournamentSpecies(pool, count, lo > MOD_TOURNAMENT[MOD_TR_POOL_HIGH] ? MOD_TOURNAMENT[MOD_TR_POOL_HIGH] : lo,
+					     hi > MOD_TOURNAMENT[MOD_TR_POOL_HIGH] ? MOD_TOURNAMENT[MOD_TR_POOL_HIGH] : hi);
 	}
 	o = t.opponents;
 	if (count == 7) {
@@ -741,10 +747,10 @@ void startTournament(void)
 	ACTIVE_ORDERING_TABLE = GS_ORDERING_TABLE + ACTIVE_FRAMEBUFFER;
 	unsetTrigger(0x25);
 	id = readPStat(3);
-	if (id != 5) {
-		expected = 3;
+	if (id != MOD_TOURNAMENT[MOD_TR_WIN_SPECIAL_CUP]) {
+		expected = MOD_TOURNAMENT[MOD_TR_WIN_RESULT];
 	} else {
-		expected = 2;
+		expected = MOD_TOURNAMENT[MOD_TR_WIN_SPECIAL_RESULT];
 	}
 	if (result == expected) {
 		TOURNAMENTS_WON++;

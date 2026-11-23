@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <dw/mod_rules.h>
 #include <dw/mod_font.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
@@ -777,8 +778,8 @@ void openMeritShop(void)
 	case 8:
 		triggerBoxCloseFlag(1);
 		MERIT += SHOP_VARIABLE;
-		if (MERIT > 9999) {
-			MERIT = 9999;
+		if (MERIT > econCap(MOD_ECON_MERIT_CAP, 32767)) { /* MOD (economy as data) */
+			MERIT = econCap(MOD_ECON_MERIT_CAP, 32767);
 		}
 		UPDATE_SHOP_BIT_BOX = 1;
 		owner = getCardAmount(SHOP_ITEM_TYPE);
@@ -1237,7 +1238,7 @@ int32_t hasAnyCardToBuy(void)
 		*buf++ = id;
 		if (id != 0xff) {
 			spriteId = CARD_DATA[id].spriteId;
-			if ((CARD_PRICES[spriteId] <= MONEY) && ((uint32_t)getCardAmount(id) < 9)) {
+			if ((CARD_PRICES[spriteId] <= MONEY) && ((uint32_t)getCardAmount(id) < (uint32_t)econAmt(MOD_ECON_CARD_MAX))) {
 				*buf++ = 1;
 			} else {
 				*buf++ = 0;
@@ -1273,7 +1274,7 @@ void showCardTextbox(void)
 		line = 6;
 	}
 
-	if (n < 9) {
+	if (n < econAmt(MOD_ECON_CARD_MAX)) {
 		n++;
 		setCardAmount(cardId, n);
 	}
@@ -1346,14 +1347,15 @@ uint8_t rollCard(void)
 	uint8_t i;
 	uint8_t rarity;
 
+	/* MOD (economy as data): the rarity is the first whose "below" mark the roll (of 100) is under */
 	rarity = randomLimit(100);
-	if (rarity == 0) {
+	if (rarity < MOD_ECON[MOD_ECON_CARD_CUT0]) {
 		rarity = 0;
-	} else if (rarity < 5) {
+	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT1]) {
 		rarity = 1;
-	} else if (rarity < 0x14) {
+	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT2]) {
 		rarity = 2;
-	} else if (rarity < 0x32) {
+	} else if (rarity < MOD_ECON[MOD_ECON_CARD_CUT3]) {
 		rarity = 3;
 	} else {
 		rarity = 4;
@@ -1446,7 +1448,7 @@ int32_t shopFillMeritItemList(void)
 
 		for (i = 0; i < size; i++) {
 			if ((INVENTORY.types.array[i] == item) &&
-			    (INVENTORY.amounts.array[i] != 0x63)) {
+			    (INVENTORY.amounts.array[i] != econCap(MOD_ECON_STACK_CAP, 255))) {
 				*out++ = 1;
 				any = 1;
 				goto next;
@@ -1498,7 +1500,7 @@ void itemKeeperFillItemList(void)
 		}
 
 		for (i = 0; i < size; i++) {
-			if ((INVENTORY.types.array[i] == j) && (INVENTORY.amounts.array[i] != 0x63)) {
+			if ((INVENTORY.types.array[i] == j) && (INVENTORY.amounts.array[i] != econCap(MOD_ECON_STACK_CAP, 255))) {
 				*out++ = c | 0x80;
 				goto next;
 			}
@@ -1517,7 +1519,7 @@ next:;
 			i = INVENTORY.types.array[j];
 			c = INVENTORY.amounts.array[j];
 			*out++ = i;
-			if ((SCRIPT_STATE_PTR->smth + i)[0x54] != 0x63) {
+			if ((SCRIPT_STATE_PTR->smth + i)[0x54] != econCap(MOD_ECON_STACK_CAP, 255)) {
 				*out++ = c | 0x80;
 			} else {
 				*out++ = c;
@@ -2003,7 +2005,7 @@ int32_t keeperMoveOne(void)
 			return 0;
 		}
 
-		if (getItemCount(item) >= 0x63) {
+		if (getItemCount(item) >= econCap(MOD_ECON_STACK_CAP, 255)) {
 			return 0;
 		}
 
@@ -2124,7 +2126,7 @@ int32_t keeperMoveStack(void)
 		}
 
 		amount &= 0x7f;
-		cap = 0x63 - getItemCount(item);
+		cap = econCap(MOD_ECON_STACK_CAP, 255) - getItemCount(item);
 		if (cap < amount) {
 			amount = cap;
 		}
@@ -2147,7 +2149,7 @@ int32_t keeperMoveStack(void)
 		}
 
 		amount &= 0x7f;
-		cap = 0x63 - (SCRIPT_STATE_PTR->smth + item)[0x54];
+		cap = econCap(MOD_ECON_STACK_CAP, 255) - (SCRIPT_STATE_PTR->smth + item)[0x54];
 		if (cap < amount) {
 			amount = cap;
 		}
