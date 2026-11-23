@@ -844,6 +844,8 @@ FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + par
 	{ 0x00000000, 0x00000001, "MUGP.MMD" }, /* MOD (machinedramon) */
 	{ 0x00000000, 0x00000001, "JIJP.MMD" }, /* MOD (jijimon) */
 	{ 0x00000000, 0x00000001, "ANLP.MMD" }, /* MOD (analogman) */
+	/* MOD (menu overlay): the title and card menus (main_menu.c), a new file; build-disc.py --relayout --add writes it */
+	{ 0x00000000, 0x00000000, "MENU_REL.BIN" },
 	/*
 	 * MOD (new files): the disc's files with new names (NEW_FILES of the Makefile, written by the project's
 	 * tools/build-full.sh from the content: a new screen's .MAP and .TFS, models...). Looked up after every
