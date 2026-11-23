@@ -1261,6 +1261,17 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 	{ { 0xffff, 0xf7ff, 0xebff, 0xebff, 0xddff, 0xddff, 0xbeff, 0xbeff, 0x7f7f, 0x007f, 0xffff, }, 12 },
 };
 // clang-format on
+
+/*
+ * MOD: extra glyphs (accents, ñ, ç, ¿¡, ·, «», and the punctuation ( ) & % / …
+ * [ ] # * ~ @ – — ♪) at Shift-JIS codes F040+N in the
+ * user-defined area, which no original text uses. Both string paths send a
+ * byte with bit 7 set as a two-byte code to drawGlyph, so scripts, names and
+ * C strings can use them. Drawn in tools/font/extra.txt (docs/mods/font.md).
+ */
+#define EXTRA_GLYPH_LEAD	0xf0
+#define EXTRA_GLYPH_FIRST	0x40
+#include "font_extra.h"
 #endif
 
 // clang-format off
@@ -1354,15 +1365,27 @@ int32_t drawGlyph(codepoint, x, y)
 	}
 #endif
 
-	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
-
-	for (n = 0;; ++n) {
-		if (code == CHAR_TO_GLYPH_TABLE[n]) {
-			break;
-		}
+#if VERSION_IS(US)
+	/* MOD: F040-F07E, F080-F0FC index EXTRA_GLYPH_DATA directly */
+	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	if ((code & 0xff) > 0x7f) {
+		n--;
 	}
+	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		p = (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+	} else
+#endif
+	{
+		CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
 
-	p = GLYPH_DATA[n].pixelData;
+		for (n = 0;; ++n) {
+			if (code == CHAR_TO_GLYPH_TABLE[n]) {
+				break;
+			}
+		}
+
+		p = GLYPH_DATA[n].pixelData;
+	}
 	GLYPH_DRAWING_AREA_INDEX = (GLYPH_DRAWING_AREA_INDEX + 1) % NUM_RENDER_SLOTS;
 	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
 
