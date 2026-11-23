@@ -15,6 +15,7 @@
 #include <dw/fade.h>
 #include <dw/font.h>
 #include <dw/ids.h>
+#include <dw/tournament.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/kar.h>
@@ -175,6 +176,8 @@ void setTrigger(uint16_t trigger);
 int32_t tickOpenChestTray(int32_t chestId);
 int32_t tickCloseChestTray(int32_t chestId);
 int32_t hasMove(int32_t moveId);
+int32_t isTriggerSet(uint16_t trigger);
+extern int16_t TOURNAMENT_WINS;
 int32_t hasMedal(uint16_t medal);
 int32_t hasDigimonRaised(int32_t digimonId);
 int32_t getCardAmount(uint8_t cardId);
@@ -687,75 +690,75 @@ void checkMapInteraction(void)
 	}
 }
 
+/* MOD (medals as data): does the condition of a MOD_MEDALS row hold */
+int32_t modMedalHolds(ModMedal *m)
+{
+	int32_t i;
+	BaseStats *bs;
+
+	switch (m->kind) {
+	case MOD_MEDAL_ALL_TRIGGERS:
+		for (i = 0; i < m->b; i++) {
+			if (isTriggerSet(m->a + i) == 0) {
+				return 0;
+			}
+		}
+		return 1;
+	case MOD_MEDAL_WINS:
+		return TOURNAMENT_WINS >= m->a;
+	case MOD_MEDAL_ALL_CARDS:
+		for (i = 0; i < NUM_CARDS; i++) {
+			if (getCardAmount((uint8_t)i) == 0) {
+				return 0;
+			}
+		}
+		return m->a < 0 || isTriggerSet(m->a) != 0;
+	case MOD_MEDAL_ALL_MOVES:
+		for (i = 0; i < m->a; i++) {
+			if (hasMove(i) == 0) {
+				return 0;
+			}
+		}
+		return 1;
+	case MOD_MEDAL_STATS:
+		bs = &PARTNER_ENTITY.digimonEntity.stats.base;
+		return bs->hp >= m->a && bs->mp >= m->a && bs->off >= m->b && bs->def >= m->b && bs->brain >= m->b &&
+		       bs->speed >= m->b;
+	case MOD_MEDAL_MONEY:
+		return MONEY == m->a;
+	case MOD_MEDAL_YEAR:
+		return YEAR == m->a;
+	case MOD_MEDAL_ALL_RAISED:
+		for (i = m->a; i < m->b; i++) {
+			if (hasDigimonRaised((uint16_t)i) == 0) {
+				return 0;
+			}
+		}
+		return 1;
+	case MOD_MEDAL_FISH:
+		return PARTNER_PARA.fishCaught >= m->a;
+	}
+	return 0;
+}
+
+/* MOD (medals as data): the medals checked every tick, from MOD_MEDALS (content/tables/medals.json) */
 void checkMedalConditions(void)
 {
 	int32_t i;
+	ModMedal *m;
 
-	if (hasMedal(5) == 0) {
-		for (i = 0; i < 0x39; ++i) {
-			if (hasMove(i) == 0) {
-				break;
-			}
+	for (i = 0; i < MOD_MEDAL_MAX; i++) {
+		m = &MOD_MEDALS[i];
+		if (m->medal < 0 || (m->flags & MOD_MEDAL_TICK) == 0 || hasMedal(m->medal) != 0 || !modMedalHolds(m)) {
+			continue;
 		}
-
-		if (i == 0x39) {
-			unlockMedal(5);
-			MEDAL_AWARD_PENDING = 1;
-		}
-	}
-
-	if (hasMedal(7) == 0) {
-		BaseStats *bs = &PARTNER_ENTITY.digimonEntity.stats.base;
-		/* MOD (caps): every stat at the old maximum or past it (was ==) */
-		if ((bs->hp >= OLD_HPMP_CAP) && (bs->mp >= OLD_HPMP_CAP) &&
-		    (bs->off >= OLD_STAT_CAP) && (bs->def >= OLD_STAT_CAP) &&
-		    (bs->brain >= OLD_STAT_CAP) && (bs->speed >= OLD_STAT_CAP)) {
-			unlockMedal(7);
-			MEDAL_AWARD_PENDING = 1;
-		}
-	}
-
-	if ((hasMedal(0xD) == 0) && (MONEY == 999999)) {
-		unlockMedal(0xD);
+		unlockMedal(m->medal);
 		MEDAL_AWARD_PENDING = 1;
-	}
-
-	if ((hasMedal(0xE) == 0) && (YEAR == 10)) {
-		unlockMedal(0xE);
-		MEDAL_AWARD_PENDING = 1;
-	}
-
-	if (hasMedal(6) == 0) {
-		for (i = 1; i < 62; ++i) {
-			if (hasDigimonRaised((uint16_t)i) == 0) {
-				break;
-			}
-		}
-
-		if (i == 62) {
-			unlockMedal(6);
-			MEDAL_AWARD_PENDING = 1;
-
+		if (m->flags & MOD_MEDAL_LEVEL_UP) {
 			++TAMER_ENTITY.tamerLevel;
 			if (TAMER_ENTITY.tamerLevel >= 11) {
 				TAMER_ENTITY.tamerLevel = 10;
 			}
-		}
-	}
-	if ((hasMedal(9) == 0) && (PARTNER_PARA.fishCaught >= 100)) {
-		unlockMedal(9);
-		MEDAL_AWARD_PENDING = 1;
-	}
-	if (hasMedal(0xC) == 0) {
-		for (i = 0; i < NUM_CARDS; ++i) {
-			if (getCardAmount((uint8_t)i) == 0) {
-				break;
-			}
-		}
-
-		if (i == 66) {
-			unlockMedal(0xC);
-			MEDAL_AWARD_PENDING = 1;
 		}
 	}
 }
