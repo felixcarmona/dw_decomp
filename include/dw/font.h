@@ -42,6 +42,7 @@ int32_t textFitCode(char *str, int32_t maxW);
 /* MOD (font): only in a build whose font is placed to the pixel (dw/mod_font.h): a glyph's advance in pixels; set while
  * text is laid out in the original's cells (font.c FONT_CELLS) */
 int32_t glyphWidth(uint16_t codepoint);
+int32_t glyphCell(uint16_t codepoint); /* the original glyph's width */
 extern int8_t FONT_CELLS;
 #endif
 
