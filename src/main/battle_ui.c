@@ -462,11 +462,9 @@ void tickBitBox(instanceId)
 		return;
 	}
 
-	if ((POLLED_INPUT == CONFIRM_BUTTON) || (POLLED_INPUT == CANCEL_BUTTON)) {
-		if (!(POLLED_INPUT_PREVIOUS & CONFIRM_BUTTON) &&
-		    !(POLLED_INPUT_PREVIOUS & CANCEL_BUTTON)) {
-			SHOULD_SKIP_BIT_COUNTING = 1;
-		}
+	/* A face-button edge on pad 1 still counts with other buttons or pad 2 held. */
+	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & (CONFIRM_BUTTON | CANCEL_BUTTON)) {
+		SHOULD_SKIP_BIT_COUNTING = 1;
 	}
 
 	if (SHOULD_SKIP_BIT_COUNTING == 1) {
@@ -594,11 +592,9 @@ void tickPostBattleStatsBox(void)
 		}
 	}
 
-	if ((POLLED_INPUT == CONFIRM_BUTTON) || (POLLED_INPUT == CANCEL_BUTTON)) {
-		if (!(POLLED_INPUT_PREVIOUS & CONFIRM_BUTTON) &&
-		    !(POLLED_INPUT_PREVIOUS & CANCEL_BUTTON)) {
-			SHOULD_SKIP_BIT_COUNTING = 1;
-		}
+	/* A face-button edge on pad 1 still counts with other buttons or pad 2 held. */
+	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & (CONFIRM_BUTTON | CANCEL_BUTTON)) {
+		SHOULD_SKIP_BIT_COUNTING = 1;
 	}
 
 	if (SHOULD_SKIP_BIT_COUNTING != 1) {
