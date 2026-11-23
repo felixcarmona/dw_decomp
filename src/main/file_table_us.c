@@ -3,7 +3,7 @@
 #include <dw/atan_lookup_table.h>
 
 // clang-format off
-FileEntry FILE_OFFSET_TABLE[819] = {
+FileEntry FILE_OFFSET_TABLE[820] = { /* MOD: + DIGI.DAT */
 	{ 0x00000017, 0x00000044, "SYSTEM.CNF" },
 	{ 0x00000019, 0x001ce000, "CARD.ALL" },
 	{ 0x000003b6, 0x0032a000, "ALLTIM.TIM" },
@@ -822,6 +822,9 @@ FileEntry FILE_OFFSET_TABLE[819] = {
 	{ 0x00024331, 0x00020788, "VS_REL.BIN" },
 	{ 0x00024372, 0x000a5000, "PSX.EXE" },
 	{ 0x000244bc, 0x01a5e000, "MMM.DAT" },
+	/* MOD (species): new species (tools/species.py); build-disc.py --relayout
+	 * writes its sector and size. Without the file the header check fails. */
+	{ 0x00000000, 0x00000800, "DIGI.DAT" },
 	{ 0x00000000, 0x00000000, "NULL" },
 };
 // clang-format on

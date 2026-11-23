@@ -495,7 +495,7 @@ void tickParticleFX(int32_t id)
 	if ((fx->endFrame < 4) && (fx->endFrame >= 0) && (fx->mode == 1)) {
 		baseX = fx->entity->posData->posMatrix.workm.t[0];
 		baseZ = fx->entity->posData->posMatrix.workm.t[2];
-		radius = DIGIMON_DATA[entity->type].radius;
+		radius = DIGI_PARA(entity->type).radius;
 		spread = radius >> 1;
 		for (i = 0; i < fx->endFrame + 2; i++) {
 			angle = rand();
@@ -602,7 +602,7 @@ int32_t addEntityParticleFX(Entity *owner, int32_t timer)
 	}
 	fx = &ENTITY_PARTICLE_FX_DATA[i];
 	fx->timer = timer;
-	fx->boneId = ((int32_t)rand() % (DIGIMON_DATA[owner->type].boneCount - 1)) + 1;
+	fx->boneId = ((int32_t)rand() % (DIGI_PARA(owner->type).boneCount - 1)) + 1;
 	fx->unk8 = 0;
 	fx->owner = owner;
 	addObject(0x502, i, tickEntityParticleFX, renderEntityParticleFX);
@@ -624,7 +624,7 @@ void tickEntityParticleFX(int32_t id)
 		return;
 	}
 	if ((fx->timer % 4) == 0) {
-		fx->boneId = (rand() % (DIGIMON_DATA[fx->owner->type].boneCount - 1)) + 1;
+		fx->boneId = (rand() % (DIGI_PARA(fx->owner->type).boneCount - 1)) + 1;
 		fx->unk8 = rand() % 9;
 	}
 	fx->timer--;

@@ -1229,7 +1229,7 @@ void scriptInstruction28to3F(op)
 	case SCRIPT_OP_STORE_DIGIMON_VALUE:
 		skipOnePollTwoScriptBytes(&byteArg1, &byteArg2);
 		byteArg1 = readPStat(byteArg1);
-		byteArg1 = DIGIMON_DATA[byteArg1].type;
+		byteArg1 = DIGI_PARA(byteArg1).type;
 		writePStat(byteArg2, byteArg1);
 		break;
 	}

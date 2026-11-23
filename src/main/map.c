@@ -19,6 +19,7 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
+#include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/types.h>
 #include <dw/utils.h>
@@ -2915,7 +2916,7 @@ SVECTOR CONDITION_FX_OFFSETS[177] = {
 	{ 0x0000, 0x0000, 0x0000, 0x0000 },
 };
 
-int16_t ORIGINAL_DIGIMON_TYPES[NUM_DIGIMON] = {
+int16_t ORIGINAL_DIGIMON_TYPES[NUM_ORIGINAL_DIGIMON] = {
 	0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 	0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 	0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
@@ -3191,7 +3192,7 @@ int32_t entityCheckCombatArea(Entity *entity, VECTOR *target, int32_t w,
 	GsSetLsMatrix(&GsWSMATRIX);
 
 	loc = &entity->posData->location;
-	radius = DIGIMON_DATA[entity->type].radius;
+	radius = DIGI_PARA(entity->type).radius;
 
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < 4; j++) {
@@ -3886,9 +3887,9 @@ int32_t entityCheckEntityCollision(Entity *entity, Entity *other,
 	int16_t rotation;
 
 	myLoc = &entity->posData->location;
-	myRadius = DIGIMON_DATA[entity->type].radius;
+	myRadius = DIGI_PARA(entity->type).radius;
 	loc = &other->posData->location;
-	radius = DIGIMON_DATA[other->type].radius;
+	radius = DIGI_PARA(other->type).radius;
 	setRECT(&rect, loc->vx - radius, loc->vz + radius, radius * 2, radius * 2);
 	left = myLoc->vx - myRadius;
 	right = myLoc->vx + myRadius;
@@ -3979,9 +3980,9 @@ int32_t entityIsInEntity(Entity *entityA, Entity *entityB)
 	int16_t radB;
 
 	locA = &entityA->posData->location;
-	radA = DIGIMON_DATA[entityA->type].radius;
+	radA = DIGI_PARA(entityA->type).radius;
 	locB = &entityB->posData->location;
-	radB = DIGIMON_DATA[entityB->type].radius;
+	radB = DIGI_PARA(entityB->type).radius;
 
 	if ((locA->vx - radA) > (locB->vx + radB)) {
 		return 0;
@@ -4017,12 +4018,12 @@ int32_t entityIsOffScreen(Entity *entity, int32_t width, int32_t height)
 
 	GsSetLsMatrix(&GsWSMATRIX);
 	loc = &entity->posData->location;
-	radius = DIGIMON_DATA[entity->type].radius;
+	radius = DIGI_PARA(entity->type).radius;
 
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < 4; j++) {
 			corner.vx = loc->vx + (radius * QUADRANTS[j][0]);
-			corner.vy = loc->vy + i * -DIGIMON_DATA[entity->type].height;
+			corner.vy = loc->vy + i * -DIGI_PARA(entity->type).height;
 			corner.vz = loc->vz + (radius * QUADRANTS[j][1]);
 			gte_ldv0(&corner);
 			gte_rtps();
@@ -5837,7 +5838,13 @@ void translateConditionFXToEntity(Entity *entity, SVECTOR *out)
 int32_t getOriginalType(int32_t type)
 {
 	int32_t originalType;
+	SpeciesRecord *rec;
 
+	/* MOD (species): a new species borrows the effect offsets of an original one */
+	if (type >= NUM_ORIGINAL_DIGIMON) {
+		rec = getSpeciesRecord(type);
+		return rec != NULL ? rec->originalType : -1;
+	}
 	if ((type < 0) || (type > 0xb0)) {
 		return -1;
 	}
@@ -5855,7 +5862,7 @@ void calculateBoneMatrix(Entity *entity, int32_t boneId, MATRIX *out)
 	GsCOORDINATE2 *coord;
 	GsCOORDINATE2 *bone;
 
-	if (boneId >= DIGIMON_DATA[entity->type].boneCount) {
+	if (boneId >= DIGI_PARA(entity->type).boneCount) {
 		boneId = 0;
 	}
 

@@ -14,6 +14,7 @@
 #include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
+#include <dw/species.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
 
@@ -2303,7 +2304,7 @@ SkeletonBone SKELETON_ANALOGMAN[18] = {
 	{ 0x0e, 0x10 },
 };
 
-SkeletonBone *DIGIMON_SKELETONS[NUM_DIGIMON] = {
+SkeletonBone *DIGIMON_SKELETONS[NUM_ORIGINAL_DIGIMON] = {
 	SKELETON_HIRO,
 	SKELETON_BOTAMON,
 	SKELETON_KOROMON,
@@ -2501,7 +2502,7 @@ int8_t WIREFRAME_RNG_TABLE[16] = {
 
 char MAIN_D_8011D190[] = "ALLTIM.TIM";
 
-char *PTR_DIGIMON_FILE_NAMES[NUM_DIGIMON] = {
+char *PTR_DIGIMON_FILE_NAMES[NUM_ORIGINAL_DIGIMON] = {
 	STR_DIGIMON_FILE_NAME_BOYS,
 	STR_DIGIMON_FILE_NAME_BOTA,
 	STR_DIGIMON_FILE_NAME_KORO,
@@ -2750,7 +2751,7 @@ void renderFlatDigimon(Entity *entity)
 	        ((entity->flatSprite % 2) == 0) ? 0xE0 : 0xF0,
 	        (entity->flatSprite < 2) ? model->pixelOffsetY + 0x60 : model->pixelOffsetY + 0x70,
 	        0xF, 0xF);
-	height = DIGIMON_DATA[entity->type].height;
+	height = DIGI_PARA(entity->type).height;
 	half = height / 2;
 	in[0].vx = 0;
 	in[0].vy = -height;
@@ -2801,7 +2802,7 @@ void initializeDigimonObject(int32_t type, int32_t instanceId,
 	if (instanceId < 0 || instanceId >= ENTITY_MAX) {
 		return;
 	}
-	boneCount = DIGIMON_DATA[type].boneCount;
+	boneCount = DIGI_PARA(type).boneCount;
 	entity = ENTITY_TABLE[instanceId];
 	entityType = getEntityType(entity);
 	entity->type = type;
@@ -2822,7 +2823,7 @@ void initializeDigimonObject(int32_t type, int32_t instanceId,
 	model = getEntityModelComponent(type, entityType);
 	entity->animPtr = model->animTablePtr;
 	pos = entity->posData;
-	bone = DIGIMON_SKELETONS[type];
+	bone = getDigimonSkeleton(type); /* MOD (species) */
 	for (i = 0; i < boneCount; ++pos, ++bone, ++i) {
 		if (bone->objIndex != -1) {
 			GsLinkObject4((u_long)model->modelPtr->obj, &pos->obj, bone->objIndex);
@@ -2885,7 +2886,7 @@ void renderDigimon(instanceId)
 		}
 	}
 	pos = ENTITY_TABLE[instanceId]->posData;
-	boneCount = DIGIMON_DATA[ENTITY_TABLE[instanceId]->type].boneCount;
+	boneCount = DIGI_PARA(ENTITY_TABLE[instanceId]->type).boneCount;
 	for (i = 0; i < boneCount; pos++, i++) {
 		if (pos->obj.tmd == NULL) {
 			continue;
@@ -3276,18 +3277,21 @@ void loadDigimonTexture(int32_t digiType, char *path,
 {
 	void *buffer;
 	char *p;
-	char fileName[32];
+	char *file;
+	int32_t sector;
+	int32_t sectors;
 
 	if (NULL == (p = strrchr(path, '\\'))) {
 		p = path;
 	} else {
 		p++;
 	}
-	strcpy(fileName, MAIN_D_8011D190);
+	/* MOD (species): ALLTIM.TIM entry `type`, or the new species' texture in DIGI.DAT */
+	getDigimonTextureRef(digiType, &file, &sector, &sectors);
 
 	buffer = malloc3(0x4800);
 
-	readFileSectors(fileName, buffer, digiType * 9, 9);
+	readFileSectors(file, buffer, sector, sectors);
 	uploadModelTexture(buffer, component);
 
 	free3(buffer);
@@ -3342,6 +3346,37 @@ void initializeModelComponents(void)
 	}
 }
 
+/*
+ * MOD (species): the size and the contents of a type's MMD: CHDAT\MMDn\NAME.MMD
+ * for the original models, a sector range of DIGI.DAT for new species.
+ */
+static int32_t getDigimonModelFileSize(int32_t type, char *path)
+{
+	char *file;
+	int32_t sector;
+	int32_t size;
+
+	getDigimonModelRef(type, &file, &sector, &size);
+	if (file != NULL) {
+		return size;
+	}
+	return lookupFileSize(path);
+}
+
+static void readDigimonModel(int32_t type, char *path, void *buffer)
+{
+	char *file;
+	int32_t sector;
+	int32_t size;
+
+	getDigimonModelRef(type, &file, &sector, &size);
+	if (file != NULL) {
+		readFileSectors(file, buffer, sector, (size + 0x7FF) >> 11);
+	} else {
+		readFile(path, buffer);
+	}
+}
+
 ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 {
 	ModelComponent *m;
@@ -3355,7 +3390,7 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	if (modelType == 1) {
 		return m;
 	}
-	if (digiType < 0 || digiType >= NUM_DIGIMON) {
+	if (!isValidDigimonType(digiType)) { /* MOD (species): was digiType < 0 || >= 0xB4 */
 		return 0;
 	}
 	if (modelType == 0) {
@@ -3391,16 +3426,16 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 		m->pixelOffsetX = 0;
 		m->pixelOffsetY = (k % 2) << 7;
 		m->modelId = k;
-		name = PTR_DIGIMON_FILE_NAMES[digiType];
+		name = getDigimonModelName(digiType);
 		loadDigimonTexture(digiType, name, m);
 		concatStrings(path, MAIN_D_8011D484, name);
 		concatStrings(path, path, MAIN_D_801340E4);
 		path[9] = digiType / 30 + '0';
-		m->mmdPtr = malloc3(((int32_t)lookupFileSize(path) + 0x7FF) & ~0x7FF);
+		m->mmdPtr = malloc3((getDigimonModelFileSize(digiType, path) + 0x7FF) & ~0x7FF);
 		if (m->mmdPtr == NULL) {
 			handleNullModel();
 		}
-		readFile(path, m->mmdPtr);
+		readDigimonModel(digiType, path, m->mmdPtr);
 		m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 		m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
 		GsMapModelingData((u_long *)&m->modelPtr->flags);
@@ -3427,12 +3462,12 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	} else {
 		return 0;
 	}
-	name = PTR_DIGIMON_FILE_NAMES[digiType];
+	name = getDigimonModelName(digiType);
 	loadDigimonTexture(digiType, name, m);
 	concatStrings(path, MAIN_D_8011D484, name);
 	concatStrings(path, path, MAIN_D_801340E4);
 	path[9] = digiType / 30 + '0';
-	readFile(path, m->mmdPtr);
+	readDigimonModel(digiType, path, m->mmdPtr);
 	m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 	m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
 	GsMapModelingData((u_long *)&m->modelPtr->flags);
@@ -3574,9 +3609,12 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	char *name;
 	int32_t i;
 	int32_t slot;
-	char tim[32];
+	char *tim;
+	char *file;
+	int32_t sector;
+	int32_t size;
 
-	if (digimonType < 0 || digimonType >= NUM_DIGIMON) {
+	if (!isValidDigimonType(digimonType)) { /* MOD (species) */
 		return 0;
 	}
 	if (entityType == 0) {
@@ -3606,12 +3644,13 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	} else {
 		return 0;
 	}
-	name = PTR_DIGIMON_FILE_NAMES[digimonType];
-	strcpy(tim, MAIN_D_8011D190);
+	name = getDigimonModelName(digimonType);
 	if ((buffer & 3L) != 0) {
 		buffer += 4 - (buffer & 3);
 	}
-	readFileSectors(tim, (void *)buffer, digimonType * 9, 9);
+	/* MOD (species): the texture and the model of a new species are in DIGI.DAT */
+	getDigimonTextureRef(digimonType, &tim, &sector, &size);
+	readFileSectors(tim, (void *)buffer, sector, size);
 	modelData->imagePtr = (uint8_t *)buffer;
 	modelData->imageSize = 0x4800;
 	buffer += modelData->imageSize;
@@ -3621,9 +3660,15 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	if ((buffer & 3L) != 0) {
 		buffer += 4 - (buffer & 3);
 	}
-	addFileReadRequestPath(path, (uint8_t *)buffer, readComplete, 0, 0);
+	getDigimonModelRef(digimonType, &file, &sector, &size);
+	if (file != NULL) {
+		addFileReadRequestSection(file, (uint8_t *)buffer, sector, (size + 0x7FF) >> 11, readComplete, 0, 0);
+	} else {
+		addFileReadRequestPath(path, (uint8_t *)buffer, readComplete, 0, 0);
+		size = lookupFileSize(path);
+	}
 	modelData->modelPtr = (uint8_t *)buffer;
-	modelData->modelSize = lookupFileSize(path);
+	modelData->modelSize = size;
 	buffer += modelData->modelSize;
 	return buffer;
 }
@@ -3639,7 +3684,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 	RECT rect;
 	int32_t k;
 
-	if (digimonType < 0 || digimonType >= NUM_DIGIMON) {
+	if (!isValidDigimonType(digimonType)) { /* MOD (species) */
 		return 0;
 	}
 	if (entityType == 0) {
@@ -3664,7 +3709,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 		m->pixelOffsetX = 0;
 		m->pixelOffsetY = (k % 2) << 7;
 		m->modelId = k;
-		name = PTR_DIGIMON_FILE_NAMES[digimonType];
+		name = getDigimonModelName(digimonType);
 		loadDigimonTexture(digimonType, name, m);
 		concatStrings(path, MAIN_D_8011D46C, name);
 		concatStrings(path, path, MAIN_D_801340EC);
@@ -3694,7 +3739,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 	} else {
 		return 0;
 	}
-	name = PTR_DIGIMON_FILE_NAMES[digimonType];
+	name = getDigimonModelName(digimonType);
 	++m->useCount;
 	if (m->useCount != 1) {
 		return m;

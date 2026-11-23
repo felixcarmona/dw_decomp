@@ -1089,11 +1089,11 @@ void STD_tickChampionScene(void)
 			rot.vz = 0;
 			rot.vy &= 0xfff;
 			GS_VIEWPOINT.vry = ENTITY_TABLE[1]->posData->location.vy -
-			                   DIGIMON_DATA[ENTITY_TABLE[1]->type].height * 2 / 3;
+			                   DIGI_PARA(ENTITY_TABLE[1]->type).height * 2 / 3;
 			RotMatrix(&rot, &m);
 			trans.vx = 0;
 			trans.vy = 0;
-			trans.vz = -(DIGIMON_DATA[ENTITY_TABLE[1]->type].radius * 2 + 0x320);
+			trans.vz = -(DIGI_PARA(ENTITY_TABLE[1]->type).radius * 2 + 0x320);
 			ApplyMatrixLV(&m, &trans, &out);
 			GS_VIEWPOINT.vpx = out.vx;
 			GS_VIEWPOINT.vpz = out.vz;
@@ -2320,7 +2320,7 @@ void STD_applyRadiusAttackHit(void)
 		if (e->isOnMap == 0) {
 			goto next;
 		}
-		radius = DIGIMON_DATA[e->type].radius;
+		radius = DIGI_PARA(e->type).radius;
 		radius *= radius;
 		radius += r;
 		dx = *(int32_t *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 4) - (int32_t)e->posData->location.vx;
@@ -2335,8 +2335,8 @@ void STD_applyRadiusAttackHit(void)
 			}
 		}
 		((DigimonEntity *)ENTITY_TABLE[*(int32_t *)&EFE_HIT_ENTITY_INDEX])->stats.current.isHit = 1;
-		STD_calculateAttackHitPosition(&pos, e, EFE_SCRIPT_CONTEXT->sourceEntity, DIGIMON_DATA[e->type].radius);
-		pos.vy = -DIGIMON_DATA[e->type].height / 2;
+		STD_calculateAttackHitPosition(&pos, e, EFE_SCRIPT_CONTEXT->sourceEntity, DIGI_PARA(e->type).radius);
+		pos.vy = -DIGI_PARA(e->type).height / 2;
 		addAttackObject(EFE_HIT_ENTITY_INDEX, 1, &pos, COMBAT_EFFECT_ITR, EFE_SUB_EFFECT_INDEX, i);
 		*hitFlag = 1;
 next:
@@ -2381,7 +2381,7 @@ void STD_applyLineAttackHit(void)
 		if (e->isOnMap == 0) {
 			continue;
 		}
-		r = DIGIMON_DATA[e->type].radius;
+		r = DIGI_PARA(e->type).radius;
 		rect[0] = e->posData->location.vx - r;
 		rect[2] = e->posData->location.vx + r;
 		rect[1] = e->posData->location.vz - r;
@@ -2389,7 +2389,7 @@ void STD_applyLineAttackHit(void)
 		if (doSomethingWithSomePoints(rect, line) != -1) {
 			continue;
 		}
-		if (*(int32_t *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 8) < (-DIGIMON_DATA[e->type].height - arg[1])) {
+		if (*(int32_t *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 8) < (-DIGI_PARA(e->type).height - arg[1])) {
 			continue;
 		}
 		for (j = 1; j < 10; j++) {
@@ -2398,7 +2398,7 @@ void STD_applyLineAttackHit(void)
 			}
 		}
 		((DigimonEntity *)ENTITY_TABLE[EFE_HIT_ENTITY_INDEX])->stats.current.isHit = 1;
-		STD_calculateAttackHitPosition(&pos, e, EFE_SCRIPT_CONTEXT->sourceEntity, DIGIMON_DATA[e->type].radius);
+		STD_calculateAttackHitPosition(&pos, e, EFE_SCRIPT_CONTEXT->sourceEntity, DIGI_PARA(e->type).radius);
 		pos.vy = *(int32_t *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 8);
 		addAttackObject(EFE_HIT_ENTITY_INDEX, 1, &pos, COMBAT_EFFECT_ITR, EFE_SUB_EFFECT_INDEX, j);
 		*out = 1;
@@ -3660,8 +3660,8 @@ void STD_getSourceDigimonSize(void)
 	int16_t height;
 
 	out = EFE_POP1(EfeVector *);
-	radius = DIGIMON_DATA[EFE_SCRIPT_CONTEXT->sourceEntity->type].radius;
-	height = DIGIMON_DATA[EFE_SCRIPT_CONTEXT->sourceEntity->type].height;
+	radius = DIGI_PARA(EFE_SCRIPT_CONTEXT->sourceEntity->type).radius;
+	height = DIGI_PARA(EFE_SCRIPT_CONTEXT->sourceEntity->type).height;
 	out->vx = radius;
 	out->vy = height;
 	out->vz = radius;
@@ -4139,8 +4139,8 @@ void STD_getTargetDigimonSize(void)
 	int16_t height;
 
 	out = EFE_POP1(EfeVector *);
-	radius = DIGIMON_DATA[EFE_SCRIPT_CONTEXT->targetEntity->type].radius;
-	height = DIGIMON_DATA[EFE_SCRIPT_CONTEXT->targetEntity->type].height;
+	radius = DIGI_PARA(EFE_SCRIPT_CONTEXT->targetEntity->type).radius;
+	height = DIGI_PARA(EFE_SCRIPT_CONTEXT->targetEntity->type).height;
 	out->vx = radius;
 	out->vy = height;
 	out->vz = radius;
@@ -5177,7 +5177,7 @@ int16_t STD_calculateAttackHitPosition(SVECTOR *out, Entity *self, Entity *other
 	rot.vz = 0;
 	RotMatrixZYX(&rot, &m);
 	out->vx = 0;
-	out->vy = -DIGIMON_DATA[self->type].height;
+	out->vy = -DIGI_PARA(self->type).height;
 	out->vz = y;
 	ApplyMatrixSV(&m, out, out);
 	out->vx += (int16_t)self->posData->location.vx;
@@ -5690,7 +5690,7 @@ void STD_renderStunEffect(int32_t idx)
 	}
 
 	pos.vx = p->entity->posData->location.vx;
-	pos.vy = -DIGIMON_DATA[p->entity->type].height * 113 / 100;
+	pos.vy = -DIGI_PARA(p->entity->type).height * 113 / 100;
 	pos.vz = p->entity->posData->location.vz;
 	otz = worldPosToScreenPos(&pos, &screen);
 
@@ -5788,9 +5788,9 @@ void STD_renderStunSubEffect(int32_t i)
 
 	p = &STD_STUN_SUB_EFFECTS[i];
 	pos.vx = p->entity->posData->location.vx;
-	pos.vy = lerp(-DIGIMON_DATA[p->entity->type].height * 113 / 100, p->entity->posData->location.vy, 0, 0xf, p->frame);
+	pos.vy = lerp(-DIGI_PARA(p->entity->type).height * 113 / 100, p->entity->posData->location.vy, 0, 0xf, p->frame);
 	pos.vz = p->entity->posData->location.vz;
-	s = DIGIMON_DATA[p->entity->type].radius * 0x4000 / 350;
+	s = DIGI_PARA(p->entity->type).radius * 0x4000 / 350;
 	if (p->frame < 4) {
 		s = lerp(s * 10 / 100, s, 0, 4, p->frame);
 	}
@@ -5915,7 +5915,7 @@ void STD_renderFinisherAura(int32_t id)
 	} else {
 		sx = 0x1000;
 	}
-	sx = sx * DIGIMON_DATA[e->type].radius / 150;
+	sx = sx * DIGI_PARA(e->type).radius / 150;
 
 	t = lerp(0, 0x200, 0, 0x10, fa->frame);
 	if (fa->frame < 5) {
@@ -5923,7 +5923,7 @@ void STD_renderFinisherAura(int32_t id)
 	} else {
 		sy = 0x1000;
 	}
-	sy = sy * DIGIMON_DATA[e->type].height / 350;
+	sy = sy * DIGI_PARA(e->type).height / 350;
 	sy = sy * 85 / 100 + sy * 15 / 100 * _sin(t) / 0x1000;
 
 	rot = STD_FINISHER_AURA_ROTATION;
@@ -5944,7 +5944,7 @@ void STD_renderFinisherAura(int32_t id)
 
 		col = STD_FINISHER_AURA_COLOR;
 		s = fa->frame * 0x1000 / 7;
-		s = s * DIGIMON_DATA[e->type].radius / 150;
+		s = s * DIGI_PARA(e->type).radius / 150;
 		col.r = (uint32_t)col.r * (7 - fa->frame) / 7;
 		col.g = (uint32_t)col.g * (7 - fa->frame) / 7;
 		col.b = (uint32_t)col.b * (7 - fa->frame) / 7;
@@ -6187,8 +6187,8 @@ int32_t STD_addAuraProjectile(Entity *e)
 	aura->type = type;
 	q = &e->posData->posMatrix.workm;
 	aura->position.vx = 0;
-	aura->position.vy = -DIGIMON_DATA[e->type].height * 50 / 100;
-	aura->position.vz = -DIGIMON_DATA[e->type].height * 50 / 100;
+	aura->position.vy = -DIGI_PARA(e->type).height * 50 / 100;
+	aura->position.vz = -DIGI_PARA(e->type).height * 50 / 100;
 	ApplyMatrixSV(q, &aura->position, &aura->position);
 	aura->position.vx += (int16_t)q->t[0];
 	aura->position.vy += (int16_t)q->t[1];

@@ -38,7 +38,7 @@ extern uint8_t HAS_USED_EVOITEM;
 IS_SICK_TEXT
 
 char MAIN_D_801225AC[16] = "\\ETCNA\\UNTI.TMD";
-RaiseData RAISE_DATA[NUM_PARTNER_DIGIMON] = {
+RaiseData RAISE_DATA[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
 	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 670, 200, -2270 },
 	{ { -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -193,7 +193,7 @@ SleepPattern SLEEP_PATTERN[8] = {
 	{0, 0, 0, 0, 8, 3},
 };
 
-int8_t ITEM_TAKE_DISTANCE[NUM_PARTNER_DIGIMON] = {
+int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	10, 10, 10, 10, 15, 10, 10, 15, 10, 15, 10, 15, 10, 10, 10, 10, 10,
 	10, 15, 10, 10, 15, 10, 15, 10, 25, 10, 10, 10, 10, 10, 10, 10, 10,
 	15, 15, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15,
@@ -478,11 +478,11 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[1] = 0xff;
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[2] = 0xff;
 	for (i = 15; i >= 0; i--) {
-		if (DIGIMON_DATA[type].moves[i] == 0xff)
+		if (DIGI_PARA(type).moves[i] == 0xff)
 			continue;
-		if (DIGIMON_DATA[type].moves[i] < 0x3a)
+		if (DIGI_PARA(type).moves[i] < 0x3a)
 			continue;
-		if (DIGIMON_DATA[type].moves[i] >= 0x71)
+		if (DIGI_PARA(type).moves[i] >= 0x71)
 			continue;
 
 		PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = i + 0x2e;
@@ -591,7 +591,7 @@ void setSleepTimes(PartnerPara *para, int32_t type)
 	int16_t roll;
 	int16_t awakeTimeBase;
 
-	level = DIGIMON_DATA[type].level;
+	level = DIGI_PARA(type).level;
 
 	if (level < 3) {
 		if (level == 1) {
@@ -636,7 +636,7 @@ void setFoodTimer(int16_t type)
 	int32_t i;
 	uint8_t level;
 
-	level = DIGIMON_DATA[type].level;
+	level = DIGI_PARA(type).level;
 
 	if (level == 1) {
 		PARTNER_PARA.nextHungerHour = HOUR / 2 * 2 + 2;
@@ -919,7 +919,7 @@ void tickSleepMechanics(void)
 	}
 
 	type = PARTNER_ENTITY.digimonEntity.entity.type;
-	level = DIGIMON_DATA[type].level;
+	level = DIGI_PARA(type).level;
 	if (PARTNER_PARA.condition & 1) {
 		if (level == 1) {
 			if (((CURRENT_FRAME % 200) == 0) &&
@@ -1118,7 +1118,7 @@ void handlePraiseScold(state)
 
 	if (state == 4) {
 		NANIMON_TRIGGER = 0;
-		if ((DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level == 3) && (oldDiscipline == 0) &&
+		if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level == 3) && (oldDiscipline == 0) &&
 		    (oldHappiness == -100)) {
 			NANIMON_TRIGGER = 1;
 		}
@@ -1144,7 +1144,7 @@ void handleSleeping(void)
 	if (PARTNER_PARA.remainingLifetime < 0)
 		PARTNER_PARA.remainingLifetime = 0;
 
-	if (DIGIMON_DATA[type].level < 3) {
+	if (DIGI_PARA(type).level < 3) {
 		PARTNER_PARA.sleepyHour =
 			PARTNER_PARA.wakeupHour +
 			PARTNER_PARA.hoursAwakeDefault;
@@ -1422,17 +1422,17 @@ int32_t partnerWillRefuseItem(void)
 	if (((item >= 0x47) && (item < 0x73)) ||
 	    ((item >= 0x7D) && (item < 0x80))) {
 		if (item == 0x7E) {
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level != 3)
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != 3)
 				return 1;
 		} else if ((item == 0x7D) || (item == 0x7F)) {
-			if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level != 4)
+			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != 4)
 				return 1;
-		} else if ((DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level ==
-			    DIGIMON_DATA[ITEM_EVOLUTION_TARGET(item)].level) ||
-			   (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level + 2 ==
-			    DIGIMON_DATA[ITEM_EVOLUTION_TARGET(item)].level) ||
-			   (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level - 1 ==
-			    DIGIMON_DATA[ITEM_EVOLUTION_TARGET(item)].level)) {
+		} else if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level ==
+			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level) ||
+			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level + 2 ==
+			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level) ||
+			   (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level - 1 ==
+			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level)) {
 			return 1;
 		}
 	}
@@ -2074,7 +2074,7 @@ void tickConditions(void)
 		IMMORTAL_HOUR = -1;
 	}
 	evoTimer = PARTNER_PARA.evoTimer;
-	level = DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level;
+	level = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
 	tamerState = tamerGetState();
 	if (CURRENT_FRAME != LAST_HANDLED_FRAME && PARTNER_STATE == 1 &&
 	    tamerState == 0) {

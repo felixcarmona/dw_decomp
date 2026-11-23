@@ -43,7 +43,7 @@ extern int32_t CHECKED_MEMORY_CARD;
 extern VECTOR STORED_TAMER_POS;
 
 
-extern int8_t ITEM_TAKE_DISTANCE[NUM_PARTNER_DIGIMON];
+extern int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON];
 
 void tickMainMenu(int32_t instanceId);
 void renderMainMenu(int32_t instanceId);
@@ -971,7 +971,7 @@ int8_t getPartnerTamerCloseness(void)
 	distance = (tamerLocation->vx - partnerLocation->vx) * (tamerLocation->vx - partnerLocation->vx) +
 		   (tamerLocation->vz - partnerLocation->vz) * (tamerLocation->vz - partnerLocation->vz);
 
-	radius = DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].radius;
+	radius = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).radius;
 	walkDistance = (radius * 5 / 2) * (radius * 5 / 2);
 	sprintDistanceSquared = (radius * 7 / 2) * (radius * 7 / 2);
 

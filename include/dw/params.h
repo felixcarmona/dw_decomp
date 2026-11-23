@@ -97,12 +97,28 @@ typedef struct {
 	int16_t unused12;
 } PartnerPara;
 
-extern DigimonPara DIGIMON_DATA[NUM_DIGIMON];
+extern DigimonPara DIGIMON_DATA[NUM_ORIGINAL_DIGIMON];
+
+/*
+ * MOD (species): a Digimon's parameters by type. The 180 original species
+ * are the resident DIGIMON_DATA; new species (ids NUM_ORIGINAL_DIGIMON and up)
+ * come from DIGI.DAT through a small cache (mod_species.c, species.h).
+ */
+DigimonPara *getSpeciesPara(int32_t type);
+static inline DigimonPara *digimonPara(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &DIGIMON_DATA[type];
+	}
+	return getSpeciesPara(type);
+}
+#define DIGI_PARA(type) (*digimonPara(type))
+
 #if VERSION_IS(EU)
-extern char *DIGIMON_NAMES[NUM_DIGIMON];
+extern char *DIGIMON_NAMES[NUM_ORIGINAL_DIGIMON];
 #define DIGIMON_NAME(type) DIGIMON_NAMES[type]
 #else
-#define DIGIMON_NAME(type) DIGIMON_DATA[type].name
+#define DIGIMON_NAME(type) DIGI_PARA(type).name
 #endif
 extern PartnerPara PARTNER_PARA;
 

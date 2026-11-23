@@ -335,7 +335,7 @@ uint8_t entityGetTechFromAnim(Entity *e, uint8_t anim)
 	if ((e->type == 0x3cL) && (anim == 0x3c)) {
 		return 0x70;
 	}
-	return DIGIMON_DATA[e->type].moves[anim - 0x2e];
+	return DIGI_PARA(e->type).moves[anim - 0x2e];
 }
 
 void entityLookAtTile(Entity *entity, int8_t tileX, int8_t tileY)

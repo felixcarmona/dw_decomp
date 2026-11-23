@@ -206,7 +206,7 @@ void VS_randomizeDemoFighter(Entity *entity)
 	int16_t base;
 
 	base = 100;
-	switch (DIGIMON_DATA[entity->type].level) {
+	switch (DIGI_PARA(entity->type).level) {
 	case 3:
 		div = 1;
 		mul = 1;
@@ -294,8 +294,8 @@ void VS_randomizeDemoFighter(Entity *entity)
 	}
 	stats->base.moves[3] = 0xff;
 	for (i = 0; i < 0x10; i++) {
-		if (DIGIMON_DATA[entity->type].moves[i] >= 0x3a &&
-		    DIGIMON_DATA[entity->type].moves[i] < 0x71) {
+		if (DIGI_PARA(entity->type).moves[i] >= 0x3a &&
+		    DIGI_PARA(entity->type).moves[i] < 0x71) {
 			stats->base.moves[3] = i + 0x2e;
 			return;
 		}
@@ -394,7 +394,7 @@ void VS_randomizeTrialDigimon(RegisteredDigimon *digimon)
 	int16_t base;
 
 	base = 100;
-	switch (DIGIMON_DATA[digimon->digimonId].level) {
+	switch (DIGI_PARA(digimon->digimonId).level) {
 	case 3:
 		div = 1;
 		mul = 1;

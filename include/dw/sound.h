@@ -1,6 +1,7 @@
 #ifndef DW_SOUND_H
 #define DW_SOUND_H
 
+#include <dw/ids.h>
 #include <dw/types.h>
 
 #define NUM_SOUND_BUFFERS	10
@@ -20,7 +21,7 @@ extern unsigned long VHB_SOUNDBUFFER_START[];
 extern int32_t ACTIVE_MAP_SOUND_ID;
 extern MapSoundPara MAP_SOUND_PARA[];
 extern uint8_t DIGIMON_VBALL_SOUND_ID[];
-extern uint8_t DIGIMON_VLALL_SOUND_ID[];
+extern uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON];
 
 int32_t initializeMusic(void);
 void finalizeMusic(void);

@@ -73,6 +73,7 @@ MAIN_C_SRC := \
 	src/main/utils.c \
 	src/main/utils2.c \
 	src/main/mod_lab.c \
+	src/main/mod_species.c \
 	src/main/vecmath.c \
 	src/main/world_object.c
 

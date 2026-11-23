@@ -24,6 +24,7 @@
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/sound_async.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/utils.h>
 #include <dw/vecmath.h>
@@ -418,7 +419,7 @@ void DOOA_tickDissolve(int32_t instanceId)
 			seq->phase = 0x64;
 			DOOA_SAVED_LOCATION.vy = entity->posData->location.vy;
 			target = &seq->flash;
-			target->targetY = DOOA_getStoredDigimonY() - (DIGIMON_DATA[entity->type].height + 100);
+			target->targetY = DOOA_getStoredDigimonY() - (DIGI_PARA(entity->type).height + 100);
 			target->pos.vx = entity->posData->location.vx;
 			target->pos.vz = entity->posData->location.vz;
 			stopSound();
@@ -570,9 +571,9 @@ int32_t DOOA_hasIrisClosed(Entity *entity, int32_t startFrame, long endFrame, lo
 		frame = endFrame;
 	}
 	worldPos.vx = entity->posData->location.vx;
-	worldPos.vy = entity->posData->location.vy - (DIGIMON_DATA[entity->type].height / 2);
+	worldPos.vy = entity->posData->location.vy - (DIGI_PARA(entity->type).height / 2);
 	worldPos.vz = entity->posData->location.vz;
-	size = getDistance(DIGIMON_DATA[entity->type].radius * 2, DIGIMON_DATA[entity->type].height, DIGIMON_DATA[entity->type].radius * 2);
+	size = getDistance(DIGI_PARA(entity->type).radius * 2, DIGI_PARA(entity->type).height, DIGI_PARA(entity->type).radius * 2);
 	radius = (lerp(200, 0, startFrame, endFrame, frame) << 12) / 128;
 	depth = worldPosToScreenPos(&worldPos, &screenPos);
 	if (depth <= 0) {
@@ -700,7 +701,7 @@ void DOOA_updateCutsceneCamera(VECTOR *position, int32_t angle, int32_t startFra
 	mid = (startFrame + endFrame) / 2;
 	end = endFrame;
 	seq = &DOOA_REINCARNATION_SEQ;
-	height = DIGIMON_DATA[seq->entity->type].height;
+	height = DIGI_PARA(seq->entity->type).height;
 
 	if ((frame < startFrame) || (frame > endFrame)) {
 		return;
@@ -753,7 +754,7 @@ void DOOA_spawnShardWave(long wireIndex)
 	effect = &DOOA_SHARD_EFFECT;
 	entity = effect->entity;
 
-	for (boneIndex = 2; boneIndex < DIGIMON_DATA[entity->type].boneCount; boneIndex++) {
+	for (boneIndex = 2; boneIndex < DIGI_PARA(entity->type).boneCount; boneIndex++) {
 		DOOA_spawnBoneShards(effect, boneIndex, wireIndex);
 	}
 }
@@ -794,7 +795,7 @@ void DOOA_renderDigimonModel(Entity *entity, uint32_t otPoint)
 	type = entity->type;
 	animId = entity->anim.animId;
 	posData = entity->posData;
-	boneCount = DIGIMON_DATA[type].boneCount;
+	boneCount = DIGI_PARA(type).boneCount;
 	location = posData->location;
 	rotation = posData->rotation;
 	lightMatrix = GsWSMATRIX;
@@ -858,9 +859,9 @@ int32_t DOOA_renderIrisWindow(Entity *entity, int32_t startFrame, long endFrame,
 	}
 
 	pos.vx = entity->posData->location.vx;
-	pos.vy = entity->posData->location.vy - (DIGIMON_DATA[entity->type].height / 2);
+	pos.vy = entity->posData->location.vy - (DIGI_PARA(entity->type).height / 2);
 	pos.vz = entity->posData->location.vz;
-	size = getDistance(DIGIMON_DATA[entity->type].radius * 2, DIGIMON_DATA[entity->type].height, DIGIMON_DATA[entity->type].radius * 2);
+	size = getDistance(DIGI_PARA(entity->type).radius * 2, DIGI_PARA(entity->type).height, DIGI_PARA(entity->type).radius * 2);
 	radius = (lerp(200, 0, startFrame, endFrame, frame) << 12) / 128;
 	z = worldPosToScreenPos(&pos, &screen);
 	if (z <= 0) {
@@ -1541,7 +1542,7 @@ void DOOA_spawnBoneShards(DooaShardEffect *effect, int32_t boneIndex, long wireI
 	tmd = model->modelPtr;
 	header = tmd;
 	objects = header->obj;
-	objIndex = DIGIMON_SKELETONS[entity->type][boneIndex].objIndex;
+	objIndex = getDigimonSkeleton(entity->type)[boneIndex].objIndex; /* MOD (species) */
 	if (objIndex == -1) {
 		return;
 	}

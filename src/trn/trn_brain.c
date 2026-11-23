@@ -40,7 +40,7 @@ int16_t arg;
 		TRN_D_8008F320.vy = 0;
 		TRN_D_8008F320.vz = 0x3f3;
 		addObject(0xfb0, 0, (TickFunction)TRN_tickBrainsTraining, NULL);
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeBrainCounter++;
 		}
 		TRAINING_COMPLETE = 0;
