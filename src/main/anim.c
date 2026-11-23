@@ -63,17 +63,17 @@ void calculatePosMatrix(PositionData *posData, int32_t unused1,
 	matrix->flg = 0;
 }
 
+/* MOD (fps): the six 6-byte memcpy() calls went to the BIOS memcpy, which runs from
+ * ROM: about 2.5 scanlines a bone, so one animation start cost up to 60 lines and was
+ * the most frequent cause of the battles' late frames. The same zeros, stored here. */
 void resetMomentumData(MomentumData *momentum)
 {
-	AnimVec zero;
+	int32_t i;
 
-	zero.x = zero.y = zero.z = 0;
-	memcpy(&momentum->delta[3], &zero, 6);
-	memcpy(&momentum->delta[6], &zero, 6);
-	memcpy(&momentum->delta[0], &zero, 6);
-	memcpy(&momentum->subDelta[3], &zero, 6);
-	memcpy(&momentum->subDelta[6], &zero, 6);
-	memcpy(&momentum->subDelta[0], &zero, 6);
+	for (i = 0; i < 9; i++) {
+		momentum->delta[i] = 0;
+		momentum->subDelta[i] = 0;
+	}
 }
 
 void animateEntityTexture(Entity *entity, EntityAnim *anim)
