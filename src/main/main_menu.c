@@ -2440,6 +2440,7 @@ static void modDrawSlot2(char *str, int32_t x, int32_t y, int32_t slot2)
 
 static void modDrawSlotName(char *name, int32_t y)
 {
+    if (MOD_LANG == MOD_LANG_ZH) name = zhCardName(name);
 	if (MOD_SAVE_SLOTS_LONG) {
 		drawStringMode(name, SLOT_NAME_X, y, fitStringMode(name, SLOT_LONG_NAME_W));
 	} else {
@@ -2533,7 +2534,7 @@ static void modTitleNameTail(void)
 {
 	char *name;
 
-	name = DIGIMON_NAME(SAVE_FILE.saves[0].partnerType);
+	name = MOD_LANG == MOD_LANG_ZH ? zhLatinName(SAVE_FILE.saves[0].partnerType) : DIGIMON_NAME(SAVE_FILE.saves[0].partnerType);
 	if (strlen(name) > 0x11) {
 		SAVE_FILE.reserved[0] = 'L';
 		SAVE_FILE.reserved[1] = 'N';
@@ -2579,6 +2580,27 @@ static void modTitlePlayerName(void)
 		p[i * 2] = plain >> 8;
 		p[i * 2 + 1] = plain;
 	}
+}
+
+/* Shared by the initial, sleep and save-machine card headers. */
+static void modTitleNames(void)
+{
+	asciiToShiftJIS((uint8_t *)MAIN_D_8013392C,
+	(uint16_t *)SAVE_FILE.title);
+	_strncpy(SAVE_FILE.title + 8,
+	SAVEGAME_ID_LABEL[MEMORY_CARD_SLOT + 1], 4);
+	/* MOD: _strncpy does not terminate: clear old name bytes (original showed "Bayer" for "B" after "Player") */
+	memset(SAVE_FILE.title + 0xe, 0, 0xe);
+	_strncpy(SAVE_FILE.title + 0xe,
+	SAVE_FILE.saves[0].playerName, 0xD);
+	memset(SAVE_FILE.title + 0x1c, 0, 0x12);
+	_strncpy(SAVE_FILE.title + 0x1c,
+	MOD_LANG == MOD_LANG_ZH ? zhLatinName(SAVE_FILE.saves[0].partnerType) : DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
+	0x11);
+	memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
+	modTitleNameTail(); /* MOD (long names) */
+	modTitlePlayerName(); /* MOD (language) */
+	modTitleOptions(); /* MOD (options) */
 }
 
 void drawRegisteredDigimonSlots(int32_t slot)
@@ -2983,22 +3005,7 @@ void tickMainMenu(void)
 		_strncpy(SAVE_FILE.title + 0x2e,
 			 MAP_NAME_PTR[MAP_ENTRIES[SAVE_FILE.saves[0].currentScreen].loadingName], 0x12);
 #else
-		asciiToShiftJIS((uint8_t *)MAIN_D_8013392C,
-				(uint16_t *)SAVE_FILE.title);
-		_strncpy(SAVE_FILE.title + 8,
-			 SAVEGAME_ID_LABEL[MEMORY_CARD_SLOT + 1], 4);
-		/* MOD: _strncpy does not terminate: clear old name bytes (original showed "Bayer" for "B" after "Player") */
-		memset(SAVE_FILE.title + 0xe, 0, 0xe);
-		_strncpy(SAVE_FILE.title + 0xe,
-			 SAVE_FILE.saves[0].playerName, 0xD);
-		memset(SAVE_FILE.title + 0x1c, 0, 0x12);
-		_strncpy(SAVE_FILE.title + 0x1c,
-			 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
-			 0x11);
-		memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
-		modTitleNameTail(); /* MOD (long names) */
-		modTitlePlayerName(); /* MOD (language) */
-		modTitleOptions(); /* MOD (options) */
+		modTitleNames();
 #endif
 		prepareSaveFile(MOD_CHEATS_CARD_MODE == 1); /* MOD (save v2): checksums, extension, mirror */
 		status = writeSaveFile();
@@ -3354,22 +3361,7 @@ void tickMainMenu(void)
 			_strncpy(SAVE_FILE.title + 0x2e,
 				 MAP_NAME_PTR[MAP_ENTRIES[SAVE_FILE.saves[0].currentScreen].loadingName], 0x12);
 #else
-			asciiToShiftJIS((uint8_t *)MAIN_D_8013392C,
-				(uint16_t *)SAVE_FILE.title);
-			_strncpy(SAVE_FILE.title + 8,
-				 SAVEGAME_ID_LABEL[MEMORY_CARD_SLOT + 1], 4);
-			/* MOD: _strncpy does not terminate: clear old name bytes (original showed "Bayer" for "B" after "Player") */
-			memset(SAVE_FILE.title + 0xe, 0, 0xe);
-			_strncpy(SAVE_FILE.title + 0xe,
-				 SAVE_FILE.saves[0].playerName, 0xD);
-			memset(SAVE_FILE.title + 0x1c, 0, 0x12);
-			_strncpy(SAVE_FILE.title + 0x1c,
-				 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
-				 0x11);
-			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
-			modTitleNameTail(); /* MOD (long names) */
-			modTitlePlayerName(); /* MOD (language) */
-			modTitleOptions(); /* MOD (options) */
+		modTitleNames();
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
@@ -3703,22 +3695,7 @@ void tickMainMenu(void)
 			_strncpy(SAVE_FILE.title + 0x2e,
 				 MAP_NAME_PTR[MAP_ENTRIES[SAVE_FILE.saves[0].currentScreen].loadingName], 0x12);
 #else
-			asciiToShiftJIS((uint8_t *)MAIN_D_8013392C,
-				(uint16_t *)SAVE_FILE.title);
-			_strncpy(SAVE_FILE.title + 8,
-				 SAVEGAME_ID_LABEL[MEMORY_CARD_SLOT + 1], 4);
-			/* MOD: _strncpy does not terminate: clear old name bytes (original showed "Bayer" for "B" after "Player") */
-			memset(SAVE_FILE.title + 0xe, 0, 0xe);
-			_strncpy(SAVE_FILE.title + 0xe,
-				 SAVE_FILE.saves[0].playerName, 0xD);
-			memset(SAVE_FILE.title + 0x1c, 0, 0x12);
-			_strncpy(SAVE_FILE.title + 0x1c,
-				 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
-				 0x11);
-			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
-			modTitleNameTail(); /* MOD (long names) */
-			modTitlePlayerName(); /* MOD (language) */
-			modTitleOptions(); /* MOD (options) */
+		modTitleNames();
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
