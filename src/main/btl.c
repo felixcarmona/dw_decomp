@@ -277,6 +277,12 @@ int32_t handleBattleStart(id)
 			NPC_ENTITIES[i - 2].digimonEntity.entity.isOnMap = 0;
 			continue;
 		}
+		/* Conversation NPCs fight only when their script names them. Nearby
+		 * wild encounters must not pull them into an unrelated battle. */
+		if (NPC_ENTITIES[i - 2].autotalk == 0) {
+			setFleeBubble(i, 1);
+			continue;
+		}
 		if (count == 3) {
 			setFleeBubble(i, 1);
 			continue;
