@@ -342,14 +342,32 @@ char MAIN_D_801306B4[] = "ＵＶＷＸＹ";
 
 char MAIN_D_801306C0[] = "Ｚ　　　　";
 
+#if VERSION_IS(US)
+/*
+ * MOD (language): the name keyboard has the accented letters and the eñe of the mod font (F0xx, docs/mods/font.md) in
+ * the cells the US left blank, in both languages: Ñ Ü after Z, the acute vowels under them; the lower case alike on the
+ * right page, the digits one row lower. A name is two bytes a letter either way (NAMING_BUFFER, the saves' 20 bytes);
+ * the memory card's title gets the plain letters (main_menu.c modTitlePlayerName).
+ */
+char NAMING_ROW_Z_UPPER[] = "Ｚ\xF0\x56\xF0\x55　　";            /* Z Ñ Ü */
+char NAMING_ROW_ACUTE_UPPER[] = "\xF0\x4C\xF0\x4D\xF0\x53\xF0\x4E\xF0\x4F"; /* Á É Í Ó Ú */
+char NAMING_ROW_Z_LOWER[] = "ｚ\xF0\x4A\xF0\x49　　";            /* z ñ ü */
+char NAMING_ROW_ACUTE_LOWER[] = "\xF0\x40\xF0\x41\xF0\x47\xF0\x42\xF0\x43"; /* á é í ó ú */
+#endif
+
 char *CHAR_PAGE1_LEFT[9] = {
 	MAIN_D_80130684,
 	MAIN_D_80130690,
 	MAIN_D_8013069C,
 	MAIN_D_801306A8,
 	MAIN_D_801306B4,
+#if VERSION_IS(US)
+	NAMING_ROW_Z_UPPER,
+	NAMING_ROW_ACUTE_UPPER,
+#else
 	MAIN_D_801306C0,
 	MAIN_D_80130540,
+#endif
 	MAIN_D_80130540,
 	MAIN_D_80130540,
 };
@@ -403,10 +421,10 @@ char *CHAR_PAGE1_RIGHT[9] = {
 	MAIN_D_80130708,
 	MAIN_D_80130714,
 	MAIN_D_80130720,
-	MAIN_D_8013072C,
+	NAMING_ROW_Z_LOWER, /* MOD (language): was MAIN_D_8013072C, z alone */
+	NAMING_ROW_ACUTE_LOWER,
 	MAIN_D_80130738,
 	MAIN_D_80130744,
-	MAIN_D_80130540,
 };
 
 char **NAMING_CHAR_PAGES[6] = {
@@ -418,9 +436,26 @@ char **NAMING_CHAR_PAGES[6] = {
 	CHAR_PAGE3_RIGHT,
 };
 
+/* MOD (language): the labels' crops (x, y, width; each starts where the one before ended in the label row): the Spanish
+ * words do not fit 12-pixel cells, so their row is laid out in pieces (NAMING_LABEL_PIECES) */
 int16_t NAMING_CTRL_BOXES[10] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0x000e, 0x0006, 0x0034, 0x000e, 0x005a, 0x0034, 0x000e, 0x0076,
+	0x0018, 0x0000,
+#else
 	0x000e, 0x0006, 0x0030, 0x000e, 0x005a, 0x0030, 0x000e, 0x0076,
 	0x0018, 0x0000,
+#endif
+};
+
+/* MOD (language): the label row ("Name" "Back" "OK") in pieces at these offsets in the original's cells, or (PIECES_END
+ * first) in the keyboard's 12-pixel cells as the US drew it */
+uint16_t NAMING_LABEL_PIECES[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0, 0x34, 0x68, PIECES_END,
+#else
+	PIECES_END, PIECES_END, PIECES_END, PIECES_END,
+#endif
 };
 
 uint16_t NAMING_ROLLOVER_CHARS[10] = {
@@ -1080,7 +1115,7 @@ int32_t newGameStateMachine(void)
 #if !VERSION_IS(US)
 		strcpy(DIGIMON_NAME(0), "？？？");
 #else
-		strcpy(DIGIMON_NAME(0), &MAIN_D_80134600[7]);
+		DIGIMON_NAME(0)[0] = '\0'; /* MOD (language): was a copy of &MAIN_D_80134600[7], the NUL past "BackOK" */
 #endif
 		setupNewGameDialogueBox();
 		showNewGameDialogue(0x10, 2);
@@ -2654,6 +2689,12 @@ void setupNameSelectorBox(void)
 	setRECT(&rect1, screenPos.vx, screenPos.vy, 10, 10);
 	setRECT(&rect2, -145, -91, 290, 138);
 	createTextbox(1, flags, &rect2, &rect1, tickNamingBox, renderNamingBox);
+#if FONT_SWITCH
+	/* MOD (language): the label row in pieces when the language's words are wider than its cells */
+	if (NAMING_LABEL_PIECES[0] != PIECES_END) {
+		textboxRowPieces(1, 0, NAMING_LABEL_PIECES);
+	}
+#endif
 	registerTextbox(1, 1, 7, 1, 0);
 
 	SHOP_AMOUNT = 0;

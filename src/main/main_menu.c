@@ -2481,6 +2481,37 @@ static void modTitleNameTail(void)
 	}
 }
 
+/*
+ * MOD (language): the player's name in the save title, written by the memory card's own screens too, must be plain
+ * Shift-JIS: an accented letter of the mod font (F040-F057, the name keyboard) becomes its full-width plain letter there.
+ * Which ones were accented goes to the header's reserved bytes after the long names' tail ("A" at [5], then each
+ * letter's F0 code or 0), for the save slots (loadSaveSlotData). Run after modTitleNameTail.
+ */
+static const uint16_t PLAIN_LETTERS[0x18] = {
+	0x8281, 0x8285, 0x828f, 0x8295, 0x8281, 0x8285, 0x828f, 0x8289, /* á é ó ú à è ò í */
+	0x8289, 0x8295, 0x828e, 0x8283, 0x8260, 0x8264, 0x826e, 0x8274, /* ï ü ñ ç Á É Ó Ú */
+	0x8260, 0x8264, 0x826e, 0x8268, 0x8268, 0x8274, 0x826d, 0x8262, /* À È Ò Í Ï Ü Ñ Ç */
+};
+
+static void modTitlePlayerName(void)
+{
+	uint8_t *p;
+	int32_t i;
+	uint16_t plain;
+
+	p = (uint8_t *)SAVE_FILE.title + 0xe;
+	for (i = 0; i < 6 && p[i * 2] != 0; i++) {
+		if (p[i * 2] != 0xf0) {
+			continue;
+		}
+		SAVE_FILE.reserved[5] = 'A';
+		SAVE_FILE.reserved[6 + i] = p[i * 2 + 1];
+		plain = p[i * 2 + 1] >= 0x40 && p[i * 2 + 1] < 0x58 ? PLAIN_LETTERS[p[i * 2 + 1] - 0x40] : 0x8140;
+		p[i * 2] = plain >> 8;
+		p[i * 2 + 1] = plain;
+	}
+}
+
 void drawRegisteredDigimonSlots(int32_t slot)
 {
 	RECT area;
@@ -2895,6 +2926,7 @@ void tickMainMenu(void)
 			 0x11);
 		memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 		modTitleNameTail(); /* MOD (long names) */
+		modTitlePlayerName(); /* MOD (language) */
 #endif
 		prepareSaveFile(0); /* MOD (save v2): checksums, extension, mirror */
 		status = writeSaveFile();
@@ -3263,6 +3295,7 @@ void tickMainMenu(void)
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 			modTitleNameTail(); /* MOD (long names) */
+			modTitlePlayerName(); /* MOD (language) */
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
@@ -3616,6 +3649,7 @@ void tickMainMenu(void)
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
 			modTitleNameTail(); /* MOD (long names) */
+			modTitlePlayerName(); /* MOD (language) */
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
@@ -4057,6 +4091,9 @@ int32_t loadSaveSlotData(int32_t channel, char *filename, SaveSlotPreview *slots
 	uint8_t data[0x200];
 	int32_t i;
 	int32_t slot;
+#if VERSION_IS(US)
+	int32_t j; /* MOD (language) */
+#endif
 
 	/* The fourth caller argument is unused in retail. */
 	MemCardSync(0, &cmd, &result);
@@ -4108,6 +4145,15 @@ int32_t loadSaveSlotData(int32_t channel, char *filename, SaveSlotPreview *slots
 			if (data[0x44] == 'L' && data[0x45] == 'N' && strlen(slots[slot].digimonName) == 17) {
 				strncpy(slots[slot].digimonName + 17, (char *)&data[0x46], 2);
 				slots[slot].digimonName[19] = '\0';
+			}
+			/* MOD (language): the accented letters of the player's name (modTitlePlayerName) */
+			if (data[0x49] == 'A') {
+				for (j = 0; j < 6; j++) {
+					if (data[0x4a + j] != 0 && slots[slot].playerName[j * 2] != '\0') {
+						slots[slot].playerName[j * 2] = 0xf0;
+						slots[slot].playerName[j * 2 + 1] = data[0x4a + j];
+					}
+				}
 			}
 			/* the long layout of the slot screens when a species passes the original column */
 			if (measureStringMode(slots[slot].digimonName, FIT_VANILLA) > SLOT_NAME_W) {
