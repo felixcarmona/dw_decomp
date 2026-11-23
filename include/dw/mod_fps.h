@@ -47,6 +47,10 @@ int32_t modRenderRand(void);
 extern int32_t MOD_FPS_INTERP;
 extern int32_t MOD_INTERP_MAP_GEN;
 extern int32_t MOD_MIST_SHIFT[3];
+/* bones 1..n: 0 = not interpolated, 1 = tamer and partner, 2 = all */
+extern int32_t MOD_FPS_INTERP_BONES;
+/* startAnimation: the entity's pose jumps, its bones are not interpolated */
+void modInterpAnimStarted(void *entity);
 void modInterpUnapplyEntity(int32_t entityId);
 void modInterpInvalidate(void);
 
