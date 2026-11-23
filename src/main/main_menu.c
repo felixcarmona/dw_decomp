@@ -274,9 +274,9 @@ static void __attribute__((noinline)) modShowLanguageError(void);
 static void __attribute__((noinline)) modRenderLanguageError(void);
 static void __attribute__((noinline)) modDrawLanguageName(int32_t lang, int32_t x, int32_t y);
 static char *MOD_LANGUAGE_NAMES[MOD_LANGS];
-static void modDrawLanguagePicker(void);
-static void modTickLanguagePicker(void);
-static void modRenderLanguagePicker(void);
+static __attribute__((noinline)) void modDrawLanguagePicker(void);
+static __attribute__((noinline)) void modTickLanguagePicker(void);
+static __attribute__((noinline)) void modRenderLanguagePicker(void);
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 #define MOD_OPT_BYTES	14 /* byte 13: inverted enemy HUD flags; absent/zero = both ON */
 #define MOD_OPT_HEADER_BYTES 12
@@ -5828,6 +5828,14 @@ void loadMenuOverlay(void)
 	loadDynamicLibrary(MENU_REL, NULL, 0, NULL, NULL);
 }
 
+/* The title shares EVL's spare tail with its picker. Load EVL first: MENU's
+ * last sector may replace its unused first sector. World saves load MENU only. */
+void loadTitleMenuOverlays(void)
+{
+	loadDynamicLibrary(EVL_REL, NULL, 0, NULL, NULL);
+	loadMenuOverlay();
+}
+
 void closeMenuOverlay(void)
 {
 	checkCurlingMap(CURRENT_SCREEN);
@@ -5852,7 +5860,7 @@ void modMenuVsBattle(int32_t trial)
 	{
 		VS__initialize(VS__REGISTERED_DIGIMON_BUFFER, &VS__REGISTERED_DIGIMON_BUFFER[0x28]);
 	}
-	loadMenuOverlay();
+	loadTitleMenuOverlays();
 	addObject(0xFA3, 0, NULL, (RenderFunction)renderMainMenuBackground);
 	addObject(0x1388, 0, (TickFunction)tickMainMenu, (RenderFunction)renderMainMenu);
 }
@@ -6303,7 +6311,7 @@ static void renderOptionsMenu(void)
 
 /* First boot: native language names and small procedural flags. Preferences are
  * remembered by the existing save-header options, with no extra card writes. */
-static void modDrawLanguagePicker(void)
+static __attribute__((noinline)) void modDrawLanguagePicker(void)
 {
     int32_t i, lang;
     clearTextArea();
@@ -6318,7 +6326,7 @@ static void modDrawLanguagePicker(void)
     DrawSync(0);
 }
 
-static void modTickLanguagePicker(void)
+static __attribute__((noinline)) void modTickLanguagePicker(void)
 {
     int32_t count = modLanguageCount();
     int32_t cursor = MOD_BOOT_LANGUAGE_CURSOR;
@@ -6350,7 +6358,7 @@ static void modTickLanguagePicker(void)
     MOD_BOOT_LANGUAGE_CURSOR = cursor;
 }
 
-static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb)
+static __attribute__((noinline)) void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb)
 {
 	TILE *tile = (TILE *)GsGetWorkBase();
 	setTile(tile);
@@ -6438,7 +6446,7 @@ static void __attribute__((noinline)) modRenderLanguageError(void)
     renderMenuBox(20, 68, 280, 80);
 }
 
-static void modRenderLanguagePicker(void)
+static __attribute__((noinline)) void modRenderLanguagePicker(void)
 {
     POLY_FT4 *text;
     MenuHighlight selected = {0};

@@ -153,6 +153,7 @@ void loadStackedTIMFile(char *path);
 void runLandingScreen(void);
 void runMainMenu(void);
 void loadMenuOverlay(void);
+void loadTitleMenuOverlays(void);
 void modBootOptions(void); /* MOD (options) */
 void modNoticeDraw(void); /* MOD (emulator notice, main_menu.c) */
 void modNoticeRender(void);
@@ -3800,7 +3801,7 @@ void runMainMenu(void)
 	TARGET_MENU = 0x47;
 #endif
 	loadTIMFile(MAIN_D_8012CEA0, GENERAL_BUFFER_PTR);
-	loadMenuOverlay(); /* MOD (menu overlay): tickMainMenu and renderMainMenu are in MENU_REL.BIN */
+	loadTitleMenuOverlays(); /* MENU and the title-only picker in EVL's tail */
 	addObject(0x1388, 0, (TickFunction)tickMainMenu, (RenderFunction)renderMainMenu);
 	addObject(0xfa3, 0, NULL, (RenderFunction)renderMainMenuBackground);
 	fadeFromBlack(0x28);
