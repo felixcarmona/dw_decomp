@@ -321,8 +321,7 @@ SECTIONS
             /* Detection display only runs while the title owns EVL and MENU. */
             BUILD_DIR/src/main/main_menu.c.o(
                 .text.modNoticeDraw* .text.modNoticeRender* .text.modNoticeString*
-                .text.modNoticePercent* .rodata.modNoticeDraw*
-                .rodata.MOD_NOTICE_CALIBRATION .rodata.widths*
+                .rodata.modNoticeDraw*
                 .bss.MOD_NOTICE_CACHE
             );
             . = ALIGN(., 4);
@@ -909,6 +908,8 @@ SECTIONS
 				.text.writeSaveFile
 				.text.writeSavegame
 			);
+            /* Localized enhancement-popup text; title callbacks also own MENU. */
+            BUILD_DIR/src/main/main_menu.c.o(.data.MOD_NOTICE_TEXT);
 			. = ALIGN(., 4);
 			/* their switch tables and literals, which only they read */
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings

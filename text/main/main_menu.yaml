@@ -378,17 +378,20 @@ MOD_OPTIONS:
       ja: "NORMAL"
       en_us: "NORMAL"
     MOD_NOTICE_STR_HEAD1:
-      ja: "CPU 250%: 60 FPS"
-      en_us: "CPU 250%: 60 FPS"
-    MOD_NOTICE_STR_HEAD2:
-      ja: "8 MB: Chinese only"
-      en_us: "8 MB: Chinese only"
+      ja: "Detected emulator enhancements"
+      en_us: "Detected emulator enhancements"
     MOD_NOTICE_STR_RAM:
-      ja: "RAM %d MB"
-      en_us: "RAM %d MB"
+      ja: "8 MB RAM"
+      en_us: "8 MB RAM"
     MOD_NOTICE_STR_CPU:
-      ja: "CPU ～%d％"
-      en_us: "CPU ～%d％"
+      ja: "CPU overclock at 250%"
+      en_us: "CPU overclock at 250%"
+    MOD_NOTICE_STR_MISSING:
+      ja: "NOT DETECTED"
+      en_us: "NOT DETECTED"
+    MOD_NOTICE_STR_READY:
+      ja: "READY"
+      en_us: "READY"
     MOD_NOTICE_STR_FPS:
       ja: "%d FPS"
       en_us: "%d FPS"
