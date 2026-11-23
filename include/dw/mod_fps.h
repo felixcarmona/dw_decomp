@@ -6,12 +6,13 @@
 #include <dw/mod_present.h>
 #include <fps.h> /* FPS: the build's frame rate (Makefile `FPS=20|30|60`, generated) */
 
-/* MOD (fps): FPS is the build's frame rate, 20, 30 or 60 (Makefile, default
- * there), and MOD_FPS_MODE the mode modPresent works with: 0 = 20 fps (one
- * render per tick, the original), 1 = 30, 2 = 60. With FPS=20 it is a
- * compile-time 0 and the extra passes and the interpolation compile out. With
- * FPS=30|60 it is MOD_FPS_MODE_RUN (main.c), the build's rate at start; the
- * title menu's OPTIONS switch it between 30 and 60 (FRAME RATE, mod_options.c). */
+/* FPS=20 compiles out extra passes. FPS=30|60 includes the automatic
+ * 20/60 selector: boot and idle-time CPU measurements choose the mode.
+ * Logic cadence is independent of this presentation setting. */
+#define MOD_CPU_LINES 16
+#define MOD_CPU_SPINS_FAST 8500
+#define MOD_CPU_SPINS_SLOW 7500
+int32_t modCpuProbe(void);
 #if FPS == 20
 #define MOD_FPS_MODE 0
 #elif FPS == 30 || FPS == 60
