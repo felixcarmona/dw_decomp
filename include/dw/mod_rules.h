@@ -82,7 +82,7 @@ int32_t modNewGame(int32_t slot);
  */
 #define MOD_TG_ROWS		16
 #define MOD_TG_WIDTH		11
-#define MOD_TR_SIZE		32
+#define MOD_TR_SIZE		34
 #define MOD_TG_HP	0
 #define MOD_TG_MP	1
 #define MOD_TG_OFF	2
@@ -130,10 +130,16 @@ int32_t modNewGame(int32_t slot);
 #define MOD_TR_LEARN9	29
 #define MOD_TR_LEARN10	30
 #define MOD_TR_LEARN11	31
+#define MOD_TR_SESSION	32 /* logic ticks (50 ms) a gym session runs before it ends by itself */
+#define MOD_TR_STEP	33 /* ticks of one step of a session: the work shown (every step) and the reward (per step done) */
 extern int16_t MOD_TRAIN_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH];
 extern int16_t MOD_TRAIN_RULES[MOD_TR_SIZE];
 extern int16_t MOD_TRAIN2_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH];
 extern int16_t MOD_TRAIN2_RULES[MOD_TR_SIZE];
+/* the length of a gym session and of one step of it; a session left out ends at once, a step left out is 1 tick */
+#define TRN_SESSION_OF(rules)	((rules)[MOD_TR_SESSION] > 0 ? (rules)[MOD_TR_SESSION] : 0)
+#define TRN_SESSION_SPAN_OF(rules)	((rules)[MOD_TR_SESSION] > 0 ? (rules)[MOD_TR_SESSION] : 1)
+#define TRN_STEP_OF(rules)	((rules)[MOD_TR_STEP] > 0 ? (rules)[MOD_TR_STEP] : 1)
 #define TG(row, field)		((row) ? (row)[field] : 0)
 /* the row of a gym for a slot of its minigame: the exact slot, else the row for any slot (-2); NULL = no gain */
 static inline const int16_t *trainGainRow(int16_t rows[][MOD_TG_WIDTH], int32_t gym, int32_t slot)

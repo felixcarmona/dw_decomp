@@ -2,6 +2,7 @@
 #include <dw/entity.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -95,7 +96,7 @@ int16_t instanceId;
 		break;
 	case 2:
 		PARTNER_ENTITY.digimonEntity.entity.anim.animFlag |= 2;
-		if (((MAIN_D_8013537A % 0x78) == 0) && (MAIN_D_8013537A < 0x4b1)) {
+		if (((MAIN_D_8013537A % TRN_STEP_OF(MOD_TRAIN_RULES)) == 0) && (MAIN_D_8013537A <= TRN_SESSION_OF(MOD_TRAIN_RULES))) {
 			PARTNER_ENTITY.digimonEntity.entity.anim.animFlag &= 0xfd;
 			moveMapObjectsWithLimit(MAIN_D_8013536C, MAIN_D_8013536E, 1, -2, 0, 0);
 		}
@@ -115,11 +116,11 @@ int16_t instanceId;
 		if (MAIN_D_80135370 == 1) {
 			r = TRN_getSlotSessionResult();
 		}
-		if ((((MAIN_D_8013537A >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (0 <= r))) {
-			MAIN_D_8013537A %= 0x4b0;
+		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (0 <= r))) {
+			MAIN_D_8013537A %= TRN_SESSION_SPAN_OF(MOD_TRAIN_RULES);
 			playSound(8, 0xa);
 			TRAINING_STATE = 3;
-			MAIN_D_8013537A /= 120;
+			MAIN_D_8013537A /= TRN_STEP_OF(MOD_TRAIN_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
