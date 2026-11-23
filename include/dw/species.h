@@ -44,6 +44,7 @@
 #define SPECIES_FLAG_PARTNER	0x02	/* the partner block is valid: it can be a partner */
 #define SPECIES_FLAG_COND_FX	0x04	/* conditionFx replaces CONDITION_FX_OFFSETS[originalType] */
 #define SPECIES_FLAG_EFFECT_DEFAULT 0x08 /* effectDefault: a technique without an origin row still has one (efe.c) */
+#define SPECIES_FLAG_SHOTS_FROM_DEFAULT 0x10 /* with EFFECT_DEFAULT: an entity-point technique starts there too (efe.c) */
 
 #define SPECIES_EFFECT_ORIGINS	8
 #define SPECIES_ANY_OFFSET	(-0x8000)	/* EffectOrigin.from[1]: any offset of that bone */
