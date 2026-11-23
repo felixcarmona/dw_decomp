@@ -264,7 +264,7 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
 #define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
 #define MOD_OPT_ROW_DIFF	6 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
-#define MOD_OPT_ROW_QUICK	7 /* MOD (quick battle start): QUICK BATTLES, under DIFFICULTY */
+#define MOD_OPT_ROW_QUICK	7 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
 #define MOD_OPT_ROW_FPS	8
 #if FONT_SWITCH
 #define MOD_OPT_ROWS	12 /* MOD (options): and FONT, in a build with both fonts */
