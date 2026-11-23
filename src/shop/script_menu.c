@@ -342,18 +342,6 @@ char MAIN_D_801306B4[] = "ＵＶＷＸＹ";
 
 char MAIN_D_801306C0[] = "Ｚ　　　　";
 
-#if VERSION_IS(US)
-/*
- * MOD (language): the name keyboard has the accented letters and the eñe of the mod font (F0xx, docs/mods/font.md) in
- * the cells the US left blank, in both languages: Ñ Ü after Z, the acute vowels under them; the lower case alike on the
- * right page, the digits one row lower. A name is two bytes a letter either way (NAMING_BUFFER, the saves' 20 bytes);
- * the memory card's title gets the plain letters (main_menu.c modTitlePlayerName).
- */
-char NAMING_ROW_Z_UPPER[] = "Ｚ\xF0\x56\xF0\x55　　";            /* Z Ñ Ü */
-char NAMING_ROW_ACUTE_UPPER[] = "\xF0\x4C\xF0\x4D\xF0\x53\xF0\x4E\xF0\x4F"; /* Á É Í Ó Ú */
-char NAMING_ROW_Z_LOWER[] = "ｚ\xF0\x4A\xF0\x49　　";            /* z ñ ü */
-char NAMING_ROW_ACUTE_LOWER[] = "\xF0\x40\xF0\x41\xF0\x47\xF0\x42\xF0\x43"; /* á é í ó ú */
-#endif
 
 char *CHAR_PAGE1_LEFT[9] = {
 	MAIN_D_80130684,
@@ -361,13 +349,8 @@ char *CHAR_PAGE1_LEFT[9] = {
 	MAIN_D_8013069C,
 	MAIN_D_801306A8,
 	MAIN_D_801306B4,
-#if VERSION_IS(US)
-	NAMING_ROW_Z_UPPER,
-	NAMING_ROW_ACUTE_UPPER,
-#else
 	MAIN_D_801306C0,
 	MAIN_D_80130540,
-#endif
 	MAIN_D_80130540,
 	MAIN_D_80130540,
 };
@@ -421,46 +404,136 @@ char *CHAR_PAGE1_RIGHT[9] = {
 	MAIN_D_80130708,
 	MAIN_D_80130714,
 	MAIN_D_80130720,
-	NAMING_ROW_Z_LOWER, /* MOD (language): was MAIN_D_8013072C, z alone */
-	NAMING_ROW_ACUTE_LOWER,
+	MAIN_D_8013072C,
 	MAIN_D_80130738,
 	MAIN_D_80130744,
+	MAIN_D_80130540,
+};
+
+/*
+ * MOD (language): the name keyboard has three pages, as a phone's: ABC (the US letters and digits), ÁÑÇ (the accented
+ * letters of the mod font, F0xx, docs/mods/font.md: the capitals on the left, the small letters, ß and the Catalan
+ * middle dot on the right) and !?# (punctuation and symbols; the digits on the right). The page keys are where the
+ * Japanese kana keys were (specials 0-2), L1 / R1 turn the page too. A name is two bytes a letter either way
+ * (NAMING_BUFFER, the saves' 20 bytes); the memory card's title gets plain letters (main_menu.c modTitlePlayerName).
+ */
+static char KBD_ACCENT_UPPER_0[] = "\xF0\x50\xF0\x4C\xF0\x79\xF0\x82\xF0\x7E"; /* À Á Â Ã Ä */
+static char KBD_ACCENT_UPPER_1[] = "\xF0\x51\xF0\x4D\xF0\x7A\xF0\x80\x81\x40"; /* È É Ê Ë ␣ */
+static char KBD_ACCENT_UPPER_2[] = "\xF0\x84\xF0\x53\xF0\x7B\xF0\x54\x81\x40"; /* Ì Í Î Ï ␣ */
+static char KBD_ACCENT_UPPER_3[] = "\xF0\x52\xF0\x4E\xF0\x7C\xF0\x83\xF0\x81"; /* Ò Ó Ô Õ Ö */
+static char KBD_ACCENT_UPPER_4[] = "\xF0\x85\xF0\x4F\xF0\x7D\xF0\x55\x81\x40"; /* Ù Ú Û Ü ␣ */
+static char KBD_ACCENT_UPPER_5[] = "\xF0\x57\xF0\x56\x81\x40\x81\x40\x81\x40"; /* Ç Ñ ␣ ␣ ␣ */
+
+static char KBD_ACCENT_LOWER_0[] = "\xF0\x44\xF0\x40\xF0\x6C\xF0\x74\xF0\x71"; /* à á â ã ä */
+static char KBD_ACCENT_LOWER_1[] = "\xF0\x45\xF0\x41\xF0\x6D\xF0\x72\x81\x40"; /* è é ê ë ␣ */
+static char KBD_ACCENT_LOWER_2[] = "\xF0\x76\xF0\x47\xF0\x6E\xF0\x48\x81\x40"; /* ì í î ï ␣ */
+static char KBD_ACCENT_LOWER_3[] = "\xF0\x46\xF0\x42\xF0\x6F\xF0\x75\xF0\x73"; /* ò ó ô õ ö */
+static char KBD_ACCENT_LOWER_4[] = "\xF0\x77\xF0\x43\xF0\x70\xF0\x49\x81\x40"; /* ù ú û ü ␣ */
+static char KBD_ACCENT_LOWER_5[] = "\xF0\x4B\xF0\x4A\xF0\x78\xF0\x5A\x81\x40"; /* ç ñ ß · ␣ */
+
+static char KBD_SYMBOLS_0[] = "\x81\x42\x81\x43\x81\x75\x81\x76\x81\x7C"; /* . , ' " - */
+static char KBD_SYMBOLS_1[] = "\x81\x49\x81\x48\xF0\x59\xF0\x58\x81\x46"; /* ! ? ¡ ¿ : */
+static char KBD_SYMBOLS_2[] = "\x81\x47\x81\x7B\x81\x81\xF0\x61\xF0\x67"; /* ; + = / ~ */
+static char KBD_SYMBOLS_3[] = "\xF0\x5D\xF0\x5E\xF0\x63\xF0\x64\xF0\x66"; /* ( ) [ ] * */
+static char KBD_SYMBOLS_4[] = "\xF0\x5B\xF0\x5C\xF0\x5A\xF0\x62\xF0\x69"; /* « » · … – */
+static char KBD_SYMBOLS_5[] = "\xF0\x5F\xF0\x60\xF0\x65\xF0\x68\x81\x5F"; /* & % # @ \ */
+static char KBD_SYMBOLS_6[] = "\xF0\x6B\xF0\x86\xF0\x87\x81\x9B\x81\x7E"; /* ♪ ♥ ★ ○ △ */
+static char KBD_SYMBOLS_7[] = "\x81\xA0\x81\xA2\x81\x40\x81\x40\x81\x40"; /* □ × ␣ ␣ ␣ */
+
+static char KBD_DIGITS_0[] = "\x82\x4F\x82\x50\x82\x51\x82\x52\x82\x53"; /* 0 1 2 3 4 */
+static char KBD_DIGITS_1[] = "\x82\x54\x82\x55\x82\x56\x82\x57\x82\x58"; /* 5 6 7 8 9 */
+
+static char *KBD_ACCENT_UPPER[9] = {
+	KBD_ACCENT_UPPER_0,
+	KBD_ACCENT_UPPER_1,
+	KBD_ACCENT_UPPER_2,
+	KBD_ACCENT_UPPER_3,
+	KBD_ACCENT_UPPER_4,
+	KBD_ACCENT_UPPER_5,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+};
+
+static char *KBD_ACCENT_LOWER[9] = {
+	KBD_ACCENT_LOWER_0,
+	KBD_ACCENT_LOWER_1,
+	KBD_ACCENT_LOWER_2,
+	KBD_ACCENT_LOWER_3,
+	KBD_ACCENT_LOWER_4,
+	KBD_ACCENT_LOWER_5,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+};
+
+static char *KBD_SYMBOLS[9] = {
+	KBD_SYMBOLS_0,
+	KBD_SYMBOLS_1,
+	KBD_SYMBOLS_2,
+	KBD_SYMBOLS_3,
+	KBD_SYMBOLS_4,
+	KBD_SYMBOLS_5,
+	KBD_SYMBOLS_6,
+	KBD_SYMBOLS_7,
+	MAIN_D_80130540,
+};
+
+static char *KBD_DIGITS[9] = {
+	KBD_DIGITS_0,
+	KBD_DIGITS_1,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
+	MAIN_D_80130540,
 };
 
 char **NAMING_CHAR_PAGES[6] = {
 	CHAR_PAGE1_LEFT,
 	CHAR_PAGE1_RIGHT,
-	CHAR_PAGE2_LEFT,
-	CHAR_PAGE2_RIGHT,
-	CHAR_PAGE3_LEFT,
-	CHAR_PAGE3_RIGHT,
+	KBD_ACCENT_UPPER,
+	KBD_ACCENT_LOWER,
+	KBD_SYMBOLS,
+	KBD_DIGITS,
 };
 
-/* MOD (language): the labels' crops (x, y, width; each starts where the one before ended in the label row): the Spanish
- * words do not fit 12-pixel cells, so their row is laid out in pieces (NAMING_LABEL_PIECES) */
-int16_t NAMING_CTRL_BOXES[10] = {
+#define NAMING_PAGES 3
+
+/* MOD (language): the page keys' labels, the same in both languages */
+static char *NAMING_PAGE_LABELS[NAMING_PAGES] = { "ABC", "\xF0\x4C\xF0\x56\xF0\x57", "!?\xF0\x65" };
+
+/* MOD (language): the labels' crops (x, y, width; each starts where the one before ended in the label row): the title,
+ * the three page keys, Back and OK. The Spanish words do not fit 12-pixel cells, so their row is laid out in pieces
+ * (NAMING_LABEL_PIECES) */
+int16_t NAMING_CTRL_BOXES[18] = {
 #if MOD_LANG_BUILD == MOD_LANG_ES
-	0x000e, 0x0006, 0x0034, 0x000e, 0x005a, 0x0034, 0x000e, 0x0076,
-	0x0018, 0x0000,
+	0x000e, 0x0006, 0x0034, 0x000e, 0x0022, 0x0024, 0x000e, 0x0030,
+	0x0024, 0x000e, 0x003e, 0x0018, 0x000e, 0x005a, 0x0034, 0x000e,
+	0x0076, 0x0018,
 #else
-	0x000e, 0x0006, 0x0030, 0x000e, 0x005a, 0x0030, 0x000e, 0x0076,
-	0x0018, 0x0000,
+	0x000e, 0x0006, 0x0030, 0x000e, 0x0022, 0x0024, 0x000e, 0x0030,
+	0x0024, 0x000e, 0x003e, 0x0024, 0x000e, 0x005a, 0x0030, 0x000e,
+	0x0076, 0x0018,
 #endif
 };
 
-/* MOD (language): the label row ("Name" "Back" "OK") in pieces at these offsets in the original's cells, or (PIECES_END
- * first) in the keyboard's 12-pixel cells as the US drew it */
-uint16_t NAMING_LABEL_PIECES[4] = {
+/* MOD (language): the label row ("Name" "ABC" "ÁÑÇ" "!?#" "Back" "OK") in pieces at these offsets in the original's
+ * cells, or (PIECES_END first) in the keyboard's 12-pixel cells as the US drew it */
+uint16_t NAMING_LABEL_PIECES[7] = {
 #if MOD_LANG_BUILD == MOD_LANG_ES
-	0, 0x34, 0x68, PIECES_END,
+	0, 0x34, 0x58, 0x7c, 0x94, 0xc8, PIECES_END,
 #else
-	PIECES_END, PIECES_END, PIECES_END, PIECES_END,
+	PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END, PIECES_END,
 #endif
 };
 
+/* MOD (language): each row's key of the left column (the Japanese layout's) */
 uint16_t NAMING_ROLLOVER_CHARS[10] = {
-	0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000,
-	0x8000, 0x0000,
+	0x8000, 0x8000, 0x8000, 0x8001, 0x8002, 0x8003, 0x8003, 0x8004,
+	0x8004, 0x0000,
 };
 
 BoxLabel MAIN_D_801307B4 = { STR_IN_HAND };   /* MOD (text sources): keyed, text/shop/script_menu.yaml */
@@ -473,8 +546,8 @@ TRADE_LABEL_TEXT
 NAMING_BUTTONS_TEXT
 
 #if VERSION_IS(US)
-uint16_t NAMING_ROLLOVER_CTRL[2] = {
-	0x0019, 0x0019,
+uint16_t NAMING_ROLLOVER_CTRL[6] = {
+	0x000a, 0x000f, 0x0014, 0x001e, 0x0028, 0x0000, /* MOD (language): the Japanese layout's, the page keys back */
 };
 #endif
 
@@ -527,18 +600,15 @@ SelectionBoxOffsetData NAMING_CHAR_WIDTH = { {
 } };
 // clang-format on
 
-#if !VERSION_IS(US)
-#define NAMING_DELETE 3
+#define NAMING_DELETE 3 /* MOD (language): the US too, after its page keys */
 #define NAMING_OK 4
 #define NAMING_LABELS 5
+#if !VERSION_IS(US)
 #define NAMING_PROMPT_TAMER STR_YOUR_NAME
 #define NAMING_PROMPT_DIGIMON STR_DIGIMONS_NAME
 #define NAMING_TITLE STR_NAME
 #define NAMING_BUTTONS STR_BACK_OK
 #else
-#define NAMING_DELETE 0
-#define NAMING_OK 1
-#define NAMING_LABELS 3
 #define NAMING_PROMPT_TAMER MAIN_D_801345F4
 #define NAMING_PROMPT_DIGIMON (MAIN_D_801345F4 + 1)
 #define NAMING_TITLE MAIN_D_801345F8
@@ -2799,15 +2869,13 @@ void tickNamingBox(void)
 			return;
 		}
 		switch (special) {
-#if !VERSION_IS(US)
-		case 0:
+		case 0: /* MOD (language): the US has the page keys too */
 		case 1:
 		case 2:
 			SHOP_AMOUNT = special;
 			fillNamingMenuStrings();
 			playSound(0, 3);
 			break;
-#endif
 		case NAMING_DELETE:
 			namingDeleteLast();
 			break;
@@ -2829,6 +2897,13 @@ void tickNamingBox(void)
 	} else if (isKeyDown(0x800)) {
 		NAMING_SELECTOR = 0x8000 | NAMING_OK;
 		playSound(0, 2);
+#if VERSION_IS(US)
+	} else if (isKeyDown(0x4) || isKeyDown(0x8)) {
+		/* MOD (language): L1 / R1 turn the keyboard's page */
+		SHOP_AMOUNT = (SHOP_AMOUNT + (isKeyDown(0x8) ? 1 : NAMING_PAGES - 1)) % NAMING_PAGES;
+		fillNamingMenuStrings();
+		playSound(0, 3);
+#endif
 	} else if (isKeyDown(0x8000)) {
 		namingSelectionLeft(col, row, special);
 	} else if (isKeyDown(0x2000)) {
@@ -2918,6 +2993,15 @@ void fillNamingMenuStrings(void)
 	strcpy(buf, NAMING_TITLE);
 	len = strlen(NAMING_TITLE);
 	buf += len;
+#if VERSION_IS(US)
+	/* MOD (language): the page keys, the current one in the highlight colour */
+	for (row = 0; row < NAMING_PAGES; row++) {
+		*buf++ = 1;
+		*buf++ = row == SHOP_AMOUNT ? 6 : 1;
+		strcpy(buf, NAMING_PAGE_LABELS[row]);
+		buf += strlen(NAMING_PAGE_LABELS[row]);
+	}
+#endif
 	*buf++ = 1;
 	*buf++ = 1;
 	strcpy(buf, NAMING_BUTTONS);
