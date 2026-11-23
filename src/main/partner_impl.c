@@ -416,6 +416,7 @@ extern uint16_t LAST_HANDLED_FRAME;
 extern int32_t IS_SCRIPT_PAUSED;
 
 void writePStat(int32_t id, uint8_t value);
+void storePartnerSpecies(uint8_t index);
 void callScriptSection(int32_t a, int32_t b, int32_t c);
 ModelComponent *thunkLoadMMD(int32_t digiType, int32_t modelType);
 void learnMove(int32_t move);
@@ -2303,7 +2304,7 @@ void tickConditions(void)
 		if (PARTNER_ENTITY.digimonEntity.entity.type != MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_IMMUNE_A] &&
 		    PARTNER_ENTITY.digimonEntity.entity.type != MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_IMMUNE_B]) {
 			EVOLUTION_TARGET = MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_TARGET];
-			writePStat(5, PARTNER_ENTITY.digimonEntity.entity.type);
+			storePartnerSpecies(5);
 			PARTNER_PARA.sukaBackupHP =
 				PARTNER_ENTITY.digimonEntity.stats.base.hp;
 			PARTNER_PARA.sukaBackupMP =

@@ -1401,11 +1401,10 @@ top: {
 		case 7:
 			ctrl = *SCRIPT_POINTER++;
 			{
-				ctrl = readPStat(ctrl);
-				strcpy(out,
-				       (const char *)&DIGI_PARA(ctrl));
-				lines = strlen(
-					(const char *)&DIGI_PARA(ctrl));
+				const char *name = (const char *)&DIGI_PARA(pstatSpecies(ctrl));
+
+				strcpy(out, name);
+				lines = strlen(name);
 				out += lines;
 				col += (uint16_t)(lines >> 1);
 			}
