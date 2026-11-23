@@ -209,8 +209,10 @@ void BTL_initializeCombat(void)
 /* MOD (quick battle start): the intro without its waits. The tamer's walk back (the loop below: along the waypoints
  * until the next step would leave the combat area, then to the screen's start tile) runs at once, unseen, with only
  * the tamer's animation ticked, so he ends where the intro would have left him; those who flee run off during the
- * fight (modBattleFleeTick); no BATTLE letters. The entity step snaps the 60 fps interpolation. */
+ * fight (modBattleFleeTick); the BATTLE letters run over the fight (BTL_tickQuickStartText). The entity step snaps the 60 fps interpolation. */
 void modBattleFleeStart(int16_t *ids, int32_t count); /* MOD (quick battle start), btl.c */
+static int8_t BTL_QUICK_TEXT_STATE;
+static int16_t BTL_QUICK_TEXT_HOLD;
 
 static void BTL_quickBattleIntro(int16_t *found, int32_t count, int16_t wp)
 {
@@ -256,8 +258,39 @@ static void BTL_quickBattleIntro(int16_t *found, int32_t count, int16_t wp)
 	entityLookAtLocation(ENTITY_TABLE[0], &ENTITY_TABLE[1]->posData->location);
 
 	modBattleFleeStart(found, count); /* btl.c: they run off while the fight goes on */
+	BTL_QUICK_TEXT_STATE = 1; /* the BATTLE letters go on over the fight (BTL_tickQuickStartText) */
+	BTL_QUICK_TEXT_HOLD = 0;
 
 	GAME_STATE = 1;
+}
+
+/* MOD (quick battle start): the BATTLE letters over the running fight, as the intro drew them, waiting for nothing: they
+ * gather, flash for BTL_QUICK_TEXT_FLASH ticks and burst. BTL_battleMain ticks it and removes it at the fight's end. */
+#define BTL_QUICK_TEXT_FLASH	10 /* BTL_QUICK_TEXT_STATE: 1 gathering and flashing, 2 bursting, 0 gone */
+
+void BTL_tickQuickStartText(void)
+{
+	if (BTL_QUICK_TEXT_STATE == 1) {
+		if (BTL_isBattleStartTextFinished() && (++BTL_QUICK_TEXT_HOLD >= BTL_QUICK_TEXT_FLASH)) {
+			BTL_removeBattleStartText();
+			BTL_initializeBattleStartTextBurst();
+			playSound(0, 0x11);
+			BTL_QUICK_TEXT_STATE = 2;
+		}
+	} else if (BTL_QUICK_TEXT_STATE == 2) {
+		if (BTL_isBattleStartTextFinished()) {
+			BTL_removeBattleStartTextBurst();
+			BTL_QUICK_TEXT_STATE = 0;
+		}
+	}
+}
+
+void BTL_endQuickStartText(void)
+{
+	if (BTL_QUICK_TEXT_STATE != 0) {
+		BTL_removeBattleStartText(); /* the gathering and the burst are the same object, 0x1A6 */
+		BTL_QUICK_TEXT_STATE = 0;
+	}
 }
 
 void BTL_handleBattleIntro(void)
@@ -279,9 +312,7 @@ void BTL_handleBattleIntro(void)
 
 	startBattleIdleAnimation(&PARTNER_ENTITY.digimonEntity, &PARTNER_ENTITY.digimonEntity.stats, COMBAT_DATA_PTR->fighter[0].flags);
 	entityLookAtLocation(&PARTNER_ENTITY.digimonEntity.entity, &ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->posData->location);
-	if (!MOD_OPT_QUICK_BATTLE) { /* MOD (quick battle start): no BATTLE letters */
-		BTL_initializeBattleStartText();
-	}
+	BTL_initializeBattleStartText();
 	count = 0;
 	for (i = 2; i < 0xa; i++) {
 		npc = (NPCEntity *)ENTITY_TABLE[i];
