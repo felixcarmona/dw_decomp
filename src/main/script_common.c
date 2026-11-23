@@ -756,17 +756,22 @@ int32_t shopFillSellItemList(void)
 	int32_t result;
 	uint8_t type;
 	uint8_t amount;
+	int32_t food;
 
 	result = 0;
 	buf = ITEM_MENU_RIGHT->buf;
 	ITEM_MENU_RIGHT->itemCount = 0;
+	/* MOD (food picker): choose_item with p254 = 254 first (pick_item(food=True)) offers only food, the care menu's
+	 * test (ITEM_FUNCTIONS == handleFood); the other rows are greyed as the undroppable ones are. The pick or the
+	 * empty answer overwrites p254, so the request lasts one menu; the shop's sell list (routine 8) never filters. */
+	food = SCRIPT_PARAM_1 == 0 && readPStat(0xfe) == 0xfe;
 
 	for (i = 0; i < INVENTORY.size; i++) {
 		type = INVENTORY.types.array[i];
 		amount = INVENTORY.amounts.array[i];
 
 		if (type != 0xff) {
-			if (ITEM_PARA[type].droppable != 0) {
+			if (ITEM_PARA[type].droppable != 0 && (!food || ITEM_FUNCTIONS[type] == (ItemFunction)handleFood)) {
 				amount |= 0x80;
 				result = 1;
 			}
