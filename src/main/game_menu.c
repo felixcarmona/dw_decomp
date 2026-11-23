@@ -401,8 +401,6 @@ char FMT_PLAYTIME[8] = "%d : %d";
 RECT EVO_CHART_TEXT_AREA = { 0, 12, 256, 200 };
 
 RECT EVO_CHART_NAME_AREA = { 0, 48, 200, 12 }; /* MOD (long names): was 120 wide (a name of 19 characters is ~160) */
-static int16_t MOD_STATUS_NAME_WIDTH; /* MOD (long names): drawn widths of the status screen's and the chart's name */
-static int16_t MOD_CHART_NAME_WIDTH;
 void renderStringFit(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t maxW, int16_t h, uint8_t u, uint8_t v,
 		     long layer, int32_t shadow);
 
@@ -2245,7 +2243,7 @@ void renderDigimonStatsView(void)
 		/* MOD (long names): the name as wide as drawn, a longer one narrowed into the field (was len * 10, cut
 		 * at 0x78: MetalGreymonVirus showed as "MetalGreymonVi") */
 		(void)w;
-		renderStringFit(0, -0x6c, -0x32, MOD_STATUS_NAME_WIDTH, 0x78, 0xc, 0, 0x48, 5, 0);
+		renderStringFit(0, -0x6c, -0x32, measureString(DIGIMON_NAME(ENTITY_TABLE[1]->type)), 0x78, 0xc, 0, 0x48, 5, 0);
 #endif
 		renderNumber(0, -0x6d, -0x22, 2, PARTNER_PARA.age, 5);
 #if !VERSION_IS(US)
@@ -3219,6 +3217,7 @@ GARBAGE_ARRAY(renderEvoChartDetail, (&MOVES_TECHSET_LINES[0].x1), 30, 9);
 
 void renderEvoChartDetail(void)
 {
+	int32_t w; /* MOD (long names) */
 	Line4Points *fromLines;
 	Line4Points *toLines;
 	int32_t j;
@@ -3442,9 +3441,9 @@ void renderEvoChartDetail(void)
 #if VERSION_IS(US)
 	/* MOD (long names): centred by its drawn width in the level's panel, a long name narrowed (was centred by
 	 * an estimate of 12 px a character and cut at 0x78) */
-	(void)len;
-	len = MOD_CHART_NAME_WIDTH > 0x88 ? 0x88 : MOD_CHART_NAME_WIDTH;
-	renderStringFit(0, -0x42 - len / 2, 0x4d, MOD_CHART_NAME_WIDTH, 0x88, 0xc, 0, 0x30, 4, 0);
+	w = measureString(DIGIMON_NAME(CHART_DETAIL_ID));
+	len = w > 0x88 ? 0x88 : w;
+	renderStringFit(0, -0x42 - len / 2, 0x4d, w, 0x88, 0xc, 0, 0x30, 4, 0);
 #else
 	len = strlen(DIGIMON_NAME(CHART_DETAIL_ID)) / 2;
 	renderString(0, -0x5c - ((len - 4) * 6), 0x4d, 0x78, 0xc, 0, 0x30, 4);
@@ -3653,7 +3652,6 @@ int32_t drawDigimonStatsStrings(void)
 		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0x9c, 0x24);
 #else
 		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0, 0x48);
-		MOD_STATUS_NAME_WIDTH = MOD_STRING_END_X; /* MOD (long names) */
 #endif
 		drawString(PARTNER_ENTITY.name, 0, 0x3c);
 		MENU_SUB_STATE = 2;
@@ -3982,9 +3980,7 @@ int32_t drawEvoChartStrings(int32_t arg)
 	case 2:
 		clearTextSubArea(&rect2);
 		drawString((char *)digimonPara(arg), 0, 0x30);
-#if VERSION_IS(US)
-		MOD_CHART_NAME_WIDTH = MOD_STRING_END_X; /* MOD (long names) */
-#endif
+
 	}
 	return 0;
 }

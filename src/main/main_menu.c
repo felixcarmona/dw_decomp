@@ -323,6 +323,7 @@ void drawMainMenuStrings();
 void drawSaveSlotText(int32_t slot, int32_t row);
 char *formatInteger(int32_t value, char *buf, int32_t digits);
 void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos);
+static int32_t modNameColumn(char *name, int32_t x); /* MOD (long names) */
 void drawRegisteredDigimonSlots(int32_t slot);
 void updateMemoryCardState();
 void tickMainMenu(void);
@@ -1492,13 +1493,13 @@ void renderRegisterDigimon(void)
 	renderMenuBox(0x3c, 0xa8, 0xbc, 0x16);
 #else
 	renderText(cur++, 0x32, 0x21, 0, 0, 0xE2, 0xC, 0);
-	renderText(cur++, 0x32, 0x37, 0, 0xC, 0xD6, 0x6C, 0);
+	renderText(cur++, 0x32, 0x37, 0, 0xC, 0xF0, 0x6C, 0); /* MOD (long names): was 0xD6 wide */
 	renderText(cur++, 0x46, 0xAD, 0, 0x78, 0xB4, 0xC, 0);
 	renderText(cur++, 0x46, 0xC3, 0, 0x84, 0x24, 0xC, 0);
 	renderText(cur++, 0x46, 0xCF, 0, 0x90, 0x24, 0xC, 0);
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(0x28, 0x1C, 0xF6, 0x16);
-	renderMenuBox(0x28, 0x32, 0xE0, 0x76);
+	renderMenuBox(0x28, 0x32, 0xFA, 0x76); /* MOD (long names): was 0xE0 */
 	renderMenuBox(0x3C, 0xA8, 0xC8, 0x16);
 #endif
 	renderMenuBox(0x3C, 0xBE, 0x38, 0x22);
@@ -1519,11 +1520,11 @@ void renderSelectRegisterSlot(void)
 	renderMenuBox(0x3c, 0xb4, 0xa4, 0x16);
 #else
 	renderText(cur++, 0x32, 0x21, 0, 0, 0xE2, 0xC, 0);
-	renderText(cur++, 0x46, 0x37, 0, 0xC, 0xE0, 0x78, 0);
+	renderText(cur++, 0x46, 0x37, 0, 0xC, 0xF0, 0x78, 0); /* MOD (long names): was 0xE0 wide */
 	renderText(cur++, 0x46, 0xB9, 0, 0x84, 0xCA, 0xC, 0);
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(0x28, 0x1C, 0xF6, 0x16);
-	renderMenuBox(0x3C, 0x32, 0xE0, 0x82);
+	renderMenuBox(0x3C, 0x32, 0xFA, 0x82); /* MOD (long names): was 0xE0 */
 	renderMenuBox(0x3C, 0xB4, 0xD4, 0x16);
 #endif
 }
@@ -2122,7 +2123,8 @@ void drawMainMenuStrings(int32_t menu)
 		drawString(PARTNER_ENTITY.name, 0x64, 0xC);
 		DrawSync(0);
 		drawString(MAIN_D_8013468C, 0, 0x18);
-		drawString(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), 0x64, 0x18);
+		drawString(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type),
+			   modNameColumn(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), 0x64), 0x18); /* MOD (long names) */
 		DrawSync(0);
 		drawString(MAIN_D_80134694, 0, 0x24);
 		drawString(formatInteger(PARTNER_ENTITY.digimonEntity.stats.base.hp, buf, 4), 0x64, 0x24);
@@ -2285,6 +2287,24 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos)
 	}
 }
 
+/*
+ * MOD (long names): the x of a Digimon name column in the text area (256 pixels; drawGlyph draws no glyph that
+ * starts past 244): the column's own x, or further left when the name would run past 0xF0 (MetalGreymonVaccine
+ * lost its last letters on the registration screens).
+ */
+static int32_t modNameColumn(char *name, int32_t x)
+{
+#if VERSION_IS(US)
+	int32_t w;
+
+	w = measureString(name);
+	if (x + w > 0xF0) {
+		x = 0xF0 - w;
+	}
+#endif
+	return x;
+}
+
 void drawRegisteredDigimonSlots(int32_t slot)
 {
 	RECT area;
@@ -2293,7 +2313,7 @@ void drawRegisteredDigimonSlots(int32_t slot)
 	int32_t y;
 	int32_t currentSlot;
 
-	setRECT(&area, 0, 0xC, 0xCC, 0x78);
+	setRECT(&area, 0, 0xC, 0xF0, 0x78); /* MOD (long names): was 0xCC wide */
 	clearTextSubArea(&area);
 	for (i = 0; i < 10; i++) {
 		currentSlot = slot + i;
@@ -2302,7 +2322,7 @@ void drawRegisteredDigimonSlots(int32_t slot)
 		drawString(&SAVEGAME_ID_LABEL[(currentSlot + 1) % 10][2], 0xC, y);
 		if ((type = SAVE_FILE.saves[0].battleRegistrationData[currentSlot].digimonId) != 0) {
 			drawString(SAVE_FILE.saves[0].battleRegistrationData[currentSlot].name, 0x1e, y);
-			drawString(DIGIMON_NAME(type), 0x6C, y);
+			drawString(DIGIMON_NAME(type), modNameColumn(DIGIMON_NAME(type), 0x6C), y); /* MOD (long names) */
 		} else {
 			setTextColor(9);
 #if !VERSION_IS(US)

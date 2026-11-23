@@ -1491,7 +1491,6 @@ void drawString(str, x, y)
 	}
 }
 #else
-int16_t MOD_STRING_END_X; /* MOD (long names): font.h */
 // clang-format off
 void drawString(str, x, y)
 	char *str;
@@ -1531,6 +1530,55 @@ void drawString(str, x, y)
 
 		x += drawGlyph(codepoint, x, y);
 	}
-	MOD_STRING_END_X = x;
+}
+
+/*
+ * MOD (long names): the width in pixels drawString gives a text, without drawing it (the glyph's advance follows
+ * its GLYPH_HEIGHT rows, as drawGlyph returns it). A screen can measure in any render pass; drawString draws
+ * only in the first.
+ */
+int32_t measureString(char *str)
+{
+	uint16_t codepoint;
+	uint16_t code;
+	uint16_t lo;
+	uint16_t hi;
+	uint16_t *p;
+	int32_t n;
+	int32_t w;
+
+	w = 0;
+	while (*str != '\0') {
+		if (isAsciiEncoded(str) != 0) {
+			if (*str == '.') {
+				codepoint = 0x8142;
+			} else if (*str == '\'') {
+				codepoint = 0x8175;
+			} else {
+				codepoint = convertAsciiToJis(*str);
+			}
+			codepoint = swapShortBytes(codepoint);
+			str++;
+		} else {
+			lo = (uint8_t)*str++;
+			hi = (uint8_t)*str++;
+			codepoint = swapShortBytes((lo << 8) | hi);
+		}
+		code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+		n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+		if ((code & 0xff) > 0x7f) {
+			n--;
+		}
+		if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+			p = (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+		} else {
+			CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
+			for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
+			}
+			p = GLYPH_DATA[n].pixelData;
+		}
+		w += p[GLYPH_HEIGHT];
+	}
+	return w;
 }
 #endif
