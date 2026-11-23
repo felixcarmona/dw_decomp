@@ -76,6 +76,8 @@ typedef struct {
 	int8_t side;
 } CameraChase;
 
+/* MOD (portraits): 1 and the tile and CLUT row of the icon of a fighter type outside the VS sheet */
+int32_t VS_portraitFor(int32_t type, int32_t *tile, int32_t *row);
 extern RegisteredDigimon *VS_DIGIMON_P1_PTR;
 extern RegisteredDigimon *VS_DIGIMON_P2_PTR;
 extern Entity *VS_FOCUSED_ENTITY;
