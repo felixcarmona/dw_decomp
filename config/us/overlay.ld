@@ -96,6 +96,8 @@ SECTIONS
             BUILD_DIR/src/main/btl.c.o(.text.modBattleLoadFinish);
             BUILD_DIR/src/main/buff_model.c.o(.text.removeBuffModelObject);
             BUILD_DIR/src/main/item.c.o(.text.spawnDroppedItems);
+            BUILD_DIR/src/main/item.c.o(.text.modDropFree);
+            BUILD_DIR/src/main/item.c.o(.text.modDropRoom);
             BUILD_DIR/src/main/map.c.o(.text.getRViewCopy);
             BUILD_DIR/src/main/map.c.o(.text.getViewportDistanceCopy);
             BUILD_DIR/src/main/script_common.c.o(.text.econPercent);
