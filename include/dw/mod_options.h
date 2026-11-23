@@ -19,6 +19,7 @@ extern int32_t MOD_OPT_BUTTONS;	/* JAPANESE CONTROLS: MOD_BUTTONS_JP (input.h re
 extern int32_t MOD_OPT_CLOCK;	/* DIGITAL CLOCK: the hour in digits under the clock (clock.c), 1 = shown */
 extern int32_t MOD_OPT_BARS;	/* NEW STATUS BARS: happiness and discipline as one red/green fill (patches 0162-0164), 0 = the original's */
 extern int32_t MOD_OPT_EVO_GUIDE; /* EVOLUTION GUIDE: the evolution chart's requirement card and lit lines (patch 0176), 0 = the original chart */
+extern int32_t MOD_OPT_NEW_DIGIMON; /* NEW DIGIMON: the species the mod made raisable; 0 = the original's only */
 extern int32_t MOD_OPT_TOUCHED;	/* changed in OPTIONS since the console started: a loaded save keeps it */
 
 /* the code of the button glyph that does what the US layout's glyph `code` (Shift-JIS, big endian) does */
@@ -29,6 +30,8 @@ int32_t modButtonColor(uint16_t code, int32_t color);
 uint16_t modButtonClut(void);
 /* the button layout changes: the dialogue box's button in VRAM follows it */
 void modSetButtons(int32_t layout);
+/* 1 when the partner may become `type` (NEW DIGIMON on, or a species the original raises: isVanillaSpecies) */
+int32_t modSpeciesAllowed(int32_t type);
 /* FRAME RATE: the rate the game is shown at, 30 or 60 (20 in an FPS=20 build, which has no choice) */
 int32_t modFrameRate(void);
 void modSetFrameRate(int32_t fps);

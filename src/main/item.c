@@ -4,6 +4,7 @@
 #include <inline_n.h>
 #include <libgs.h>
 
+#include <dw/mod_options.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -2201,7 +2202,7 @@ void handleEvoItems(int16_t item)
 	if (item >= 0x7d) {
 		/* MOD (evolution rules as data): Giga Hand, Noble Mane, Metalbanana: MOD_EVO_ITEMS (content/tables/evolution-rules.json) */
 		modItem = getModEvoItem(item);
-		if (modItem == NULL) {
+		if (modItem == NULL || !modSpeciesAllowed(modItem->target)) { /* MOD (options): NEW DIGIMON off */
 			return;
 		}
 		EVOLUTION_TARGET = modItem->target;
