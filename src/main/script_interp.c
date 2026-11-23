@@ -2163,7 +2163,7 @@ void setMapHeadActive(void)
 	SCRIPT_POINTER = MAPHEAD_SCRIPT_PTR + off - 2;
 }
 
-#if FONT_SWITCH
+/* MOD (font, language): built in every executable: the font and the language both change the script text */
 void tickFileReadQueue(int32_t unused);
 int32_t isFileReadQueueBusy(void);
 void modScreenFileChanged(void);
@@ -2183,7 +2183,7 @@ void modFontScriptsChanged(void)
 	ACTIVE_MAP_SCRIPT = 0;
 	modScreenFileChanged();
 }
-#endif
+
 
 void initializeScripts(void)
 {

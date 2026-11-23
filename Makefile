@@ -59,6 +59,30 @@ $(shell mkdir -p $(GEN_DIR); printf '#define FONT_%s 1\n' '$(shell echo $(FONT) 
 	cmp -s $(GEN_DIR)/font_sel.h.tmp $(GEN_DIR)/font_sel.h && rm $(GEN_DIR)/font_sel.h.tmp \
 	|| mv $(GEN_DIR)/font_sel.h.tmp $(GEN_DIR)/font_sel.h)
 
+# MOD (language): the language the executable's own strings are in at boot (docs/mods/language.md): en or es. A
+# two-language disc carries the other one as a patch (LANGEN.BIN / LANGES.BIN) and OPTIONS (LANGUAGE) switches.
+LANG_BASE ?= en
+ifeq ($(filter $(LANG_BASE),en es),)
+$(error LANG_BASE=$(LANG_BASE): en or es)
+endif
+# LANG_BUILD: the language of this build's strings and language tables (tools/build-full.sh builds the tree twice, once
+# per language; the two builds differ only in data, tools/langpatch.py checks it). Default: LANG_BASE.
+LANG_BUILD ?= $(LANG_BASE)
+$(shell mkdir -p $(GEN_DIR); printf '#define MOD_LANG_BUILD MOD_LANG_%s\n' '$(shell echo $(LANG_BUILD) | tr a-z A-Z)' > $(GEN_DIR)/lang_build.h.tmp; \
+	cmp -s $(GEN_DIR)/lang_build.h.tmp $(GEN_DIR)/lang_build.h && rm $(GEN_DIR)/lang_build.h.tmp \
+	|| mv $(GEN_DIR)/lang_build.h.tmp $(GEN_DIR)/lang_build.h)
+$(shell mkdir -p $(GEN_DIR); printf '#define MOD_LANG_BASE MOD_LANG_%s\n' '$(shell echo $(LANG_BASE) | tr a-z A-Z)' > $(GEN_DIR)/lang_base.h.tmp; \
+	cmp -s $(GEN_DIR)/lang_base.h.tmp $(GEN_DIR)/lang_base.h && rm $(GEN_DIR)/lang_base.h.tmp \
+	|| mv $(GEN_DIR)/lang_base.h.tmp $(GEN_DIR)/lang_base.h)
+
+# MOD (language): the disc files that have a copy per language (docs/mods/language.md), given by tools/build-full.sh:
+# LANG_FILES="NAME.EXT:ES.EXT:EN.EXT ..." (the Spanish copy, the copy with the map signs in English; - for none). Each
+# copy is also a NEW_FILES name. Empty by default: no copies, the files as before.
+LANG_FILES ?=
+$(shell mkdir -p $(GEN_DIR); printf '%s\n' $(foreach f,$(LANG_FILES),'{ $(foreach n,$(subst :, ,$(f)),$(if $(filter -,$(n)),NULL,"$(n)"),) },') > $(GEN_DIR)/lang_files.h.tmp; \
+	cmp -s $(GEN_DIR)/lang_files.h.tmp $(GEN_DIR)/lang_files.h && rm $(GEN_DIR)/lang_files.h.tmp \
+	|| mv $(GEN_DIR)/lang_files.h.tmp $(GEN_DIR)/lang_files.h)
+
 # MOD (new files): the disc files with names the original never had (a new screen's .MAP/.TFS, models, textures), one
 # FILE_OFFSET_TABLE entry each after the mod entries (src/main/file_table_us.c), sector and size written by the project's
 # tools/build-disc.py --relayout. NEW_FILES="RIFT01.MAP RIFT01.TFS ..." (8.3 upper-case names, given by tools/build-full.sh

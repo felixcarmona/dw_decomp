@@ -13,6 +13,7 @@
 #include <dw/sound.h>
 #include <dw/trigger.h>
 #include <dw/ui.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <text/shop/script_menu.h>
 
@@ -2375,6 +2376,14 @@ void tickJukeboxMenu(void)
 	}
 }
 
+/* MOD (language): the jukebox's TITLE header's y in the box; the Spanish TÍTULO is 9 rows tall (the accent), 2 higher */
+int16_t JUKEBOX_TITLE_Y =
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	3;
+#else
+	5;
+#endif
+
 void renderJukeboxMenu(void)
 {
 	int16_t bx;
@@ -2385,7 +2394,7 @@ void renderJukeboxMenu(void)
 	bx = UI_BOX_DATA[1].finalPos.x;
 	by = UI_BOX_DATA[1].finalPos.y;
 	renderItemMenuSprite(1, 4, bx + 8, by + 5);
-	renderItemMenuSprite(1, 5, bx + 0x26, by + 5);
+	renderItemMenuSprite(1, 5, bx + 0x26, by + JUKEBOX_TITLE_Y);
 	renderItemMenuScrollBar(ITEM_MENU_LEFT);
 	y = by + ITEM_MENU_LEFT->cursor * 0x12 + 0x11;
 draw:
