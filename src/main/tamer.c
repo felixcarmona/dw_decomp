@@ -1,3 +1,4 @@
+#include <dw/cards.h>
 #include <inline_n.h>
 #include <libetc.h>
 #include <libgpu.h>
@@ -184,7 +185,7 @@ int32_t isTriggerSet(uint16_t trigger);
 extern int16_t TOURNAMENT_WINS;
 int32_t hasMedal(uint16_t medal);
 int32_t hasDigimonRaised(int32_t digimonId);
-int32_t getCardAmount(uint8_t cardId);
+
 void unlockMedal(uint16_t medal);
 void closeTriangleMenu(void);
 void removeTriangleMenu(void);
@@ -723,7 +724,7 @@ int32_t modMedalHolds(ModMedal *m)
 		return TOURNAMENT_WINS >= m->a;
 	case MOD_MEDAL_ALL_CARDS:
 		for (i = 0; i < NUM_CARDS; i++) {
-			if (getCardAmount((uint8_t)i) == 0) {
+			if (modCardIsReal(i) && getCardAmount(i) == 0) {
 				return 0;
 			}
 		}

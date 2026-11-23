@@ -1,6 +1,7 @@
 #ifndef DW_SCRIPT_H
 #define DW_SCRIPT_H
 
+#include <dw/cards.h>
 #include <setjmp.h>
 
 #include <libgpu.h>
@@ -227,27 +228,21 @@ typedef struct {
 
 extern DialogueSelection DIALOGUE_SELECTION;
 
-typedef struct {
-	uint8_t digimonId;
-	uint8_t spriteId;
-	int16_t meritValue;
-} CardData;
-
-extern CardData CARD_DATA[];
 
 typedef struct {
 	uint8_t *buf;
 	int32_t isOpen;
-	uint8_t itemCount;
-	uint8_t topRow;
+	uint16_t itemCount;
+	uint16_t topRow;
 	uint8_t cursor;
 	uint8_t visibleRows;
 	uint8_t boxId;
-	uint8_t prevTopRow;
+	uint16_t prevTopRow;
 	uint8_t prevCursor;
 	RECT rect;
 	uint8_t itemRow[8];
 } ItemMenuBox;
+int32_t modCardRowId(ItemMenuBox *box, int32_t row);
 
 typedef struct {
 	uint8_t type;
@@ -294,7 +289,7 @@ extern int16_t TEXTBOX_ORIGIN_X;
 extern int16_t TEXTBOX_ORIGIN_Y;
 extern int16_t TEXTBOX_ORIGIN_Z;
 extern uint16_t NAMING_SELECTOR;
-extern uint8_t SHOP_ITEM_TYPE;
+extern uint16_t SHOP_ITEM_TYPE;
 extern int16_t TMP_TAMER_LEVEL;
 extern int16_t TMP_LIVES;
 extern int32_t SHOP_ACTION_SELECTED;
@@ -350,7 +345,7 @@ void readMapTFS(int32_t mapId);
 void handleItemLoss(void);
 void setMovementEnabled(int32_t a0, int32_t a1);
 void scriptNPCStartAnimation(uint32_t scriptId, int32_t animId);
-uint8_t rollCard(void);
+uint16_t rollCard(void);
 void showCardTextbox(void);
 void mojyaTradeFillItemList(void);
 void renderNameDisplayBox(void);

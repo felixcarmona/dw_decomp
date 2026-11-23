@@ -1020,6 +1020,11 @@ SECTIONS
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
             BUILD_DIR/src/main/sjis.c.o(.text.asciiToShiftJIS);
             . = ALIGN(., 4);
+            /* Album drawing runs only after Player loads MENU. Keep this code
+             * and its portrait CLUT map in the tail: CARDTAB.BIN replaces only
+             * the first sector while the album is active. */
+            BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .data.CARD_SPRITE_CLUT);
+            . = ALIGN(., 4);
 
 		}
 	}

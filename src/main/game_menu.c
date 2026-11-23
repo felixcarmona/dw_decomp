@@ -10,6 +10,7 @@
 #include <dw/mod_options.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/mod_fps.h>
+#include <dw/cards.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
 #include <dw/evl.h>
@@ -248,6 +249,7 @@ int32_t loadCardImage(int32_t id);
 void renderEvoChartDetail(void);
 void renderCardImage(void);
 void renderCardCount(void);
+void renderCardSprite(uint8_t, int16_t, int16_t, int32_t);
 int32_t hasMove(int32_t moveId);
 int32_t drawPlayerInfoStrings(void);
 int32_t isTriggerSet(uint16_t trigger);
@@ -259,7 +261,6 @@ u_short GetClut(int32_t x, int32_t y);
 void renderBox(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t r,
                uint8_t g, uint8_t b, uint8_t flags, int32_t otz);
 void renderDigimonMoveBox(void);
-int32_t getCardAmount(uint8_t card);
 int32_t loadStackedTIMEntry(char *path, u_long buffer, int32_t offset,
                             int32_t sectors);
 void renderNumber(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e,
@@ -1879,7 +1880,8 @@ int16_t MOVE_SELECT_BOX_Y;
 int16_t MOVE_SELECT_BOX_X;
 int8_t SELECTED_MEDAL;
 int8_t MEDAL_SELECTOR_INDEX;
-int8_t SELECTED_CARD;
+int16_t SELECTED_CARD;
+static int16_t CARD_TOP_ROW;
 int16_t CHART_SELECTED_DIGIMON;
 int16_t CHART_SELECTED_COLUMN;
 int16_t CHART_SELECTED_ROW;
@@ -2541,7 +2543,7 @@ void tickPlayerMenu(void)
 	int16_t cardX;
 	int16_t boxX; /* MOD (chart): the selected box (chartBoxXY) */
 	int16_t boxY;
-	uint8_t previousCard;
+	uint16_t previousCard;
 
 	if (MENU_STATE < 2) {
 		/* MOD (chart): L1/R1 turn the chart's tab with the focus on the menu's tab too, before the grid is entered */
@@ -2549,6 +2551,7 @@ void tickPlayerMenu(void)
 			chartOverviewInput(0);
 		}
 		if (CHANGED_INPUT & 0x2000) {
+			if (PLAYER_MENU_STATE == 3) loadMenuOverlay(); /* CARDTAB occupied MENU's first sector. */
 			PLAYER_MENU_STATE++;
 			if (PLAYER_MENU_STATE >= 5) {
 				PLAYER_MENU_STATE = 4;
@@ -2559,6 +2562,7 @@ void tickPlayerMenu(void)
 			}
 		}
 		if (CHANGED_INPUT & 0x8000) {
+			if (PLAYER_MENU_STATE == 3) loadMenuOverlay();
 			PLAYER_MENU_STATE--;
 			if (PLAYER_MENU_STATE < 0) {
 				PLAYER_MENU_STATE = 0;
@@ -2578,6 +2582,7 @@ void tickPlayerMenu(void)
 			playSound(0, 3);
 			MEDAL_SELECTOR_INDEX = SELECTED_MEDAL = 0;
 			SELECTED_CARD = 0;
+			CARD_TOP_ROW = 0;
 		}
 	} else {
 		if ((isKeyDown(CANCEL_BUTTON) != 0) && (MENU_STATE == 2)) {
@@ -2670,12 +2675,12 @@ void tickPlayerMenu(void)
 			previousCard = SELECTED_CARD;
 			if (MENU_STATE == 2) {
 				if ((isKeyDown(CONFIRM_BUTTON) != 0) &&
-				    (getCardAmount((uint8_t)SELECTED_CARD) != 0)) {
+				    (getCardAmount(SELECTED_CARD) != 0)) {
 					playSound(0, 3);
 					MENU_STATE = 3;
 					loadCardImage(SELECTED_CARD);
 					cardX = (SELECTED_CARD % 11) < 6 ? 0xa6 : -0xcc;
-					setRECT(&startPos, (SELECTED_CARD % 11) * 0x18 - 0x79, (SELECTED_CARD / 11) * 0x18 - 0x36, 1, 1);
+					setRECT(&startPos, (SELECTED_CARD % 11) * 0x18 - 0x79, (SELECTED_CARD / 11 - CARD_TOP_ROW) * 0x18 - 0x36, 1, 1);
 					setRECT(&finalPos, -0x4b, -0x53, 0x96, 0xb4);
 					setRECT(&secondFinalPos, 0x4a, 0x45, 0x36, 0x18);
 					createAnimatedUIBox(
@@ -2686,22 +2691,8 @@ void tickPlayerMenu(void)
 						NULL, (RenderFunction)renderCardCount);
 				}
 				if (MENU_STATE == 2) {
-					if ((CHANGED_INPUT & 0x8000) &&
-					    ((SELECTED_CARD % 11) != 0)) {
-						SELECTED_CARD--;
-					}
-					if ((CHANGED_INPUT & 0x2000) &&
-					    ((SELECTED_CARD % 11) != 10)) {
-						SELECTED_CARD++;
-					}
-					if ((CHANGED_INPUT & 0x1000) &&
-					    (SELECTED_CARD >= 11)) {
-						SELECTED_CARD -= 11;
-					}
-					if ((CHANGED_INPUT & 0x4000) &&
-					    (SELECTED_CARD < 0x37)) {
-						SELECTED_CARD += 11;
-					}
+					SELECTED_CARD = modCardMove(SELECTED_CARD, CHANGED_INPUT);
+					CARD_TOP_ROW = modCardTop(SELECTED_CARD, CARD_TOP_ROW);
 					if (previousCard != SELECTED_CARD) {
 						playSound(0, 2);
 					}
@@ -2710,7 +2701,7 @@ void tickPlayerMenu(void)
 			if ((isKeyDown(CANCEL_BUTTON) != 0) && (MENU_STATE == 3)) {
 				playSound(0, 4);
 				MENU_STATE = 2;
-				setRECT(&startPos, (SELECTED_CARD % 11) * 0x18 - 0x79, (SELECTED_CARD / 11) * 0x18 - 0x36, 1, 1);
+				setRECT(&startPos, (SELECTED_CARD % 11) * 0x18 - 0x79, (SELECTED_CARD / 11 - CARD_TOP_ROW) * 0x18 - 0x36, 1, 1);
 				removeAnimatedUIBox(2, &startPos);
 				removeAnimatedUIBox(3, &startPos);
 			}
@@ -2973,11 +2964,9 @@ void equipMove(void)
 	playSound(0, 3);
 }
 
-int32_t loadCardImage(id)
-int8_t id;
+int32_t loadCardImage(int32_t id)
 {
-	return loadStackedTIMEntry(MAIN_D_80123E78, (u_long)TEXTURE_BUFFER,
-	                           id * 0xe, 0xe);
+	return modLoadCardImage(id, TEXTURE_BUFFER);
 }
 
 void renderCardImage(void)
@@ -5671,12 +5660,28 @@ void renderMedalView(void)
 	}
 }
 
+int32_t modCardMove(int32_t id, int32_t input)
+{
+	if ((input & 0x8000) && id % 11 != 0) id--;
+	if ((input & 0x2000) && id % 11 != 10 && id + 1 < NUM_CARDS) id++;
+	if ((input & 0x1000) && id >= 11) id -= 11;
+	if ((input & 0x4000) && id + 11 < NUM_CARDS) id += 11;
+	return id;
+}
+
+int32_t modCardTop(int32_t id, int32_t top)
+{
+	if (id / 11 < top) top = id / 11;
+	if (id / 11 >= top + 6) top = id / 11 - 5;
+	return top;
+}
+
 void renderCardsView(void)
 {
 	CardSprites sprites;
 	int32_t j;
 	int32_t i;
-	int8_t card;
+	int16_t card;
 	int8_t amount;
 
 	sprites = CARD_SPRITE_CLUT;
@@ -5690,14 +5695,20 @@ void renderCardsView(void)
 	case 2:
 	case 3:
 		renderRectPolyFT4(((SELECTED_CARD % 11) * 24) - 0x84,
-		                  ((SELECTED_CARD / 11) * 24) - 0x40, 0x18, 0x14, 0, 0xe8,
+		                  ((SELECTED_CARD / 11 - CARD_TOP_ROW) * 24) - 0x40, 0x18, 0x14, 0, 0xe8,
 		                  0x18, 0x7dc7, 5, 0);
 	case 1:
+		renderNumber(0, 0x35, -0x50, 3, SELECTED_CARD, 5);
+		drawLine2P(0xbebebe, 0x5e, -0x45, 0x63, -0x50, 5, 0);
+		renderNumber(0, 0x68, -0x50, 3, NUM_CARDS - 1, 5);
 		for (i = 0; i < 6; i++) {
 			for (j = 0; j < 11; j++) {
-				card = j + i * 11;
+				card = j + (i + CARD_TOP_ROW) * 11;
+				if (card >= NUM_CARDS) continue;
 				amount = getCardAmount(card);
-				if (amount > 0) {
+				if (amount > 0 && card >= 66) {
+					renderCardSprite(CARD_DATA[card].spriteId, j * 24 - 0x81, i * 24 - 0x3e, 5);
+				} else if (amount > 0) {
 					renderRectPolyFT4(j * 24 - 0x81, i * 24 - 0x3e, 0x10, 0x10,
 					                  (card % 8) * 32, (card / 8) * 16, 0x18,
 					                  sprites.v[card] * 64 + 0x7a07, 5, 0);
@@ -5784,6 +5795,7 @@ int32_t drawDigimonStatsStrings(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		statsCareLayout();
+		modLoadCardTable();
 		clearTextSubArea(&rect);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		DRAW_STRING_PIECES(MAIN_D_80124C0C[2], 0, 0x24, 0);
@@ -6013,6 +6025,7 @@ int32_t drawDigimonMovesText(void)
 	rect = MOVES_VIEW_TEXT_AREA;
 	switch (MENU_SUB_STATE) {
 	case 0:
+		modLoadCardTable();
 		clearTextSubArea(&rect);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[0] != 0xff) {
@@ -6095,6 +6108,7 @@ int32_t drawPlayerInfoStrings(void)
 	rect = PLAYER_INFO_TEXT_AREA;
 	switch (MENU_SUB_STATE) {
 	case 0:
+		modLoadCardTable();
 		clearTextSubArea(&rect);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		MENU_SUB_STATE = 1;
@@ -6215,6 +6229,7 @@ int32_t drawCardViewStrings(void)
 	rect = CARD_VIEW_TEXT_AREA;
 	switch (MENU_SUB_STATE) {
 	case 0:
+		modLoadCardTable();
 		clearTextSubArea(&rect);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xF0);
 		MENU_SUB_STATE = 1;
@@ -6222,6 +6237,7 @@ int32_t drawCardViewStrings(void)
 	case 1:
 		DRAW_STRING_PIECES_AT(CARD_CHART_LABELS[0], 0, 0xC, CARD_LIST_PIECES); /* MOD (language) */
 		SELECTED_CARD = 0;
+		CARD_TOP_ROW = 0;
 		return 1;
 	}
 	return 0;
