@@ -453,7 +453,7 @@ static void modLabCardMenu(int32_t action)
     }
     removeObject(5000, 0);
     SLOT_ACTION_TITLES[action - 1] = oldTitle; SLOT_ACTION_QUESTIONS[action - 1] = oldQuestion;
-    closeMenuOverlay();
+    /* The resident lab entry restores KAR after all MENU code returns. */
     while (PadRead(1) & (CONFIRM_BUTTON | CANCEL_BUTTON)) VSync(0);
     pollInputMenu();
     MAIN_STATE = oldState;
@@ -462,7 +462,7 @@ static void modLabCardMenu(int32_t action)
     MOD_CHEATS_CARD_MODE = 0; MOD_LAB_ACTIVE = 0;
 }
 
-void modLabMenu(uint32_t *input, uint32_t *previous)
+void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
 {
     uint16_t choices[NUM_DIGIMON > NUM_SCREENS ? NUM_DIGIMON : NUM_SCREENS];
     uint32_t pressed;

@@ -815,6 +815,15 @@ SECTIONS
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
 				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue);
 			. = ALIGN(., 4);
+            /* Lab UI runs synchronously after the resident entry loads MENU.
+             * The roster callbacks and state stay resident. */
+            BUILD_DIR/src/main/mod_lab.c.o(.text.modLabFieldPtr .text.modLabFit .text.modLabBound
+                .text.modLabClamp .text.modLabList .text.modLabPerform
+                .text.modLabDrawText .text.modLabRowY .text.modLabRender
+                .text.modLabMenuLoaded* .text.labInt
+                .rodata.modLabMenuLoaded*);
+            . = ALIGN(., 4);
+
 			LONG(0);
 			. = ALIGN(., 4);
 		}
