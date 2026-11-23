@@ -9,6 +9,8 @@ int16_t getFreshEvolutionTarget(int32_t currentDigimon);
 int16_t getInTrainingEvolutionTarget(int32_t currentDigimon);
 int16_t getRookieEvolutionTarget(int32_t currentDigimon);
 int16_t getChampionEvolutionTarget(int32_t currentDigimon);
+/* MOD (machinedramon): Megadramon/Gigadramon -> Machinedramon */
+int16_t getModUltimateEvolutionTarget(int32_t currentDigimon);
 int32_t handleSpecialEvolutions(int32_t mode, Entity *entity);
 void reincarnatePartner(int32_t unused, Stats *stats, PartnerPara *partner,
                         int32_t digimonId);
