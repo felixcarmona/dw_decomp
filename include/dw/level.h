@@ -171,6 +171,9 @@ void modTamerLevelEvent(int32_t slot, int32_t amount);
 #define MOD_CARE_LIFE_BELOW	53
 #define MOD_CARE_LIFE_PER_POINTS	54
 extern int16_t MOD_CARE[MOD_CARE_SIZE];
+/* a species' own values: {species, slot, value} rows, ended by species -1 (the rest of the table is filled with -1 at build) */
+#define MOD_CARE_OVERRIDE_MAX	192
+extern int16_t MOD_CARE_SPECIES[MOD_CARE_OVERRIDE_MAX][3];
 
 /* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
 #define MOD_EVO_ITEM_MAX	4
