@@ -206,11 +206,16 @@ typedef struct {
 	uint16_t iconClut[16];
 	uint8_t iconFrames[3][0x80];
 	SavegamePayload saves[2];
-	SaveExtension ext[2]; /* MOD (save v2): file offsets 0x2000 and 0x3000 */
 } SaveFile;
 
-SAVE_LAYOUT_CHECK(file, sizeof(SaveFile) == SAVE_V2_BYTES);
-SAVE_LAYOUT_CHECK(fileV1, __builtin_offsetof(SaveFile, ext) == SAVE_V1_BYTES);
+SAVE_LAYOUT_CHECK(file, sizeof(SaveFile) == SAVE_V1_BYTES);
+/*
+ * MOD (save extension area): the two extensions (file offsets 0x2000 and 0x3000) are read and written
+ * at SAVE_EXT_ADDR (memmap.h), a part of the world scratch that is free whenever the card menu runs;
+ * SAVE_FILE is the resident v1 file, as the original's (saveFileStart reads and writes the two parts).
+ */
+#define SAVE_EXT ((SaveExtension *)SAVE_EXT_ADDR)
+SAVE_LAYOUT_CHECK(extArea, 2 * sizeof(SaveExtension) <= SAVE_EXT_MAX);
 
 uint32_t CONNECTED_CARDS;
 int32_t MAIN_MENU_ACTION;
@@ -368,6 +373,8 @@ static int32_t loadSaveCopy(int32_t copy);
 static int32_t isSaveCopyValid(int32_t copy);
 static void prepareSaveFile(int32_t fromRam);
 static int32_t writeSaveFile(void);
+static long saveFileStart(int32_t write);
+static void saveFileSync(long *command, long *result);
 int32_t countRegisteredDigimon(RegisteredDigimon *p);
 void renderMainMenu();
 void registerBattleData();
@@ -2777,7 +2784,7 @@ void tickMainMenu(void)
 		if (status != 1) {
 			setMemoryCardReadError(0, 0);
 		}
-		MemCardSync(0, &command, &result);
+		saveFileSync(&command, &result); /* MOD (save extension area) */
 		if (result == 0) {
 			TARGET_MENU = 9;
 			loadSaveCopy(0);
@@ -2903,12 +2910,11 @@ void tickMainMenu(void)
 			SAVE_FILE_NAME[0xF] = HEX_DIGITS[MEMORY_CARD_SLOT];
 			/* MOD (save v2): a two-block file is read whole */
 			SAVE_FILE_BYTES = getSaveFileBytes();
-			status = MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-					    (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
+			status = saveFileStart(0); /* MOD (save extension area): the v1 file, then the extensions */
 			if (status != 1) {
 				setMemoryCardReadError(0, 0);
 			}
-			MemCardSync(0, &command, &result);
+			saveFileSync(&command, &result);
 			if (result == 0) {
 				/* MOD (save v2): loadSaveCopy also takes the extension, or
 				 * refuses a newer format ("Data Error") */
@@ -3148,7 +3154,7 @@ void tickMainMenu(void)
 			if (status != 1) {
 				setMemoryCardReadError(0, 0x28);
 			}
-			MemCardSync(0, &command, &result);
+			saveFileSync(&command, &result); /* MOD (save extension area) */
 			if (result == 0) {
 				TARGET_MENU = 9;
 			} else {
@@ -3296,12 +3302,11 @@ void tickMainMenu(void)
 			MemCardSync(0, &command, &result);
 			SAVE_FILE_NAME[0xF] = HEX_DIGITS[MEMORY_CARD_SLOT];
 			SAVE_FILE_BYTES = getSaveFileBytes(); /* MOD (save v2) */
-			status = MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME,
-					    (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
+			status = saveFileStart(0); /* MOD (save extension area): the v1 file, then the extensions */
 			if (status != 1) {
 				setMemoryCardReadError(0, 0x32);
 			}
-			MemCardSync(0, &command, &result);
+			saveFileSync(&command, &result);
 			if (result == 0) {
 				/* MOD (save v2): a refusing v2 save needs its extension to be checked */
 				if (isSaveCopyValid(0)) {
@@ -3503,7 +3508,7 @@ void tickMainMenu(void)
 			if (status != 1) {
 				setMemoryCardReadError(0, SAVE_RETRY_RETURN_MENU);
 			}
-			MemCardSync(0, &command, &result);
+			saveFileSync(&command, &result); /* MOD (save extension area) */
 			if (result == 0) {
 				TARGET_MENU = 9;
 			} else {
@@ -4343,7 +4348,7 @@ static int32_t isExtensionValid(int32_t copy)
 {
 	SaveExtension *ext;
 
-	ext = &SAVE_FILE.ext[copy];
+	ext = &SAVE_EXT[copy];
 	return SAVE_FILE_BYTES >= SAVE_V2_BYTES && ext->magic[0] == 'D' && ext->magic[1] == 'W' &&
 	       ext->magic[2] == '2' && ext->magic[3] == 'E' && ext->version == SAVE_FORMAT_VERSION &&
 	       ext->size == sizeof(SaveExtension) && ext->checksum == createExtensionChecksum(ext) &&
@@ -4363,7 +4368,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int32_t i;
 
 	savegame = &SAVE_FILE.saves[0];
-	ext = &SAVE_FILE.ext[0];
+	ext = &SAVE_EXT[0];
 	for (p = (uint8_t *)ext, i = 0; i < (int32_t)sizeof(SaveExtension); i++) {
 		*p++ = 0;
 	}
@@ -4413,7 +4418,7 @@ static void prepareSaveFile(int32_t fromRam)
 	ext->v1Checksum = savegame->checksum;
 	ext->checksum = createExtensionChecksum(ext);
 	SAVE_FILE.saves[1] = SAVE_FILE.saves[0];
-	SAVE_FILE.ext[1] = SAVE_FILE.ext[0];
+	SAVE_EXT[1] = SAVE_EXT[0];
 	SAVE_FILE.blockNumber = SAVE_FILE_BYTES / SAVE_V1_BYTES;
 }
 
@@ -4447,7 +4452,7 @@ static int32_t loadSaveCopy(int32_t copy)
 	}
 	if (copy != 0) {
 		SAVE_FILE.saves[0] = SAVE_FILE.saves[1];
-		SAVE_FILE.ext[0] = SAVE_FILE.ext[1];
+		SAVE_EXT[0] = SAVE_EXT[1];
 	}
 	loadSavegame(&SAVE_FILE.saves[0]);
 	for (i = 0; i < SCRIPT_NUM_WREGS; i++) {
@@ -4455,7 +4460,7 @@ static int32_t loadSaveCopy(int32_t copy)
 	}
 	resetSpeciesFlags();
 	if (isExtensionValid(0)) {
-		ext = &SAVE_FILE.ext[0];
+		ext = &SAVE_EXT[0];
 		for (i = 0; i < NUM_DIGIMON / 8; i++) {
 			SPECIES_RAISED_BITS[i] = ext->speciesRaised[i];
 			SPECIES_RECRUITED_BITS[i] = ext->speciesRecruited[i];
@@ -4514,7 +4519,52 @@ static int32_t writeSaveFile(void)
 		SAVE_FILE.saves[1] = SAVE_FILE.saves[0];
 	}
 	SAVE_FILE.blockNumber = SAVE_FILE_BYTES / SAVE_V1_BYTES;
-	return MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_FILE_BYTES);
+	return saveFileStart(1);
+}
+
+/* the first part's result when it failed (saveFileStart did not start the second part), else 0 */
+static long SAVE_IO_FAILED;
+
+/*
+ * MOD (save extension area): starts reading or writing the slot's file (SAVE_FILE_BYTES) as
+ * MemCardReadFile/MemCardWriteFile do, in two parts: the v1 file (0x2000 bytes) to or from SAVE_FILE,
+ * waited for here, then the extensions to or from SAVE_EXT, which saveFileSync waits for. A v1 file
+ * is one part. The status is the one of the last part started (1 = started).
+ */
+static long saveFileStart(int32_t write)
+{
+	long command;
+	long result;
+	long status;
+
+	SAVE_IO_FAILED = 0;
+	status = write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_V1_BYTES)
+		       : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_V1_BYTES);
+	if (status != 1 || SAVE_FILE_BYTES <= SAVE_V1_BYTES) {
+		return status;
+	}
+	MemCardSync(0, &command, &result);
+	if (result != 0) {
+		SAVE_IO_FAILED = result; /* the extensions are not touched: saveFileSync reports it */
+		return status;
+	}
+	status = write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)SAVE_EXT, SAVE_V1_BYTES,
+					  SAVE_FILE_BYTES - SAVE_V1_BYTES)
+		       : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)SAVE_EXT, SAVE_V1_BYTES,
+					 SAVE_FILE_BYTES - SAVE_V1_BYTES);
+	if (status != 1) {
+		SAVE_IO_FAILED = -1;
+	}
+	return status;
+}
+
+/* waits for what saveFileStart started, as MemCardSync(0, ...): result 0 = both parts done */
+static void saveFileSync(long *command, long *result)
+{
+	MemCardSync(0, command, result);
+	if (SAVE_IO_FAILED != 0) {
+		*result = SAVE_IO_FAILED;
+	}
 }
 
 int32_t countRegisteredDigimon(RegisteredDigimon *p)

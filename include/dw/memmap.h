@@ -73,6 +73,19 @@
  * (0x80053800) coexist with their screens' maps */
 #define WORLD_SCRATCH_START	TFS_RING_END
 #define WORLD_SCRATCH_END	0x80053800
+/*
+ * MOD (save extension area, docs/mods/memory.md "Save extensions"): the extensions of a save
+ * file (file offsets 0x2000 on: v2 two of 0x1000, tier 2's v3 two of 0x2000) are read and written
+ * here, not in SAVE_FILE. SAVE_FILE stays the original's resident v1 file (0x2000): its battle
+ * registrations live in it between card operations. An extension is only used from a card read to
+ * loadSaveCopy and from prepareSaveFile to the end of the write, inside one tick of the card menu
+ * (the title's or the save machine's in the world), when this part of the world scratch is free:
+ * the title's TIMs end at 0x8002F000, the world keeps only the TFS ring below WORLD_SCRATCH_START;
+ * it is above the evolution model area (EVO_MMD_ADDR, to 0x80048800) and DOOA_SHARD, below the
+ * battle prefix (0x80052AE0).
+ */
+#define SAVE_EXT_ADDR		0x8004C000
+#define SAVE_EXT_MAX		0x4000
 #define TEXTURE_BUFFER_ADDR	0x80088800	/* temporary TIM, card image, script arrays */
 #define TEXTURE_BUFFER_SIZE	0x7800
 #define BOSS_EFE_TMD_BUFFER_ADDR 0x80058000
