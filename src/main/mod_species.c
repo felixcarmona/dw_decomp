@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dw/file.h>
 #include <dw/main.h>
+#include <dw/memmap.h>
 #include <dw/sound.h>
 #include <dw/species.h>
 
@@ -250,6 +251,17 @@ int32_t isValidDigimonType(int32_t type)
 	}
 	rec = getSpeciesRecord(type);
 	return rec != NULL && (rec->modelName[0] != '\0' || rec->modelSize != 0);
+}
+
+int32_t isPartnerModelFit(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return 1; /* the originals and the partner-only files of the mods fit the original size */
+	}
+	rec = getSpeciesRecord(type);
+	return rec != NULL && rec->modelSize <= PARTNER_MMD_MAX;
 }
 
 SkeletonBone *getDigimonSkeleton(int32_t type)

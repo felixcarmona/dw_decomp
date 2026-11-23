@@ -366,6 +366,8 @@ static void modLabApply(void)
 		if (mega < 0) {
 			modLabShowMessage(MOD_LAB_EVO_TARGETS[modLabEvoChoice] == MOD_LAB_EVO_MEGA ? "No Mega on this disc"
 												 : "Not on this disc");
+		} else if (!isPartnerModelFit(mega)) {
+			modLabShowMessage("Model too big for it");
 		} else if (PARTNER_ENTITY.digimonEntity.entity.type == mega) {
 			modLabShowMessage("Already evolved");
 		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
