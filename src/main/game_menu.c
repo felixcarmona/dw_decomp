@@ -4038,6 +4038,9 @@ static int32_t chartDetailInput(void)
  */
 void recalculateProsperity(void);
 #define CITY_VIEW (PLAYER_MENU_STATE == 4)
+/* a chart cell: the species, and for City the level and the hidden flag the disc packs with it, so drawing never reads a record */
+#define CHART_CELL_ID(cell)	((cell) & 0x0fff)
+#define CHART_CELL_LEVEL(cell)	(((cell) >> 12) & 7)
 
 #define CHART_COLS		14
 #define CHART_ROWS		7
@@ -4164,14 +4167,14 @@ static void chartLoadPage(int32_t row)
 	if (CITY_VIEW && !MOD_OPT_STORY) {
 		g = 0;
 		for (k = 0; k < CHART_TAB_COUNT[0]; k++) {
-			if ((ids[k] & 0x7fff) < 59) {
+			if (CHART_CELL_ID(ids[k]) < 59) {
 				ids[g++] = ids[k];
 			}
 		}
 		CHART_TAB_COUNT[0] = g;
 	}
 	for (k = 0; k < CHART_TAB_COUNT[(int32_t)CHART_TAB]; k++) {
-		g = ids[first + k] & 0x7fff;
+		g = CHART_CELL_ID(ids[first + k]);
 		if (CITY_VIEW ? isDigimonRecruited(g) : hasDigimonRaised(g)) {
 			CHART_RAISED++;
 		}
@@ -4189,7 +4192,7 @@ static void chartLoadPage(int32_t row)
 	}
 	last = -1;
 	for (k = 0; k < CHART_PAGE_COUNT; k++) {
-		id = CHART_PAGE_IDS[k] & 0x7fff;
+		id = CHART_CELL_ID(CHART_PAGE_IDS[k]);
 		if (row >= 0 && k / CHART_COLS != row) continue;
 		slot = chartSlot(k);
 		if (id <= NUM_EVO_CHART_DIGIMON) {
@@ -4355,7 +4358,7 @@ static void chartSelect(void)
 		CHART_SELECTED_ROW = k / CHART_COLS;
 		CHART_SELECTED_COLUMN = k % CHART_COLS;
 	}
-	CHART_SELECTED_DIGIMON = k < CHART_PAGE_COUNT ? (CHART_PAGE_IDS[k] & 0x7fff) : -1;
+	CHART_SELECTED_DIGIMON = k < CHART_PAGE_COUNT ? CHART_CELL_ID(CHART_PAGE_IDS[k]) : -1;
 }
 
 static void chartOverviewInput(int32_t grid)
@@ -4582,7 +4585,7 @@ void renderEvoChartView(void)
 	case 1:
 		chartDrawStatus();
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
-			id = CHART_PAGE_IDS[k] & 0x7fff;
+			id = CHART_CELL_ID(CHART_PAGE_IDS[k]);
 			if (CITY_VIEW ? ((CHART_PAGE_IDS[k] & 0x8000) && !isDigimonRecruited(id)) : !hasDigimonRaised(id)) {
 				continue;
 			}
@@ -4642,8 +4645,8 @@ void renderEvoChartView(void)
 		/* the boxes, the tab's band, the chips */
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
 			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
-			id = CHART_PAGE_IDS[k] & 0x7fff;
-			x = CITY_VIEW ? DIGI_PARA(id).level - 2 : 0;
+			id = CHART_CELL_ID(CHART_PAGE_IDS[k]);
+			x = CITY_VIEW ? CHART_CELL_LEVEL(CHART_PAGE_IDS[k]) - 2 : 0;
 			w = CITY_VIEW && !isDigimonRecruited(id) ? 2 : 1;
 			renderBorderBox(bx - 1, by - 1, 0x12, 0x12, 0xbebebe, 0x3c3c3c,
 			                CITY_VIEW ? CHART_TAB_FILL[x][0] / w : 0x87,
