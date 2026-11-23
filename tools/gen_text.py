@@ -150,7 +150,7 @@ def __banked_pad(key, value):
 def __other_string(entry, release, where, key=None):
     """the other language's text of a string (a two-language build), else the string's own"""
     value = __banked_pad(key, __text(entry, release, where)) if __PAD_ON else __banked(key, __text(entry, release, where))
-    if __PAD_ON and __PAD.get('identity'):
+    if __PAD_ON and __PAD.get('identity') and key not in __PAD.get('complete', ()):
         original = __text(entry, release, where)
         if isinstance(original, str) and (not isinstance(value, str) or __c_bytes(original, where) > __c_bytes(value, where)):
             value = original
@@ -162,7 +162,7 @@ def __other_lines(entry, release, count, where, key=None):
     if not isinstance(value, list):
         value = [value]
     out = (value + [''] * count)[:count]
-    if __PAD_ON and __PAD.get('identity'):
+    if __PAD_ON and __PAD.get('identity') and key not in __PAD.get('complete', ()):
         original = __text(entry, release, where)
         original = original if isinstance(original, list) else [original]
         for n, old in enumerate(original[:count]):
