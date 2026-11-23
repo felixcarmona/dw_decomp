@@ -71,6 +71,7 @@ void calculateBoneMatrix(Entity *entity, int32_t boneId, MATRIX *out);
 int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
 void BTL_renderConfusionEffect(int32_t i);
 int32_t getOriginalType(int32_t type);
+int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed); /* MOD (dcb-import) */
 void BTL_loadNextEFEFile(EfeLoad *arg);
 void BTL_runEFESlotScript(int32_t i);
 void getRViewCopy(GsRVIEW2 *view);
@@ -4555,6 +4556,11 @@ void BTL_checkTechCompatibility(void)
 	}
 
 	EFE_BONE_OFFSET = &entry->offset;
+	/* MOD (dcb-import): a new species with its own skeleton moves the borrowed origin */
+	if (entry->type >= 0) {
+		EFE_BONE_OFFSET = (EfeBoneOffset *)getSpeciesEffectOrigin(EFE_SCRIPT_CONTEXT->sourceEntity->type,
+									  (int16_t *)&entry->offset);
+	}
 	EFE_SCRIPT_CONTEXT->boneOffset = EFE_BONE_OFFSET;
 }
 
