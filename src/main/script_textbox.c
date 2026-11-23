@@ -123,7 +123,7 @@ void renderScriptDialogueBox(void)
 	}
 }
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 /*
  * MOD (font): the one text box row that a screen copies in pieces (TEXTBOX_ROW_PIECES, dw/mod_font.h: the card shop's
  * Yes / No), laid out by drawString2Pieces; createTextbox of that box forgets it
@@ -180,9 +180,9 @@ int32_t drawTextboxStrings(boxId, flag)
 #if !VERSION_IS(US)
 		done = drawString2(buf, px, row);
 #else
-#if FONT_PROPORTIONAL
+#if FONT_SWITCH
 		/* MOD (font): the row a screen copies in pieces (TEXTBOX_ROW_PIECES) */
-		DRAW2_PIECES = boxId + 1 == TEXTBOX_PIECES_BOX && box->writeRow == TEXTBOX_PIECES_ROW ? TEXTBOX_PIECES : NULL;
+		DRAW2_PIECES = FONT_PROPORTIONAL && boxId + 1 == TEXTBOX_PIECES_BOX && box->writeRow == TEXTBOX_PIECES_ROW ? TEXTBOX_PIECES : NULL;
 #endif
 		done = drawString2(buf, px, row, flag);
 #endif
@@ -201,7 +201,7 @@ int32_t drawTextboxStrings(boxId, flag)
 #if VERSION_IS(US)
 	FONT_CELLS = 0;
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	DRAW2_PIECES = NULL;
 #endif
 
@@ -572,7 +572,7 @@ void closeAllTextboxes(void)
  */
 uint8_t TEXTBOX_CELLS;
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 void textboxRowPieces(int32_t boxId, int32_t row, const uint16_t *pieces)
 {
 	TEXTBOX_PIECES = pieces;
@@ -607,7 +607,7 @@ void createTextbox(boxId, flags, rect, origin, tick, render)
 #if VERSION_IS(US)
 	TEXTBOX_CELLS &= ~(1 << boxId); /* MOD (font): its rows are laid out to the pixel unless its creator says */
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	if (TEXTBOX_PIECES_BOX == boxId + 1) {
 		TEXTBOX_PIECES_BOX = 0;
 	}
@@ -705,7 +705,7 @@ static int16_t drawString2Fit(uint8_t **str, int16_t x, int16_t y, int16_t pos, 
  * position) begins at the next grid cell of the text area: the 4 pixels the pen is in hold the previous glyph's last
  * columns, which clearTextSubArea (x / 4) would erase. It ends on the cell after the stop: the next glyph is drawn after.
  */
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 static void clearFromPen(int32_t px, int32_t py, int32_t w)
 {
 	RECT rect;
@@ -718,7 +718,15 @@ static void clearFromPen(int32_t px, int32_t py, int32_t w)
 		clearTextSubArea(&rect);
 	}
 }
-#define CLEAR_FROM_PEN(px, py, w) clearFromPen(px, py, w)
+#define CLEAR_FROM_PEN(px, py, w)                    \
+	do {                                         \
+		if (FONT_PROPORTIONAL) {             \
+			clearFromPen(px, py, w);     \
+		} else {                             \
+			setRECT(&rect, px, py, w, 0xc); \
+			clearTextSubArea(&rect);     \
+		}                                    \
+	} while (0)
 #else
 #define CLEAR_FROM_PEN(px, py, w)                    \
 	do {                                         \
@@ -728,7 +736,7 @@ static void clearFromPen(int32_t px, int32_t py, int32_t w)
 #endif
 
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 #define DRAW2_PIECES_MAX 32 /* a box row: 31 units */
 /*
  * MOD (font): a script row that a screen copies in pieces (TEXTBOX_ROW_PIECES): its glyphs laid out by font.c
@@ -806,7 +814,7 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 #endif
 	uint16_t glyph;
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	if (DRAW2_PIECES != NULL) {
 		return drawString2Pieces(str, x, y);
 	}
@@ -910,7 +918,7 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			glyph = ch + (*str++ << 8);
 #else
 			if (isAsciiEncoded((char *)&ch) != 0) {
-#if FONT_PROPORTIONAL
+#if FONT_SWITCH
 				/* MOD (font): ' and " as the font draws them (packed rows, showTextbox; drawString does the same) */
 				glyph = swapShortBytes(ch == '\'' ? 0x8175 : ch == '"' ? 0x8176 : convertAsciiToJis(ch));
 #else
@@ -921,13 +929,15 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			}
 #endif
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 			/*
 			 * MOD (font): a space is the font's blank glyph, drawn like any other: its cell keeps the previous
 			 * letter's last columns and clears the rest, and it advances its own width. The name keyboard
 			 * (DRAW_STRING2_IS_FIXED_WIDTH) keeps 12-pixel cells, each letter centred in its own.
 			 */
-			if (DRAW_STRING2_IS_FIXED_WIDTH != 0) {
+			if (!FONT_PROPORTIONAL) {
+				/* the original font: below */
+			} else if (DRAW_STRING2_IS_FIXED_WIDTH != 0) {
 				drawGlyph(glyph, x + pos + (0xc - glyphWidth(glyph)) / 2, y);
 				adv = 0xc;
 			} else {
@@ -940,7 +950,8 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 					cellsSpace = adv;
 				}
 			}
-#else
+			if (!FONT_PROPORTIONAL)
+#endif
 			if (glyph == 0x4081) {
 				setRECT(&rect, x + pos, y, 0xc, 0xc);
 				clearTextSubArea(&rect);
@@ -975,8 +986,6 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 				cellsSpace = adv;
 #endif
 			}
-
-#endif
 
 #if !VERSION_IS(US)
 			pos += 0xc;
@@ -1236,7 +1245,7 @@ static const uint16_t PACKED_CODES[] = { 0x8140, 0x8142, 0x8143, 0x8146, 0x8147,
 					  0x817b, 0x817c, 0x8181 };
 static const char PACKED_ASCII[] = " .,:;?!'\"+-=";
 
-#if FONT_PROPORTIONAL
+#if FONT_SWITCH
 static int32_t packedAscii(uint32_t code)
 {
 	int32_t i;
@@ -1472,7 +1481,7 @@ top: {
 			/* MOD (script text): a one-byte unit is expanded to the form the box draws: its own byte in a packed row,
 			 * else the two-byte glyph code */
 			if (ctrl >= 0x20 && ctrl < 0x7f && (lines = scriptAsciiCode(ctrl)) != 0) {
-#if FONT_PROPORTIONAL
+#if FONT_SWITCH
 				if (boxId == 0) {
 					*out++ = ctrl;
 				} else
@@ -1485,7 +1494,7 @@ top: {
 				goto top;
 			}
 #endif
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 			/* MOD (font): a letter, digit, space or common punctuation of a dialogue or selection row (box 0) takes one
 			 * byte, its ASCII form, which drawString2 draws as the same glyph: a 64-byte row holds 63 of them */
 			if (boxId == 0 && (lines = packedAscii((ctrl << 8) | *SCRIPT_POINTER)) != 0) {

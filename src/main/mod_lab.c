@@ -528,12 +528,15 @@ static void modRosterRenderCaption(int32_t instanceId)
 {
 	int32_t width;
 
-#if FONT_PROPORTIONAL
-	width = measureStringMode(modRosterText, FIT_VANILLA) + 2;
-#else
-	for (width = 4; modRosterText[(width - 4) / 8] != '\0'; width += 8) {
-	}
+#if FONT_SWITCH
+	if (FONT_PROPORTIONAL) {
+		width = measureStringMode(modRosterText, FIT_VANILLA) + 2;
+	} else
 #endif
+	{
+		for (width = 4; modRosterText[(width - 4) / 8] != '\0'; width += 8) {
+		}
+	}
 	renderString(0, -width / 2, -100, width, 12, 0, ROSTER_TEXT_Y, 0, 0);
 }
 

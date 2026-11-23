@@ -6,6 +6,7 @@
 #include <dw/file.h>
 #include <dw/file_table.h>
 #include <dw/main.h>
+#include <dw/mod_font.h>
 #include <dw/tfs_stream.h>
 
 #include "common.h"
@@ -13,6 +14,28 @@
 static void empty_800a31f0(char *path)
 {
 }
+
+#if FONT_SWITCH
+/*
+ * MOD (font): the script text is paged for the font that draws it. A build with both fonts puts on the disc a copy of
+ * DG.SCN, MAPHEAD.SCN and SCRN.DAT paged for the original one (tools/build-full.sh): with NEW FONT off the game reads
+ * that copy, when build-disc.py wrote its sector (an entry it did not fill keeps sector 0)
+ */
+char *modFontFile(char *path, char *originalFont)
+{
+	FileEntry *entry;
+
+	if (!MOD_FONT_ORIGINAL) {
+		return path;
+	}
+	for (entry = FILE_OFFSET_TABLE; entry->size != 0; ++entry) {
+		if (!strcmp(originalFont, entry->filename)) {
+			return entry->sector != 0 ? originalFont : path;
+		}
+	}
+	return path;
+}
+#endif
 
 int32_t lookupFileTable(FileLookup *lookup, char *path)
 {

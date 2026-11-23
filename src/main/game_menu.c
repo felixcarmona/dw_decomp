@@ -872,7 +872,7 @@ char *CARD_CHART_LABELS[5] = {
 	MAIN_D_80123B20,
 };
 
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 /* MOD (font): the crops of the player screen's label rows ("NameLevel  Raised", "Bits  Time", "Items  Medals"):
  * drawStringPieces lays each piece out in the font's spacing (dw/mod_font.h) */
 static const uint16_t PLAYER_LABEL_PIECES[3][6] = {
@@ -2816,7 +2816,7 @@ int32_t drawMoveViewHelpStrings(void)
 	 * help lines are TECH_VIEW_LABELS[1..8], which follow it in the original's data. GCC
 	 * places TECH_VIEW_LABELS elsewhere, so the help read garbage pointers and hung. */
 	/* MOD (font): only the first help line is cut (around the button icon); the others are copied whole */
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+#if FONT_SWITCH
 	if (MENU_SUB_STATE == 0) {
 		DRAW_STRING_PIECES(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18, 0, 0x71);
 	} else {
@@ -4173,9 +4173,13 @@ int32_t drawPlayerInfoStrings(void)
 #endif
 	case 2:
 	case 3:
-#if VERSION_IS(US) && FONT_PROPORTIONAL
-		drawStringPieces(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0, (MENU_SUB_STATE - 1) * 0xc + 0xc,
-		                 PLAYER_LABEL_PIECES[MENU_SUB_STATE - 1]);
+#if FONT_SWITCH
+		if (FONT_PROPORTIONAL) {
+			drawStringPieces(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0, (MENU_SUB_STATE - 1) * 0xc + 0xc,
+			                 PLAYER_LABEL_PIECES[MENU_SUB_STATE - 1]);
+		} else {
+			drawString(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0, (MENU_SUB_STATE - 1) * 0xc + 0xc);
+		}
 #else
 		drawString(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0,
 		           (MENU_SUB_STATE - 1) * 0xc + 0xc);

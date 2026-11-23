@@ -158,6 +158,10 @@ char MAIN_D_801303A8[] = "\\ETCHI\\OP.TIM";
 char MAIN_D_801345F0[] = ";1";
 // clang-format on
 
+/* MOD (font): with NEW FONT off, the copies paged for the original font (dw/mod_font.h FONT_FILE) */
+#define DG_FILE FONT_FILE(MAIN_D_80130388, "DGORIG.SCN")
+#define MAPHEAD_FILE FONT_FILE(MAIN_D_80130374, "MHORIG.SCN")
+
 int16_t MAIN_D_80134F9C;
 int32_t SCRIPT_MAP_CHANGE_SHOW_NAME;
 uint8_t WAIT_FOR_ENTITY_ID;
@@ -605,7 +609,7 @@ uint8_t *getScript(uint16_t mapId)
 	table = (uint32_t *)SCRIPT_OFFSET_PTR;
 	offset = table[mapId];
 	size = table[mapId + 1] - table[mapId];
-	readFileSection(MAIN_D_80130388, MAP_SCRIPT_PTR, offset, size);
+	readFileSection(DG_FILE, MAP_SCRIPT_PTR, offset, size);
 
 	return MAP_SCRIPT_PTR;
 }
@@ -2159,6 +2163,28 @@ void setMapHeadActive(void)
 	SCRIPT_POINTER = MAPHEAD_SCRIPT_PTR + off - 2;
 }
 
+#if FONT_SWITCH
+void tickFileReadQueue(int32_t unused);
+int32_t isFileReadQueueBusy(void);
+void modScreenFileChanged(void);
+
+/*
+ * MOD (font): the font changed (OPTIONS at the title, a loaded save's options): MAPHEAD.SCN, DG.SCN's offset table and
+ * the new screens' records are read again from the files paged for it. Only at the title or while a save loads, before
+ * any script runs; the next screen reads its script from the right DG.SCN.
+ */
+void modFontScriptsChanged(void)
+{
+	while (isFileReadQueueBusy()) {
+		tickFileReadQueue(0);
+	}
+	readFile(MAPHEAD_FILE, MAPHEAD_SCRIPT_PTR);
+	readFileSection(DG_FILE, SCRIPT_OFFSET_PTR, 0, SCRIPT_OFFSET_TABLE_SIZE);
+	ACTIVE_MAP_SCRIPT = 0;
+	modScreenFileChanged();
+}
+#endif
+
 void initializeScripts(void)
 {
 	MAPHEAD_SCRIPT_PTR = MAPHEAD_SCRIPT_BUFFER;
@@ -2167,11 +2193,11 @@ void initializeScripts(void)
 	SCRIPT_STATE_PTR = &SCRIPT_STATE;
 	TEXTBOX_LINES_PTR = TEXTBOX_LINES_BUFFER;
 
-	readFile(MAIN_D_80130374, MAPHEAD_SCRIPT_PTR);
+	readFile(MAPHEAD_FILE, MAPHEAD_SCRIPT_PTR);
 #if VERSION_IS(US) && !defined(__MWERKS__)
-	readFileSection(MAIN_D_80130388, SCRIPT_OFFSET_PTR, 0, SCRIPT_OFFSET_TABLE_SIZE); /* MOD: the table's sector only */
+	readFileSection(DG_FILE, SCRIPT_OFFSET_PTR, 0, SCRIPT_OFFSET_TABLE_SIZE); /* MOD: the table's sector only */
 #else
-	readFileSection(MAIN_D_80130388, SCRIPT_OFFSET_PTR, 0, 0x2000);
+	readFileSection(DG_FILE, SCRIPT_OFFSET_PTR, 0, 0x2000);
 #endif
 	memset((void *)SCRIPT_STATE_PTR, 0, sizeof(*SCRIPT_STATE_PTR));
 

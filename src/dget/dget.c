@@ -171,9 +171,12 @@ void buildScheduleLabels(void)
 		*str++ = 0xfa;
 #else
 		dayOfMonth = day % 30;
-#if FONT_PROPORTIONAL /* MOD (font): the figure space that pads it already advances a digit's 8 pixels */
-		str = (uint8_t *)intToStringSJIS(str, dayOfMonth + 1, 2, 0);
-#else
+#if FONT_SWITCH
+		if (FONT_PROPORTIONAL) { /* MOD (font): the figure space that pads it already advances a digit's 8 pixels */
+			str = (uint8_t *)intToStringSJIS(str, dayOfMonth + 1, 2, 0);
+			continue;
+		}
+#endif
 		/*
 		 * MOD (font): the first date under 10 without its padding space: in the row's cells a space advances by
 		 * the glyph before it, 12 at the row's start (script_textbox.c), where the original's advance was not set
@@ -184,7 +187,6 @@ void buildScheduleLabels(void)
 			*str++ = 0x81;
 			*str++ = 0x40;
 		}
-#endif
 #endif
 	}
 
