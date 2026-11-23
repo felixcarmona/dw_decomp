@@ -565,6 +565,9 @@ void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
         } else {
             count = modLabRowCount();
             step = (pressed & (PAD_LEFT | PAD_RIGHT | PAD_L1 | PAD_R1)) ? 10 : 1;
+            /* MOD (cheat lists wrap): one step up from the first row lands on the last, and the other way round */
+            if (count > 0 && step == 1 && (pressed & PAD_UP) && MOD_LAB_CURSOR == 0) MOD_LAB_CURSOR = count;
+            if (count > 0 && step == 1 && (pressed & PAD_DOWN) && MOD_LAB_CURSOR == count - 1) MOD_LAB_CURSOR = -1;
             if (pressed & (PAD_UP | PAD_LEFT | PAD_L1)) MOD_LAB_CURSOR -= step;
             if (pressed & (PAD_DOWN | PAD_RIGHT | PAD_R1)) MOD_LAB_CURSOR += step;
             if (count > 0) { if (MOD_LAB_CURSOR < 0) MOD_LAB_CURSOR = 0; if (MOD_LAB_CURSOR >= count) MOD_LAB_CURSOR = count - 1; }
