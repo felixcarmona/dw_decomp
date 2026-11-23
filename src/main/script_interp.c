@@ -281,8 +281,16 @@ static void *script_interp_sbss_order[] = {
 
 #if !VERSION_IS(US)
 uint8_t MAPHEAD_SCRIPT_BUFFER[0x6000];
-#else
+#elif defined(__MWERKS__)
 uint8_t MAPHEAD_SCRIPT_BUFFER[0x61a8];
+#else
+/*
+ * readFile reads whole sectors: MAPHEAD.SCN (0x606e bytes) takes 13 sectors,
+ * 0x6800 bytes. The original spills 0x658 bytes into SCRIPT_OFFSET_TABLE,
+ * which comes next and is read right after. GCC puts GLYPH_DRAWING_AREAS
+ * (font.c) after this buffer instead, so make it hold the whole read.
+ */
+uint8_t MAPHEAD_SCRIPT_BUFFER[0x6800];
 #endif
 uint8_t SCRIPT_OFFSET_TABLE[0x2000];
 #if !VERSION_IS(US)
