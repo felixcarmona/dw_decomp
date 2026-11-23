@@ -1446,6 +1446,9 @@ void dailyPStatTrigger(void)
 	st = SCRIPT_STATE_PTR;
 	modForgetGroundPicked(); /* MOD (ground items a day) */
 	/* Vending stock shares the original saved trigger array, with no new resident state. */
+	for (i = 0; i < MOJYA_DAILY_COUNT; i++) {
+		unsetTrigger(MOJYA_DAILY_FIRST + i);
+	}
 	unsetTrigger(798); /* Happy mushroom */
 	unsetTrigger(799); /* Ice mushroom */
 	for (i = 0; i < 6; i++) {

@@ -1149,6 +1149,16 @@ void openMojyamonShop(void)
 		int32_t room;
 
 		row = (ITEM_MENU_LEFT->topRow + ITEM_MENU_LEFT->cursor) * 2;
+		/* Each row has its own saved daily bit, independent of recruitment history. */
+		if (isTriggerSet(MOJYA_DAILY_FIRST + ITEM_MENU_TYPE + row / 2)) {
+			setInputRepeatMask(0);
+			triggerBoxCloseFlag(1);
+			showMapHeadTextbox(12, owner, 0, 0x4d6);
+			SCRIPT_STATE_2 = 1;
+			SCRIPT_NEXT_STATE_2 = 2;
+			SCRIPT_TEXTBOX_MODE = 1;
+			break;
+		}
 		SHOP_ITEM_TYPE = readPStat(PSTAT_249);
 		MOJYA_GOT = ITEM_MENU_RIGHT->buf[row];
 		room = econCap(MOD_ECON_STACK_CAP, 255) - getItemCount(MOJYA_GOT);
@@ -1164,6 +1174,7 @@ void openMojyamonShop(void)
 			SCRIPT_TEXTBOX_MODE = 1;
 			break;
 		}
+		MAX_SHOP_AMOUNT = 1; /* One exchange per row per day. */
 		openAmountBox(1);
 		SCRIPT_STATE_2 = 1;
 		SCRIPT_TEXTBOX_MODE = 3;
@@ -1907,6 +1918,7 @@ void setMojyaItemTradedTrigger(void)
 	int32_t trigger;
 
 	trigger = ITEM_MENU_TYPE + (ITEM_MENU_LEFT->topRow + ITEM_MENU_LEFT->cursor) + 5;
+	setTrigger(MOJYA_DAILY_FIRST + trigger - 5);
 	setTrigger(trigger);
 	for (trigger = 5; trigger < 0xe; trigger++) {
 		if (isTriggerSet(trigger) == 0) {
