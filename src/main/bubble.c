@@ -59,6 +59,7 @@ extern int32_t DRAWING_OFFSET_Y;
 extern int32_t IS_IN_MENU;
 extern int8_t GAME_STATE;
 extern int8_t PARTNER_STATE;
+extern int8_t ITEM_SCOLD_FLAG;
 extern int32_t CONDITION_BUBBLE_ID;
 extern int32_t CONDITION_BUBBLE_TYPE;
 
@@ -476,6 +477,20 @@ static void drawConditionIcon(int32_t icon, int32_t fc, int32_t x, int32_t y,
 	GsSPRITE **sprites;
 
 	switch (icon) {
+	case 15: {
+		/* MENU_OPTIONS[5]: the native Scold icon, resident in every field atlas. */
+		GsSPRITE scold = CONDITION_SPRITES[0];
+		scold.tpage = 0x1e;
+		scold.u = 0;
+		scold.v = 232;
+		scold.w = scold.h = 20;
+		scold.cx = 256;
+		scold.cy = 509;
+		scold.mx = 10;
+		scold.my = 28;
+		renderSprite(&scold, x, y, depth, scale, scale);
+		break;
+	}
 	case 13:
 	case 14: {
 		/* Depleted native HUD heart/orb, derived into the existing ETCTIM upload. */
@@ -583,7 +598,7 @@ int32_t MOD_STATUS_BUBBLES = 1;
 /*
  * MOD (status-bubbles): the ACTIVE conditions as a fixed row of equal bubbles
  * over the partner, in a fixed order (hungry, poopy, sleepy, tired, sick,
- * injured, HP, MP): one or two in one row, from three on in two rows (the first half
+ * injured, HP, MP, Scold): one or two in one row, from three on in two rows (the first half
  * on top). Only a bubble on its own has a tail. Nothing rotates: a bubble keeps its
  * place while its condition lasts; when one appears it grows in its place,
  * when one goes it shrinks, and the others slide to their new places. The
@@ -605,17 +620,17 @@ int32_t MOD_STATUS_BUBBLES = 1;
 #define RING_NONE	0x10000	/* slot codes: no bubble, else (x + 128) << 8 | (y + 128), texels, */
 #define RING_TAIL	0x20000	/* | this when the bubble has its tail */
 
-/* conditions in a fixed order: hungry, poopy, sleepy, tired, sick, injured, HP, MP */
-static const uint8_t RING_BIT[8] = { 0x04, 0x08, 0x01, 0x02, 0x40, 0x20, 0, 0 };
-static const uint8_t RING_ICON[8] = { 1, 2, 4, 9, 10, 11, 13, 14 };
+/* conditions in a fixed order: hungry, poopy, sleepy, tired, sick, injured, HP, MP, Scold */
+static const uint8_t RING_BIT[9] = { 0x04, 0x08, 0x01, 0x02, 0x40, 0x20, 0, 0, 0 };
+static const uint8_t RING_ICON[9] = { 1, 2, 4, 9, 10, 11, 13, 14, 15 };
 
 int32_t MOD_RING_CLOCK = 1;
 int32_t MOD_RING_T = -1;	/* ticks into the running step, -1 = at rest */
 int32_t MOD_RING_STEPS = 0;	/* steps started (for tools/bubblecheck.py) */
-int32_t MOD_RING_FROM[8] = { RING_NONE, RING_NONE, RING_NONE,
-			     RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE };
-int32_t MOD_RING_TO[8] = { RING_NONE, RING_NONE, RING_NONE,
-			   RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE };
+int32_t MOD_RING_FROM[9] = { RING_NONE, RING_NONE, RING_NONE,
+			     RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE };
+int32_t MOD_RING_TO[9] = { RING_NONE, RING_NONE, RING_NONE,
+			   RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE, RING_NONE };
 /* what the last render pass drew, one word each (tools/bubblecheck.py):
  * [0] passes drawn, [1] anchor before the bob (x | y << 16, screen pixels),
  * [2] biggest bubble: condition << 24 | shown size (0..256) << 8 | 1 if a
@@ -737,8 +752,8 @@ static void drawRingBubble(int32_t j, int32_t cx, int32_t cy, int32_t depth,
 /*
  * MOD (care menu): the Square badge. While Square would open the care menu (mod_feed.c sets
  * MOD_FEED_HINT for that tick), the care-only native button cap (the UI texture page,
- * three 16x12 frames pressing it) is drawn beside the bottom right bubble of the row, or where the bubbles would be
- * when it has none (a pending scolding needs no bubble). It grows in and shrinks out in
+ * three 16x12 frames pressing it) is drawn beside the bottom right bubble of the row.
+ * A pending Scold has its own condition bubble. The badge grows in and shrinks out in
  * RING_BADGE_TICKS and moves with the row (its bob and its steps), one ordering table slot nearer than the bubbles.
  */
 #define RING_BADGE_TICKS	4	/* 0.2 s to grow in or shrink out */
@@ -779,7 +794,7 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 	int32_t k = (scale * VIEWPORT_DISTANCE) / depth;
 	int32_t cy0 = y - ((18 * k) >> 12);
 	int32_t p = ringPhase();
-	int32_t bx[8], by[8], bs[8], bt[8];
+	int32_t bx[9], by[9], bs[9], bt[9];
 	int32_t drawn = 0;
 	int32_t big = -1;
 	int32_t full = 0;
@@ -787,8 +802,12 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 	int32_t right = -0x8000;
 	int32_t j;
 
-	for (j = 0; j < 8; ++j) {
+	for (j = 0; j < 9; ++j) {
 		ringBubbleAt(j, p, &bx[j], &by[j], &bs[j], &bt[j]);
+		/* A cleared Scold window must not leave a fading explanation behind. */
+		if (j == 8 && !modScoldAvailable(ITEM_SCOLD_FLAG)) {
+			bs[j] = 0;
+		}
 		if (bs[j] > 24) {
 			int32_t edge = (13 * bs[j]) >> 4;
 			if (bx[j] - edge < left) {
@@ -832,10 +851,10 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 	}
 	/* the bottom row first, then the bigger: drawn first is on top (same
 	 * depth), so the bottom row covers the top row's edge */
-	while (drawn < 8) {
+	while (drawn < 9) {
 		int32_t b = -1;
 
-		for (j = 0; j < 8; ++j) {
+		for (j = 0; j < 9; ++j) {
 			if (bs[j] > 24 &&
 			    (b < 0 || by[j] > by[b] || (by[j] == by[b] && bs[j] > bs[b]))) {
 				b = j;
@@ -849,14 +868,14 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 		bs[b] = -bs[b];
 		++drawn;
 	}
-	if (MOD_RING_BADGE > 0) {
+	if (MOD_RING_BADGE > 0 && drawn > 0) {
 		int32_t right = -0x8000;
 		int32_t bottom = 0;
 		int32_t bx0 = 0;
 		int32_t by0 = 0;
 
 		/* beside the right edge of the bottom row, a bit under its centre */
-		for (j = 0; j < 8; ++j) {
+		for (j = 0; j < 9; ++j) {
 			if (bs[j] < -24) {
 				if (bx[j] + ((168 * -bs[j]) >> 8) > right) {
 					right = bx[j] + ((168 * -bs[j]) >> 8);
@@ -884,7 +903,7 @@ static int32_t ringAnyBubble(void)
 {
 	int32_t j;
 
-	for (j = 0; j < 8; ++j) {
+	for (j = 0; j < 9; ++j) {
 		if (MOD_RING_FROM[j] != RING_NONE ||
 		    (MOD_RING_T >= 0 && MOD_RING_TO[j] != RING_NONE)) {
 			return 1;
@@ -1005,8 +1024,8 @@ void renderConditionRingObject(int32_t instanceId)
 void tickConditionRingObject(int32_t instanceId)
 {
 	uint32_t cond = PARTNER_PARA.condition;
-	int32_t act[8];
-	int32_t to[8];
+	int32_t act[9];
+	int32_t to[9];
 	int32_t n = 0;
 	int32_t top;
 	int32_t rank = 0;
@@ -1034,28 +1053,30 @@ void tickConditionRingObject(int32_t instanceId)
 			++MOD_RING_T;
 			return;
 		}
-		for (j = 0; j < 8; ++j) {
+		for (j = 0; j < 9; ++j) {
 			MOD_RING_FROM[j] = MOD_RING_TO[j];
 		}
 		MOD_RING_T = -1;
 	}
 
-	for (j = 0; j < 8; ++j) {
+	for (j = 0; j < 9; ++j) {
 		if (j < 6) {
 			act[j] = (cond & RING_BIT[j]) != 0;
 		} else if (j == 6) {
 			act[j] = modResourceNeed(PARTNER_ENTITY.digimonEntity.stats.current.currentHP,
 			                         PARTNER_ENTITY.digimonEntity.stats.base.hp);
-		} else {
+		} else if (j == 7) {
 			act[j] = modResourceNeed(PARTNER_ENTITY.digimonEntity.stats.current.currentMP,
 			                         PARTNER_ENTITY.digimonEntity.stats.base.mp);
+		} else {
+			act[j] = modScoldAvailable(ITEM_SCOLD_FLAG);
 		}
 		n += act[j];
 	}
 
 	/* one or two in one row; from three on the first half goes on top */
 	top = n > 2 ? (n + 1) / 2 : 0;
-	for (j = 0; j < 8; ++j) {
+	for (j = 0; j < 9; ++j) {
 		to[j] = RING_NONE;
 		if (act[j]) {
 			int32_t col = rank < top ? rank : rank - top;
@@ -1071,7 +1092,7 @@ void tickConditionRingObject(int32_t instanceId)
 		}
 	}
 	if (change) {
-		for (j = 0; j < 8; ++j) {
+		for (j = 0; j < 9; ++j) {
 			MOD_RING_TO[j] = to[j];
 		}
 		MOD_RING_T = 0;
