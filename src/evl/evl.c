@@ -15,6 +15,7 @@
 #include <dw/ids.h>
 #include <dw/level.h>
 #include <dw/memmap.h>
+#include <dw/mod_qol.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -347,49 +348,6 @@ static void EVL_modSkipToEnd(EvoSequenceData *data)
 	MOD_EVO_SKIP = 0;
 }
 
-/* the hint: "START" on a plate in the bottom right corner, in the digital clock's style (3x5 letters, each row 3
- * bits, bit 2 the left column) */
-static const uint8_t EVL_START_GLYPHS[5][5] = {
-	{ 7, 4, 7, 1, 7 }, /* S */
-	{ 7, 2, 2, 2, 2 }, /* T */
-	{ 2, 5, 7, 5, 5 }, /* A */
-	{ 6, 5, 6, 5, 5 }, /* R */
-	{ 7, 2, 2, 2, 2 }, /* T */
-};
-
-static void EVL_addHintRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z)
-{
-	POLY_F4 *p;
-
-	p = (POLY_F4 *)GsGetWorkBase();
-	SetPolyF4(p);
-	setRGB0(p, r, g, b);
-	setXYWH(p, x, y, w, h);
-	AddPrim(ACTIVE_ORDERING_TABLE->org + z, p++);
-	GsSetWorkBase((PACKET *)p);
-}
-
-static void EVL_renderSkipHint(void)
-{
-	int32_t x = 0x80;
-	int32_t y = 0x60;
-	int32_t i;
-	int32_t row;
-	int32_t col;
-
-	EVL_addHintRect(x, y, 23, 9, 0x62, 0xB4, 0xF6, 6);
-	EVL_addHintRect(x + 1, y + 1, 21, 7, 0x18, 0x18, 0x18, 5);
-	for (i = 0; i < 5; i++) {
-		for (row = 0; row < 5; row++) {
-			for (col = 0; col < 3; col++) {
-				if (EVL_START_GLYPHS[i][row] & (4 >> col)) {
-					EVL_addHintRect(x + 2 + i * 4 + col, y + 2 + row, 1, 1, 0xF0, 0xF0, 0xF0, 4);
-				}
-			}
-		}
-	}
-}
-
 void EVL_tickEvoSequence(int32_t instanceId)
 {
 	int32_t i;
@@ -647,7 +605,7 @@ shards:
 void EVL_renderEvoSequence(void)
 {
 	if (MOD_EVO_SKIP == 1 && EVO_SEQUENCE_DATA.state < 3) {
-		EVL_renderSkipHint(); /* MOD (evolution skip) */
+		modPlate(0x80, 0x60, "START", 5, 0, 0, 0); /* MOD (evolution skip): the hint, white (mod_qol.c) */
 	}
 }
 

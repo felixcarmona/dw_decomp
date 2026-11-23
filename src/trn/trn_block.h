@@ -1,0 +1,187 @@
+/*
+ * MOD (training block): R2 during a gym session switches the sessions between x1 and x5 (MOD_TRAIN_BLOCK, main.c,
+ * kept until the console resets; never with Bonus Try, whose reels are played). A plate in the bottom right corner
+ * shows "R2 x1" (white) or "R2 x5" (yellow) until the session's gains are worked out. In a block the animation is
+ * the first session's; then the gym's own award function runs once per session, each with its hour of game time
+ * and its care costs, the gains of one added to the stats before the next (so a brains mark is crossed as it would
+ * be), and the block stops after the session that left the partner hungry, needing the toilet, sleepy, tired, hurt
+ * or sick, due to digivolve, at the end of its life, or that taught it a technique or new orders (the gym's box).
+ * The stats box then shows the block's total, and a box under it how many sessions were done and why it stopped;
+ * the field answers the need as after one session.
+ *
+ * Included by trn_reward.c (TRN) and trn2_hud.c (TRN2) with:
+ *   TB(name)       the overlay's name of a function or variable (TRN_name, TRN2_name)
+ *   TB_SLOT        its Bonus Try flag (pstat 0xf6, read by the setup)
+ *   TB_RULES       its session rules (MOD_TRAIN_RULES, MOD_TRAIN2_RULES)
+ *   TB_START_MIN   the minute of the day its session started at (TB(saveTrainingStartTime))
+ */
+/* the TRN_BLOCK_* texts: in the including file's text (text/trn/trn_reward.yaml, text/trn2/trn2_hud.yaml) */
+
+#include <libgpu.h>
+#include <libgs.h>
+#include <dw/mod_qol.h>
+#include <dw/sound.h>
+#include <dw/ui.h>
+
+extern int16_t INITIAL_COMBAT_STATS[][6];
+extern int16_t STATS_GAINS[6];
+extern uint32_t POLLED_INPUT;
+extern uint32_t POLLED_INPUT_PREVIOUS;
+void clearTextSubArea(RECT *rect);
+void createMenuBox(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, void (*tick)(void), void (*render)(void));
+void renderString(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h, int32_t i);
+
+static TRN_BLOCK_DONE_TEXT
+static TRN_BLOCK_HUNGRY_TEXT
+static TRN_BLOCK_TOILET_TEXT
+static TRN_BLOCK_SLEEPY_TEXT
+static TRN_BLOCK_TIRED_TEXT
+static TRN_BLOCK_UNWELL_TEXT
+static TRN_BLOCK_EVOLVE_TEXT
+static TRN_BLOCK_LIFE_TEXT
+
+/* by MOD_TB_* (dw/mod_qol.h) */
+static char *const TB_REASONS[] = {
+	NULL, TRN_BLOCK_HUNGRY, TRN_BLOCK_TOILET, TRN_BLOCK_SLEEPY, TRN_BLOCK_TIRED,
+	TRN_BLOCK_UNWELL, TRN_BLOCK_EVOLVE, TRN_BLOCK_LIFE,
+};
+
+int8_t TB(MOD_QUIET); /* the stats box waits for the block's last session */
+static int8_t TB_count;
+static int8_t TB_done;
+static int8_t TB_reason;
+static int8_t TB_box1Seen;
+static int16_t TB_pre[6];
+static int16_t TB_sum[6];
+static char TB_doneText[64];
+
+static void TB_renderPlate(int32_t instanceId)
+{
+	(void)instanceId;
+	modPlate(0x80, 0x60, MOD_TRAIN_BLOCK ? "R2 x5" : "R2 x1", 3, 0xF8, MOD_TRAIN_BLOCK ? 0xD8 : 0xF0,
+		 MOD_TRAIN_BLOCK ? 0x30 : 0xF0);
+}
+
+static void TB_tickPlate(int32_t instanceId)
+{
+	(void)instanceId;
+	if (((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 2) && !(POLLED_INPUT & 0x100)) {
+		MOD_TRAIN_BLOCK ^= 1;
+		playSound(0, 2);
+	}
+}
+
+/* from the session's setup (TB(saveTrainingStartTime)): the plate, but not for the Bonus Try or a block's next hour */
+void TB(modBlockArm)(void)
+{
+	if (TB_SLOT == 0 && !TB(MOD_QUIET)) {
+		addObject(0xfb2, 0, (TickFunction)TB_tickPlate, (RenderFunction)TB_renderPlate);
+	}
+}
+
+/* the box under the stats box closes with it */
+static void TB_tickMessage(void)
+{
+	if (UI_BOX_DATA[1].state == 1) {
+		TB_box1Seen = 1;
+	} else if (TB_box1Seen) {
+		TB_box1Seen = 0;
+		removeAnimatedUIBox(2, NULL);
+	}
+}
+
+static void TB_renderMessage(void)
+{
+	renderString(0, -78, 24, 156, 12, 0, 120, 4, 0);
+	renderString(0, -78, 36, 156, 12, 0, 132, 4, 0);
+}
+
+/* before the gym's award function */
+void TB(modBlockBegin)(void)
+{
+	int32_t i;
+
+	removeObject(0xfb2, 0);
+	TB_count = (MOD_TRAIN_BLOCK && TB_SLOT == 0) ? 5 : 1;
+	TB_done = 0;
+	TB_reason = MOD_TB_GO;
+	TB(MOD_QUIET) = TB_count > 1;
+	if (TB_count > 1) {
+		TB(saveBaseStats)();
+		for (i = 0; i < 6; i++) {
+			TB_pre[i] = INITIAL_COMBAT_STATS[0][i];
+			TB_sum[i] = 0;
+		}
+	}
+}
+
+/* after it: 1 to award the next session of the block */
+int32_t TB(modBlockNext)(void)
+{
+	RECT area;
+	int32_t i;
+	int32_t v;
+	char *s;
+	char *d;
+
+	if (TB_count <= 1) {
+		return 0;
+	}
+	/* the session's gains go into the stats the next one starts from */
+	for (i = 0; i < 6; i++) {
+		v = INITIAL_COMBAT_STATS[0][i] + STATS_GAINS[i];
+		if (v > CAP_OF_STAT_INDEX(i)) {
+			v = CAP_OF_STAT_INDEX(i);
+		}
+		TB_sum[i] += v - INITIAL_COMBAT_STATS[0][i];
+		INITIAL_COMBAT_STATS[0][i] = v;
+		STATS_GAINS[i] = 0;
+	}
+	TB(applyBaseStats)();
+	TB_done++;
+	TB_reason = modTrainStopReason(TB_START_MIN, TB_RULES[MOD_TR_TIRED_AT]);
+	if (TB_reason == MOD_TB_GO && TB_done < TB_count) {
+		TB(saveTrainingStartTime)(); /* the next session's hour */
+		return 1;
+	}
+
+	/* the stats box adds the block's total to the stats from before it */
+	for (i = 0; i < 6; i++) {
+		INITIAL_COMBAT_STATS[0][i] = TB_pre[i];
+		STATS_GAINS[i] = TB_sum[i];
+	}
+	TB(applyBaseStats)();
+	TB(MOD_QUIET) = 0;
+	if (TB_reason == MOD_TB_LEARNED) {
+		/* the gym's box drew its text in rows 120..155: only the stats box's rows are cleared */
+		setRECT(&area, 0, 0, 256, 120);
+		clearTextSubArea(&area);
+		setRECT(&area, 0, 240, 256, 12);
+		clearTextSubArea(&area);
+	} else {
+		clearTextArea();
+	}
+	TB(modOpenStatsBox)();
+	if (TB_reason != MOD_TB_GO && TB_reason != MOD_TB_LEARNED) {
+		/* the first one-byte 0 (not the second byte of a two-byte glyph) is the number */
+		s = TRN_BLOCK_DONE;
+		d = TB_doneText;
+		v = 0;
+		while (*s != 0 && d < TB_doneText + sizeof(TB_doneText) - 1) {
+			if (*s == '0' && v == 0 && (s == TRN_BLOCK_DONE || (uint8_t)s[-1] < 0x80)) {
+				*d++ = (char)('0' + TB_done);
+				v = 1;
+			} else {
+				*d++ = *s;
+			}
+			s++;
+		}
+		*d = 0;
+		setTextColor(1);
+		drawString(TB_doneText, 0, 120);
+		drawString(TB_REASONS[TB_reason], 0, 132);
+		TB_box1Seen = 0;
+		createMenuBox(2, -0x58, 0x12, 0xb0, 0x23, 2, TB_tickMessage, TB_renderMessage);
+	}
+	return 0;
+}

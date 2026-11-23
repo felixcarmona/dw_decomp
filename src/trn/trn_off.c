@@ -161,7 +161,10 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 			r = TRN_getSlotSessionResult();
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
-			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			} while (TRN_modBlockNext());
 			startAnimation(ENTITY_TABLE[1], 0x12);
 			loadMapObjectPosition(TRN_D_8008F368, TRN_D_8008F388, MAIN_D_8013536C, MAIN_D_8013536E);
 			playSound(8, 0xa);
@@ -227,7 +230,10 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_8013536C, MAIN_D_8013536E, 1);
-			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 6, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 6, r);
+			} while (TRN_modBlockNext());
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			playSound(8, 0xa);

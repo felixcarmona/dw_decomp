@@ -135,7 +135,10 @@ void TRN_tickBrainsTraining(int32_t instanceId)
 			r = TRN_getSlotSessionResult();
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
-			TRN_awardBrainsTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardBrainsTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			} while (TRN_modBlockNext());
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			startAnimation(&NPC_ENTITIES[0].digimonEntity.entity, 0);

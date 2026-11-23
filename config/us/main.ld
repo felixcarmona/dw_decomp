@@ -116,6 +116,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.text.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.text.*);
         . = ALIGN(., 4);
@@ -346,6 +347,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.rodata .rodata.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.rodata .rodata.*);
         . = ALIGN(., 4);
@@ -509,6 +511,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.data.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.data.*);
         . = ALIGN(., 4);
@@ -646,6 +649,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.sdata.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.sdata.*);
         . = ALIGN(., 4);
@@ -794,6 +798,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.sbss.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.sbss.*);
         . = ALIGN(., 4);
@@ -880,6 +885,7 @@ SECTIONS
         BUILD_DIR/src/trn/trn_off.c.o(.sbss.*);
         BUILD_DIR/src/trn/trn_def.c.o(.sbss.*);
         BUILD_DIR/src/trn/trn_hud.c.o(.sbss.*);
+        BUILD_DIR/src/trn/trn_reward.c.o(.sbss.*); /* MOD (training block) */
         . = ALIGN(., 4);
         BUILD_DIR/src/dget/dget.c.o(.sbss.*);
         . = ALIGN(., 4);
@@ -932,6 +938,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_options.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.bss.*);
+        BUILD_DIR/src/main/mod_qol.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.bss.*);
         . = ALIGN(., 4);
