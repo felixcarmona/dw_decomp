@@ -158,6 +158,7 @@ int32_t drawTextboxStrings(boxId, flag)
 	uint8_t *buf;
 #if FONT_SWITCH
 	int32_t cellsRow; /* MOD (language) */
+	RECT balanceRect; /* MOD (shop balance): the row cleared before it is redrawn */
 	int8_t fixed;
 #endif
 
@@ -193,6 +194,10 @@ int32_t drawTextboxStrings(boxId, flag)
 		if (box->render == renderShopBitsBox) {
 			cellsRow = 1;
 			DRAW2_PIECES = BALANCE_PIECES;
+			/* The row is redrawn whenever the balance changes, and drawGlyphPieces only paints the glyphs: a
+			 * shorter number (or a "Merit" after a "Bits") left the old digits to its right. Wipe the whole row. */
+			setRECT(&balanceRect, px, row, 0x90, 0xc);
+			clearTextSubArea(&balanceRect);
 		} else {
 			cellsRow = boxId + 1 == TEXTBOX_PIECES_BOX &&
 			           (box->vramRows != 0 ? box->writeRow % box->vramRows : box->writeRow) == TEXTBOX_PIECES_ROW;
