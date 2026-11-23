@@ -76,6 +76,7 @@ MAIN_C_SRC := \
 	src/main/mod_species.c \
 	src/main/mod_screen.c \
 	src/main/mod_options.c \
+	src/main/chinese.c \
 	src/main/mod_feed.c \
 	src/main/mod_qol.c \
 	src/main/tfs_stream.c \
@@ -103,7 +104,7 @@ $(eval $(call unit,MAIN,main))
 
 # MOD (menu overlay, docs/mods/memory.md "The menu overlay"): most of main_menu.c's code is linked into .MENU
 # (config/us/overlay.ld), read where a card menu opens; the file stays a MAIN source
-OVERLAY += MENU
+OVERLAY += MENU ZH
 
 SHOP_C_SRC := \
 	src/shop/script_menu.c
@@ -230,3 +231,6 @@ VS_C_SRC := \
 	src/vs/vs_select.c
 
 $(eval $(call overlay,VS,vs))
+
+# Extra-RAM globals are outside the resident GP window.
+$(BUILD_DIR)/src/main/chinese.c.o: GCC_FLAGS += -G0
