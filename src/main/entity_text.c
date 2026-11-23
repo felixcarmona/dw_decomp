@@ -2,6 +2,7 @@
 #include <dw/combat.h>
 #include <dw/entity.h>
 #include <dw/garbage.h>
+#include <dw/mod_fps.h>
 #include <dw/params.h>
 #include <dw/types.h>
 #include <dw/world_object.h>
@@ -36,6 +37,14 @@ int8_t ENTITY_TEXT_Y_OFFSETS[24] = {
 uint8_t ENTITY_TEXT_ICON_U[8] = { 0xB0, 0xC8, 0xB8, 0xC0, 0xD0, 0, 0, 0 };
 
 EntityTextData ENTITY_TEXT_DATA[4];
+
+/* MOD (fps): the numbers rise and expire in the late tick (once per tick,
+ * after all the object ticks, where the render used to move them). The late
+ * tick records which entries the render draws this tick and on which layer,
+ * as the original drew them before advancing. */
+static uint8_t MOD_ENTITY_TEXT_DRAW[4][8];
+static uint8_t MOD_ENTITY_TEXT_DRAW_COUNT[4];
+void lateTickEntityText(int32_t instanceId);
 
 void getEntityScreenPos(Entity *entity, int32_t mode, DVECTOR *out);
 void convertValueToDigits(int32_t n, int32_t value, int32_t *outCount,
@@ -132,7 +141,8 @@ void addEntityText(Entity *entity, int16_t slotId, int16_t color, int32_t value,
 	j = j;
 
 	if (slot->activeElements == 0) {
-		addObject(0x192, slotId, 0, renderEntityText);
+		MOD_ENTITY_TEXT_DRAW_COUNT[slotId] = 0;
+		addObjectLate(0x192, slotId, 0, lateTickEntityText, renderEntityText);
 	}
 	slot->activeElements += 1;
 }
@@ -146,18 +156,15 @@ void setCombatTextPosition(Entity *entity, EntityTextDataEntry *entry)
 	entry->y = xy.vy - 8;
 }
 
-void renderEntityText(instanceId)
-	int16_t instanceId;
+void lateTickEntityText(int32_t instanceId)
 {
-	GsOT_TAG *ot;
-	DVECTOR screenPos;
 	uint8_t *frame;
 	EntityTextData *slot;
 	EntityTextDataEntry *entry;
 	long i;
 
-	ot = ACTIVE_ORDERING_TABLE->org;
 	slot = &ENTITY_TEXT_DATA[instanceId];
+	MOD_ENTITY_TEXT_DRAW_COUNT[instanceId] = 0;
 	i = 0;
 	while (i < 8) {
 		if (slot->activeList[i] == 0xFF) {
@@ -176,32 +183,9 @@ void renderEntityText(instanceId)
 			entry->y += ENTITY_TEXT_Y_OFFSETS[*frame];
 		}
 
-		/* In battle, the number follows its fighter. */
-		if (GAME_STATE == 4) {
-			getEntityScreenPos(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[instanceId]],
-					   0, &screenPos);
-			drawEntityText(entry->color, entry->numDigits,
-				       screenPos.vx + entry->x,
-				       screenPos.vy - 8 + entry->y,
-				       entry->value, 14 - i);
-		} else {
-			drawEntityText(entry->color, entry->numDigits,
-				       entry->x, entry->y,
-				       entry->value, 14 - i);
-		}
-
-		if (entry->icon != 0) {
-			if (GAME_STATE != 4) {
-				drawEntityTextIcon(entry->x - 8, entry->y,
-						   ENTITY_TEXT_ICON_U[entry->icon - 1],
-						   14 - i);
-			} else {
-				drawEntityTextIcon(screenPos.vx + entry->x - 8,
-						   screenPos.vy - 8 + entry->y,
-						   ENTITY_TEXT_ICON_U[entry->icon - 1],
-						   14 - i);
-			}
-		}
+		/* drawn by renderEntityText on layer 14 - i */
+		MOD_ENTITY_TEXT_DRAW[instanceId][i] = slot->activeList[i];
+		MOD_ENTITY_TEXT_DRAW_COUNT[instanceId] = i + 1;
 
 		*frame += 1;
 		if (*frame >= 31) {
@@ -230,7 +214,56 @@ void renderEntityText(instanceId)
 		}
 	}
 	if (i == 8) {
-		removeEntityText(instanceId);
+		/* removeEntityText, keeping the object for this tick's render */
+		if (slot->activeElements != 0) {
+			removeObjectAfterRender(0x192, instanceId);
+			slot->activeElements = 0;
+			i = 0;
+			while (i < 8) {
+				slot->entries[i].frameId = 0xFF;
+				slot->activeList[i] = 0xFF;
+				i += 1;
+			}
+		}
+	}
+}
+
+void renderEntityText(instanceId)
+	int16_t instanceId;
+{
+	DVECTOR screenPos;
+	EntityTextDataEntry *entry;
+	long i;
+
+	for (i = 0; i < MOD_ENTITY_TEXT_DRAW_COUNT[instanceId]; i++) {
+		entry = &ENTITY_TEXT_DATA[instanceId].entries[MOD_ENTITY_TEXT_DRAW[instanceId][i]];
+
+		/* In battle, the number follows its fighter. */
+		if (GAME_STATE == 4) {
+			getEntityScreenPos(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[instanceId]],
+					   0, &screenPos);
+			drawEntityText(entry->color, entry->numDigits,
+				       screenPos.vx + entry->x,
+				       screenPos.vy - 8 + entry->y,
+				       entry->value, 14 - i);
+		} else {
+			drawEntityText(entry->color, entry->numDigits,
+				       entry->x, entry->y,
+				       entry->value, 14 - i);
+		}
+
+		if (entry->icon != 0) {
+			if (GAME_STATE != 4) {
+				drawEntityTextIcon(entry->x - 8, entry->y,
+						   ENTITY_TEXT_ICON_U[entry->icon - 1],
+						   14 - i);
+			} else {
+				drawEntityTextIcon(screenPos.vx + entry->x - 8,
+						   screenPos.vy - 8 + entry->y,
+						   ENTITY_TEXT_ICON_U[entry->icon - 1],
+						   14 - i);
+			}
+		}
 	}
 }
 
