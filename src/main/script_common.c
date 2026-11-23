@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include <dw/mod_options.h>
+
 #include <libgs.h>
 
 #include <dw/mod_font.h>
@@ -1657,7 +1659,9 @@ void calculateItemListStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	got = ITEM_NAME(ITEM_MENU_RIGHT->buf[idx]);
 	len = strlen(name);
 	pad = len < 16 ? 8 - (len >> 1) : 0;
-	pad = measureStringMode(name, FIT_VANILLA) + pad * 8 + measureStringMode(got, FIT_VANILLA) > 218 - 22;
+	/* Chinese names use full-width glyphs; keep both fields under their headings. */
+	pad = MOD_LANG == MOD_LANG_ZH ||
+	      measureStringMode(name, FIT_VANILLA) + pad * 8 + measureStringMode(got, FIT_VANILLA) > 218 - 22;
 	*out++ = pad ? textFitCode(name, 0x72 - 6 - 12) : 1;
 	*out++ = (item & 0x80) != 0 ? 1 : 3;
 	strcpy(out, name);
@@ -2902,6 +2906,7 @@ void calculateBirdramonMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast
 void updateItemMenuLine(ItemMenuBox *box, int32_t style)
 {
 	TextBoxData *entry;
+	RECT area;
 	int16_t row;
 	int32_t outX;
 	int32_t outClut;
@@ -2936,6 +2941,13 @@ void updateItemMenuLine(ItemMenuBox *box, int32_t style)
 	p = TEXTBOX_LINES_PTR + (row << 6);
 	if (outX != 0) {
 		p += 0x20;
+	}
+
+	/* A shorter Chinese name needs the whole recycled slot cleared, including
+	 * its padding. Half-width Item Bank rows must preserve the adjacent list. */
+	if (MOD_LANG == MOD_LANG_ZH) {
+		setRECT(&area, outX, row * 12, outClut + 1, 12);
+		clearTextSubArea(&area);
 	}
 
 #if !VERSION_IS(US)
