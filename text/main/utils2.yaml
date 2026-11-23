@@ -3,3 +3,10 @@ PAUSE:
     MAIN_D_80134430:
       ja: ポーズ
       en_us: Pause
+# MOD (cheats): keyed so a text source can translate it (main.LAB_STR_PAUSE_HINT)
+MOD_PAUSE:
+  storage: define
+  strings:
+    LAB_STR_PAUSE_HINT:
+      ja: "Press SELECT to open Cheats"
+      en_us: "Press SELECT to open Cheats"
