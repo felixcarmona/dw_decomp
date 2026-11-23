@@ -10,6 +10,7 @@
 #include <dw/species.h>
 #include <dw/sound.h>
 #include <dw/types.h>
+#include <dw/mod_rules.h>
 
 #include "common.h"
 
@@ -81,25 +82,9 @@ void animateEntityTexture(Entity *entity, EntityAnim *anim)
 	int16_t frame;
 	RECT rect;
 
-	switch (entity->type) {
-	case 0x09:
-	case 0x85:
-	case 0x68:
-		texX = 0x1e;
-		break;
-	case 0x15:
-	case 0x6a:
-	case 0x8f:
-		texX = 0x28;
-		break;
-	case 0x65:
-	case 0x45:
-		texX = 0x10;
-		break;
-	case 0x7f:
-		texX = 0x2c;
-		break;
-	default:
+	/* MOD (species rules as data): the species with an animated texture (the flames) and the width of the animated strip */
+	texX = modAnimatedTextureWidth(entity->type);
+	if (texX == 0) {
 		return;
 	}
 

@@ -20,6 +20,7 @@
 #include <dw/species.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/mod_rules.h>
 
 uint8_t *trimNpcModel(int32_t type, uint8_t *mmd, int32_t size); /* MOD (memreclaim) */
 
@@ -2846,11 +2847,7 @@ void initializeDigimonObject(int32_t type, int32_t instanceId,
 	anim = (int16_t *)((char *)entity->animPtr + *entity->animPtr);
 	++anim;
 	pos = entity->posData;
-	if (type == 0x71) {
-		pos->scale.vx = 0x1800, pos->scale.vy = 0x1800, pos->scale.vz = 0x1800;
-	} else {
-		pos->scale.vx = 0x1000, pos->scale.vy = 0x1000, pos->scale.vz = 0x1000;
-	}
+	pos->scale.vx = pos->scale.vy = pos->scale.vz = modModelScale(type); /* MOD (species rules as data): 0x1800 for Meteormon, else 0x1000 */
 	pos->rotation.vx = 0;
 	pos->rotation.vy = 0;
 	pos->rotation.vz = 0;

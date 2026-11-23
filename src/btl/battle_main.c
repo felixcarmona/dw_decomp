@@ -19,6 +19,7 @@
 #include <dw/sound_async.h>
 #include <dw/swap.h>
 #include <dw/version.h>
+#include <dw/mod_rules.h>
 
 #include "common.h"
 
@@ -855,15 +856,7 @@ void BTL_resetFlatten(int16_t index)
 	entity->flatSprite = -1;
 	fighter->flags &= ~FIGHTER_FLAG_FLATTENED;
 	fighter->flatTimer = 0;
-	if (entity->type != 0x71) {
-		entity->posData->scale.vx = 0x1000;
-		entity->posData->scale.vy = 0x1000;
-		entity->posData->scale.vz = 0x1000;
-	} else {
-		entity->posData->scale.vx = 0x1800;
-		entity->posData->scale.vy = 0x1800;
-		entity->posData->scale.vz = 0x1800;
-	}
+	entity->posData->scale.vx = entity->posData->scale.vy = entity->posData->scale.vz = modModelScale(entity->type); /* MOD (species rules as data) */
 }
 
 void BTL_handleVictorySequence(void)
@@ -2900,10 +2893,8 @@ void BTL_tickStatusEffects(void)
 				}
 				fighter->moveRange = 0;
 				BTL_resetFighterAction(fighter);
-				if (entity->type == 0x71) {
-					entity->posData->scale.vx = 0x1800;
-					entity->posData->scale.vy = 0x1800;
-					entity->posData->scale.vz = 0x1800;
+				if (modModelScale(entity->type) != 0x1000) { /* MOD (species rules as data): a species with its own scale (Meteormon) */
+					entity->posData->scale.vx = entity->posData->scale.vy = entity->posData->scale.vz = modModelScale(entity->type);
 				}
 				break;
 			}
