@@ -3217,6 +3217,10 @@ void renderDigimonStatsView(void)
 		/* The baked mistakes tag is element 10, using the profile tags' CLUT. */
 		renderNumber(0, 268 - 0xa0 + 1, -0x22, 3, PARTNER_PARA.careMistakes, 5);
 		renderInsetBox(268, 84, 0x1a, 14, 5);
+		/* MOD (battles count): a baked BATTLES tag (SYSTEM_W 216,98) and the partner's fights, between WEIGHT and MISTAKES */
+		renderRectPolyFT4(statsPanelX(-6, -34), -34, 36, 10, 216, 98 + 0x80, 5, GetClut(0x60, 9 + 0x1e8), 5, 0);
+		renderNumber(0, 196 - 0xa0 + 1, -0x22, 3, PARTNER_PARA.battles, 5);
+		renderInsetBox(196, 84, 0x1a, 14, 5);
 
 		for (j = 0; j < 0xd; j++) {
 			r = &STATS_VIEW_INSETS[j];
