@@ -77,11 +77,9 @@ $(shell mkdir -p $(GEN_DIR); printf '#define MOD_LANG_BASE MOD_LANG_%s\n' '$(she
 
 # MOD (language): the disc files that have a copy per language (docs/mods/language.md), given by tools/build-full.sh:
 # LANG_FILES="NAME.EXT:ES.EXT:EN.EXT ..." (the Spanish copy, the copy with the map signs in English; - for none). Each
-# copy is also a NEW_FILES name. Empty by default: no copies, the files as before.
+# copy is also a NEW_FILES name. Empty by default: no copies, the files as before. A row is the name's hash and the
+# copies' places among the new files (tools/gen_lang_files.py: 8 bytes, not three names).
 LANG_FILES ?=
-$(shell mkdir -p $(GEN_DIR); printf '%s\n' $(foreach f,$(LANG_FILES),'{ $(foreach n,$(subst :, ,$(f)),$(if $(filter -,$(n)),NULL,"$(n)"),) },') > $(GEN_DIR)/lang_files.h.tmp; \
-	cmp -s $(GEN_DIR)/lang_files.h.tmp $(GEN_DIR)/lang_files.h && rm $(GEN_DIR)/lang_files.h.tmp \
-	|| mv $(GEN_DIR)/lang_files.h.tmp $(GEN_DIR)/lang_files.h)
 
 # MOD (new files): the disc files with names the original never had (a new screen's .MAP/.TFS, models, textures), one
 # FILE_OFFSET_TABLE entry each after the mod entries (src/main/file_table_us.c), sector and size written by the project's
@@ -91,6 +89,10 @@ NEW_FILES ?=
 $(shell mkdir -p $(GEN_DIR); printf '%s\n' $(foreach n,$(NEW_FILES),'{ 0x00000000, 0x00000800, "$(n)" },') > $(GEN_DIR)/file_table_new.h.tmp; \
 	cmp -s $(GEN_DIR)/file_table_new.h.tmp $(GEN_DIR)/file_table_new.h && rm $(GEN_DIR)/file_table_new.h.tmp \
 	|| mv $(GEN_DIR)/file_table_new.h.tmp $(GEN_DIR)/file_table_new.h)
+$(shell mkdir -p $(GEN_DIR); printf '#define NUM_NEW_FILES %s\n' '$(words $(NEW_FILES))' > $(GEN_DIR)/file_table_count.h.tmp; \
+	cmp -s $(GEN_DIR)/file_table_count.h.tmp $(GEN_DIR)/file_table_count.h && rm $(GEN_DIR)/file_table_count.h.tmp \
+	|| mv $(GEN_DIR)/file_table_count.h.tmp $(GEN_DIR)/file_table_count.h)
+$(shell python3 tools/gen_lang_files.py $(GEN_DIR)/lang_files.h --lang '$(LANG_FILES)' --new '$(NEW_FILES)' --table src/main/file_table_us.c >&2)
 
 PYTHON := python3
 

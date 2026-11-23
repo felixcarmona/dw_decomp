@@ -852,6 +852,10 @@ FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + par
 #include <file_table_new.h>
 	{ 0x00000000, 0x00000000, "NULL" },
 };
+
+/* MOD (language): the first of the new files' entries (lang_files.h names the copies by their place among them) */
+#include <file_table_count.h>
+const int16_t FILE_TABLE_NEW_FIRST = sizeof(FILE_OFFSET_TABLE) / sizeof(FileEntry) - 1 - NUM_NEW_FILES;
 // clang-format on
 
 #include <dw/sin_lookup_table.h>
