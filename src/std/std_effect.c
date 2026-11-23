@@ -2135,6 +2135,11 @@ void STD_loadNextEFEFile(EfeLoad *arg)
 	m->mmdPtr = STD_getEFEHeapPointer();
 	p->model = m;
 	loc = *getEFEDATEntry(id + 0x100);
+#ifndef __MWERKS__
+	/* path is never set: make it an empty name so addFileReadRequest accepts
+	 * the request whatever the stack holds (the read uses loc and size) */
+	path[0] = '\0';
+#endif
 	addFileReadRequest(path, (uint8_t *)m->mmdPtr, NULL, (void *)STD_handleEFEFileLoaded, arg, &loc, 0x5000);
 }
 
