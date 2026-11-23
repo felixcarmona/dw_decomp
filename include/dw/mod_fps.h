@@ -7,7 +7,7 @@
 #include <fps.h> /* FPS: the build's frame rate (Makefile `FPS=20|30|60`, generated) */
 
 /* FPS=20 compiles out extra passes. FPS=30|60 includes the automatic
- * 20/60 selector: boot and idle-time CPU measurements choose the mode.
+ * 60/30/20 ladder: actual workload chooses the cadence.
  * Logic cadence is independent of this presentation setting. */
 #define MOD_CPU_LINES 16
 #define MOD_CPU_SPINS_FAST 8500
@@ -19,6 +19,20 @@ int32_t modCpuProbe(void);
 #define MOD_FPS_20 2
 extern int32_t MOD_OPT_FPS;
 void modSetFrameRate(int32_t mode);
+int32_t modFrameRateLevel(void);
+/* MOD (fps ladder, main.c): the frames a tick shows follow what the last ticks cost: 60, steady 30 or 20.
+ * MOD_FPS_POLICY chooses the ladder (default), a locked cadence, or the 0.0.7 CPU probe. */
+#define MOD_FPS_POLICY_AUTO 0
+#define MOD_FPS_POLICY_60 1
+#define MOD_FPS_POLICY_30 2
+#define MOD_FPS_POLICY_20 3
+#define MOD_FPS_POLICY_CPU 4
+extern int8_t MOD_FPS_POLICY;
+extern int8_t MOD_CAD_LEVEL;  /* 2 = 60, 1 = steady 30, 0 = 20 (the current level of the ladder) */
+extern int8_t MOD_CAD_KEEP60; /* frames per 32 ticks to stay at 60 */
+extern int8_t MOD_CAD_KEEP30; /* late or skipped frames per 32 ticks tolerated at steady 30 */
+extern int32_t MOD_CAD_SWITCHES;
+extern int32_t MOD_CAD_LAST;
 #if FPS == 20
 #define MOD_FPS_MODE 0
 #elif FPS == 30 || FPS == 60
