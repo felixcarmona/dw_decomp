@@ -803,6 +803,15 @@ static void captureOutgoing(RECT *rect, int32_t incoming)
 	}
 	old = TFS_CELL[c];
 	TFS_CELL[c] = incoming;
+	/*
+	 * A staged row (tfsStageRow) occupies the ring's memory and has freed its
+	 * slots: a capture now would write the leaving tile over the row's pixels
+	 * before they are uploaded (Continue replaces the window the map load
+	 * uploaded, so every cell has a tile leaving).
+	 */
+	if (TFS_SPAN_FIRST >= 0) {
+		return;
+	}
 	if (!TFS_ACTIVE || (old < 0) || (old == incoming) || (MOD_TFS_TILE_SEQ[old] < 0) ||
 	    (findSlot(old) >= 0)) {
 		return;
