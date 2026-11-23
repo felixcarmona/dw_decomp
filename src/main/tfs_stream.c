@@ -86,6 +86,7 @@ int8_t MOD_TFS_SAME_MAP;	/* the caller reopens the screen it is on (battle exit)
 int32_t modFieldMusicPending(void);	/* sound_async.c: where the field's font being read after a battle ends, or 0 */
 void modFieldMusicWait(void);
 extern int8_t MOD_BTL_PRELOAD;	/* btl.c */
+extern int8_t CAMERA_HAS_TARGET; /* map.c */
 extern int8_t MOD_BTL_PRELOAD_BLOCKED;
 static int8_t TFS_HOLD;	/* after a won battle: no prefetch before the BTL_REL read ahead (tfsStreamHoldPrefetch) */
 static int32_t TFS_HOLD_START;
@@ -737,7 +738,9 @@ void tfsStreamTick(void)
 		return;
 	}
 	if (TFS_HOLD) {
-		if (MOD_OPT_QUICK_BATTLE && (MOD_BTL_PRELOAD == 0) && !MOD_BTL_PRELOAD_BLOCKED &&
+		/* A scripted pan cannot release control for BTL preload until its
+		 * band arrives. Demand reads must not wait for that world-only work. */
+		if ((!TFS_CAMERA_COUNT || !CAMERA_HAS_TARGET) && MOD_OPT_QUICK_BATTLE && (MOD_BTL_PRELOAD == 0) && !MOD_BTL_PRELOAD_BLOCKED &&
 		    ((uint32_t)(VSync(-1) - TFS_HOLD_START) < 90)) {
 			return;
 		}
