@@ -184,7 +184,8 @@ void TRN_modOpenStatsBox(void)
 		DrawSync(0);
 	}
 
-	MAIN_D_8013539E = 100;
+	/* MOD (faster results): a short pause before the gains count */
+	MAIN_D_8013539E = 30;
 
 	setRECT(&finalPos, -94, -78, 188, 96);
 	/* MOD (skip hint, patch 0333): a row at the bottom for "Press × to skip" while the gains count */
@@ -247,6 +248,7 @@ void TRN_renderPostTrainingStatsBox(int16_t depth)
 	GsBOXF rect;
 	int32_t i;
 	int32_t first;
+	int32_t step;
 	int16_t y;
 
 	first = 1;
@@ -256,8 +258,10 @@ void TRN_renderPostTrainingStatsBox(int16_t depth)
 		}
 		if ((MAIN_D_8013539E == 0) && (STATS_GAINS[i] > 0) && (first == 1)) {
 			playSound(0, 0x16);
-			STATS_GAINS[i] -= 1;
-			INITIAL_COMBAT_STATS[0][i] += 1;
+			/* MOD (faster results): a row counts in at most 10 frames */
+			step = (STATS_GAINS[i] + 9) / 10;
+			STATS_GAINS[i] -= step;
+			INITIAL_COMBAT_STATS[0][i] += step;
 
 			/* MOD (caps): the new limits (were 9999 / 999) */
 			if (INITIAL_COMBAT_STATS[0][i] > CAP_OF_STAT_INDEX(i)) {
