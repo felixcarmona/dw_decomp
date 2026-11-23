@@ -10,6 +10,7 @@
 #include <dw/combat.h>
 #include <dw/font.h>
 #include <dw/input.h>
+#include <dw/mod_present.h>
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/model.h>
@@ -154,6 +155,9 @@ uint8_t BTL_FINISHER_SEGMENTS;
 uint8_t BTL_FINISHER_READY;
 uint8_t BTL_MP_BAR_STEP;
 uint8_t BTL_HP_BAR_STEP;
+/* MOD (fps): the start text object (0x1a6) exists; its pieces are rolled back
+ * around the extra render passes (battle_main.c) */
+int8_t BTL_START_TEXT_ACTIVE;
 
 static void *battle_hud_sbss_order[] = {
 	&BTL_HP_BAR_STEP,
@@ -349,7 +353,13 @@ void BTL_renderFinisherChargeup(void)
 	}
 
 	if (COMBAT_DATA_PTR->player.remainingChargeupTime[0] == 0) {
-		BTL_removeFinisherChargeup();
+		/* MOD (fps): the other render passes of this tick still draw it */
+		if (MOD_RENDER_MULTIPASS) {
+			removeObjectAfterRender(0x19a, 0);
+			COMBAT_DATA_PTR->player.remainingChargeupTime[0] = -1;
+		} else {
+			BTL_removeFinisherChargeup();
+		}
 	}
 }
 
@@ -812,6 +822,7 @@ void BTL_initializeBattleStartText(void)
 	}
 
 	addObject(0x1a6, 0, NULL, (RenderFunction)BTL_renderBattleStartText);
+	BTL_START_TEXT_ACTIVE = 1;
 }
 
 void BTL_renderBattleStartText(void)
@@ -953,12 +964,14 @@ void BTL_renderBattleStartText(void)
 void BTL_removeBattleStartText(void)
 {
 	removeObject(0x1a6, 0);
+	BTL_START_TEXT_ACTIVE = 0;
 }
 
 void BTL_initializeBattleStartTextBurst(void)
 {
 	BTL_BATTLE_TEXT_FINISHED = 0;
 	addObject(0x1a6, 0, NULL, (RenderFunction)BTL_renderBattleStartTextBurst);
+	BTL_START_TEXT_ACTIVE = 1;
 }
 
 void BTL_renderBattleStartTextBurst(void)
@@ -1072,6 +1085,7 @@ void BTL_renderBattleStartTextBurst(void)
 void BTL_removeBattleStartTextBurst(void)
 {
 	removeObject(0x1a6, 0);
+	BTL_START_TEXT_ACTIVE = 0;
 }
 
 int32_t BTL_isBattleStartTextFinished(void)
