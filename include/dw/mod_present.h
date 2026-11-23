@@ -19,6 +19,9 @@ typedef struct {
 	int32_t count;
 	uint32_t *pre;
 	uint32_t *post;
+	/* adds again, at the start of every extra pass, the prims the caller's
+	 * ticks put straight into the first pass's ordering table (NULL: none) */
+	void (*replay)(void);
 } ModRollbackSet;
 
 /* the tick / present helper (main.c): modTickStart before the loop's logic,
@@ -34,5 +37,12 @@ int32_t modRenderRand(void);
 int32_t modRenderCustomRandom(long min, long max);
 void removeObjectAfterRender(int32_t objectId, int32_t instanceId);
 extern int32_t MOD_FPS_EFE_NO_ROOM;
+/* the effect render scripts' script/data area (before the file's TMD),
+ * copied aside before an extra pass runs them and put back after: the copy
+ * goes right below top (the start of whatever the battle loaded above the
+ * EFE heap), at least 0x5000 bytes above the heap pointer; 0 if it does not
+ * fit (counted in MOD_FPS_EFE_NO_ROOM) */
+int32_t modEfeAreaSave(int32_t data, uint32_t top, uint32_t **buf);
+void modEfeAreaRestore(int32_t data, uint32_t *buf, int32_t size);
 
 #endif

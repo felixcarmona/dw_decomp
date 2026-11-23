@@ -9,6 +9,7 @@
 #include <dw/font.h>
 #include <dw/item.h>
 #include <dw/math.h>
+#include <dw/mod_present.h>
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/types.h>
@@ -993,8 +994,83 @@ void VS_removeMoveEffect(DigimonEntity *digimon, FighterData *fighter)
 	fighter->activeEffectSlot = -1;
 }
 
+/* MOD (fps): VS state that render callbacks advance, rolled back around the
+ * extra render passes of a tick as in the story battle (battle_main.c) and
+ * the tournament (std_main.c): COMBAT_DATA and the two fighters' stats (the
+ * status bars' damageTick and MP drain), the start text pieces, its colour
+ * timer and VS_BATTLE_TEXT_FINISHED, the finisher gauge counters, the intro
+ * name's letter count and animation, and the select screen's panels (their
+ * render scrolls and blinks them). */
+extern uint8_t VS_BATTLE_START_TEXT_TIMER;
+extern int32_t VS_BATTLE_TEXT_FINISHED;
+extern uint8_t VS_FINISHER_FULL_FRAMES[2];
+extern uint8_t VS_FINISHER_PULSE_FRAME[2];
+extern uint8_t VS_FINISHER_BRIGHTNESS[2];
+extern uint8_t VS_FINISHER_SEGMENTS[2];
+extern uint8_t VS_FINISHER_READY[2];
+extern int8_t VS_START_TEXT_ACTIVE;
+extern int16_t VS__INTRO_DATA_RENDERED_CHARACTERS;
+extern uint8_t VS__INTRO_DATA_ANIM_FRAME;
+extern VsSelectDigimonData VS__SELECT_DIGIMON_DATA[2];
+
+#define VS_MOD_ROLLBACK_MAX 16
+#define VS_MOD_ROLLBACK_WORDS 1400
+static ModRollbackVar VS_MOD_ROLLBACK_VARS[VS_MOD_ROLLBACK_MAX];
+static uint32_t VS_MOD_ROLLBACK_PRE[VS_MOD_ROLLBACK_WORDS];
+static uint32_t VS_MOD_ROLLBACK_POST[VS_MOD_ROLLBACK_WORDS];
+static ModRollbackSet VS_MOD_ROLLBACK = {
+	VS_MOD_ROLLBACK_VARS, 0, VS_MOD_ROLLBACK_PRE, VS_MOD_ROLLBACK_POST, NULL
+};
+
+static void VS_modRollbackAdd(void *ptr, int32_t size)
+{
+	ModRollbackVar *v = &VS_MOD_ROLLBACK_VARS[VS_MOD_ROLLBACK.count++];
+
+	v->ptr = ptr;
+	v->size = size;
+}
+
+static ModRollbackSet *VS_modRollbackSet(void)
+{
+	int32_t i;
+	int32_t id;
+	Entity *e;
+	Entity *first = NULL;
+
+	VS_MOD_ROLLBACK.count = 0;
+	VS_modRollbackAdd(COMBAT_DATA_PTR, sizeof(CombatData));
+	for (i = 0; i < 2; i++) {
+		id = COMBAT_DATA_PTR->player.entityIds[i];
+		if (id < 1 || id >= 10) {
+			continue;
+		}
+		e = ENTITY_TABLE[id];
+		if (e != NULL && e != first) {
+			VS_modRollbackAdd(&((DigimonEntity *)e)->stats, sizeof(Stats));
+			first = e;
+		}
+	}
+	if (VS_START_TEXT_ACTIVE) {
+		VS_modRollbackAdd(VS_BATTLE_START_TEXT_PIECES, sizeof(VS_BATTLE_START_TEXT_PIECES));
+	}
+	VS_modRollbackAdd(&VS_BATTLE_START_TEXT_TIMER, 1);
+	VS_modRollbackAdd(&VS_BATTLE_TEXT_FINISHED, sizeof(VS_BATTLE_TEXT_FINISHED));
+	VS_modRollbackAdd(VS_FINISHER_FULL_FRAMES, 2);
+	VS_modRollbackAdd(VS_FINISHER_PULSE_FRAME, 2);
+	VS_modRollbackAdd(VS_FINISHER_BRIGHTNESS, 2);
+	VS_modRollbackAdd(VS_FINISHER_SEGMENTS, 2);
+	VS_modRollbackAdd(VS_FINISHER_READY, 2);
+	VS_modRollbackAdd(&VS__INTRO_DATA_RENDERED_CHARACTERS, sizeof(VS__INTRO_DATA_RENDERED_CHARACTERS));
+	VS_modRollbackAdd(&VS__INTRO_DATA_ANIM_FRAME, 1);
+	VS_modRollbackAdd(VS__SELECT_DIGIMON_DATA, sizeof(VS__SELECT_DIGIMON_DATA));
+	return &VS_MOD_ROLLBACK;
+}
+
 void VS_tickFrame(void)
 {
+	/* MOD (fps): rendered by the shared tick / present helper (main.c),
+	 * like BTL_battleTickFrame */
+	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
 	POLLED_INPUT = PadRead(1);
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
@@ -1002,14 +1078,7 @@ void VS_tickFrame(void)
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
 	tickObjects();
-	renderObjects();
-	AddPrim(ACTIVE_ORDERING_TABLE->org + 0x20, &DR_OFFSETS[ACTIVE_FRAMEBUFFER]);
-	DrawSync(0);
-	VSync(3);
-	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-	GsSwapDispBuff();
-	GsSortClear(0, 0, 0, ACTIVE_ORDERING_TABLE);
-	GsDrawOt(ACTIVE_ORDERING_TABLE);
+	modPresent(MOD_PRESENT_BATTLE, VS_modRollbackSet());
 }
 
 void VS_addFinisherProgress(FighterData *fighter, int16_t amount)

@@ -21,6 +21,7 @@
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/math.h>
+#include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -35,6 +36,11 @@
 #include <text/std/std_main.h>
 
 #include "common.h"
+
+/* MOD (fps): see STD_battleTickFrame */
+static void STD_modTickPrimBegin(void *workBase, int32_t layer);
+static void STD_modTickPrimEnd(void *workBase);
+void STD_lateTickBracket(void);
 
 typedef struct {
 	int16_t score[5];
@@ -2933,9 +2939,8 @@ void STD_updateBracket(void)
 		}
 	}
 
-	for (i = 0; i < 8; i++) {
-		STD_renderBracketDigimon((int16_t)i);
-	}
+	/* MOD (fps): the 8 STD_renderBracketDigimon calls that were here are
+	 * in STD_renderBracket (this runs in the late tick) */
 
 	if (match != 0 && STD_BRACKET_FADE == 0x80 && STD_BRACKET_SLOTS[STD_PLAYER_SLOT].unk7 == 2) {
 		STD_BRACKET_SLOTS[STD_PLAYER_SLOT].unk7 = (STD_BRACKET_MATCH != 7) ? 6 : 7;
@@ -3262,7 +3267,11 @@ void STD_addBracket(int16_t track)
 	ENTITY_TABLE[1]->isOnMap = 0;
 	STD_BRACKET_FINISHED = 0;
 	STD_BRACKET_FADE = 0;
-	addObject(0x1ae, 0, (TickFunction)STD_tickBracket, (RenderFunction)STD_renderBracket);
+	/* MOD (fps): the bracket simulation runs once per tick in a late tick
+	 * (after every tick, where the render used to run it); the render only
+	 * draws, so it can run several times per tick */
+	addObjectLate(0x1ae, 0, (TickFunction)STD_tickBracket, (TickFunction)STD_lateTickBracket,
+		      (RenderFunction)STD_renderBracket);
 	stopBGM();
 	stopSound();
 	playMusic(0x1d, track);
@@ -3272,9 +3281,19 @@ void STD_tickBracket(void)
 {
 }
 
-void STD_renderBracket(void)
+void STD_lateTickBracket(void)
 {
 	STD_updateBracket();
+}
+
+void STD_renderBracket(void)
+{
+	int32_t i;
+
+	/* MOD (fps): STD_updateBracket drew these right after its simulation */
+	for (i = 0; i < 8; i++) {
+		STD_renderBracketDigimon((int16_t)i);
+	}
 	STD_drawBracket();
 }
 
@@ -3303,6 +3322,7 @@ void STD_tickBracketHitFlash(int32_t idx)
 	}
 	if ((STD_BRACKET_SLOTS[idx].unk8 % 5) == 4) {
 		prim = (POLY_FT4 *)GsGetWorkBase();
+		STD_modTickPrimBegin(prim, 3);
 		SetPolyFT4(prim);
 		setRGB0(prim, 0x80, 0x80, 0x80);
 		prim->tpage = getTPage(0, 0, 960, 0);
@@ -3311,6 +3331,7 @@ void STD_tickBracketHitFlash(int32_t idx)
 		setPosDataPolyFT4(prim, STD_BRACKET_SLOTS[idx].unk0, STD_BRACKET_SLOTS[idx].unk2, 0x10, 0x10);
 		AddPrim(ACTIVE_ORDERING_TABLE->org + 3, prim++);
 		GsSetWorkBase((PACKET *)prim);
+		STD_modTickPrimEnd(prim);
 	}
 }
 
@@ -3332,7 +3353,11 @@ void STD_tickBracketProjectile(id)
 	} else {
 		STD_BRACKET_PROJECTILES[id].x -= d;
 	}
+	/* MOD (fps): drawn here, in the tick: the extra render passes add the
+	 * same prims again (STD_modReplayTickPrims) */
+	STD_modTickPrimBegin(GsGetWorkBase(), 4);
 	STD_renderBracketProjectile(id);
+	STD_modTickPrimEnd(GsGetWorkBase());
 }
 
 void STD_renderBracketProjectile(int16_t id)
@@ -5906,23 +5931,158 @@ void STD_tickFrames(int16_t count)
 	}
 }
 
+/* MOD (fps): tournament state that render callbacks advance, rolled back
+ * around the extra render passes of a tick as in the story battle
+ * (battle_main.c): every pass starts from the values the first pass started
+ * from and the first pass's results are put back afterwards.
+ * - COMBAT_DATA and the two fighters' stats: the status bars drain the HP and
+ *   MP damage buffers (damageTick);
+ * - the "BATTLE" start text pieces (while the text exists), its colour timer
+ *   and STD_BATTLE_TEXT_FINISHED (the match start waits on it);
+ * - the finisher gauge counters and STD_FINISHER_READY;
+ * - the intro name's letter count and letter animation (its tick waits on
+ *   them). */
+extern uint8_t STD_BATTLE_START_TEXT_TIMER;
+extern int32_t STD_BATTLE_TEXT_FINISHED;
+extern uint8_t STD_FINISHER_FULL_FRAMES[2];
+extern uint8_t STD_FINISHER_PULSE_FRAME[2];
+extern uint8_t STD_FINISHER_BRIGHTNESS[2];
+extern uint8_t STD_FINISHER_SEGMENTS[2];
+extern uint8_t STD_FINISHER_READY[2];
+extern int8_t STD_START_TEXT_ACTIVE;
+
+#define STD_MOD_ROLLBACK_MAX 16
+#define STD_MOD_ROLLBACK_WORDS 1400
+static ModRollbackVar STD_MOD_ROLLBACK_VARS[STD_MOD_ROLLBACK_MAX];
+static uint32_t STD_MOD_ROLLBACK_PRE[STD_MOD_ROLLBACK_WORDS];
+static uint32_t STD_MOD_ROLLBACK_POST[STD_MOD_ROLLBACK_WORDS];
+static void STD_modReplayTickPrims(void);
+static ModRollbackSet STD_MOD_ROLLBACK = {
+	STD_MOD_ROLLBACK_VARS, 0, STD_MOD_ROLLBACK_PRE, STD_MOD_ROLLBACK_POST,
+	STD_modReplayTickPrims
+};
+
+static void STD_modRollbackAdd(void *ptr, int32_t size)
+{
+	ModRollbackVar *v = &STD_MOD_ROLLBACK_VARS[STD_MOD_ROLLBACK.count++];
+
+	v->ptr = ptr;
+	v->size = size;
+}
+
+static ModRollbackSet *STD_modRollbackSet(void)
+{
+	int32_t i;
+	int32_t id;
+	Entity *e;
+	Entity *first = NULL;
+
+	STD_MOD_ROLLBACK.count = 0;
+	STD_modRollbackAdd(COMBAT_DATA_PTR, sizeof(CombatData));
+	for (i = 0; i < 2; i++) {
+		id = COMBAT_DATA_PTR->player.entityIds[i];
+		if (id < 1 || id >= 10) {
+			continue;
+		}
+		e = ENTITY_TABLE[id];
+		if (e != NULL && e != first) {
+			STD_modRollbackAdd(&((DigimonEntity *)e)->stats, sizeof(Stats));
+			first = e;
+		}
+	}
+	if (STD_START_TEXT_ACTIVE) {
+		STD_modRollbackAdd(STD_BATTLE_START_TEXT_PIECES, sizeof(STD_BATTLE_START_TEXT_PIECES));
+	}
+	STD_modRollbackAdd(&STD_BATTLE_START_TEXT_TIMER, 1);
+	STD_modRollbackAdd(&STD_BATTLE_TEXT_FINISHED, sizeof(STD_BATTLE_TEXT_FINISHED));
+	STD_modRollbackAdd(STD_FINISHER_FULL_FRAMES, 2);
+	STD_modRollbackAdd(STD_FINISHER_PULSE_FRAME, 2);
+	STD_modRollbackAdd(STD_FINISHER_BRIGHTNESS, 2);
+	STD_modRollbackAdd(STD_FINISHER_SEGMENTS, 2);
+	STD_modRollbackAdd(STD_FINISHER_READY, 2);
+	STD_modRollbackAdd(&STD_INTRO_DATA_RENDERED_CHARACTERS, sizeof(STD_INTRO_DATA_RENDERED_CHARACTERS));
+	STD_modRollbackAdd(&STD_INTRO_DATA_ANIM_FRAME, 1);
+	return &STD_MOD_ROLLBACK;
+}
+
+/* MOD (fps): the bracket's projectiles and hit flashes draw from their ticks,
+ * straight into the first pass's ordering table. Their prims are kept and
+ * added again, in the same order, at the start of each extra pass. */
+#define STD_MOD_TICK_PRIMS_MAX 32
+static POLY_FT4 STD_MOD_TICK_PRIMS[STD_MOD_TICK_PRIMS_MAX];
+static uint8_t STD_MOD_TICK_PRIM_LAYERS[STD_MOD_TICK_PRIMS_MAX];
+static int32_t STD_MOD_TICK_PRIM_COUNT;
+static int32_t STD_MOD_TICK_PRIM_TICK; /* MOD_FPS_TICKS during the tick that drew them */
+extern int32_t MOD_FPS_TICKS;
+static POLY_FT4 *STD_modTickPrimStart;
+static int32_t STD_modTickPrimLayer;
+
+static void STD_modTickPrimBegin(void *workBase, int32_t layer)
+{
+	STD_modTickPrimStart = workBase;
+	STD_modTickPrimLayer = layer;
+}
+
+static void STD_modTickPrimEnd(void *workBase)
+{
+	POLY_FT4 *p;
+	uint32_t *d;
+	uint32_t *s;
+	int32_t k;
+
+	if (STD_MOD_TICK_PRIM_TICK != MOD_FPS_TICKS) {
+		STD_MOD_TICK_PRIM_TICK = MOD_FPS_TICKS;
+		STD_MOD_TICK_PRIM_COUNT = 0;
+	}
+	for (p = STD_modTickPrimStart; p < (POLY_FT4 *)workBase; p++) {
+		if (STD_MOD_TICK_PRIM_COUNT == STD_MOD_TICK_PRIMS_MAX) {
+			break;
+		}
+		d = (uint32_t *)&STD_MOD_TICK_PRIMS[STD_MOD_TICK_PRIM_COUNT];
+		s = (uint32_t *)p;
+		for (k = 0; k < sizeof(POLY_FT4) / 4; k++) {
+			*d++ = *s++;
+		}
+		STD_MOD_TICK_PRIM_LAYERS[STD_MOD_TICK_PRIM_COUNT++] = STD_modTickPrimLayer;
+	}
+}
+
+static void STD_modReplayTickPrims(void)
+{
+	POLY_FT4 *prim;
+	uint32_t *d;
+	uint32_t *s;
+	int32_t i;
+	int32_t k;
+
+	if (STD_MOD_TICK_PRIM_TICK != MOD_FPS_TICKS - 1) {
+		return; /* none drawn in this tick (modPresent counted it already) */
+	}
+	prim = (POLY_FT4 *)GsGetWorkBase();
+	for (i = 0; i < STD_MOD_TICK_PRIM_COUNT; i++) {
+		d = (uint32_t *)prim;
+		s = (uint32_t *)&STD_MOD_TICK_PRIMS[i];
+		for (k = 0; k < sizeof(POLY_FT4) / 4; k++) {
+			*d++ = *s++;
+		}
+		AddPrim(ACTIVE_ORDERING_TABLE->org + STD_MOD_TICK_PRIM_LAYERS[i], prim++);
+	}
+	GsSetWorkBase((PACKET *)prim);
+}
+
 void STD_battleTickFrame(void)
 {
+	/* MOD (fps): rendered by the shared tick / present helper (main.c),
+	 * like BTL_battleTickFrame; the AI before this call is part of the tick */
+	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
 	tickObjects();
-	renderObjects();
-	AddPrim(ACTIVE_ORDERING_TABLE->org + 0x20, &DR_OFFSETS[ACTIVE_FRAMEBUFFER]);
-	DrawSync(0);
-	VSync(3);
+	modPresent(MOD_PRESENT_BATTLE, STD_modRollbackSet());
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
-	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-	GsSwapDispBuff();
-	GsSortClear(0, 0, 0, ACTIVE_ORDERING_TABLE);
-	GsDrawOt(ACTIVE_ORDERING_TABLE);
 }
 
 int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t slot)
