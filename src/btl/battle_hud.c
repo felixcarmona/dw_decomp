@@ -854,6 +854,17 @@ void BTL_tickBattleEndText(void)
 		return;
 	}
 
+	/* MOD (end box typing): the original typed a reward's text only after a button press, with
+	 * no prompt on screen: a drop's first two letters stood still and players took it for a
+	 * crash. The text now types on its own, at once for the first row and after each row's
+	 * wait for the next; a press still skips the wait. */
+	if (BATTLE_END_ROWS_DRAWN == 0) {
+		BATTLE_END_WAIT_TIMER = 0;
+	}
+	if (BATTLE_END_WAIT_TIMER == 0) {
+		BATTLE_END_TYPING = 1;
+	}
+
 	if (BATTLE_END_ROWS_SHOWN == BATTLE_END_VISIBLE_ROWS) {
 		if (BATTLE_END_WAIT_TIMER == 0) {
 			BTL_scrollBattleEndText();
