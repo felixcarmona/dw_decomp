@@ -1034,6 +1034,9 @@ ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with
 ASSERT(SAVE_EXT_ADDR >= WORLD_SCRATCH_START && SAVE_EXT_ADDR + SAVE_EXT_MAX <= OVL_BTL_BASE,
        "the save extension area is not in the world scratch below the battle prefix")
 ASSERT(SAVE_EXT_ADDR >= DOOA_SHARD_ADDR + DOOA_SHARD_SIZE, "the save extension area overlaps DOOA_SHARD")
+/* MOD (save robustness): the evolution model area (0x4800 of texture, then the model) and the sound staging end below it */
+ASSERT(EVO_MMD_ADDR + 0x4800 + PARTNER_MMD_MAX <= SAVE_EXT_ADDR, "the evolution model area overlaps the save extension area")
+ASSERT(GENERAL_BUFFER_ADDR + SOUND_STAGING_MAX <= SAVE_EXT_ADDR, "the sound staging overlaps the save extension area")
 ASSERT(STACK_SIZE_KB * 1024 >= 4 * STACK_MEASURED_MAX,
        "the stack is less than 4 times the deepest use measured")
 ASSERT(main_BSS_END + MIN_HEAP <= STACK_ADDR - STACK_SIZE_KB * 1024,

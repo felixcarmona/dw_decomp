@@ -374,7 +374,10 @@ static int32_t isSaveCopyValid(int32_t copy);
 static void prepareSaveFile(int32_t fromRam);
 static int32_t writeSaveFile(void);
 static long saveFileStart(int32_t write);
-static void saveFileSync(long *command, long *result);
+static void saveFileSync(MemCardSyncWord *command, MemCardSyncWord *result);
+static int32_t pickSaveCopy(void);
+#define SAVE_IO_ERROR		1	/* MEMORY_CARD_ERROR_MESSAGES[1], "Not Inserted": a card part that did not start */
+#define SAVE_IO_MESSAGES	9	/* the libmcrd codes the messages cover (0-8) */
 int32_t countRegisteredDigimon(RegisteredDigimon *p);
 void renderMainMenu();
 void registerBattleData();
@@ -387,6 +390,7 @@ void openSaveMachine(void);
 int32_t tickSaveMachine(void);
 void awardMachinedramonData();
 void gameClearSave();
+int32_t isSoundLoaded(int32_t mode, int32_t vabId);
 int32_t scriptTickMainMenu(void);
 
 void *main_menu_order_anchor[] = {
@@ -2917,12 +2921,10 @@ void tickMainMenu(void)
 			saveFileSync(&command, &result);
 			if (result == 0) {
 				/* MOD (save v2): loadSaveCopy also takes the extension, or
-				 * refuses a newer format ("Data Error") */
-				if (isSaveCopyValid(0) && loadSaveCopy(0)) {
-					TARGET_MENU = 9;
-					break;
-				}
-				if (isSaveCopyValid(1) && loadSaveCopy(1)) {
+				 * refuses a newer format ("Data Error"); MOD (save robustness):
+				 * the copy whose extension links first (pickSaveCopy) */
+				slot = pickSaveCopy();
+				if (slot >= 0 && loadSaveCopy(slot)) {
 					TARGET_MENU = 9;
 					break;
 				}
@@ -3308,17 +3310,15 @@ void tickMainMenu(void)
 			}
 			saveFileSync(&command, &result);
 			if (result == 0) {
-				/* MOD (save v2): a refusing v2 save needs its extension to be checked */
-				if (isSaveCopyValid(0)) {
-					memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
-					       SAVE_FILE.saves[0].battleRegistrationData, 0xA00);
-				} else if (isSaveCopyValid(1)) {
-					memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
-					       SAVE_FILE.saves[1].battleRegistrationData, 0xA00);
-				} else {
+				/* MOD (save v2): a refusing v2 save needs its extension to be checked;
+				 * MOD (save robustness): the copy whose extension links first (pickSaveCopy) */
+				slot = pickSaveCopy();
+				if (slot < 0) {
 					setMemoryCardReadError(2, 0x32);
 					break;
 				}
+				memcpy(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28],
+				       SAVE_FILE.saves[slot].battleRegistrationData, 0xA00);
 				if (countRegisteredDigimon(&VS__REGISTERED_DIGIMON_BUFFER[VS_PLAYER_INDEX * 0x28])) {
 					TARGET_MENU = 0x37;
 				} else {
@@ -4522,49 +4522,82 @@ static int32_t writeSaveFile(void)
 	return saveFileStart(1);
 }
 
-/* the first part's result when it failed (saveFileStart did not start the second part), else 0 */
+/* the error of the read or write saveFileStart ran (a MEMORY_CARD_ERROR_MESSAGES index), else 0 */
 static long SAVE_IO_FAILED;
 
 /*
- * MOD (save extension area): starts reading or writing the slot's file (SAVE_FILE_BYTES) as
- * MemCardReadFile/MemCardWriteFile do, in two parts: the v1 file (0x2000 bytes) to or from SAVE_FILE,
- * waited for here, then the extensions to or from SAVE_EXT, which saveFileSync waits for. A v1 file
- * is one part. The status is the one of the last part started (1 = started).
+ * MOD (save extension area, save robustness): reads or writes the slot's file (SAVE_FILE_BYTES), waiting
+ * for each part. A v1 file is one part. A v2 or v3 file is four, in copy order: copy 1's payload
+ * (file 0x1100-0x2000, from SAVE_FILE), its extension (0x2000 + E, from SAVE_EXT_ADDR + E), then the header
+ * and copy 0's payload (0-0x1100), its extension (0x2000). A copy needs its payload and, when the payload's
+ * checksum is inverted, its extension: a write that stops anywhere (Reset, power, a card pulled) leaves one
+ * copy wholly old or wholly new, which pickSaveCopy finds. Copy 1 goes first: in a file that has just grown
+ * the old file's blocks still hold copy 0 and its extension where the old layout had them (a v2 file's
+ * 0x2000) until the last part. Offsets and sizes are multiples of 128, as libmcrd needs. Always 1
+ * (started, as MemCardWriteFile); the error, if any, is what saveFileSync reports.
  */
 static long saveFileStart(int32_t write)
 {
-	long command;
-	long result;
-	long status;
+	MemCardSyncWord command;
+	MemCardSyncWord result;
+	int32_t ext;
+	int32_t part;
+	int32_t copy;
+	int32_t offset;
+	int32_t size;
+	uint8_t *ram;
 
 	SAVE_IO_FAILED = 0;
-	status = write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_V1_BYTES)
-		       : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)&SAVE_FILE, 0, SAVE_V1_BYTES);
-	if (status != 1 || SAVE_FILE_BYTES <= SAVE_V1_BYTES) {
-		return status;
+	ext = (SAVE_FILE_BYTES - SAVE_V1_BYTES) / 2; /* one extension; 0 for a v1 file */
+	for (part = 0; part < 4; part++) {
+		copy = part < 2;
+		if (part & 1) {
+			offset = SAVE_V1_BYTES + copy * ext;
+			ram = (uint8_t *)SAVE_EXT_ADDR + copy * ext;
+			size = ext;
+		} else {
+			offset = copy * __builtin_offsetof(SaveFile, saves[1]);
+			ram = (uint8_t *)&SAVE_FILE + offset;
+			size = ext == 0 ? SAVE_V1_BYTES : copy ? sizeof(SavegamePayload) : __builtin_offsetof(SaveFile, saves[1]);
+		}
+		if (ext == 0 && part != 2) {
+			continue;
+		}
+		result = SAVE_IO_ERROR;
+		if ((write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)ram, offset, size)
+			   : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)ram, offset, size)) == 1) {
+			MemCardSync(0, (long *)&command, (long *)&result);
+		}
+		if (result != 0) {
+			/* a part that did not start, or a libmcrd code past the messages: "Not Inserted" */
+			SAVE_IO_FAILED = (unsigned long)result < SAVE_IO_MESSAGES ? (long)result : SAVE_IO_ERROR;
+			break;
+		}
 	}
-	MemCardSync(0, &command, &result);
-	if (result != 0) {
-		SAVE_IO_FAILED = result; /* the extensions are not touched: saveFileSync reports it */
-		return status;
-	}
-	status = write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)SAVE_EXT, SAVE_V1_BYTES,
-					  SAVE_FILE_BYTES - SAVE_V1_BYTES)
-		       : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)SAVE_EXT, SAVE_V1_BYTES,
-					 SAVE_FILE_BYTES - SAVE_V1_BYTES);
-	if (status != 1) {
-		SAVE_IO_FAILED = -1;
-	}
-	return status;
+	return 1;
 }
 
-/* waits for what saveFileStart started, as MemCardSync(0, ...): result 0 = both parts done */
-static void saveFileSync(long *command, long *result)
+/* what saveFileStart did, as MemCardSync(0, ...) after a MemCardReadFile/MemCardWriteFile: result 0 = done */
+static void saveFileSync(MemCardSyncWord *command, MemCardSyncWord *result)
 {
-	MemCardSync(0, command, result);
-	if (SAVE_IO_FAILED != 0) {
-		*result = SAVE_IO_FAILED;
+	*result = SAVE_IO_FAILED;
+}
+
+/*
+ * MOD (save robustness): the copy to load, 0 or 1, or -1: one whose extension links to it first, then one
+ * that is valid without it (a save last written by the original executable, which leaves a stale
+ * extension). After a write that stopped partway the copy whose extension still links is the whole one.
+ */
+static int32_t pickSaveCopy(void)
+{
+	int32_t i;
+
+	for (i = 0; i < 4; i++) {
+		if (isSaveCopyValid(i & 1) && (i >= 2 || isExtensionValid(i & 1))) {
+			return i & 1;
+		}
 	}
+	return -1;
 }
 
 int32_t countRegisteredDigimon(RegisteredDigimon *p)
@@ -4771,6 +4804,12 @@ void awardMachinedramonData(void)
 
 void gameClearSave(void)
 {
+	/*
+	 * MOD (save robustness): the ending's sound bank (load_ending, script routine 0x34) may still be loading
+	 * into GENERAL_BUFFER: wait for it, as start_ending (0x35) does, so no CD read or SPU upload runs next to
+	 * the card write and its extensions at SAVE_EXT_ADDR.
+	 */
+	isSoundLoaded(0, 8);
 	CHECKED_MEMORY_CARD = 0x10;
 	CURRENT_MENU = -2;
 	MAIN_STATE = 2;
