@@ -4599,6 +4599,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t inventory[30];
 	int32_t partnerType;
 	uint8_t options[7]; /* MOD (options) */
+	int16_t swap[2];
 	int32_t size;
 	int32_t i;
 
@@ -4663,6 +4664,11 @@ static void prepareSaveFile(int32_t fromRam)
 	options[5] = MOD_OPT_EVO_GUIDE;
 	options[6] = MOD_OPT_NEW_DIGIMON;
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
+	if (MOD_SWAP_TO > 0 && MOD_SWAP_TO == partnerType) { /* MOD (options): the partner NEW DIGIMON off turned */
+		swap[0] = MOD_SWAP_FROM;
+		swap[1] = MOD_SWAP_TO;
+		p = putRecord(p, SAVE_TAG_VANILLA_SWAP, swap, sizeof(swap));
+	}
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -4744,6 +4750,99 @@ static void dropAbsentRegistered(RegisteredDigimon *p, int32_t n)
 	}
 }
 
+void setDigimonRaised(int32_t type);
+
+/* MOD (options): the loaded partner becomes species `to`, its stats, care and age kept: the equipped techniques are
+ * the new species' slots of the same techniques (none: its first learned one), the finisher its own */
+static void swapPartnerSpecies(int32_t to)
+{
+	uint32_t *learned = &PARTNER_ENTITY.learnedMoves[0];
+	uint8_t old[16];
+	uint8_t *equipped;
+	int32_t from;
+	int32_t i;
+	int32_t k;
+	int32_t anim;
+	int32_t tech;
+
+	from = SAVED_STATE.partnerType;
+	for (k = 0; k < 16; k++) {
+		old[k] = DIGI_PARA(from).moves[k];
+	}
+	equipped = PARTNER_ENTITY.digimonEntity.stats.base.moves;
+	for (i = 0; i < 3; i++) {
+		anim = equipped[i];
+		if (anim >= 0x2e && anim < 0x2e + 16) {
+			tech = old[anim - 0x2e];
+			for (k = 0; k < 16 && DIGI_PARA(to).moves[k] != tech; k++) {
+			}
+			equipped[i] = k < 16 ? 0x2e + k : 0xff;
+		}
+	}
+	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) {
+		for (k = 0; k < 16; k++) {
+			tech = DIGI_PARA(to).moves[k];
+			if (tech != 0xff && tech < 0x80 && (learned[tech / 32] >> (tech % 32)) & 1) {
+				equipped[0] = 0x2e + k;
+				break;
+			}
+		}
+	}
+	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) { /* none learned: its first one, learned */
+		for (k = 0; k < 16; k++) {
+			tech = DIGI_PARA(to).moves[k];
+			if (tech != 0xff && tech < 0x3a) {
+				learned[tech / 32] |= 1u << (tech % 32);
+				equipped[0] = 0x2e + k;
+				break;
+			}
+		}
+	}
+	equipped[3] = 0xff; /* the finisher: the last special technique of its list (as EVL_applyEvolution) */
+	for (k = 0; k < 16; k++) {
+		tech = DIGI_PARA(to).moves[k];
+		if (tech >= 0x3a && tech <= 0x70) {
+			equipped[3] = 0x2e + k;
+		}
+	}
+	for (i = 0; i < 4; i++) {
+		SAVED_STATE.partnerStats.base.moves[i] = equipped[i];
+	}
+	SAVED_STATE.partnerType = to;
+	PARTNER_ENTITY.digimonEntity.entity.type = to;
+	setDigimonRaised(to);
+}
+
+/*
+ * MOD (options): NEW DIGIMON off and a partner of a new species: it becomes its vanilla species (vanilla_as), and the
+ * save remembers what it was (SAVE_TAG_VANILLA_SWAP). Back on, a partner that is still that vanilla species is turned
+ * back. Raised and recruited flags are never touched: the chart only hides the new species while the option is off.
+ */
+static void modVanillaSwap(void)
+{
+	int32_t t;
+	int32_t to;
+
+	t = SAVED_STATE.partnerType;
+	if (MOD_OPT_NEW_DIGIMON) {
+		if (MOD_SWAP_TO > 0 && t == MOD_SWAP_TO && MOD_SWAP_FROM > 0 && DIGIMON_NAME(MOD_SWAP_FROM)[0] != '\0') {
+			swapPartnerSpecies(MOD_SWAP_FROM);
+		}
+		MOD_SWAP_FROM = MOD_SWAP_TO = 0;
+		return;
+	}
+	if (t <= 0 || isVanillaSpecies(t)) {
+		return;
+	}
+	to = getSpeciesVanillaAs(t);
+	if (to <= 0 || !isVanillaSpecies(to) || DIGIMON_NAME(to)[0] == '\0') {
+		return;
+	}
+	MOD_SWAP_FROM = t;
+	MOD_SWAP_TO = to;
+	swapPartnerSpecies(to);
+}
+
 static void dropAbsentSaveContent(void)
 {
 	uint32_t *learned = &PARTNER_ENTITY.learnedMoves[0]; /* 128 bits: the struct names 64 (unk1, unk2 follow) */
@@ -4812,6 +4911,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_SPECIES_RAISED:
 	case SAVE_TAG_SPECIES_RECRUITED:
 	case SAVE_TAG_OPTIONS:
+	case SAVE_TAG_VANILLA_SWAP:
 		return 1;
 	}
 	return 0;
@@ -4887,6 +4987,12 @@ static void applyRecords(uint8_t *e)
 				SPECIES_RECRUITED_BITS[i] = d[i];
 			}
 			break;
+		case SAVE_TAG_VANILLA_SWAP:
+			if (len >= 4) {
+				MOD_SWAP_FROM = readRecord16(d);
+				MOD_SWAP_TO = readRecord16(d + 2);
+			}
+			break;
 		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
 			if (len >= 1 && !MOD_OPT_TOUCHED) {
 				modSetButtons(d[0]);
@@ -4943,6 +5049,7 @@ static int32_t loadSaveCopy(int32_t copy)
 		SCRIPT_STATE_PTR->wregs[i] = 0;
 	}
 	resetSpeciesFlags();
+	MOD_SWAP_FROM = MOD_SWAP_TO = 0;
 	if (isExtensionValid(0)) {
 		if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0]))) {
 			applyRecords(saveExtOf(0));
@@ -4963,6 +5070,7 @@ static int32_t loadSaveCopy(int32_t copy)
 		}
 	}
 	dropAbsentSaveContent();
+	modVanillaSwap();
 	return 1;
 }
 
