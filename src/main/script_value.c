@@ -62,12 +62,14 @@ int32_t getSpeakerName(speakerId, buf)
 	uint8_t *buf;
 // clang-format on
 {
+	DigimonId type; /* MOD: the speaker's type is not cut to a byte */
+
 	if (speakerId == 0xff) {
 		return 0;
 	}
 
 	if (speakerId == 0xfd) {
-		speakerId = 0;
+		type = 0;
 		goto digimon;
 	}
 
@@ -79,7 +81,7 @@ int32_t getSpeakerName(speakerId, buf)
 
 	if (speakerId < 0xc8) {
 		speakerId = scriptIdToEntityId(speakerId);
-		speakerId = ENTITY_TABLE[speakerId]->type;
+		type = ENTITY_TABLE[speakerId]->type;
 		goto digimon;
 	}
 
@@ -89,9 +91,9 @@ int32_t getSpeakerName(speakerId, buf)
 	return strlen(SPECIAL_SPEAKERS[speakerId]);
 
 digimon:
-	strcpy((char *)buf, DIGIMON_NAME(speakerId));
+	strcpy((char *)buf, DIGIMON_NAME(type));
 
-	return strlen(DIGIMON_NAME(speakerId));
+	return strlen(DIGIMON_NAME(type));
 }
 
 uint8_t *intToStringSJIS(uint8_t *buf, int32_t value, uint8_t digits, int32_t flag)
