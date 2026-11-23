@@ -6,6 +6,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_font.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
 #include <dw/entity.h>
@@ -2005,7 +2006,7 @@ int8_t KAR_tickYesNoPrompt(void)
 	startPos = MAIN_D_80134A18;
 	strs = MAIN_D_80134A20;
 	while (MAIN_D_80135250 < 2) {
-		drawString(strs.text[MAIN_D_80135250], 0, (MAIN_D_80135250 * 13) + 0xdd);
+		DRAW_STRING_CELLS(strs.text[MAIN_D_80135250], 0, (MAIN_D_80135250 * 13) + 0xdd);
 		MAIN_D_80135250++;
 		break;
 	}

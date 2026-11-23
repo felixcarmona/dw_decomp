@@ -1,6 +1,7 @@
 #include <libgpu.h>
 
 #include <dw/font.h>
+#include <dw/mod_font.h>
 #include <dw/sjis.h>
 #include <dw/types.h>
 #include <dw/version.h>
@@ -20,10 +21,18 @@
 
 #if !VERSION_IS(US)
 #define NUM_RENDER_SLOTS	21
+#elif FONT_PROPORTIONAL
+/* MOD (font): a 16-pixel cell (4 VRAM halfwords, 8 bytes a row) of 11 rows; 40 slots stay within the original's
+ * 3600 bytes, and drawGlyph waits for the GPU when the ring wraps (a slot is rewritten only once it has been read) */
+#define NUM_RENDER_SLOTS	40
 #else
 #define NUM_RENDER_SLOTS	50
 #endif
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+#define RENDER_SLOT_SIZE	88
+#else
 #define RENDER_SLOT_SIZE	72
+#endif
 
 #define NUM_FONT_CLUT_ENTRIES	16
 #define FONT_CLUT_VRAM_X	208
@@ -1178,6 +1187,7 @@ uint16_t CHAR_TO_GLYPH_TABLE[NUM_GLYPHS] = {
 };
 // clang-format on
 
+#if !FONT_PROPORTIONAL
 // clang-format off
 GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 	{ { 0xf3ff, 0xedff, 0xddff, 0xdeff, 0xbeff, 0x80ff, 0x7f7f, 0x7f7f, 0x7f7f, 0x7f7f, 0xffff, }, 12 },
@@ -1261,6 +1271,11 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 	{ { 0xffff, 0xf7ff, 0xebff, 0xebff, 0xddff, 0xddff, 0xbeff, 0xbeff, 0x7f7f, 0x007f, 0xffff, }, 12 },
 };
 // clang-format on
+#elif defined(FONT_A)
+#include "font_a.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=a (tools/fontgen.py) */
+#else
+#include "font_b.h" /* MOD (font): GLYPH_DATA and EXTRA_GLYPH_DATA of FONT=b (tools/fontgen.py, tools/font/b.txt) */
+#endif
 
 /*
  * MOD: extra glyphs (accents, ñ, ç, ¿¡, ·, «», and the punctuation ( ) & % / …
@@ -1271,7 +1286,9 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
  */
 #define EXTRA_GLYPH_LEAD	0xf0
 #define EXTRA_GLYPH_FIRST	0x40
+#if !FONT_PROPORTIONAL
 #include "font_extra.h"
+#endif
 #endif
 
 // clang-format off
@@ -1312,6 +1329,13 @@ void clearTextArea(void)
  * (dw/mod_fps.h) */
 extern int32_t MOD_RENDER_PASS;
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+/* MOD (font): the cell of the last glyph uploaded (drawGlyph): its text-area x (a multiple of 4), y, ring slot */
+static int16_t GLYPH_CARRY_X;
+static int16_t GLYPH_CARRY_Y = -1;
+static uint8_t *GLYPH_CARRY_SLOT;
+#endif
+
 void clearTextSubArea(RECT *rect)
 {
 	if (MOD_RENDER_PASS != 0) {
@@ -1321,6 +1345,9 @@ void clearTextSubArea(RECT *rect)
 	rect->y = rect->y + TEXT_VRAM_Y;
 	rect->w >>= 2;
 	ClearImage(rect, 0, 0, 0);
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	GLYPH_CARRY_Y = -1; /* the previous glyph's cell may be cleared: never copy its pixels back */
+#endif
 }
 
 void setTextColor(int32_t color)
@@ -1329,6 +1356,131 @@ void setTextColor(int32_t color)
 	COLORCODE_HIGHBITS = COLORCODE_LOWBITS << 4;
 }
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+/* the rows of a glyph (GLYPH_HEIGHT, then its width) */
+static uint16_t *glyphRows(uint16_t codepoint)
+{
+	uint16_t code;
+	int32_t n;
+
+	code = ((codepoint & 0xff) << 8) + ((codepoint & 0xff00) >> 8);
+	if (code == FONT_FIGURE_SPACE) {
+		return (uint16_t *)FIGURE_SPACE_GLYPH.pixelData;
+	}
+	n = (code & 0xff) - EXTRA_GLYPH_FIRST;
+	if ((code & 0xff) > 0x7f) {
+		n--;
+	}
+	if ((code >> 8) == EXTRA_GLYPH_LEAD && n >= 0 && n < NUM_EXTRA_GLYPHS) {
+		return (uint16_t *)EXTRA_GLYPH_DATA[n].pixelData;
+	}
+	CHAR_TO_GLYPH_TABLE[NUM_GLYPHS - 1] = code;
+	for (n = 0; code != CHAR_TO_GLYPH_TABLE[n]; ++n) {
+	}
+	return GLYPH_DATA[n].pixelData;
+}
+
+/* the advance of a glyph in pixels (script_textbox.c centres the name keyboard's letters in their 12-pixel cells) */
+int32_t glyphWidth(uint16_t codepoint)
+{
+	return glyphRows(codepoint)[GLYPH_HEIGHT] & 0xff;
+}
+
+/*
+ * MOD (font): the original's cells. Some screens cut a row of text into pieces at offsets made for the original
+ * advances (the menus' packed labels such as "YearDay", the digits row that renderNumber copies at 8-pixel steps,
+ * the tournament calendar's columns). While FONT_CELLS is set, each glyph advances by its original width (the high
+ * byte of its width) and its ink is centred in that cell, so every piece still holds exactly its characters.
+ * drawStringCells sets it for one C string; script_textbox.c sets it for the rows of the boxes in TEXTBOX_CELLS.
+ */
+int8_t FONT_CELLS;
+
+void drawStringCells(char *str, int32_t x, int32_t y)
+{
+	FONT_CELLS = 1;
+	drawString(str, x, y);
+	FONT_CELLS = 0;
+}
+
+/*
+ * MOD (font): drawGlyph places a glyph to the pixel. The text area holds 4 pixels in a VRAM halfword, so the original
+ * landed every glyph on x & ~3 and its 12-pixel cell erased whatever the previous glyph had to its right: the gaps
+ * between letters went from 0 to 6 pixels. Here the glyph is shifted right by x & 3 inside a 16-pixel cell that starts
+ * at x & ~3, and the halfwords the cell shares with the previous glyph's cell (same row, starting inside it) take that
+ * cell's pixels too, so the upload does not erase the previous letter's last columns. Text is drawn left to right, so
+ * the previous cell is the only one that can share them; a clear (clearTextSubArea) forgets it. The glyph's width is
+ * its advance in pixels (its ink and a blank column, tools/fontgen.py).
+ */
+int32_t drawGlyph(codepoint, x, y)
+	uint16_t codepoint;
+	uint16_t x;
+	uint16_t y;
+{
+	RECT rect;
+	uint16_t *p;
+	uint8_t *drawRow;
+	uint8_t *carry;
+	uint8_t lut[4];
+	uint32_t ink;
+	int32_t adv;
+	int32_t cx;
+	int32_t shift;
+	int32_t shared;
+	int32_t i;
+	int32_t k;
+
+	p = glyphRows(codepoint);
+	adv = p[GLYPH_HEIGHT] & 0xff;
+	if (FONT_CELLS != 0) {
+		shift = ((p[GLYPH_HEIGHT] >> 8) - adv + 1) / 2; /* the ink (adv - 1 columns) centred in the cell */
+		x += shift;
+		adv = p[GLYPH_HEIGHT] >> 8; /* from the cell's start, the caller's pen */
+	}
+	if (x >= TEXT_DRAW_LIMIT || y >= TEXT_DRAW_LIMIT) {
+		return 0;
+	}
+
+	GLYPH_DRAWING_AREA_INDEX++;
+	if (GLYPH_DRAWING_AREA_INDEX >= NUM_RENDER_SLOTS) {
+		GLYPH_DRAWING_AREA_INDEX = 0;
+		DrawSync(0); /* every slot's upload has read it */
+	}
+	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
+
+	cx = x & ~3;
+	shift = x & 3;
+	shared = 0;
+	carry = 0;
+	if (GLYPH_CARRY_Y == y && GLYPH_CARRY_X <= cx && cx < GLYPH_CARRY_X + 16) {
+		shared = (GLYPH_CARRY_X + 16 - cx) / 2; /* bytes of a row */
+		carry = GLYPH_CARRY_SLOT + (cx - GLYPH_CARRY_X) / 2;
+	}
+	/* two pixels a byte, the left one in the low nibble */
+	lut[0] = 0;
+	lut[1] = COLORCODE_HIGHBITS;
+	lut[2] = COLORCODE_LOWBITS;
+	lut[3] = COLORCODE_LOWBITS | COLORCODE_HIGHBITS;
+	for (i = 0; i < GLYPH_HEIGHT; i++) {
+		ink = ((uint16_t)~p[i] & 0xfff0) >> shift; /* 0 = ink; bit 15 = the cell's first column */
+		for (k = 0; k < 8; k++) {
+			drawRow[k] = lut[(ink >> (14 - k * 2)) & 3];
+		}
+		for (k = 0; k < shared; k++) {
+			drawRow[k] |= carry[k];
+		}
+		drawRow += 8;
+		carry += 8;
+	}
+
+	drawRow = GLYPH_DRAWING_AREAS + GLYPH_DRAWING_AREA_INDEX * RENDER_SLOT_SIZE;
+	setRECT(&rect, (cx / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, 4, GLYPH_HEIGHT);
+	LoadImage(&rect, (u_long *)drawRow);
+	GLYPH_CARRY_X = cx;
+	GLYPH_CARRY_Y = y;
+	GLYPH_CARRY_SLOT = drawRow;
+	return adv;
+}
+#else /* the original drawGlyph */
 #if !VERSION_IS(US)
 void drawGlyph(uint16_t codepoint, uint16_t x, uint16_t y)
 #else
@@ -1475,6 +1627,8 @@ int32_t drawGlyph(codepoint, x, y)
 	return *p;
 #endif
 }
+
+#endif /* FONT_PROPORTIONAL */
 
 #if !VERSION_IS(US)
 void drawString(str, x, y)
@@ -1638,7 +1792,11 @@ int32_t measureStringMode(char *str, int32_t mode)
 			if (right != 0) {
 				w = pen + right;
 			}
+#if FONT_PROPORTIONAL
+			pen += p[GLYPH_HEIGHT] & 0xff;
+#else
 			pen += p[GLYPH_HEIGHT];
+#endif
 		} else if (right == 0) {
 			pen += FIT_SPACE;
 		} else {

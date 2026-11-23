@@ -44,6 +44,18 @@ $(shell mkdir -p $(GEN_DIR); printf '#define FPS %s\n' '$(FPS)' > $(GEN_DIR)/fps
 	cmp -s $(GEN_DIR)/fps.h.tmp $(GEN_DIR)/fps.h && rm $(GEN_DIR)/fps.h.tmp \
 	|| mv $(GEN_DIR)/fps.h.tmp $(GEN_DIR)/fps.h)
 
+# MOD (font): the font the US executable draws its text with (docs/mods/font.md "Fonts"), chosen at build time:
+#   original  the US font on its 4-pixel grid: the original code and glyphs, byte for byte;
+#   a         the US letters placed to the pixel (src/main/font_a.h, tools/fontgen.py);
+#   b         our font redrawn in the game's style, placed to the pixel (src/main/font_b.h, tools/font/b.txt).
+FONT ?= original
+ifeq ($(filter $(FONT),original a b),)
+$(error FONT=$(FONT): the font must be original, a or b)
+endif
+$(shell mkdir -p $(GEN_DIR); printf '#define FONT_%s 1\n' '$(shell echo $(FONT) | tr a-z A-Z)' > $(GEN_DIR)/font_sel.h.tmp; \
+	cmp -s $(GEN_DIR)/font_sel.h.tmp $(GEN_DIR)/font_sel.h && rm $(GEN_DIR)/font_sel.h.tmp \
+	|| mv $(GEN_DIR)/font_sel.h.tmp $(GEN_DIR)/font_sel.h)
+
 PYTHON := python3
 
 .DEFAULT_GOAL := all

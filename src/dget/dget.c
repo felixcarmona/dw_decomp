@@ -3,6 +3,7 @@
 #include <libetc.h>
 #include <libgpu.h>
 
+#include <dw/mod_font.h>
 #include <dw/ids.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
@@ -153,6 +154,7 @@ void buildScheduleLabels(void)
 
 	setRECT(&rect1, -54, -98, 108, 20);
 	createTextbox(1, color, &rect1, &rect2, 0, renderTournamentTextbox);
+	TEXTBOX_IN_CELLS(1); /* MOD (font): the days row is cut into 16-pixel pieces (renderTournamentSchedule) */
 	registerTextbox(1, 8, 2, 0, 0);
 	showMapHeadTextbox(1, 0xff, 1, 0x4d8);
 
@@ -204,6 +206,7 @@ void buildScheduleEntries(void)
 
 	createTextbox(2, color, &rect1, &rect2, tickTournamentSchedule,
 		      renderTournamentSchedule);
+	TEXTBOX_IN_CELLS(2); /* MOD (font): the grades are cut into 12-pixel columns */
 	registerTextbox(2, 10, 6, 0, 1);
 
 	textPtr = (uint8_t *)TEXTBOX_LINES_PTR + 0x280;

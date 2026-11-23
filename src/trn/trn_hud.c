@@ -1,6 +1,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/entity.h>
 #include <dw/font.h>
@@ -167,7 +168,7 @@ void TRN_createPostTrainingStatsBox(void)
 		}
 		if (i == 3) {
 			drawString(MAIN_D_80134BC0, 0, 84);
-			drawString(MAIN_D_80124C54, 0, 240);
+			DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 240);
 		}
 		DrawSync(0);
 	}
