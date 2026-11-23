@@ -4779,9 +4779,8 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 10) { /* MOD (story) */
 		modSetStory(d[9]);
 	}
-	if (len >= 11) { /* MOD (difficulty) */
-		MOD_OPT_DIFFICULTY = d[10] == MOD_DIFF_EASY ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
-	}
+	/* Missing or invalid legacy difficulty defaults to NORMAL. */
+	MOD_OPT_DIFFICULTY = len >= 11 && d[10] <= MOD_DIFF_HARD ? d[10] : MOD_DIFF_NORMAL;
 	if (len >= 12) { /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = d[11] != 0;
 	}
@@ -6025,7 +6024,9 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 };
 /* the text area place of each value, its row + 0x100 in the right half: a value two rows share (OFF, ON, ORIGINAL) is
  * drawn once (drawOptionsText) */
-/* The font row's third value uses the following language row's otherwise unused slot. */
+/* FONT's third value uses language slot 0; HARD uses language slot 1.
+ * Language values have separate shared storage, so neither adds resident arrays. */
+typedef char mod_options_hard_slot[(MOD_OPT_ROW_LANG > MOD_OPT_ROW_DIFF) ? 1 : -1];
 #if FONT_SWITCH
 typedef char mod_options_font_slot[(MOD_OPT_ROW_LANG == MOD_OPT_ROW_FONT + 1) ? 1 : -1];
 #endif
@@ -6041,6 +6042,7 @@ static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_
 /* Language values share one texture position; the other option rows have at most three values. */
 static char *modOptionText(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_DIFF && value == 3) return MOD_OPT_STR_HARD;
     if (row == MOD_OPT_ROW_LANG && value > 0) return MOD_LANGUAGE_NAMES[modLanguageAt(value - 1)];
 #if FONT_SWITCH
     if (row == MOD_OPT_ROW_FONT && value == 3) return MOD_OPT_STR_ORIGINAL;
@@ -6050,11 +6052,13 @@ static char *modOptionText(int32_t row, int32_t value)
 
 static int16_t *modOptionV(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_DIFF && value == 2) return &MOD_OPT_V[MOD_OPT_ROW_LANG * 2 + 1];
     return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_V : &MOD_OPT_V[row * 2 + value];
 }
 
 static uint8_t *modOptionW(int32_t row, int32_t value)
 {
+    if (row == MOD_OPT_ROW_DIFF && value == 3) return &MOD_OPT_W[MOD_OPT_ROW_LANG * 3 + 1];
     return row == MOD_OPT_ROW_LANG ? &MOD_OPT_LANG_W[value] : &MOD_OPT_W[row * 3 + value];
 }
 
@@ -6069,6 +6073,7 @@ static int16_t MOD_OPT_SHOWN;
 
 static int32_t modOptionCount(int32_t row)
 {
+    if (row == MOD_OPT_ROW_DIFF) return 3;
 	if (row == MOD_OPT_ROW_LANG) {
         return modLanguageCount();
     }
@@ -6091,7 +6096,7 @@ static int32_t modOptionValue(int32_t row)
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		return MOD_OPT_STORY != 0;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty): EASY, NORMAL */
-		return MOD_OPT_DIFFICULTY == MOD_DIFF_EASY ? 0 : 1;
+		return MOD_OPT_DIFFICULTY == MOD_DIFF_EASY ? 0 : MOD_OPT_DIFFICULTY == MOD_DIFF_HARD ? 2 : 1;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		return MOD_OPT_QUICK_BATTLE != 0;
 #if FONT_SWITCH
@@ -6136,7 +6141,7 @@ static void modSetOption(int32_t row, int32_t value)
 		modSetStory(value);
 		break;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty) */
-		MOD_OPT_DIFFICULTY = value == 0 ? MOD_DIFF_EASY : MOD_DIFF_NORMAL;
+		MOD_OPT_DIFFICULTY = value == 0 ? MOD_DIFF_EASY : value == 2 ? MOD_DIFF_HARD : MOD_DIFF_NORMAL;
 		break;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = value;

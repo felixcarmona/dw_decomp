@@ -371,6 +371,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_EASY:
       ja: "EASY"
       en_us: "EASY"
+    MOD_OPT_STR_HARD:
+      ja: "HARD"
+      en_us: "HARD"
     MOD_OPT_STR_NORMAL:
       ja: "NORMAL"
       en_us: "NORMAL"

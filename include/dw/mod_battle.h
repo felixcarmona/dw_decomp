@@ -171,6 +171,17 @@ enum {
 	MOD_BT_MUSIC_LAST_TRACK,	/* the track (font 0x21) it plays */
 	MOD_BT_TAIL_HALF,
 	MOD_BT_TAIL_DIV,
+	MOD_BT_HARD_HP,
+	MOD_BT_HARD_OFF,
+	MOD_BT_HARD_DEF,
+	MOD_BT_HARD_SPEED,
+	MOD_BT_HARD_BRAIN,
+	MOD_BT_HARD_FIN,
+	MOD_BT_HARD_DEALT,
+	MOD_BT_HARD_IDLE,
+	MOD_BT_HARD_FLOOR,
+	MOD_BT_DEF_KNEE,
+	MOD_BT_DEF_HALF,
 	MOD_BT_SIZE
 };
 
@@ -205,6 +216,26 @@ static inline int32_t modBtStatPower(int32_t power, int32_t difference)
 		result += power * excess / ((excess + BM(TAIL_HALF)) * BM(TAIL_DIV));
 	}
 	return result;
+}
+
+/* Continue excess Defense with a reciprocal tail once it exceeds both the
+ * original range and Offense. Positive attack advantages keep their existing
+ * curve. Counter transforms Defense first; the original raw range is exact. */
+static inline int32_t modBtDefensePower(int32_t power, int32_t off, int32_t defense, int32_t counter)
+{
+    int32_t knee = BM(DEF_KNEE), half = BM(DEF_HALF);
+    int32_t excess = 0, effective = defense, result;
+    if (counter) effective = effective * BM(GUARD_PCT) / 100;
+    if (knee > 0 && half > 0 && defense > knee) {
+        if (off > knee) knee = off;
+        if (effective > knee) {
+            excess = effective - knee;
+            effective = knee;
+        }
+    }
+    result = modBtStatPower(power, off - effective);
+    if (excess) result = result * half / (half + excess);
+    return result;
 }
 
 /* the command menu a partner gets from its brains: the table row for brains / CMD_STEP below CMD_MAX, else the top menu (`first` is the row's first slot) */

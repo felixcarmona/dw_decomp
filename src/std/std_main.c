@@ -1,3 +1,7 @@
+#include <dw/mod_hard.h>
+
+static int32_t STD_HARD_ZERO_DAMAGE __attribute__((section(".bss.hard_zero")));
+
 #include <dw/species.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5581,7 +5585,7 @@ void STD_tickAttackHits(void)
 	FighterData *fighter;
 	Entity *entity;
 	long i;
-	int32_t dmg;
+	int32_t dmg, blockPercent;
 	int32_t chance;
 	int32_t tech;
 	uint8_t *moves;
@@ -5684,7 +5688,8 @@ skipViewpoint:
 		}
 		if (MOVE_DATA[tech].range == 1) {
 			dmg = STD_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
-			dmg = dmg * (randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN)) / 100;
+			blockPercent = randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN);
+			dmg = modHardBlockedFloor(dmg * blockPercent / 100, STD_HARD_ZERO_DAMAGE, blockPercent);
 			if (dmg <= 0) {
 				dmg = 1;
 			}
@@ -5824,9 +5829,12 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	uint8_t mult[3];
 	long i;
 	int32_t dmg;
+	int32_t power;
+	int32_t roll, floorDamage = 0;
 	int16_t off;
 	int16_t def;
 
+	STD_HARD_ZERO_DAMAGE = 0;
 	for (i = 0; i < 3; i++) {
 		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
 			mult[i] = TYPE_FACTORS[modSpeciesMove(attacker->entity.type, move)->special][DIGI_PARA(defender->entity.type).special[i]];
@@ -5840,10 +5848,20 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		def = def * BM(GUARD_PCT) / 100; /* MOD (battle as data) */
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
-		dmg = BMD((off + modSpeciesMove(attacker->entity.type, move)->power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
+		power = modSpeciesMove(attacker->entity.type, move)->power;
+		if ((Entity *)attacker != ENTITY_TABLE[1]) power = modHardScale(power, MOD_BT_HARD_FIN, 32767);
+		dmg = BMD((off + power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
 	} else {
 		diff = off - def;
-		dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, diff), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
+		roll = randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN);
+        dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtDefensePower(modSpeciesMove(attacker->entity.type, move)->power, off, defender->stats.base.def, move == 0x2d), DMG_DIV) * roll / 100;
+        if (MOD_OPT_DIFFICULTY == MOD_DIFF_HARD && (Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1]) {
+            floorDamage = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, off), DMG_DIV) * roll / 100;
+            if (floorDamage > DAMAGE_CAP) floorDamage = DAMAGE_CAP;
+            STD_HARD_ZERO_DAMAGE = floorDamage;
+            floorDamage = modHardMinimum(floorDamage);
+            if (dmg < floorDamage) dmg = floorDamage;
+        }
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
 		if ((Entity *)attacker == ENTITY_TABLE[1]) {
@@ -5856,6 +5874,7 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 	dmg = MOD_DIFF_DAMAGE(attacker, defender, ENTITY_TABLE[1], dmg); /* MOD (difficulty): EASY, x2 dealt, /2 taken */
+	if ((Entity *)attacker == ENTITY_TABLE[1]) dmg = modHardScale(dmg, MOD_BT_HARD_DEALT, DAMAGE_CAP);
 	if (dmg <= BM(DMG_MIN) - 1) {
 		dmg = BM(DMG_MIN);
 	}
@@ -6332,6 +6351,10 @@ void STD_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 
 	for (i = 0; i < 4; i++) {
 		weights[i] = digimon->stats.base.movesPrio[i];
+		if (index != 0 && digimon->stats.base.moves[i] == 0xff && weights[i] > 0) {
+			weights[i] = modHardScale(weights[i], MOD_BT_HARD_IDLE, 255);
+			if (weights[i] == 0) weights[i] = 1;
+		}
 	}
 
 	for (i = 0; i < 4; i++) {
