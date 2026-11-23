@@ -7,6 +7,7 @@
 #include <dw/btl.h>
 #include <dw/clock.h>
 #include <dw/fade.h>
+#include <dw/level.h>
 #include <dw/file.h>
 #include <dw/file_queue.h>
 #include <dw/font.h>
@@ -773,11 +774,14 @@ void startTournament(void)
 		hi = 0;
 		if (id != 0x16) {
 			while ((i = *p++) < 0xfe) {
-				if (DIGI_PARA(i).level < lo) {
-					lo = DIGI_PARA(i).level;
+				/* MOD (canon levels): a cup of the original's lists draws no Mega (Phoenixmon, HerculesKabuterimon
+				 * and MetalEtemon are Mega now; the Ultimate cups list them) */
+				k = DIGI_PARA(i).level > LEVEL_ULTIMATE ? LEVEL_ULTIMATE : DIGI_PARA(i).level;
+				if (k < lo) {
+					lo = k;
 				}
-				if (DIGI_PARA(i).level > hi) {
-					hi = DIGI_PARA(i).level;
+				if (k > hi) {
+					hi = k;
 				}
 				if (isDigimonRecruited(i)) {
 					*w++ = i;
