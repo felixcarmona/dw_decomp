@@ -229,7 +229,8 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
 #define SPECIES_CHART_ICONS_PER_SECTOR	12
 /* the sector `k` of the chart block (0: the counts and ids, 1.. the icons) read into the species sector buffer, which
  * the next read of DIGI.DAT reuses; NULL when the file has no chart block */
-uint8_t *readSpeciesChart(int32_t k);
+/* City sector pointer at header byte 0x38; zero in archives without City. */
+uint8_t *readSpeciesChart(int32_t k, int32_t city);
 
 /* the partner species of DIGI.DAT whose level is lo..hi: writes their ids to `out` (at most `max`), returns how many */
 int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t max);
