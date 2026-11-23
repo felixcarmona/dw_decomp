@@ -410,6 +410,18 @@ MOD_OPTIONS:
     MOD_OPT_STR_ENGLISH:
       ja: "ENGLISH"
       en_us: "ENGLISH"
+    MOD_OPT_STR_FRENCH:
+      ja: "FRANCAIS"
+      en_us: "FRANCAIS"
+    MOD_OPT_STR_GERMAN:
+      ja: "DEUTSCH"
+      en_us: "DEUTSCH"
+    MOD_OPT_STR_ITALIAN:
+      ja: "ITALIANO"
+      en_us: "ITALIANO"
+    MOD_OPT_STR_JAPANESE:
+      ja: "NIHONGO"
+      en_us: "NIHONGO"
     MOD_OPT_STR_PORTUGUESE:
       ja: "PORTUGUES"
       en_us: "PORTUGUES"
