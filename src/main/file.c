@@ -29,26 +29,38 @@ char *modFontFile(char *path, char *originalFont)
 	if (MOD_FONT == MOD_FONT_NEW) {
 		return path;
 	}
-	for (entry = FILE_OFFSET_TABLE; entry->sizeCode != 0; ++entry) {
-		if (fileEntryIs(entry, originalFont)) {
-			return entry->sector != 0 ? originalFont : path;
-		}
-	}
+	entry = findFileEntry(originalFont);
+	if (entry && entry->sector) return originalFont;
 	return path;
 }
 #endif
 
-int32_t fileEntryIs(FileEntry *entry, char *name)
+uint32_t fileNameHash(char *name)
 {
     uint32_t hash = 0x811C9DC5;
     int32_t i;
-    if (name[0] == '@') { /* internal language-copy key; not an ISO filename */
+    if (name[0] == '@') {
         hash = 0;
         for (i = 1; i <= 8; i++) hash = (hash << 4) | (name[i] <= '9' ? name[i]-'0' : name[i]-'A'+10);
     } else {
         for (i = 0; name[i]; i++) hash = (hash ^ (uint8_t)name[i]) * 0x01000193;
     }
-    return (hash & 0xFFFFFF) == entry->nameHash;
+    return hash & 0xFFFFFF;
+}
+
+int32_t fileEntryIs(FileEntry *entry, char *name)
+{
+    return entry->nameHash == fileNameHash(name);
+}
+
+FileEntry *findFileEntry(char *name)
+{
+    uint32_t hash = fileNameHash(name);
+    FileEntry *entry;
+    for (entry = FILE_OFFSET_TABLE; entry->sizeCode; entry++) {
+        if (entry->nameHash == hash) return entry;
+    }
+    return NULL;
 }
 
 int32_t lookupFileTable(FileLookup *lookup, char *path)
@@ -56,7 +68,6 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	char *filename;
 	FileEntry *entry;
 
-	entry = (FileEntry *)&FILE_OFFSET_TABLE;
 	if (NULL == (filename = strrchr(path, '\\'))) {
 		filename = path;
 	} else {
@@ -64,20 +75,14 @@ int32_t lookupFileTable(FileLookup *lookup, char *path)
 	}
 	filename = modStoryFile(modLangFile(filename)); /* MOD (language, story): the language's copy, then its story's */
 
-	for (; entry->sizeCode != 0; ++entry) {
-		if (fileEntryIs(entry, filename)) {
-			lookup->size = fileEntrySize(entry);
-			CdIntToPos(entry->sector, &lookup->pos);
-			break;
-		}
-	}
-
-	if (entry->sizeCode) {
+	entry = findFileEntry(filename);
+	if (entry) {
+		lookup->size = fileEntrySize(entry);
+		CdIntToPos(entry->sector, &lookup->pos);
 		return 1;
-	} else {
-		empty_800a31f0(path);
-		return 0;
 	}
+	empty_800a31f0(path);
+	return 0;
 }
 
 uint32_t lookupFileSize(char *path)
