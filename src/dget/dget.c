@@ -10,6 +10,7 @@
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/params.h>
+#include <text/dget/dget.h>
 #include <dw/pstat.h>
 #include <dw/script.h>
 #include <dw/species.h>
@@ -461,7 +462,7 @@ void renderTournamentTextbox(void)
 #if !VERSION_IS(US)
 	renderString(0, posX, posY, 0x60, 0xc, 0, uvY, 5, 1);
 #else
-	drawString("Tournament", 0, (uint32_t)uvY);
+	drawString(DGET_STR_TOURNAMENT, 0, (uint32_t)uvY);   /* MOD (text sources): keyed, text/dget/dget.yaml */
 	renderString(0, posX, posY, 0x54, 0xc, 0, uvY, 5, 1);
 #endif
 }
