@@ -4829,6 +4829,7 @@ void modBootOptions(void)
 			CONNECTED_CARDS &= ~bit;
 		}
 	}
+	modButtonsBoot(); /* MOD (options): the Japanese disc starts with JAPANESE CONTROLS on, the saves' options win */
 	modCardOptions();
 }
 
