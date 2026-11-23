@@ -19,6 +19,11 @@
 #include <libgpu.h>
 #include <libgs.h>
 #include <dw/mod_qol.h>
+#include <dw/input.h>
+#include <dw/clock.h>
+#include <dw/mod_options.h>
+
+extern uint32_t CHANGED_INPUT;
 #include <dw/ui.h>
 
 extern int16_t INITIAL_COMBAT_STATS[][6];
@@ -47,7 +52,7 @@ static int8_t TB_x5; /* the menu's x5 row */
 static int8_t TB_count;
 static int8_t TB_done;
 static int8_t TB_reason;
-static int8_t TB_box1Seen;
+static int8_t TB_box1Seen; /* reused as the between-session countdown while MOD_QUIET */
 static int8_t TB_box2Before; /* box 2 was open when the block began */
 static int16_t TB_pre[6];
 static int16_t TB_sum[6];
@@ -66,11 +71,36 @@ static int32_t TB_box2Y(void)
 	return 0x16 + TB_box2Dy;
 }
 
+/* The clock slides the field gauges away while training pauses game time.
+   Render the existing live HUD from the gym object without changing that clock state. */
+extern int16_t STATUS_UI_OFFSET_X;
+void renderStatusBars(int32_t state);
+void TB(renderCareHUD)(int32_t instanceId)
+{
+	int16_t saved;
+	if (MOD_OPT_BARS && !IS_GAMETIME_RUNNING) {
+		saved = STATUS_UI_OFFSET_X;
+		STATUS_UI_OFFSET_X = 75;
+		renderStatusBars(1);
+		STATUS_UI_OFFSET_X = saved;
+	}
+}
+
+/* The skip row puts every lower box beside the care HUD. Keep their right edge
+   at screen x=230, six pixels before the left icon column, only with B5a enabled. */
+static int32_t TB_box2X(void)
+{
+	return MOD_OPT_BARS ? -118 : -94;
+}
+
 /* from the session's setup (TB(saveTrainingStartTime)), after it read the flag: the menu's x5 row is a normal session
    in a block (not a block's next hour, which arms again) */
 void TB(modBlockArm)(void)
 {
 	if (!TB(MOD_QUIET)) {
+		/* Avoid a second, partially slid field copy on the first gym frames. */
+		if (MOD_OPT_BARS)
+			STATUS_UI_OFFSET_X = 240;
 		TB_x5 = TB_SLOT == 2;
 		if (TB_x5) {
 			TB_SLOT = 0;
@@ -91,8 +121,8 @@ static void TB_tickMessage(void)
 
 static void TB_renderMessage(void)
 {
-	renderString(0, -84, 28 + TB_box2Dy, 168, 12, 0, 120, 4, 0);
-	renderString(0, -84, 40 + TB_box2Dy, 168, 12, 0, 132, 4, 0);
+	renderString(0, TB_box2X() + 10, 28 + TB_box2Dy, 168, 12, 0, 120, 4, 0);
+	renderString(0, TB_box2X() + 10, 40 + TB_box2Dy, 168, 12, 0, 132, 4, 0);
 }
 
 /* before the gym's award function */
@@ -103,6 +133,7 @@ void TB(modBlockBegin)(void)
 	TB_count = TB_x5 ? 5 : 1;
 	TB_done = 0;
 	TB_reason = MOD_TB_GO;
+	TB_box1Seen = 0;
 	TB_box2Before = UI_BOX_DATA[2].state != 0;
 	TB(MOD_QUIET) = TB_count > 1;
 	if (TB_count > 1) {
@@ -114,42 +145,12 @@ void TB(modBlockBegin)(void)
 	}
 }
 
-/* after it: 1 to award the next session of the block */
-int32_t TB(modBlockNext)(void)
+/* Finalise only completed sessions, for either a native stop or a player cancellation. */
+static void TB_finishBlock(void)
 {
 	RECT area;
-	int32_t i;
-	int32_t v;
-	char *s;
-	char *d;
-
-	if (TB_count <= 1) {
-		return 0;
-	}
-	/* the session's gains go into the stats the next one starts from */
-	for (i = 0; i < 6; i++) {
-		v = INITIAL_COMBAT_STATS[0][i] + STATS_GAINS[i];
-		if (v > CAP_OF_STAT_INDEX(i)) {
-			v = CAP_OF_STAT_INDEX(i);
-		}
-		TB_sum[i] += v - INITIAL_COMBAT_STATS[0][i];
-		INITIAL_COMBAT_STATS[0][i] = v;
-		STATS_GAINS[i] = 0;
-	}
-	TB(applyBaseStats)();
-	TB_done++;
-	/* the gym's box (a technique, new orders) opened by this session: a box 2 open before the block (the Bonus
-	   Try's reels, a block's own box closing) is not one */
-	if (!TB_box2Before && UI_BOX_DATA[2].state != 0) {
-		TB_reason = MOD_TB_LEARNED;
-	} else {
-		TB_reason = modTrainStopReason(TB_START_MIN, TB_RULES[MOD_TR_TIRED_AT]);
-	}
-	if (TB_reason == MOD_TB_GO && TB_done < TB_count) {
-		TB(saveTrainingStartTime)(); /* the next session's hour */
-		return 1;
-	}
-
+	int32_t i, v;
+	char *s, *d;
 	/* the stats box adds the block's total to the stats from before it */
 	for (i = 0; i < 6; i++) {
 		INITIAL_COMBAT_STATS[0][i] = TB_pre[i];
@@ -186,7 +187,57 @@ int32_t TB(modBlockNext)(void)
 		drawString(TB_doneText, 0, 120);
 		drawString(TB_REASONS[TB_reason], 0, 132);
 		TB_box1Seen = 0;
-		createMenuBox(2, -94, TB_box2Y(), 188, 0x23, 2, TB_tickMessage, TB_renderMessage);
+		createMenuBox(2, TB_box2X(), TB_box2Y(), 188, 0x23, 2, TB_tickMessage, TB_renderMessage);
 	}
+}
+
+/* One second at the native 20 Hz tick gives each care change a visible interval.
+   A fresh cancel press stops before the next hour is awarded. No new state is needed. */
+int32_t TB(modBlockWait)(void)
+{
+	if (CHANGED_INPUT & CANCEL_BUTTON) {
+		TB_finishBlock();
+		return 1;
+	}
+	if (TB_box1Seen > 0) {
+		TB_box1Seen--;
+		return 1;
+	}
+	return 0;
+}
+
+/* after it: 1 to award the next session of the block */
+int32_t TB(modBlockNext)(void)
+{
+	int32_t i, v;
+
+	if (TB_count <= 1) {
+		return 0;
+	}
+	/* the session's gains go into the stats the next one starts from */
+	for (i = 0; i < 6; i++) {
+		v = INITIAL_COMBAT_STATS[0][i] + STATS_GAINS[i];
+		if (v > CAP_OF_STAT_INDEX(i)) {
+			v = CAP_OF_STAT_INDEX(i);
+		}
+		TB_sum[i] += v - INITIAL_COMBAT_STATS[0][i];
+		INITIAL_COMBAT_STATS[0][i] = v;
+		STATS_GAINS[i] = 0;
+	}
+	TB(applyBaseStats)();
+	TB_done++;
+	/* the gym's box (a technique, new orders) opened by this session: a box 2 open before the block (the Bonus
+	   Try's reels, a block's own box closing) is not one */
+	if (!TB_box2Before && UI_BOX_DATA[2].state != 0) {
+		TB_reason = MOD_TB_LEARNED;
+	} else {
+		TB_reason = modTrainStopReason(TB_START_MIN, TB_RULES[MOD_TR_TIRED_AT]);
+	}
+	if (TB_reason == MOD_TB_GO && TB_done < TB_count) {
+		TB_box1Seen = 20;
+		return 1;
+	}
+
+	TB_finishBlock();
 	return 0;
 }

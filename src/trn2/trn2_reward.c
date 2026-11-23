@@ -82,9 +82,8 @@ void TRN2_tickSpeedTraining(int32_t instanceId)
 		if ((((MAIN_D_801353C2 >= TRN_SESSION_OF(MOD_TRAIN2_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (r >= 0))) {
 			setMapObjectsFlag(MAIN_D_801353B8, MAIN_D_801353BA, 1);
 			TRN2_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN2_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
-			} while (TRN2_modBlockNext());
+			TRN2_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);
+			TRN2_modBlockNext();
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			playSound(8, 0xa);
 			thunkStopSoundMask(MAIN_D_801353C8);
@@ -93,6 +92,14 @@ void TRN2_tickSpeedTraining(int32_t instanceId)
 		}
 		break;
 	case 4:
+		if (TRN2_MOD_QUIET) {
+			if (!TRN2_modBlockWait()) {
+				TRN2_saveTrainingStartTime();
+				TRN2_awardSpeedTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, 10);
+				TRN2_modBlockNext();
+			}
+			break;
+		}
 		if (TRN2_statGainsAreZero() == 1) {
 			MAIN_D_801353C4 = 0;
 			MAIN_D_801353BD = 5;

@@ -72,7 +72,7 @@ int16_t arg;
 		TRN_D_8008F340[2].vz = -0x834;
 		MAIN_D_8013536C = 0x47;
 		MAIN_D_8013536E = 0xd;
-		addObject(0xfae, 0, (TickFunction)TRN_tickDefenseTraining, NULL);
+		addObject(0xfae, 0, (TickFunction)TRN_tickDefenseTraining, (RenderFunction)TRN_renderCareHUD);
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeDefenseCounter++;
 		}
@@ -228,9 +228,8 @@ int16_t instanceId;
 			}
 			if (((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 				TRN_modBlockBegin(); /* MOD (training block) */
-				do {
-					TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
-				} while (TRN_modBlockNext());
+				TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+				TRN_modBlockNext();
 				startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 				playSound(8, 0xa);
 				thunkStopSoundMask(MAIN_D_80135384);
@@ -244,6 +243,14 @@ int16_t instanceId;
 		}
 		break;
 	case 12:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
 			TRAINING_STATE = 0xd;
@@ -267,7 +274,7 @@ int16_t instanceId;
 			partnerSetState(1);
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfae, instanceId, TRN_tickDefenseTraining, NULL);
+			removeObject(0xfae, instanceId, TRN_tickDefenseTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;

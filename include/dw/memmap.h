@@ -50,7 +50,7 @@
 #define OVL_MURD_BASE		0x8007C000
 #define OVL_DOOA_BASE		0x80080000
 #define OVL_SHOP_BASE		0x80080800	/* DGET (shop_START) */
-#define OVL_TRN_BASE		0x80088800	/* TRN, TRN2 */
+#define OVL_TRN_BASE		0x80088000	/* TRN, TRN2: include one free scratch sector below TEXTURE_BUFFER */
 /* TRN/TRN2 must end here: the original's largest, in sectors (memory.md) */
 #define OVL_TRN_MAX_END		0x8008F800
 
