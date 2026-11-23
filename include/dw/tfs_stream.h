@@ -30,6 +30,12 @@ typedef struct {
 
 extern int8_t MOD_TFS_TILE_SEQ[35];
 extern TfsStreamStats MOD_TFS_STATS;
+/*
+ * The first three palettes of the last .TFS header read (day, evening, night; MAP_CLUTS points here, not into
+ * TFS_HEADER_ADDR): the header shares GENERAL_BUFFER with every sound bank, overlay and model staged in the world,
+ * and a palette load reads it whenever the hour changes, long after such a load.
+ */
+extern u_long MOD_TFS_CLUTS[3][128];
 
 void tfsStreamOpen(char *path);
 void tfsStreamInvalidate(void);
