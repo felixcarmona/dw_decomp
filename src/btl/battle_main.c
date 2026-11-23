@@ -2261,7 +2261,9 @@ void BTL_buffStats(digimon, slot, value, stat, color, flag)
 	addEntityText(&digimon->entity, slot, color, value, flag);
 }
 
-void BTL_renderEnemyHPBars(void)
+#include <dw/enemy_bars.h>
+
+static void renderOriginalEnemyHPBars(void)
 {
 	long i;
 	int32_t w;
@@ -2334,6 +2336,25 @@ void BTL_renderEnemyHPBars(void)
 		}
 		GsSortFastSprite(sprite, ACTIVE_ORDERING_TABLE, 7);
 		drawEntityText(0, 4, x + 0x21, y - 9, stats->current.currentHP, 7);
+	}
+}
+
+void BTL_renderEnemyHPBars(void)
+{
+	int32_t i;
+	if (!MOD_OPT_ENEMY_BARS) {
+		renderOriginalEnemyHPBars();
+		return;
+	}
+	for (i = 1; i <= ENEMY_COUNT; i++) {
+		FighterData *fighter = &COMBAT_DATA_PTR->fighter[i];
+		DigimonEntity *d = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+		PlayerDataSub *spr = &COMBAT_DATA_PTR->player.unk1[i];
+		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && !fighter->hpDamageBuffer && spr->unk25 < 21) spr->unk25++;
+		/* HP animation remains gameplay state, even while the HUD is hidden. */
+		if (d->stats.current.currentHP <= 0) fighter->hpDamageBuffer = 0;
+		if (fighter->hpDamageBuffer) damageTick(fighter, &d->stats);
+		if (BATTLE_TOGGLE_LIFEBAR || spr->unk25 < 21) renderEnemyHeadHP(d, fighter, 1);
 	}
 }
 

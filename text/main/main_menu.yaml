@@ -431,6 +431,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_SPANISH:
       ja: "ESPANOL"
       en_us: "ESPANOL"
+    MOD_OPT_STR_ENEMY:
+      ja: "敵の新HPバー"
+      en_us: "NEW ENEMY BARS"
     MOD_OPT_STR_CHEATS:
       ja: "CHEATS"
       en_us: "CHEATS"
