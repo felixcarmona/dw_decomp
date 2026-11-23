@@ -1,5 +1,6 @@
 #include <libetc.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/btl.h>
 #include <dw/clock.h>
 #include <dw/fade.h>
@@ -183,10 +184,14 @@ void drawEntityText(int32_t color, int16_t n, int16_t x, int16_t y,
 	POLY_FT4 *prim;
 	int32_t i;
 	int32_t count;
-	int32_t buf[4];
+	int32_t buf[6]; /* MOD (caps): was 4 */
 
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
+	/* MOD (caps): a value wider than the box grows it to the left (the
+	 * right edge stays); the original drew only the first n digits */
+	x -= CAPS_SHIFT(n, value, 7);
+	n = CAPS_DIGITS(n, value);
 	convertValueToDigits(n, value, &count, buf);
 
 	for (i = count - 1; i >= 0; i--) {

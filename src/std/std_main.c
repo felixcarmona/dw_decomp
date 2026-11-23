@@ -7,6 +7,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/aabb.h>
 #include <dw/attack_object.h>
 #include <dw/battle.h>
@@ -1519,6 +1520,10 @@ void STD_renderIntroStatBar(int32_t idx, int16_t value)
 	prim = (POLY_F4 *)GsGetWorkBase();
 	SetPolyF4(prim);
 	setRGB0(prim, 0x50, 0xc8, 0x50);
+	/* MOD (caps): full at the old limit (the bar has no room past it) */
+	if (value > STD_STAT_BAR_LIMITS[idx]) {
+		value = STD_STAT_BAR_LIMITS[idx];
+	}
 	width = (value * 100) / STD_STAT_BAR_LIMITS[idx];
 	if (width == 0) {
 		width = 1;
@@ -1749,6 +1754,15 @@ void STD_runIntro(int16_t which)
 	isSoundLoaded(0, STD_LOADING_VAB_ID);
 }
 
+/* MOD (caps) */
+static int32_t STD_introStatStep(int32_t target, int32_t step)
+{
+	if (target > step * 50) {
+		return (target + 49) / 50;
+	}
+	return step;
+}
+
 // clang-format off
 void STD_tickIntroStats(id)
 	int16_t id;
@@ -1756,14 +1770,16 @@ void STD_tickIntroStats(id)
 {
 	Stats *stats;
 
-	STD_D_8007B9BC[0] += 200;
-	STD_D_8007B9BC[1] += 200;
-	STD_D_8007B9BC[2] += 20;
-	STD_D_8007B9BC[3] += 20;
-	STD_D_8007B9BC[4] += 20;
-	STD_D_8007B9BC[5] += 20;
-
 	stats = &((DigimonEntity *)ENTITY_TABLE[id])->stats;
+	/* MOD (caps): a value past the old limit counts up in the same 50
+	 * ticks as a capped one (at +20 a 9999 took 25 s) */
+	STD_D_8007B9BC[0] += STD_introStatStep(stats->current.currentHP, 200);
+	STD_D_8007B9BC[1] += STD_introStatStep(stats->current.currentMP, 200);
+	STD_D_8007B9BC[2] += STD_introStatStep(stats->base.off, 20);
+	STD_D_8007B9BC[3] += STD_introStatStep(stats->base.def, 20);
+	STD_D_8007B9BC[4] += STD_introStatStep(stats->base.speed, 20);
+	STD_D_8007B9BC[5] += STD_introStatStep(stats->base.brain, 20);
+
 	if (stats->current.currentHP < STD_D_8007B9BC[0]) {
 		STD_D_8007B9BC[0] = stats->current.currentHP;
 	}
@@ -1807,7 +1823,9 @@ void STD_renderIntroStats(id)
 		playSound(0, 0x16);
 	} else {
 		for (i = 0; i < 6; ++i) {
-			STD_renderIntroStatNumber(52, (int16_t)(i * 16 - 28), 4, STD_D_8007B9BC[i], 3);
+			/* MOD (caps): a 5-digit value grows to the right here (to
+			 * the left it would run into the full bar, which ends at 50) */
+			STD_renderIntroStatNumber(52, (int16_t)(i * 16 - 28), CAPS_DIGITS(4, STD_D_8007B9BC[i]), STD_D_8007B9BC[i], 3);
 		}
 	}
 }
@@ -1828,6 +1846,10 @@ void STD_renderIntroStatNumber(x, y, digits, value, layer)
 
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
+	/* MOD (caps): a value wider than the box grows it to the left (the
+	 * right edge stays); the original drew only the first digits digits */
+	x -= CAPS_SHIFT(digits, value, 12);
+	digits = CAPS_DIGITS(digits, value);
 	convertValueToDigits(digits, value, &count, buf);
 
 	for (i = count - 1; i >= 0; i--) {
@@ -3958,8 +3980,12 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 		} else {
 			f->buffsRemaining = 5;
 		}
-		f->buffPrioTimer = (stats->base.brain / 10) + 5;
-		f->finisherGoal = 0xbb8 - stats->base.speed;
+		/* MOD (caps): brains and speed past the old 999 limit do not
+		 * make buffs win every draw or the finisher goal reach 0:
+		 * the goal keeps falling, ten times slower (1101 at 9999) */
+		f->buffPrioTimer = (CAPS_OLD_STAT(stats->base.brain) / 10) + 5;
+		f->finisherGoal = 0xbb8 - CAPS_OLD_STAT(stats->base.speed) -
+		                  (stats->base.speed - CAPS_OLD_STAT(stats->base.speed)) / 10;
 		for (j = 0; j < 0x96; j++) {
 			f->table1[j] = -1;
 			f->table2[i] = -1;
@@ -4490,6 +4516,9 @@ int32_t STD_getDigitCount(int32_t value)
 	}
 	if (value < 1000) {
 		return 3;
+	}
+	if (value >= 10000) { /* MOD (caps): damage past 9999 */
+		return 5;
 	}
 
 	return 4;
@@ -5525,10 +5554,8 @@ skipViewpoint:
 					COMBAT_DATA_PTR->player.unk2++;
 				}
 			}
-			fighter->hpDamageBuffer += dmg;
-			if (fighter->hpDamageBuffer >= 0x2710) {
-				fighter->hpDamageBuffer = 0x270f;
-			}
+			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			STD_handleHitReaction(entity, fighter, &attack, i);
 			sub->unk25 = 0;
@@ -5574,10 +5601,8 @@ skipViewpoint:
 			if (dmg <= 0) {
 				dmg = 1;
 			}
-			fighter->hpDamageBuffer += dmg;
-			if (fighter->hpDamageBuffer >= 0x2710) {
-				fighter->hpDamageBuffer = 0x270f;
-			}
+			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
@@ -5760,8 +5785,8 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	if (dmg <= 0) {
 		dmg = 1;
 	}
-	if (dmg >= 10000) {
-		dmg = 9999;
+	if (dmg > DAMAGE_CAP) { /* MOD (caps): was 9999 */
+		dmg = DAMAGE_CAP;
 	}
 	return dmg;
 }
@@ -5919,7 +5944,7 @@ void STD_buffStats(digimon, slot, value, stat, color, flag)
 	uint8_t flag;
 // clang-format on
 {
-	addWithLimit(stat, value, 0x3e7);
+	addWithLimit(stat, value, STAT_CAP); /* MOD (caps): was 999 */
 	addEntityText(&digimon->entity, slot, color, value, flag);
 }
 
@@ -6126,7 +6151,7 @@ int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 	mp = MOVE_DATA[tech].mpCost * 3;
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 700) {
-			if (PARTNER_ENTITY.digimonEntity.stats.base.brain == 999) {
+			if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 999) { /* MOD (caps): was == */
 				mp -= mp / 5;
 			} else if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 900) {
 				mp -= mp * 15 / 100;
@@ -6618,7 +6643,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 			}
 			brain = digimon->stats.base.brain;
 			if (brain >= 0x2bc) {
-				if (brain == 0x3e7) {
+				if (brain >= 0x3e7) { /* MOD (caps): was == */
 					cost = (int16_t)(cost * 4 / 5);
 				} else if ((brain >= 0x384) && (brain < 0x3e7)) {
 					cost = (int16_t)(cost * 17 / 20);
@@ -6749,10 +6774,8 @@ void STD_applyMoveResult(void)
 			if (fighter->poisonTimer == 0) {
 				fighter->poisonTimer = 100;
 				dmg = stats->base.hp * (randomLimit(3) + 1) / 100;
-				fighter->hpDamageBuffer += dmg;
-				if (fighter->hpDamageBuffer >= 0x2710) {
-					fighter->hpDamageBuffer = 0x270f;
-				}
+				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 				if (i != 0) {
 					COMBAT_DATA_PTR->player.unk1[i].unk25 = 0;
 				}

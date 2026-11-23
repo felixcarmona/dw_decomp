@@ -1,4 +1,5 @@
 #include <libgs.h>
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/combat.h>
 #include <dw/entity.h>
 #include <dw/garbage.h>
@@ -99,7 +100,7 @@ void addEntityText(Entity *entity, int16_t slotId, int16_t color, int32_t value,
 		   uint8_t icon)
 {
 	int32_t i;
-	int32_t digits[4];
+	int32_t digits[6]; /* MOD (caps): was 4 */
 	EntityTextData *slot;
 	EntityTextDataEntry *entry;
 	int32_t j;
@@ -118,7 +119,9 @@ void addEntityText(Entity *entity, int16_t slotId, int16_t color, int32_t value,
 	}
 
 	entry = &slot->entries[i];
-	convertValueToDigits(4, value, &entry->numDigits, digits);
+	/* MOD (caps): 5 digits for a hit past 9999 (was always 4: 12345 showed
+	 * as 1234) */
+	convertValueToDigits(CAPS_DIGITS(4, value), value, &entry->numDigits, digits);
 	entry->value = value;
 	entry->color = color;
 	entry->icon = icon;

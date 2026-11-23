@@ -3,6 +3,7 @@
 #include <libgpu.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/attack_object.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -2032,8 +2033,8 @@ int32_t BTL_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	if (dmg <= 0) {
 		dmg = 1;
 	}
-	if (dmg >= 10000) {
-		dmg = 9999;
+	if (dmg > DAMAGE_CAP) { /* MOD (caps): was 9999 */
+		dmg = DAMAGE_CAP;
 	}
 	return dmg;
 }
@@ -2147,10 +2148,8 @@ void BTL_tickAttackHits(void)
 					COMBAT_DATA_PTR->player.unk2++;
 				}
 			}
-			fighter->hpDamageBuffer += dmg;
-			if (fighter->hpDamageBuffer >= 0x2710) {
-				fighter->hpDamageBuffer = 0x270f;
-			}
+			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			BTL_handleHitReaction(entity, fighter, &attack, i);
 			sub->unk25 = 0;
@@ -2196,10 +2195,8 @@ void BTL_tickAttackHits(void)
 			if (dmg <= 0) {
 				dmg = 1;
 			}
-			fighter->hpDamageBuffer += dmg;
-			if (fighter->hpDamageBuffer >= 0x2710) {
-				fighter->hpDamageBuffer = 0x270f;
-			}
+			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
@@ -2236,7 +2233,7 @@ void BTL_buffStats(digimon, slot, value, stat, color, flag)
 	uint8_t flag;
 // clang-format on
 {
-	addWithLimit(stat, value, 0x3e7);
+	addWithLimit(stat, value, STAT_CAP); /* MOD (caps): was 999 */
 	addEntityText(&digimon->entity, slot, color, value, flag);
 }
 
@@ -2347,7 +2344,7 @@ int32_t BTL_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 	mp = MOVE_DATA[tech].mpCost * 3;
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 700) {
-			if (PARTNER_ENTITY.digimonEntity.stats.base.brain == 999) {
+			if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 999) { /* MOD (caps): was == */
 				mp -= mp / 5;
 			} else if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 900) {
 				mp -= mp * 15 / 100;
@@ -2531,7 +2528,7 @@ void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 			}
 			brain = digimon->stats.base.brain;
 			if (brain >= 0x2bc) {
-				if (brain == 0x3e7) {
+				if (brain >= 0x3e7) { /* MOD (caps): was == */
 					cost = cost * 4 / 5;
 				} else if ((brain >= 0x384) && (brain < 0x3e7)) {
 					cost = cost * 17 / 20;
@@ -2860,10 +2857,8 @@ void BTL_tickStatusEffects(void)
 			if (fighter->poisonTimer == 0) {
 				fighter->poisonTimer = 100;
 				dmg = stats->base.hp * (randomLimit(3) + 1) / 100;
-				fighter->hpDamageBuffer += dmg;
-				if (fighter->hpDamageBuffer >= 0x2710) {
-					fighter->hpDamageBuffer = 0x270f;
-				}
+				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
+				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 				if (i != 0) {
 					COMBAT_DATA_PTR->player.unk1[i].unk25 = 0;
 				}
