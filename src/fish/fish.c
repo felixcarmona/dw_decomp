@@ -1223,7 +1223,12 @@ void FISH_drawBaitMenuRow(int32_t row)
 				setRECT(&rect, i * 0x60, (row % menu->visibleRows) * 12, 0x60, 0xc);
 				area = rect;
 				clearTextSubArea(&area);
+#if VERSION_IS(US)
+				/* MOD (item names): a name past its 96-pixel column drawn tighter (font.c drawStringMode) */
+				drawStringMode(ITEM_NAME(item), rect.x, rect.y, fitStringMode(ITEM_NAME(item), ITEM_FIELD_W));
+#else
 				drawString(ITEM_NAME(item), rect.x, rect.y);
+#endif
 				DrawSync(0);
 			}
 		}

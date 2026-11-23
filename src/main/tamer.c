@@ -770,8 +770,8 @@ void checkPendingAwards(void)
 
 void renderItemPickupTextbox(int32_t instanceId)
 {
+	int32_t halfLength; /* MOD (item names): the US code uses it too */
 #if !VERSION_IS(US)
-	int32_t halfLength;
 
 	renderString(0xf, -0x7d, 0x2d, 0x48, 0xc, 0, 0xc, 5, 0);
 #endif
@@ -783,7 +783,9 @@ void renderItemPickupTextbox(int32_t instanceId)
 		renderString(0, halfLength * 12 - 0x4d, 0x39, 0x24, 0xc, 0x30, 0x24, 5, 0);
 #else
 		renderString(0, 0xffffff83, 0x39, 0x5a, 0xc, 0, 0x24, 5, 0);
-		renderString(0xf, 0xffffff83, 0x2d, 0x60, 0xc, 0, 0x18, 5, 0);
+		/* MOD (item names): the name's row copied as wide as the name (was 96 pixels; the box is 262 wide) */
+		halfLength = measureStringMode(ITEM_NAME(TAKE_CHEST_ITEM), FIT_VANILLA);
+		renderString(0xf, 0xffffff83, 0x2d, halfLength > 0x60 ? halfLength : 0x60, 0xc, 0, 0x18, 5, 0);
 #endif
 	} else if (TAKE_CHEST_STATE == 1) {
 		renderString(0, 0xffffff83, 0x39, 0xf0, 0xc, 0, 0x18, 5, 0);

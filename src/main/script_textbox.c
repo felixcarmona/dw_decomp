@@ -621,6 +621,33 @@ void registerTextbox(boxId, row, rows, doubleBuffer, mode)
 
 #define DRAW_STRING2_SPACE_WIDTH 8 /* MOD: advance of a space (81 40) */
 
+#if VERSION_IS(US)
+/*
+ * MOD (item names): TEXT_FIT_TIGHT / TEXT_FIT_CONDENSED (font.h): the name after the code and its colour, up to the next
+ * code, drawn with drawStringMode; returns the pen after it, on the next cell of the text area's 4-pixel grid (the
+ * clears of the codes that follow work in whole cells and would erase the name's last columns).
+ */
+static int16_t drawString2Fit(uint8_t **str, int16_t x, int16_t y, int16_t pos, int32_t code)
+{
+	char run[24];
+	uint8_t *s;
+	int32_t n;
+
+	s = *str;
+	if (*s != 0xff) {
+		setTextColor(*s);
+	}
+	s++;
+	for (n = 0; *s >= 0x20 && n < 23; n++) {
+		run[n] = *s++;
+	}
+	run[n] = '\0';
+	*str = s;
+	n = x + pos + drawStringMode(run, x + pos, y, code == TEXT_FIT_TIGHT ? FIT_TIGHT : FIT_CONDENSED);
+	return ((n + 3) & ~3) - x;
+}
+#endif
+
 #if !VERSION_IS(US)
 int32_t drawString2(uint8_t *str, int16_t x, int16_t y)
 #else
@@ -711,6 +738,19 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			setRECT(&rect, x + pos, y, 0xb4, 0xc);
 			clearTextSubArea(&rect);
 			pos = 0xb4;
+			break;
+		case TEXT_FIT_TIGHT: /* MOD (item names) */
+		case TEXT_FIT_CONDENSED:
+			pos = drawString2Fit(&str, x, y, pos, ch);
+			break;
+		case TEXT_COLUMN: /* MOD (item names): from the next cell to the column */
+			rem = *str++;
+			pos = ((x + pos + 3) & ~3) - x;
+			if (rem > pos) {
+				setRECT(&rect, x + pos, y, rem - pos, 0xc);
+				clearTextSubArea(&rect);
+			}
+			pos = rem;
 			break;
 #endif
 		case 0xe:

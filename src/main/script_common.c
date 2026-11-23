@@ -5,6 +5,7 @@
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/item.h>
+#include <dw/font.h>
 #include <dw/main.h>
 #include <dw/map.h>
 #include <dw/math.h>
@@ -987,6 +988,14 @@ void updateItemMenuAmountBoxString(void)
 	out = TEXTBOX_LINES_PTR + (ITEM_MENU_SUB_TEXTBOX_LINE << 6);
 
 	if (ITEM_MENU_TYPE < 3) {
+#if VERSION_IS(US)
+		/* MOD (item names): a name past the field's 96 pixels (AMOUNT_BOX_LAYOUT, 8 x 12) drawn tighter */
+		len = textFitCode(ITEM_NAME(SHOP_ITEM_TYPE), ITEM_FIELD_W);
+		if (len != 1) {
+			*out++ = len;
+			*out++ = 0xff;
+		}
+#endif
 		strcpy(out, ITEM_NAME(SHOP_ITEM_TYPE));
 		len = strlen(ITEM_NAME(SHOP_ITEM_TYPE));
 	} else {
@@ -1521,6 +1530,11 @@ void calculateItemListStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	uint8_t item;
 	int32_t idx;
 	uint32_t len;
+#if VERSION_IS(US)
+	int32_t pad; /* MOD (item names) */
+	char *name;
+	char *got;
+#endif
 
 	out = getTextboxLine(box, row);
 	*out++ = 1;
@@ -1542,6 +1556,36 @@ void calculateItemListStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 
 	idx = (box->topRow + row) * 2;
 	item = ITEM_MENU_LEFT->buf[idx];
+#if VERSION_IS(US)
+	/*
+	 * MOD (item names): the item given runs on into the item got (padded to 8 characters, then 6 pixels). A row that
+	 * would end past where the US rows end (12 + both names + the padding + 10, 218 pixels; the cursor ends at 209)
+	 * puts the item got at the header's second column (0x72) instead, each name drawn tighter if it must: the given
+	 * one 6 pixels before the column, the got one within 96 (to 0xd2, the cursor's end).
+	 */
+	name = ITEM_NAME(item & 0x7f);
+	got = ITEM_NAME(ITEM_MENU_RIGHT->buf[idx]);
+	len = strlen(name);
+	pad = len < 16 ? 8 - (len >> 1) : 0;
+	pad = measureStringMode(name, FIT_VANILLA) + pad * 8 + measureStringMode(got, FIT_VANILLA) > 218 - 22;
+	*out++ = pad ? textFitCode(name, 0x72 - 6 - 12) : 1;
+	*out++ = (item & 0x80) != 0 ? 1 : 3;
+	strcpy(out, name);
+	out += len;
+	if (pad) {
+		*out++ = TEXT_COLUMN;
+		*out++ = 0x72;
+		*out++ = textFitCode(got, ITEM_FIELD_W);
+	} else {
+		out = padWithSpaces(out, 8, len);
+		*out++ = 0xf;
+		*out++ = 0;
+		*out++ = 1;
+	}
+	*out++ = 1;
+	strcpy(out, got);
+	out += strlen(got);
+#else
 	*out++ = 1;
 
 	if ((item & 0x80) != 0) {
@@ -1564,6 +1608,7 @@ void calculateItemListStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	strcpy(out, ITEM_NAME(item));
 	len = strlen(ITEM_NAME(item));
 	out += len;
+#endif
 	terminateString(out, isLast);
 }
 
@@ -2523,7 +2568,14 @@ void calculateItemMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	amount = box->buf[i + 1];
 
 	if (type != 0xff) {
+#if VERSION_IS(US)
+		/* MOD (item names): the colour code, or a fit code for a name that would come closer than a glyph's cell (12
+		 * pixels) to the price (0x16: column 0x69; a price of 4 digits starts at its edge) or, in the keeper (type
+		 * 5), than 4 to the count (0x1c: 0x64; its tens are a space below 10) */
+		*out++ = textFitCode(ITEM_NAME(type), ITEM_MENU_TYPE == 5 ? ITEM_FIELD_W : 0x69 - 12);
+#else
 		*out++ = 1;
+#endif
 		if (ITEM_MENU_TYPE == 0 || ITEM_MENU_TYPE == 7) {
 			if (amount != 0) {
 				*out++ = 1;
@@ -2545,8 +2597,17 @@ void calculateItemMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 		*out++ = 0xc;
 		*out++ = 0;
 #endif
+#if VERSION_IS(US)
+		/* MOD (item names): the keeper's rows are 32 bytes (half the text area): a name of 19 drops the 6-pixel gap,
+		 * which the count's column code (0x1c) clears anyway */
+		if (len < 19 || ITEM_MENU_TYPE != 5) {
+			*out++ = 0xf;
+			*out++ = 0;
+		}
+#else
 		*out++ = 0xf;
 		*out++ = 0;
+#endif
 
 		if (ITEM_MENU_TYPE != 5) {
 #if VERSION_IS(US)
@@ -2845,7 +2906,7 @@ void terminateString(uint8_t *str, int32_t flag)
 uint8_t *padWithSpaces(uint8_t *str, int32_t width, int32_t used)
 {
 	used = width - (used >> 1);
-	while (used != 0) {
+	while (used > 0) { /* MOD (item names): was != 0, endless for a name of 18 or 19 bytes */
 		*str++ = 0x81;
 		*str++ = 0x40;
 		used--;
