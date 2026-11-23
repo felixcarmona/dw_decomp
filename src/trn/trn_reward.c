@@ -737,7 +737,7 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 		dailyPStatTrigger();
 		HOUR -= 0x18;
 		CURRENT_FRAME -= 0x7080;
-		if (DAY >= 0x1f) {
+		if (DAY >= 30) { /* MOD: the field clock and tournament calendar have 30 days. */
 			DAY = 0;
 			YEAR++;
 			if (YEAR >= 0x64) {
