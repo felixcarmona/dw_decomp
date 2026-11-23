@@ -446,8 +446,8 @@ int32_t CARD_PRICES[5] = {
 
 /* Generated from the owned card JSON by balance.py; sentinels are never real. */
 uint8_t MOD_CARD_REAL[NUM_CARDS / 8] = { 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1 };
-/* balance.py packs CARD2 entry << 6 | (original ID - 1); 0xffff is unused. */
-uint16_t MOD_CARD_ART[8] = { 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff };
+/* balance.py writes archive entries indexed by original ID - 1; 0xffff is unused. */
+uint16_t MOD_CARD_ART[64] = { 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff };
 uint8_t MOD_CARD_EXTRA[CARD_EXTRA_BYTES];
 uint16_t MOD_CARD_STOCK[6];
 
@@ -463,16 +463,9 @@ void modLoadCardTable(void)
 
 int32_t modLoadCardImage(int32_t id, void *buffer)
 {
-	int32_t i;
 	if ((uint32_t)id >= NUM_CARDS) return 0;
-	if (id < 66 && MOD_OPT_NEW_CARDS) {
-		for (i = 0; i < 8; i++) {
-			if (MOD_CARD_ART[i] != 0xffff && (MOD_CARD_ART[i] & 63) == id - 1) {
-				id = (MOD_CARD_ART[i] >> 6) + 66;
-				break;
-			}
-		}
-	}
+	if (id >= 1 && id <= 64 && MOD_OPT_NEW_CARDS && MOD_CARD_ART[id - 1] != 0xffff)
+		id = MOD_CARD_ART[id - 1] + 66;
 	return loadStackedTIMEntry(id < 66 ? "\\CARD\\CARD.ALL" : "\\CARD\\CARD2.ALL",
 	                           buffer, (id < 66 ? id : id - 66) * 14, 14);
 }
