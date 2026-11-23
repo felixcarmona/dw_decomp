@@ -41,12 +41,33 @@ typedef struct {
 	uint8_t array[30];
 } InventoryTable;
 
+/* MOD: item ids in RAM are ItemId (ids.md step 3); -1 = no item */
+#define ITEM_NONE (-1)
+
+typedef struct {
+	ItemId array[30];
+} ItemIdTable;
+
+typedef struct {
+	ItemIdTable types; /* MOD: was u8 with 0xFF = empty; now ITEM_NONE */
+	InventoryTable amounts;
+	InventoryTable names;
+	uint8_t size;
+} Inventory;
+
+/* MOD: the v1 save layout of the inventory (u8 ids, 0xFF = empty) */
 typedef struct {
 	InventoryTable types;
 	InventoryTable amounts;
 	InventoryTable names;
 	uint8_t size;
-} Inventory;
+} SavedInventory;
+
+/* MOD: an item id from a u8 field (script byte, pstat, table): 0xFF = none */
+static inline ItemId itemFromLegacy(uint8_t id)
+{
+	return (id == LEGACY_ID_NONE) ? ITEM_NONE : id;
+}
 
 typedef void (*ItemFunction)(int16_t);
 
@@ -64,9 +85,11 @@ extern ItemFunction ITEM_FUNCTIONS[NUM_ITEMS];
 
 void initializeInventory(void);
 void setInventorySize(uint8_t size);
-int32_t giveItem(uint8_t type, uint8_t amount);
-void removeItem(uint8_t type, uint8_t amount);
-uint8_t getItemCount(uint8_t type);
+int32_t giveItem(ItemId type, uint8_t amount);
+void removeItem(ItemId type, uint8_t amount);
+uint8_t getItemCount(ItemId type);
+void sortItemsById(ItemId *data, long count);
+void swapItemId(ItemId *a, ItemId *b);
 
 void initializeDroppedItems(void);
 void clearDroppedItems(void);

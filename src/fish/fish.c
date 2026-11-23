@@ -1219,7 +1219,7 @@ void FISH_drawBaitMenuRow(int32_t row)
 		item = menu->items[(row * 2) + i];
 		if (item != -1) {
 			item = INVENTORY.types.array[item];
-			if (item != 0xff) {
+			if (item != ITEM_NONE) {
 				setRECT(&rect, i * 0x60, (row % menu->visibleRows) * 12, 0x60, 0xc);
 				area = rect;
 				clearTextSubArea(&area);
@@ -1261,7 +1261,7 @@ void FISH_renderBaitMenu(int32_t boxId)
 				continue;
 			}
 			q = INVENTORY.types.array[item];
-			if (q == 0xff) {
+			if (q == ITEM_NONE) {
 				continue;
 			}
 			FISH_drawItemSprite(q,
@@ -1283,7 +1283,7 @@ void FISH_renderBaitMenu(int32_t boxId)
 
 			renderItemAmount(0, 2, x + ((col != 0) ? 0x116 : 0x86),
 			                 y + 0x12 + row * 0x12,
-			                 (INVENTORY.types.array + item)[0x1e], layer);
+			                 INVENTORY.amounts.array[item], layer); /* MOD: was types + 0x1e */
 		}
 	}
 
@@ -1318,7 +1318,7 @@ int32_t FISH_openBaitMenu(void)
 
 	n = 0;
 	for (i = 0; i < 30U; i++) {
-		if (INVENTORY.types.array[i] == 0xff) {
+		if (INVENTORY.types.array[i] == ITEM_NONE) {
 			continue;
 		}
 		if (ITEM_PARA[INVENTORY.types.array[i]].sortingValue != 2) {

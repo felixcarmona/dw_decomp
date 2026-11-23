@@ -1418,7 +1418,7 @@ int32_t shopFillMeritItemList(void)
 	ITEM_MENU_RIGHT->itemCount = 0;
 
 	for (i = 0; i < size; i++) {
-		if (INVENTORY.types.array[i] == 0xff) {
+		if (INVENTORY.types.array[i] == ITEM_NONE) {
 			hasFreeSlot = 1;
 			break;
 		}
@@ -1476,7 +1476,7 @@ void itemKeeperFillItemList(void)
 	size = INVENTORY.size;
 
 	for (i = 0; i < size; i++) {
-		if (INVENTORY.types.array[i] == 0xff) {
+		if (INVENTORY.types.array[i] == ITEM_NONE) {
 			hasFreeSlot = 1;
 			break;
 		}
@@ -1512,7 +1512,7 @@ next:;
 
 	for (j = 0; j < size; j++) {
 		ITEM_MENU_RIGHT->itemCount++;
-		if (INVENTORY.types.array[j] != 0xff) {
+		if (INVENTORY.types.array[j] != ITEM_NONE) {
 			i = INVENTORY.types.array[j];
 			c = INVENTORY.amounts.array[j];
 			*out++ = i;

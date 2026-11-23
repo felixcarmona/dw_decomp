@@ -109,7 +109,7 @@ typedef struct {
 	int16_t tournamentsLost;
 	Stats stats;
 	uint8_t scriptState[0x17C];
-	Inventory inventory;
+	SavedInventory inventory; /* MOD: u8 ids; INVENTORY is ItemId */
 	char playerName[20];
 	char digimonName[20];
 	int8_t partnerLives;
@@ -2306,7 +2306,7 @@ void tickMainMenu(void)
 	int32_t status;
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 	int32_t i;
-	Inventory *inventory;
+	SavedInventory *inventory; /* MOD: the save layout */
 #endif
 
 	updateMemoryCardState();
@@ -3943,6 +3943,32 @@ int32_t createSavegameChecksum(int32_t slot)
 	return sum;
 }
 
+/* MOD: the inventory in RAM holds ItemId; the v1 save keeps u8 ids */
+static void loadSavedInventory(SavedInventory *saved)
+{
+	int32_t i;
+
+	for (i = 0; i < 30; i++) {
+		INVENTORY.types.array[i] = itemFromLegacy(saved->types.array[i]);
+	}
+	INVENTORY.amounts = saved->amounts;
+	INVENTORY.names = saved->names;
+	INVENTORY.size = saved->size;
+}
+
+/* MOD: low byte of each id (exact while ids are < 255); ITEM_NONE -> 0xFF */
+static void writeSavedInventory(SavedInventory *saved)
+{
+	int32_t i;
+
+	for (i = 0; i < 30; i++) {
+		saved->types.array[i] = (uint8_t)INVENTORY.types.array[i];
+	}
+	saved->amounts = INVENTORY.amounts;
+	saved->names = INVENTORY.names;
+	saved->size = INVENTORY.size;
+}
+
 void loadSavegame(SavegamePayload *savegame)
 {
 	int32_t i;
@@ -3963,7 +3989,7 @@ void loadSavegame(SavegamePayload *savegame)
 	PLAYTIME_MINUTES = savegame->playtimeMinutes;
 	PARTNER_ENTITY.digimonEntity.stats = savegame->stats;
 	SAVED_STATE.partnerStats = savegame->stats;
-	INVENTORY = savegame->inventory;
+	loadSavedInventory(&savegame->inventory);
 	memcpy(PARTNER_ENTITY.name, savegame->digimonName, 0x14);
 	TAMER_ENTITY.tamerLevel = savegame->tamerLevel;
 	TAMER_ENTITY.raisedCount = savegame->raisedCount;
@@ -4025,7 +4051,7 @@ void writeSavegame(SavegamePayload *savegame)
 	savegame->playtimeFrames = PLAYTIME_FRAMES;
 	savegame->playtimeHours = PLAYTIME_HOURS;
 	savegame->playtimeMinutes = PLAYTIME_MINUTES;
-	savegame->inventory = INVENTORY;
+	writeSavedInventory(&savegame->inventory);
 	savegame->stats = PARTNER_ENTITY.digimonEntity.stats;
 	savegame->partnerLives = PARTNER_ENTITY.lives;
 	memcpy(savegame->digimonName, PARTNER_ENTITY.name, 0x14);
