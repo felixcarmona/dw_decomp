@@ -872,6 +872,24 @@ int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 
 int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
 						  { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
 int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+/* MOD (evolution formulas as data): written by tools/balance.py from content/tables/evolution-rules.json; -1 = the rule does not exist */
+int16_t MOD_EVO_FORMULA[MOD_EVO_FORMULA_SIZE] = { [0 ... MOD_EVO_FORMULA_SIZE - 1] = -1 };
+
+int32_t evoAmt(int32_t slot)
+{
+	return MOD_EVO_FORMULA[slot] > 0 ? MOD_EVO_FORMULA[slot] : 0;
+}
+
+int32_t evoFlag(int32_t slot)
+{
+	return MOD_EVO_FORMULA[slot] > 0;
+}
+
+/* the points a species needs to be a candidate; a rule left out: none can be */
+int32_t evoPassPoints(void)
+{
+	return MOD_EVO_FORMULA[MOD_EVF_SCORE_PASS] >= 0 ? MOD_EVO_FORMULA[MOD_EVF_SCORE_PASS] : 127;
+}
 #define MOD_EVO_NO_RULE                                                                                        \
 	{                                                                                                      \
 		-1, { -1, -1, -1, -1 }, 0, 0, -1, 0, { { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 } } \
@@ -919,7 +937,7 @@ static void scoreInTrainingTarget(int32_t currentDigimon, DigimonId target, int3
   isMaxCM = (EVO_REQ_ROW(target).flags & 0x10) >> 4;
   isMaxBattles = EVO_REQ_ROW(target).flags & 1;
   requirementScore = calculateRequirementScore(currentDigimon, target, isMaxCM, isMaxBattles, *best);
-  if (*bestScore < requirementScore && requirementScore >= 3) {
+  if (*bestScore < requirementScore && requirementScore >= evoPassPoints()) {
     *best = target;
     *bestScore = requirementScore;
   }
@@ -971,7 +989,7 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
     isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
     isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
     if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
-                                  isMaxBattles, currentBestDigimon) >= 3) {
+                                  isMaxBattles, currentBestDigimon) >= evoPassPoints()) {
       if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
         statCount++;
@@ -1040,7 +1058,7 @@ int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
     isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
     isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
     if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
-                                  isMaxBattles, currentBestDigimon) >= 3) {
+                                  isMaxBattles, currentBestDigimon) >= evoPassPoints()) {
       if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
         statCount++;
@@ -1182,20 +1200,21 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
   partner = &PARTNER_PARA;
   reqPoints = 0;
 
+  /* MOD (evolution formulas as data): the points and tolerances are MOD_EVO_FORMULA's */
   if (isMaxCM == 0) {
     if (partner->careMistakes >= reqs->care)
-      reqPoints += 1;
+      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_CARE);
   } else if (partner->careMistakes <= reqs->care) {
-    reqPoints += 1;
+    reqPoints += evoAmt(MOD_EVF_SCORE_POINT_CARE);
   }
 
-  if (reqs->weight - 5 <= partner->weight &&
-      partner->weight <= reqs->weight + 5)
-    reqPoints += 1;
+  if (reqs->weight - evoAmt(MOD_EVF_SCORE_WEIGHT_TOL) <= partner->weight &&
+      partner->weight <= reqs->weight + evoAmt(MOD_EVF_SCORE_WEIGHT_TOL))
+    reqPoints += evoAmt(MOD_EVF_SCORE_POINT_WEIGHT);
 
   if (DIGI_PARA(target).level == 3U) {
-    statsArray[0] = statsArray2[0] = partnerEntity->hp / 10;
-    statsArray[1] = statsArray2[1] = partnerEntity->mp / 10;
+    statsArray[0] = statsArray2[0] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->hp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
+    statsArray[1] = statsArray2[1] = evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->mp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0;
     statsArray[2] = statsArray2[2] = partnerEntity->off;
     statsArray[3] = statsArray2[3] = partnerEntity->def;
     statsArray[4] = statsArray2[4] = partnerEntity->speed;
@@ -1217,16 +1236,16 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
         highestStat = i;
     }
     if (reqArray[highestStat] == 1) {
-      reqPoints += 1;
+      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_STATS);
     }
   } else {
-    if (partnerEntity->hp / 10 >= reqs->hp &&
-        partnerEntity->mp / 10 >= reqs->mp &&
+    if ((evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->hp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0) >= reqs->hp &&
+        (evoAmt(MOD_EVF_SCORE_HPMP_DIV) > 0 ? partnerEntity->mp / evoAmt(MOD_EVF_SCORE_HPMP_DIV) : 0) >= reqs->mp &&
         partnerEntity->off >= reqs->offense &&
         partnerEntity->def >= reqs->defense &&
         partnerEntity->speed >= reqs->speed &&
         partnerEntity->brain >= reqs->brain) {
-      reqPoints += 1;
+      reqPoints += evoAmt(MOD_EVF_SCORE_POINT_STATS);
     }
   }
 
@@ -1251,9 +1270,9 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
       isBonusFulfilled = 1;
   }
 
-  reqPoints += isBonusFulfilled;
+  reqPoints += isBonusFulfilled * evoAmt(MOD_EVF_SCORE_POINT_BONUS);
 
-  if (reqPoints >= 3 && currentBest != -1) {
+  if (reqPoints >= evoPassPoints() && currentBest != -1) {
     isTargetRaised = hasDigimonRaised(EVO_GAINS_ROW(target).targetDigimon);
     isCurrentBestRaised =
         hasDigimonRaised(EVO_GAINS_ROW(currentBest).targetDigimon);
@@ -1262,7 +1281,7 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
       reqPoints = 0;
 
     if (isTargetRaised == 0 && isCurrentBestRaised == 1)
-      reqPoints++;
+      reqPoints += evoAmt(MOD_EVF_SCORE_RAISED_BONUS);
   }
 
   return reqPoints;
@@ -1332,7 +1351,7 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 			continue;
 		}
 		reqs = &EVO_REQ_ROW(target);
-		if (calculateRequirementScore(currentDigimon, target, (reqs->flags & 0x10) >> 4, reqs->flags & 1, -1) >= 3) {
+		if (calculateRequirementScore(currentDigimon, target, (reqs->flags & 0x10) >> 4, reqs->flags & 1, -1) >= evoPassPoints()) {
 			return target;
 		}
 	}
