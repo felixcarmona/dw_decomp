@@ -118,6 +118,9 @@ int32_t modNativeItemTargetLevel(int32_t type);
 int32_t isVanillaSpecies(int32_t type);
 /* the vanilla species a new partner species becomes with NEW DIGIMON off (its record's vanillaAs), 0 none */
 int32_t getSpeciesVanillaAs(int32_t type);
+/* MOD (signature effects): the EFEDAT.EFE effect id that species `type` loads for `move`, a move byte of its stats
+ * (0x2e + an index into its DIGI_PARA moves) */
+int32_t getSpeciesTechEffect(int32_t type, int32_t move);
 /* 1 if the original type is carried by its DIGI.DAT record (always 0 for ids >= NUM_ORIGINAL_DIGIMON) */
 int32_t isRecordOriginal(int32_t type);
 
@@ -194,7 +197,11 @@ typedef struct {
 	int16_t effectDefault[4];	/* 0x1C4 */
 	int16_t vanillaAs;		/* 0x1CC MOD (options): NEW DIGIMON off, the vanilla species a loaded partner becomes */
 	uint8_t statusAnchorBone;	/* 0x1CE: Status-only camera follows this bone; 0 keeps the native view */
-	uint8_t reserved1CF[SPECIES_RECORD_SIZE - 0x1CF];
+	/* MOD (signature effects): technique ownEffectTech of this species plays EFEDAT.EFE chunk ownEffectChunk, an
+	 * effect of its own, instead of the chunk the technique shares (0: none); getSpeciesTechEffect */
+	uint8_t ownEffectTech;		/* 0x1CF */
+	int16_t ownEffectChunk;		/* 0x1D0 */
+	uint8_t reserved1D2[SPECIES_RECORD_SIZE - 0x1D2];
 } SpeciesRecord;
 
 #define SPECIES_LAYOUT_CHECK(name, cond) typedef char species_layout_##name[(cond) ? 1 : -1]
@@ -212,6 +219,7 @@ SPECIES_LAYOUT_CHECK(origins, __builtin_offsetof(SpeciesRecord, effectOrigins) =
 SPECIES_LAYOUT_CHECK(header, sizeof(SpeciesHeader) == 0x20);
 SPECIES_LAYOUT_CHECK(portrait, __builtin_offsetof(SpeciesRecord, portrait) == 0x1C0);
 SPECIES_LAYOUT_CHECK(effectDefault, __builtin_offsetof(SpeciesRecord, effectDefault) == 0x1C4);
+SPECIES_LAYOUT_CHECK(ownEffect, __builtin_offsetof(SpeciesRecord, ownEffectChunk) == 0x1D0);
 SPECIES_LAYOUT_CHECK(partnerList, sizeof(SpeciesPartnerList) == 0x800);
 SPECIES_LAYOUT_CHECK(links, sizeof(SpeciesLinks) <= 0x800);
 

@@ -551,7 +551,7 @@ void modBattleLoadStep(void)
 			e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 			for (j = 0; j < 4; j++) {
 				if (e->stats.base.moves[j] != 0xff) {
-					modMoveList[n++] = DIGI_PARA(e->entity.type).moves[e->stats.base.moves[j] - 0x2e] + 0x100;
+					modMoveList[n++] = getSpeciesTechEffect(e->entity.type, e->stats.base.moves[j]);
 				}
 			}
 		}
@@ -763,7 +763,7 @@ void loadBattleData(int32_t entityId, int32_t count)
 				if (entityGetTechFromAnim(&e->entity, e->stats.base.moves[j]) == 0xff) {
 					e->stats.base.moves[j] = 0xff;
 				} else {
-					move = DIGI_PARA(e->entity.type).moves[e->stats.base.moves[j] - 0x2e] + 0x100;
+					move = getSpeciesTechEffect(e->entity.type, e->stats.base.moves[j]);
 					moveList[n++] = move;
 				}
 			}

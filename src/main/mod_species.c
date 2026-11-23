@@ -186,6 +186,20 @@ int32_t getSpeciesVanillaAs(int32_t type)
 	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? rec->vanillaAs : 0;
 }
 
+int32_t getSpeciesTechEffect(int32_t type, int32_t move)
+{
+	SpeciesRecord *rec;
+	int32_t tech;
+
+	tech = DIGI_PARA(type).moves[move - 0x2e];
+	rec = getSpeciesRecord(type);
+	/* no own effect leaves both fields 0 (tools/species.py), and chunk 0 for technique 0 is technique 0's own */
+	if (rec != NULL && rec->ownEffectTech == tech) {
+		tech = rec->ownEffectChunk;
+	}
+	return tech + 0x100;
+}
+
 int32_t isRecordOriginal(int32_t type)
 {
 	if ((uint32_t)type >= NUM_ORIGINAL_DIGIMON) {
