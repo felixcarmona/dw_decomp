@@ -447,7 +447,7 @@ void handlePause(void)
 			PAUSE_STATE = (PAUSE_STATE + 1) & 1;
 		}
 		/* MOD: SELECT while paused opens the lab menu (mod_lab.c) */
-		if ((PAUSE_INPUT & 0x100) && !(PAUSE_INPUT_PREVIOUS & 0x100)) {
+		if (MOD_OPT_CHEATS && (PAUSE_INPUT & 0x100) && !(PAUSE_INPUT_PREVIOUS & 0x100)) {
 			PAUSE_INPUT_PREVIOUS = PAUSE_INPUT;
 			modLabMenu(&PAUSE_INPUT, &PAUSE_INPUT_PREVIOUS);
 			MAIN_D_80134E7C = 0;
