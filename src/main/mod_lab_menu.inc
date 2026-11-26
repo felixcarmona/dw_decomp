@@ -56,11 +56,11 @@ static int32_t labStep;
 static uint16_t *labChoices; /* points into modLabMenu's stack, valid until the UI closes */
 static char *modLabMessage;
 static char labText[LAB_ROWS][96];
-static char *LAB_HOME_TEXT[] = { LAB_STR_ADD_BITS, LAB_STR_SATIATE, LAB_STR_PARAMETERS,
+static char *const LAB_HOME_TEXT[] = { LAB_STR_ADD_BITS, LAB_STR_SATIATE, LAB_STR_PARAMETERS,
     LAB_STR_EVOLVE, LAB_STR_TELEPORT, LAB_STR_HEAL, LAB_STR_SHORTCUTS_OFF, LAB_STR_SAVE_GAME, LAB_STR_LOAD_GAME, LAB_STR_MAIN_MENU, LAB_STR_CLOSE };
 static char *LAB_STAGES[] = { "", "Baby I", "Baby II", "Rookie", "Champion", "Ultimate", "Mega" };
 
-static char *appendStr(char *dst, char *src)
+static char *appendStr(char *dst, const char *src)
 {
     while (*src) *dst++ = *src++;
     *dst = '\0';
@@ -83,7 +83,7 @@ typedef struct {
 } LabField;
 #define LAB_P(name, field, lo, hi, cmin, cmax) { name, __builtin_offsetof(PartnerPara, field), lo, hi, cmin, cmax, 0 }
 #define LAB_S(name, field, lo, hi) { name, __builtin_offsetof(Stats, field), lo, hi, -1, -1, 1 }
-static LabField LAB_FIELDS[] = {
+static const LabField LAB_FIELDS[] = {
     LAB_P(LAB_STR_DISCIPLINE, discipline, 0, 100, MOD_CARE_LIM_DISC_MIN, MOD_CARE_LIM_DISC_MAX),
     LAB_P(LAB_STR_HAPPINESS, happiness, -100, 100, MOD_CARE_LIM_HAPPY_MIN, MOD_CARE_LIM_HAPPY_MAX),
     LAB_P(LAB_STR_WEIGHT, weight, 1, 99, MOD_CARE_LIM_WEIGHT_MIN, MOD_CARE_LIM_WEIGHT_MAX),
@@ -109,14 +109,14 @@ static LabField LAB_FIELDS[] = {
 
 static int16_t *modLabFieldPtr(int32_t field)
 {
-    LabField *f = &LAB_FIELDS[field];
+    const LabField *f = &LAB_FIELDS[field];
     uint8_t *base = f->group ? (uint8_t *)&PARTNER_ENTITY.digimonEntity.stats : (uint8_t *)&PARTNER_PARA;
     return (int16_t *)(base + f->offset);
 }
 
 static int32_t modLabBound(int32_t field, int32_t maximum)
 {
-    LabField *f = &LAB_FIELDS[field];
+    const LabField *f = &LAB_FIELDS[field];
     int32_t slot = maximum ? f->careMax : f->careMin;
     int32_t value = slot >= 0 ? careGet(slot) : -1;
     if (value == -1) value = maximum ? f->max : f->min;
@@ -476,6 +476,7 @@ void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
     modLabMessage = NULL; labAction = 0;
     removeStaticUIBox(MOD_LAB_BOX);
     setRECT(&pos, 0, MOD_LAB_TEXT_Y, 256, LAB_ROWS * 12); clearTextSubArea(&pos);
+    /* MENU scratch is not BIOS-zeroed and may contain another overlay. */
     memset(labText, 0, sizeof(labText));
     modLabDrawText();
     setRECT(&pos, -LAB_WIDTH / 2, -LAB_HEIGHT / 2, LAB_WIDTH, LAB_HEIGHT);
