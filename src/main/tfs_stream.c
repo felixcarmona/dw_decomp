@@ -89,6 +89,9 @@ extern int8_t MOD_BTL_PRELOAD;	/* btl.c */
 extern int8_t MOD_BTL_PRELOAD_BLOCKED;
 static int8_t TFS_HOLD;	/* after a won battle: no prefetch before the BTL_REL read ahead (tfsStreamHoldPrefetch) */
 static int32_t TFS_HOLD_START;
+/* The incoming camera band stays protected until every tile has been uploaded. */
+static int8_t TFS_CAMERA_TILES[12];
+static int32_t TFS_CAMERA_COUNT;
 static int32_t TFS_NUM_SLOTS;
 static int32_t TFS_INFLIGHT = -1;
 static int32_t TFS_INFLIGHT_START;
@@ -178,6 +181,7 @@ void tfsStreamInvalidate(void)
 	int32_t i;
 
 	TFS_SPAN_FIRST = TFS_SPAN_LAST = -1;
+	TFS_CAMERA_COUNT = 0;
 	tfsStreamWaitIdle();
 	if (TFS_ACTIVE) {
 		MOD_TFS_STATS.invalidations++;
@@ -348,6 +352,10 @@ static int32_t victimSlot(int8_t *protect, int32_t count, int32_t avoid)
 		if ((TFS_SLOTS[i].state != SLOT_READY) || (tile == avoid) || ((uint32_t)slotAddr(i) < reserved)) {
 			continue;
 		}
+		for (j = 0; j < TFS_CAMERA_COUNT && TFS_CAMERA_TILES[j] != tile; j++);
+		if (j < TFS_CAMERA_COUNT) {
+			continue;
+		}
 		if (inVram(tile)) {
 			cls = 0;
 		} else if (inWindow(tile)) {
@@ -369,6 +377,44 @@ static int32_t victimSlot(int8_t *protect, int32_t count, int32_t avoid)
 		}
 	}
 	return best;
+}
+
+/* Preflight a walking camera band without waiting for the CD. Keep its window until the
+ * complete incoming band is resident; the normal tick reads it asynchronously.
+ * Forced uploads (map changes, scripts and overlays) retain their synchronous path. */
+int32_t tfsCameraReady(int32_t x, int32_t y)
+{
+	int32_t xx, yy, tile, slot;
+	int32_t ready = 1;
+
+	TFS_CAMERA_COUNT = 0;
+	if (!TFS_ACTIVE || GAME_STATE != 0) {
+		return 1;
+	}
+	tfsStreamBusy();
+	for (yy = y; yy < y + 3 && yy < MAP_TILE_DATA.height; yy++) {
+		for (xx = x; xx < x + 4 && xx < MAP_TILE_DATA.width; xx++) {
+			tile = xx + yy * MAP_TILE_DATA.width;
+			if (inWindow(tile) || MOD_TFS_TILE_SEQ[tile] < 0) {
+				continue;
+			}
+			TFS_CAMERA_TILES[TFS_CAMERA_COUNT++] = tile;
+			slot = findSlot(tile);
+			if (slot < 0 || TFS_SLOTS[slot].state != SLOT_READY) {
+				ready = 0;
+			}
+		}
+	}
+	if (TFS_CAMERA_COUNT > TFS_NUM_SLOTS) {
+		TFS_CAMERA_COUNT = 0;
+		return 1; /* sparse maps or a scripted jump: use the original upload */
+	}
+	return ready;
+}
+
+void tfsCameraDone(void)
+{
+	TFS_CAMERA_COUNT = 0;
 }
 
 /*
@@ -707,7 +753,15 @@ void tfsStreamTick(void)
 		return;
 	}
 
-	n = wantTiles(wanted, dist);
+	n = TFS_CAMERA_COUNT;
+	if (n) {
+		for (i = 0; i < n; i++) {
+			wanted[i] = TFS_CAMERA_TILES[i];
+			dist[i] = 0;
+		}
+	} else {
+		n = wantTiles(wanted, dist);
+	}
 	for (i = 0; i < n; i++) {
 		if (findSlot(wanted[i]) >= 0) {
 			continue;

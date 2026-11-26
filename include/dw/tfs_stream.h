@@ -46,6 +46,8 @@ void tfsStreamWaitIdle(void);
 int32_t tfsStreamBusy(void);
 void tfsStreamCheckTarget(void *buffer, int32_t bytes);
 void tfsStreamTick(void);
+int32_t tfsCameraReady(int32_t x, int32_t y);
+void tfsCameraDone(void);
 u_long *tfsTilePixels(int32_t tile);
 void tfsStageRow(int32_t firstTile, int32_t count);
 void tfsUnstage(void);
