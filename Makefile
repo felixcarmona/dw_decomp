@@ -26,9 +26,11 @@ GEN_DIR := build/$(VERSION)/$(PLATFORM)/generated
 VERSION_MACRO := VERSION_$(shell echo $(VERSION) | tr a-z A-Z)
 
 # MOD (scale): bytes of the partner model buffer (include/dw/memmap.h, docs/mods/memory.md
-# "Partner model buffer"). The original's is 0x18800; the default fits the largest imported
-# model. The value goes through a generated header so a change rebuilds what depends on it.
-PARTNER_MMD_MAX ?= 0x20000
+# "Partner model buffer"). The original's is 0x18800, the default: tools/build-full.sh passes the
+# disc's largest model (0x18800 for every disc since the imports were fitted), and since the
+# chart's criteria card (patch 0176) 0x20000 leaves less than MIN_HEAP. The value goes through
+# a generated header so a change rebuilds what depends on it.
+PARTNER_MMD_MAX ?= 0x18800
 $(shell mkdir -p $(GEN_DIR); printf '#define PARTNER_MMD_MAX %s\n' '$(PARTNER_MMD_MAX)' > $(GEN_DIR)/partner_mmd_max.h.tmp; \
 	cmp -s $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h && rm $(GEN_DIR)/partner_mmd_max.h.tmp \
 	|| mv $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h)
