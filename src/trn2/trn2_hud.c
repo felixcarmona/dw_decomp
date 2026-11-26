@@ -9,6 +9,7 @@
 #include <dw/font.h>
 #include <dw/input.h>
 #include <dw/line.h>
+#include <dw/mod_qol.h> /* MOD (skip hint) */
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -348,6 +349,14 @@ void TRN2_modOpenStatsBox(void)
 	MAIN_D_801353DE = 100;
 
 	setRECT(&finalPos, -94, -78, 188, 96);
+	/* MOD (skip hint, patch 0333): a row at the bottom for "Press × to skip" while the gains count */
+	for (i = 0; i < 6; i++) {
+		if (STATS_GAINS[i] != 0) {
+			finalPos.h += MOD_COUNT_ROW_H;
+			modCountHintDraw();
+			break;
+		}
+	}
 
 	getEntityScreenPos(ENTITY_TABLE[1], 1, &screenPos);
 
@@ -439,8 +448,15 @@ void TRN2_renderPostTrainingStatsBox(int16_t depth)
 		renderNumber(0, box->x + 68, (box->y + 9) + (i * 13), 4, INITIAL_COMBAT_STATS[0][i], 6 - depth);
 	}
 
-	drawLine2P(0xfad990, box->x + 122, box->y + 2, box->x + 122, (box->y + box->h) - 3, 6 - depth, 0);
-	drawLine2P(0x20202, box->x + 123, box->y + 2, box->x + 123, (box->y + box->h) - 3, 6 - depth, 0);
+	/* MOD (skip hint): the column's divider stops over the hint's row, which is drawn while a gain counts */
+	y = (box->h > 96) ? box->y + 90 : (box->y + box->h) - 3;
+	drawLine2P(0xfad990, box->x + 122, box->y + 2, box->x + 122, y, 6 - depth, 0);
+	drawLine2P(0x20202, box->x + 123, box->y + 2, box->x + 123, y, 6 - depth, 0);
+	if (box->h > 96) {
+		for (i = 0; i < 6 && STATS_GAINS[i] == 0; i++) {
+		}
+		modCountHintRow(box->x, box->w, box->y + 91, i < 6, 6 - depth);
+	}
 
 	for (i = 0; i < 6; i++) {
 		renderString(4, box->x + 10, (box->y + 9) + (i * 13), 48, 12, 0, i * 12, 6 - depth, 0);

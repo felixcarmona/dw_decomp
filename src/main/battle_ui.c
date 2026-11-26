@@ -12,6 +12,7 @@
 #include <dw/item.h>
 #include <dw/line.h>
 #include <dw/math.h>
+#include <dw/mod_qol.h> /* MOD (skip hint) */
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/script.h>
@@ -281,6 +282,26 @@ void battleMoveLearning(void)
 	BTL_appendMoveLearnedText(moveId);
 }
 
+/* MOD (skip hint, patch 0333): the bits box has a row of its own at the bottom for "Press × to skip" while the stats
+ * and the bits count (a skip is taken from the moment the boxes open); 0: nothing to count, the box as it was */
+static int8_t MOD_BITS_HINT;
+
+/* MOD (skip hint): something still counts and no skip was asked */
+static int32_t modTallyCounting(void)
+{
+	int32_t i;
+
+	if (SHOULD_SKIP_BIT_COUNTING == 1) {
+		return 0;
+	}
+	for (i = 0; i < 6; i++) {
+		if (STATS_GAINS[i] != 0) {
+			return 1;
+		}
+	}
+	return BITS_TO_GAIN != 0;
+}
+
 void createBitsBox(void)
 {
 	DVECTOR screenPos;
@@ -288,6 +309,11 @@ void createBitsBox(void)
 	RECT startPos;
 
 	setRECT(&finalPos, -88, 18, 176, BTL_END_BOX_TEXTBUFFER[0] ? 66 : 31);
+	/* MOD (skip hint): the row under the end text's panel, or under the bits row where there is none */
+	MOD_BITS_HINT = modTallyCounting();
+	if (MOD_BITS_HINT) {
+		finalPos.h = BTL_END_BOX_TEXTBUFFER[0] ? 66 + MOD_COUNT_ROW_H + 4 : 32 + MOD_COUNT_ROW_H + 4;
+	}
 
 	getEntityScreenPos(ENTITY_TABLE[0], 1, &screenPos);
 
@@ -298,6 +324,9 @@ void createBitsBox(void)
 #if !VERSION_IS(US)
 	drawString(STR_BRACES, 0x9c, 0xf0);
 #endif
+	if (MOD_BITS_HINT) {
+		modCountHintDraw();
+	}
 }
 
 void handleBattleEndBox(void)
@@ -471,6 +500,9 @@ void renderBitBox(uint8_t layer)
 		drawLine2P(0x8e8e8e, -86, 50, 84, 50, 6 - layer, 0);
 		drawLine2P(0x121212, -85, 51, 85, 51, 6 - layer, 0);
 		BTL_renderBattleEndText(layer);
+	}
+	if (MOD_BITS_HINT) { /* MOD (skip hint) */
+		modCountHintRow(-88, 176, BTL_END_BOX_TEXTBUFFER[0] ? 83 : 50, modTallyCounting(), 6 - layer);
 	}
 }
 
