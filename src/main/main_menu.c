@@ -273,17 +273,18 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 #define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
 #define MOD_OPT_SHORTCUTS_BIT 2
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
-#define MOD_OPT_ROW_STORY	3 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
-#define MOD_OPT_ROW_DIFF	4 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
-#define MOD_OPT_ROW_QUICK	5 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
-#define MOD_OPT_ROW_FPS 6
+#define MOD_OPT_ROW_CARDS 3
+#define MOD_OPT_ROW_STORY	4 /* MOD (story): EXTENDED STORY, under NEW CARDS */
+#define MOD_OPT_ROW_DIFF	5 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
+#define MOD_OPT_ROW_QUICK	6 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
+#define MOD_OPT_ROW_FPS 7
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	7
-#define MOD_OPT_ROW_LANG	8
+#define MOD_OPT_ROWS	12 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	8
+#define MOD_OPT_ROW_LANG	9
 #else
-#define MOD_OPT_ROWS	10
-#define MOD_OPT_ROW_LANG	7
+#define MOD_OPT_ROWS	11
+#define MOD_OPT_ROW_LANG	8
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4764,7 +4765,7 @@ static void modOptionBytes(uint8_t *d)
 	d[4] = 0;
 #endif
 	d[5] = MOD_OPT_EVO_GUIDE;
-	d[6] = MOD_OPT_NEW_DIGIMON;
+	d[6] = MOD_OPT_NEW_DIGIMON | (MOD_OPT_NEW_CARDS ? 0 : 0x80); /* Inverted: old saves enable new cards. */
 	d[7] = MOD_LANG; /* MOD (language) */
 	d[8] = MOD_OPT_SIGNS;
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
@@ -4796,8 +4797,9 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 6) {
 		MOD_OPT_EVO_GUIDE = d[5] != 0;
 	}
+	MOD_OPT_NEW_CARDS = len < 7 || !(d[6] & 0x80);
 	if (len >= 7) {
-		MOD_OPT_NEW_DIGIMON = d[6] != 0;
+		MOD_OPT_NEW_DIGIMON = (d[6] & 1) != 0;
 		modApplySpeciesLevels(); /* MOD (canon levels) */
 	}
 	if (len >= 8) { /* MOD (language) */
@@ -5518,7 +5520,8 @@ static void applyRecords(uint8_t *e)
 		case SAVE_TAG_CARD_STOCK:
 			for (i = 0; i < len / 2 && i < 6; i++) {
 				n = readRecord16(d + i * 2);
-				MOD_CARD_STOCK[i] = modCardIsReal(n) ? n : CARD_NONE;
+				/* Saved stock survives NEW CARDS OFF too. Visibility is checked by the shop. */
+				MOD_CARD_STOCK[i] = (uint32_t)n < NUM_CARDS && ((MOD_CARD_REAL[n / 8] >> (n & 7)) & 1) ? n : CARD_NONE;
 			}
 			break;
 		case SAVE_TAG_GROUND_PICKUP_BITS:
@@ -6082,6 +6085,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][4] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_NEWCARDS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
 	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL, MOD_OPT_STR_HARD }, /* MOD (difficulty) */
 	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
@@ -6167,6 +6171,8 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_EVO_GUIDE != 0;
 	case 2:
 		return MOD_OPT_NEW_DIGIMON != 0;
+	case MOD_OPT_ROW_CARDS:
+		return MOD_OPT_NEW_CARDS != 0;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		return MOD_OPT_STORY != 0;
 	case MOD_OPT_ROW_DIFF: /* MOD (difficulty): EASY, NORMAL */
@@ -6212,6 +6218,9 @@ static void __attribute__((noinline)) modSetOption(int32_t row, int32_t value)
 	case 2:
 		MOD_OPT_NEW_DIGIMON = value;
 		modApplySpeciesLevels(); /* MOD (canon levels) */
+		break;
+	case MOD_OPT_ROW_CARDS:
+		MOD_OPT_NEW_CARDS = value;
 		break;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		modSetStory(value);

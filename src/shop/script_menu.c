@@ -1433,6 +1433,7 @@ int32_t hasAnyCardToBuy(void)
 	for (i = 0; i < 6; i++) {
 		ITEM_MENU_LEFT->itemCount++;
 		id = MOD_CARD_STOCK[i];
+		if (!modCardIsReal(id)) id = CARD_NONE; /* Hide existing new stock without consuming it. */
 		*buf++ = id;
 		*buf++ = id >> 8;
 		if (id != CARD_NONE) {

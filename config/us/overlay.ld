@@ -306,11 +306,11 @@ SECTIONS
                 .text.modShowLanguageError* .text.modRenderLanguageError*
                 .text.modFlagRect*
                 /* OPTIONS is title-only (CURRENT_MENU 4). Keep its cold drawing,
-                 * setter and private helpers with the picker; mutable width caches
-                 * and localized pointer tables keep their existing storage. */
+                 * setter, private helpers and immutable row pointers with the picker;
+                 * mutable width caches stay resident. */
                 .text.drawOptionsText* .text.renderOptionsMenu* .text.modSetOption*
                 .text.modOptionValue* .text.modOptionText* .text.modOptionCount*
-                .text.modOptionV* .text.modOptionW*
+                .text.modOptionV* .text.modOptionW* .rodata.MOD_OPT_TEXT
                 .rodata.drawOptionsText* .rodata.renderOptionsMenu* .rodata.modSetOption*
                 .rodata.modOptionValue* .rodata.modOptionText* .rodata.modOptionCount*
                 .rodata.modDrawLanguagePicker* .rodata.modTickLanguagePicker*
@@ -915,8 +915,7 @@ SECTIONS
 			. = ALIGN(., 4);
 			/* their switch tables and literals, which only they read */
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
-				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.old.*
-                .rodata.MOD_OPT_TEXT); /* Options row pointers are read only while MENU is loaded. */
+				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.old.*);
 			. = ALIGN(., 4);
 			/* MOD (heap): read-only data of the card menus that only this overlay reaches (tools/xref.py classes): their
 			 * messages, labels and the save icon. Nothing that is ever written goes here: a reload would undo it */
@@ -1023,7 +1022,7 @@ SECTIONS
             /* Album drawing runs only after Player loads MENU. Keep this code
              * and its portrait CLUT map in the tail: CARDTAB.BIN replaces only
              * the first sector while the album is active. */
-            BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .data.CARD_SPRITE_CLUT);
+            BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .text.modCardMove .data.CARD_SPRITE_CLUT);
             . = ALIGN(., 4);
 
 		}

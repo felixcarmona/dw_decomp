@@ -451,7 +451,7 @@ uint16_t MOD_CARD_STOCK[6];
 
 int32_t modCardIsReal(int32_t id)
 {
-	return (uint32_t)id < NUM_CARDS && ((MOD_CARD_REAL[id / 8] >> (id & 7)) & 1);
+	return (uint32_t)id < (MOD_OPT_NEW_CARDS ? NUM_CARDS : 66) && ((MOD_CARD_REAL[id / 8] >> (id & 7)) & 1);
 }
 
 void modLoadCardTable(void)
