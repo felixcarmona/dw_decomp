@@ -2738,6 +2738,7 @@ void initializePosData(PositionData *posData)
 
 void renderFlatDigimon(Entity *entity)
 {
+	uint8_t *sprite;
 	int32_t half;
 	int32_t i;
 	VECTOR *loc;
@@ -2749,10 +2750,11 @@ void renderFlatDigimon(Entity *entity)
 	int16_t height;
 
 	model = getEntityModelComponent(entity->type, getEntityType(entity));
+	sprite = getFlatSprite(model); /* MOD (flat sprites): where this texture has the frames, and their CLUT row */
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	SetPolyFT4(prim);
 	setRGB0(prim, 0x80, 0x80, 0x80);
-	prim->clut = model->clutPage + 0x3C0;
+	prim->clut = model->clutPage + (sprite[8] << 6);
 	prim->tpage = model->pixelPage;
 	/* MOD (fps): the blink advances on the first render pass of a tick only;
 	 * it happens before drawing, so the other passes draw the same frame */
@@ -2762,10 +2764,8 @@ void renderFlatDigimon(Entity *entity)
 		}
 		++entity->flatTimer;
 	}
-	setUVWH(prim,
-	        ((entity->flatSprite % 2) == 0) ? 0xE0 : 0xF0,
-	        (entity->flatSprite < 2) ? model->pixelOffsetY + 0x60 : model->pixelOffsetY + 0x70,
-	        0xF, 0xF);
+	sprite += (entity->flatSprite & 3) * 2; /* idle, idle 2, attack, hurt */
+	setUVWH(prim, sprite[0], model->pixelOffsetY + sprite[1], 0xF, 0xF);
 	height = DIGI_PARA(entity->type).height;
 	half = height / 2;
 	in[0].vx = 0;
@@ -3750,6 +3750,7 @@ void uploadModelTexture(void *textureData, ModelComponent *component)
 		setRECT(&rect, img.cx, img.cy, img.cw, img.ch);
 		LoadImage(&rect, img.clut);
 	}
+	loadFlatSprite(textureData, component); /* MOD (flat sprites) */
 
 	DrawSync(0);
 }
@@ -3932,6 +3933,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 		setRECT(&rect, img.cx, img.cy, img.cw, img.ch);
 		LoadImage(&rect, img.clut);
 	}
+	loadFlatSprite(modelData->imagePtr, m); /* MOD (flat sprites): evolution and Continue upload here too */
 	memcpy(m->mmdPtr, modelData->modelPtr, modelData->modelSize);
 	m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 	m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
