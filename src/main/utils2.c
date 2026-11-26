@@ -349,6 +349,34 @@ int32_t hasMove(int32_t move)
 	return 0;
 }
 
+/* MOD (technique lists): a list entry replaced since the save leaves its slot selected with a technique that was
+ * never learned. The selection is dropped; a partner left with none takes its first learned technique, and one
+ * that has learned nothing of its list keeps what it had. Resident: the MENU overlay, which calls it, is full */
+void dropUnlearnedSelections(void)
+{
+	uint8_t *moves = DIGI_PARA(SAVED_STATE.partnerType).moves;
+	uint8_t *equipped = PARTNER_ENTITY.digimonEntity.stats.base.moves;
+	uint8_t kept[3];
+	int32_t i;
+	int32_t k;
+
+	for (i = 0; i < 3; i++) {
+		kept[i] = equipped[i];
+		k = equipped[i] - 0x2e;
+		if ((uint32_t)k < 16 && IS_GRID_MOVE(moves[k]) && !hasMove(moves[k])) equipped[i] = 0xff;
+	}
+	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) {
+		for (k = 0; k < 16 && !hasMove(moves[k]); k++) {
+		}
+		if (k < 16) {
+			equipped[0] = 0x2e + k;
+		} else {
+			for (i = 0; i < 3; i++) equipped[i] = kept[i];
+		}
+	}
+	for (i = 0; i < 3; i++) SAVED_STATE.partnerStats.base.moves[i] = equipped[i];
+}
+
 void learnMove(int32_t move)
 {
 	if (move == 0x2C || move == 0x30) {

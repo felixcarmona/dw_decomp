@@ -5365,6 +5365,8 @@ static void modStoryRelocate(void)
 	MOD_STORY_ARRIVE = 1;
 }
 
+void dropUnlearnedSelections(void); /* MOD (technique lists): utils2.c, resident: MENU has no room */
+
 static void dropAbsentSaveContent(void)
 {
 	uint32_t *learned = &PARTNER_ENTITY.learnedMoves[0]; /* 128 bits: the struct names 64 (unk1, unk2 follow) */
@@ -5629,6 +5631,7 @@ static int32_t loadSaveCopy(int32_t copy)
 			if (((moves[i] - NEW_MOVE_FIRST) & 0xc7) == 0) learnMove(moves[i]);
 		}
 	}
+	dropUnlearnedSelections();
 	dropAbsentSaveContent();
 	/* The registration menu restores copy 1. Keep its used fields in the selected
 	 * layout too; unk24 contains that copy's inline extension and must stay intact. */
