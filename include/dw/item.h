@@ -94,20 +94,13 @@ void spawnItem(ItemId type, int16_t tileX, int16_t tileY);
 void spawnDroppedItems(Entity *e, ItemId type);
 int32_t pickupItem(int16_t itemId);
 
-/*
- * MOD (ground items a day): a spot a script spawns an item on (spawnItem) gives it once a day. The spots picked up
- * today, by screen and tile (a ring of MOD_GROUND_PICKED_MAX), are skipped when the screen spawns again; midnight
- * (dailyPStatTrigger) forgets them; the save keeps them (SAVE_TAG_GROUND_PICKED). Battle drops are not spots.
- */
-#define MOD_GROUND_PICKED_MAX 64
-typedef struct {
-	int16_t screen; /* -1: empty */
-	uint8_t tileX;
-	uint8_t tileY;
-} GroundSpot;
-extern GroundSpot MOD_GROUND_PICKED[MOD_GROUND_PICKED_MAX];
-extern uint8_t MOD_GROUND_NEXT;
+/* Stable IDs are authored in content/ground-items.json and carried by SPAWN_ITEM_DAILY.
+ * Only this per-day bitset is resident. IDs are append-only save state; never renumber them.
+ * The build checks every spawn and the bound against this target's header. */
+#define MOD_GROUND_PICKUP_MAX 1024
+extern uint8_t MOD_GROUND_PICKED[MOD_GROUND_PICKUP_MAX / 8];
 void modForgetGroundPicked(void);
+void spawnDailyItem(ItemId type, int16_t tileX, int16_t tileY, int32_t pickupId);
 void removeTamerItem(void);
 void renderOverworldItem(WorldItem *item);
 

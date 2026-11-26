@@ -2983,6 +2983,15 @@ void scriptInstruction80to9F(uint8_t op)
 		pollNextTwoScriptShorts(&posX, &posY);
 		spawnItem(id, posX, posY);
 		break;
+	case SCRIPT_OP_SPAWN_ITEM_DAILY:
+		skipOneReadOneUShort(&id);
+		pollNextTwoScriptShorts(&posX, &posY);
+		pollNextScriptUShort(&value);
+		pollNextScriptShort(&posZ);
+		if (CURRENT_SCREEN == posZ) {
+			spawnDailyItem(id, posX, posY, value);
+		}
+		break;
 	case SCRIPT_OP_SPAWN_CHEST16:
 		skipOneReadOneUShort(&id);
 		pollNextTwoScriptShorts(&posX, &posY);

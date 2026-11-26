@@ -30,7 +30,8 @@
 #define SAVE_TAG_SPECIES_RECRUITED	0x0008 /* bit array: species the tamer has recruited */
 #define SAVE_TAG_OPTIONS		0x0009 /* u8[n] the title menu's OPTIONS: [0] button layout (0 US, 1 Japanese) */
 #define SAVE_TAG_VANILLA_SWAP		0x000A /* i16 species, i16 vanilla species: NEW DIGIMON off turned the partner from the first into the second (main_menu.c modVanillaSwap) */
-#define SAVE_TAG_GROUND_PICKED		0x000B /* {i16 screen, u8 tileX, u8 tileY}[64]: the ground spots picked up today (item.c MOD_GROUND_PICKED) */
+#define SAVE_TAG_GROUND_PICKED		0x000B /* {i16 screen, u8 tileX, u8 tileY}[64]: the ground spots picked up today (retired; a zero-length record writes an empty legacy history) */
+#define SAVE_TAG_GROUND_PICKUP_BITS	0x000C /* bit array: stable ground pickup IDs collected today; registry content/ground-items.json */
 #define SAVE_TAG_REQUIRED		0x8000
 /* engine tier 2 */
 #define SAVE_TAG_STORY_FLAGS		0x8001 /* bit array: story flag n = trigger 800 + n */
