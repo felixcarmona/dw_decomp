@@ -12,6 +12,7 @@
 #include <dw/ids.h>
 #include <dw/math.h>
 #include <dw/params.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
@@ -1308,10 +1309,10 @@ void renderParticleFlash(ParticleFlashData *params)
  *      on the same bone;
  *   7. MOD_DONOR_FALLBACK: the entry's fallback point;
  *   8. otherwise the next entry is tried.
- * When no entry gives an origin, a species listed in EFFECT_FALLBACK_SPECIES
- * (MOD effect fallback, below: data of the species files) starts from
- * EFFECT_FALLBACK_ORIGIN; otherwise NULL (the effect is dropped, as before). The result lives in a small ring because the effect keeps the
- * pointer while it runs.
+ * When no entry gives an origin, a species carried by its DIGI.DAT record
+ * (MOD effect origins, below) gets one from the table and its record;
+ * otherwise NULL (the effect is dropped, as before). The result lives in a
+ * small ring because the effect keeps the pointer while it runs.
  */
 #define MOD_ORIGIN_ANY_BONE   -2
 #define MOD_ORIGIN_ANY_OFFSET 0x7fff
@@ -1443,17 +1444,6 @@ static int32_t modOriginMatches(EfeBoneOffset *from, EfeBoneOffset *row)
 	       from->positionZ == row->positionZ;
 }
 
-/*
- * MOD (effect fallback): the species (ids, -1 after the last) whose techniques without an origin row for their
- * effects type start from EFFECT_FALLBACK_ORIGIN instead of being dropped: written by tools/balance.py build from
- * the species files ("effect_origin_fallback", docs/mods/species.md); the initializer is what content/species
- * has. Today: the 11 DW1 enemies made partners whose provisional finisher has no row (docs/mods/species-identity.md).
- */
-int16_t EFFECT_FALLBACK_SPECIES[EFFECT_FALLBACK_MAX] = {
-	67, 68, 69, 71, 80, 82, 105, 106, 109, 110, 111, -1, -1, -1, -1, -1,
-};
-EfeBoneOffset EFFECT_FALLBACK_ORIGIN = { 0, 0, 0, 0 }; /* bone 0, the Digimon itself, (0, 0, 0) */
-
 EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 {
 	static EfeBoneOffset ring[8];
@@ -1462,7 +1452,8 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 	EfeBoneOffset *row;
 	EfeBoneOffset *out;
 	ModTechDonor *d;
-	int32_t i, k, bone;
+	SpeciesRecord *rec;
+	int32_t i, k, bone, onBone, onEntity, best;
 
 	for (i = 0; i < MOD_COUNT(MOD_TECH_DONORS); i++) {
 		d = &MOD_TECH_DONORS[i];
@@ -1514,18 +1505,50 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 		}
 		/* a donor bone with no counterpart: try the next entry */
 	}
-	/* MOD (effect fallback): a species that has no row for a technique and is listed starts it from the shared
-	 * origin (never a type: a vanilla species with the same effects type is not affected) */
-	type = EFE_SCRIPT_CONTEXT->sourceEntity->type;
-	for (i = 0; i < EFFECT_FALLBACK_MAX && EFFECT_FALLBACK_SPECIES[i] >= 0; i++) {
-		if (EFFECT_FALLBACK_SPECIES[i] == type) {
-			out = &ring[next];
-			*out = EFFECT_FALLBACK_ORIGIN;
-			next = (next + 1) & 7;
-			return out;
+	/*
+	 * MOD (effect origins): a species carried by its DIGI.DAT record (a new species, a record original) with
+	 * SPECIES_FLAG_EFFECT_DEFAULT, whose effects type has no row in this table, still gets an origin, chosen by
+	 * what the table's rows are: when most of them are entity points (bone 0: a punch or a sting in front, a
+	 * cloud above, an area or aura at the centre) it takes the entity point of the row whose species' radius is
+	 * closest to its own (the same kind of point, made for a body of its size); when most are on bones (a
+	 * breath from the mouth, a shot from a hand) it starts from the record's effectDefault, its own launch
+	 * point (tools/species.py "effect_origin_fallback"). A species without a record, which is every disc
+	 * species not carried by one, never gets here with an origin: its effects are exactly the original's.
+	 */
+	rec = getSpeciesRecord(EFE_SCRIPT_CONTEXT->sourceEntity->type);
+	if (rec == NULL || !(rec->flags & SPECIES_FLAG_EFFECT_DEFAULT)) {
+		return NULL;
+	}
+	row = NULL;
+	onBone = 0;
+	onEntity = 0;
+	best = 0x7fffffff;
+	for (entry = table; entry->type >= 0; entry = (EfeTechBoneOffset *)((int32_t)entry + 0xa)) {
+		if (entry->offset.boneId != 0 || entry->type >= NUM_ORIGINAL_DIGIMON) {
+			onBone++;
+			continue;
+		}
+		onEntity++;
+		k = DIGIMON_DATA[entry->type].radius - rec->para.radius;
+		if (k < 0) {
+			k = -k;
+		}
+		if (k < best) {
+			best = k;
+			row = &entry->offset;
 		}
 	}
-	return NULL;
+	out = &ring[next];
+	next = (next + 1) & 7;
+	if (row != NULL && onEntity >= onBone) {
+		*out = *row;
+	} else {
+		out->boneId = rec->effectDefault[0];
+		out->positionX = rec->effectDefault[1];
+		out->positionY = rec->effectDefault[2];
+		out->positionZ = rec->effectDefault[3];
+	}
+	return out;
 }
 
 /* MOD (cherrymon): the hook checkTechCompatibility (BTL, STD, VS) calls */
