@@ -2707,13 +2707,13 @@ int32_t playerKeyHint(int32_t key, int32_t x, int32_t y)
 	return (x + drawStringMode(str, x, y, fitStringMode(str, 0x60)) + 11) & ~3;
 }
 
-/* Whether a row has something to choose: the original tamer and the bald head have no hair colour, an original
- * garment no colour, and no backpack none either */
+/* Whether a row has something to choose: the original tamer and the bald head have no hair colour, and no backpack
+ * no colour. An original garment's first colour is its own. */
 static const char lookPageFaces[TAMER_FACE_COUNT][2] = { "1", "2" };
 static const char lookPageDash[] = "-"; /* a row with nothing to choose */
 static int32_t lookPageRowOpen(int32_t row)
 {
-	return row == 1 ? MOD_TAMER_LOOK >= 2 : (row >= 4 && !(row & 1)) ? MOD_TAMER_STATE[row - 1] > (row == 10) : 1;
+	return row == 1 ? MOD_TAMER_LOOK >= 2 : row == 10 ? MOD_TAMER_STATE[9] != 1 : 1;
 }
 
 static char *lookPageValueText(int32_t row)
@@ -2736,6 +2736,9 @@ static char *lookPageValueText(int32_t row)
 	}
 	if (row & 1) {
 		return value == 0 ? LAB_LOOK_TEXT[0] : (char *)lookPageClothes[lookPageFirst[(row - 3) / 2] + value - 1];
+	}
+	if (value == 0 && MOD_TAMER_STATE[row - 1] == 0) {
+		return LAB_LOOK_TEXT[0];
 	}
 	name = lookPageClothName[value];
 	return name == LOOK_CLOTH_ORANGE ? (char *)lookPageTextOrange :
@@ -2777,6 +2780,13 @@ static void lookPageShirtRetint(int32_t garment)
 static int32_t lookPageRowReads(int32_t row)
 {
 	return row == 0 || row == 2 || (row & 1);
+}
+
+/* Whether a row's choice needs the tamer read again: those, and the colour of an original garment, which is its own
+ * drawing with colour 0 and another one (the seat, the backpack under the arms) with any other */
+static int32_t lookPageRowLoads(int32_t row)
+{
+	return lookPageRowReads(row) || (row >= 4 && MOD_TAMER_STATE[row - 1] == 0);
 }
 
 static void lookPageKeep(void)
@@ -2891,7 +2901,7 @@ void lookPageClose(void)
 	int32_t i;
 
 	for (i = 0; i < LOOK_ROWS; i++) {
-		if (lookPageRowReads(i) && MOD_TAMER_STATE[i] != lookPageState.saved[i]) {
+		if (lookPageRowLoads(i) && MOD_TAMER_STATE[i] != lookPageState.saved[i]) {
 			reads = 1;
 		}
 	}
@@ -2959,9 +2969,9 @@ void lookPageInput(void)
 	playSound(0, 2);
 	row = lookPageState.row;
 	MOD_TAMER_STATE[row] = (MOD_TAMER_STATE[row] + lookPageState.count[row] + step) % lookPageState.count[row];
-	if (lookPageRowReads(row)) {
+	if (lookPageRowLoads(row)) {
 		modTamerRelook();
-		if (row != 2 && row != LOOK_HANDS_ROW) { /* the row under a hairstyle or a garment is its colour: open or not with it */
+		if (lookPageRowReads(row) && row != 2 && row != LOOK_HANDS_ROW) { /* the row under a hairstyle or a garment is its colour: open or not with it */
 			lookPageValue(row + 1);
 		}
 	} else if (row == 1) {

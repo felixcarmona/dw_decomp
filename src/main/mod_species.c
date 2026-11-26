@@ -1057,6 +1057,8 @@ void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels);
 #define LOOK_PACK		0x400	/* a backpack: u16 polygons (0: none), their bytes, corners, 0; then corners, normals, polygons */
 #define LOOK_SHIRT_ROOM		2	/* a shirt's flags (byte 3): its torso keeps room for a backpack, */
 #define LOOK_SHIRT_STRAPS	4	/* and one more drawing follows its own: its trunk with a backpack's straps */
+#define LOOK_SHIRT_OWN		16	/* any garment: the tamer's own, which keeps its colours with colour 0 */
+#define LOOK_SHIRT_SLEEVES	32	/* a shirt whose arms are drawn in the row two below its own, in the same tones */
 #define LOOK_SEAT_PRIMS	16	/* a shirt's first polygons are the seat: the trousers' cloth when they are not the original's */
 LookShirtRecipe lookShirtRecipe[LOOK_GARMENTS];
 uint16_t lookShirtRow[LOOK_GARMENTS][16];
@@ -1225,11 +1227,11 @@ int32_t lookTamerLoad(void *component)
 	readFileSectors(TAMER_LOOK_FILE, head, 0, 1);
 	for (g = 0, k = 0; g < LOOK_GARMENTS; g++) {
 		worn[g] = MOD_TAMER_STATE[3 + 2 * g] < head[LOOK_GARMENT_COUNT(g)] ? MOD_TAMER_STATE[3 + 2 * g] : 0;
-		k |= worn[g];
+		k |= worn[g] | MOD_TAMER_STATE[4 + 2 * g];
 	}
-	if (worn[0] == 0 && worn[3] != 0) {
-		/* the original shirt has its backpack in it: under another one, or none, it is one of the two shirts that
-		 * follow those he chooses from, the same hoodie without it */
+	if (worn[0] == 0 && (worn[3] != 0 || MOD_TAMER_STATE[10] != 0)) {
+		/* the original shirt has its backpack in it: under another one, one of another colour, or none, it is one
+		 * of the two shirts that follow those he chooses from, the same hoodie without it */
 		worn[0] = head[0x68] + (worn[3] == TAMER_PACK_NONE);
 	}
 	if (MOD_TAMER_LOOK == 0 && k == 0) {
@@ -1286,7 +1288,7 @@ int32_t lookTamerLoad(void *component)
 		sectors[g][0] = head[LOOK_GARMENT_DIR(g) + 2 * worn[g]];
 		sectors[g][1] = head[LOOK_GARMENT_DIR(g) + 2 * worn[g] + 1];
 		readFileSectors(TAMER_LOOK_FILE, first, sectors[g][0], 1);
-		if (g == 1 && worn[g] != 0) {
+		if (g == 1 && (worn[g] != 0 || MOD_TAMER_STATE[6] != 0)) {
 			seat = *(uint16_t *)(first + LOOK_SHIRT_SEAT);
 			slim = first[3] & 1;
 		}
@@ -1309,7 +1311,14 @@ int32_t lookTamerLoad(void *component)
 		}
 		memcpy(&lookShirtRecipe[g], first + LOOK_SHIRT_RECIPE, sizeof(lookShirtRecipe[g]));
 		row = (uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_GARMENT_ROW(g));
-		lookShirtPalette(row, &lookShirtRecipe[g], (uint8_t *)head + LOOK_CLOTH + LOOK_CLOTH_SIZE * (MOD_TAMER_STATE[4 + 2 * g] % head[0x69]));
+		k = MOD_TAMER_STATE[4 + 2 * g];
+		if (!(first[3] & LOOK_SHIRT_OWN) || k != 0) {
+			lookShirtPalette(row, &lookShirtRecipe[g], (uint8_t *)head + LOOK_CLOTH + LOOK_CLOTH_SIZE * (k % head[0x69]));
+			if (first[3] & LOOK_SHIRT_SLEEVES) {
+				memcpy(row + 33, row + 1, 12);
+				row[43] = row[0];
+			}
+		}
 		memcpy(lookShirtRow[g], row, sizeof(lookShirtRow[g]));
 		if (at[g] * 4 + (sectors[g][1] << 11) > TAMER_MMD_MAX) {
 			free3(texture);
