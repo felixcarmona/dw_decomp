@@ -2532,7 +2532,7 @@ uint8_t getCardAmount(int32_t cardId)
 {
 	uint8_t *cardPtr;
 
-	if (!modCardIsReal(cardId)) return 0;
+	if ((uint32_t)cardId >= 66 && !modCardIsReal(cardId)) return 0;
 	cardPtr = cardId < 66 ? &SCRIPT_STATE_PTR->cards[cardId / 2] : &MOD_CARD_EXTRA[(cardId - 66) / 2];
 	if ((cardId & 1) == 0) {
 		return *cardPtr & 0xf;
@@ -2545,7 +2545,7 @@ int32_t setCardAmount(int32_t cardId, int32_t value)
 {
 	uint8_t *cardPtr;
 
-	if (!modCardIsReal(cardId)) return 0;
+	if ((uint32_t)cardId >= 66 && !modCardIsReal(cardId)) return 0;
 	cardPtr = cardId < 66 ? &SCRIPT_STATE_PTR->cards[cardId / 2] : &MOD_CARD_EXTRA[(cardId - 66) / 2];
 	if (value < 0) value = 0;
 	if (value > 9) value = 9;

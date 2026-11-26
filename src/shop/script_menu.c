@@ -1490,7 +1490,7 @@ int32_t shopFillSellCardList(void)
 	/* Only owned cards occupy rows; the buffer still stores the original card IDs. */
 	ITEM_MENU_LEFT->itemCount = 0;
 	for (id = 1; id < NUM_CARDS; id++) {
-		amount = getCardAmount(id);
+		amount = modCardIsReal(id) ? getCardAmount(id) : 0;   /* the album-only cards 0 and 65 are never sold */
 		if (amount != 0) {
 			*buf++ = id;
 			*buf++ = id >> 8;
