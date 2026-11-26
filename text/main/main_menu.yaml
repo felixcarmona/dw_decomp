@@ -371,6 +371,15 @@ MOD_OPTIONS:
     MOD_OPT_STR_STORY:
       ja: "EXTENDED STORY"
       en_us: "EXTENDED STORY"
+    MOD_OPT_STR_DIFF:
+      ja: "DIFFICULTY"
+      en_us: "DIFFICULTY"
+    MOD_OPT_STR_EASY:
+      ja: "EASY"
+      en_us: "EASY"
+    MOD_OPT_STR_NORMAL:
+      ja: "NORMAL"
+      en_us: "NORMAL"
     MOD_OPT_STR_FPS:
       ja: "FRAME RATE"
       en_us: "FRAME RATE"

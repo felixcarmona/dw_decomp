@@ -4,6 +4,7 @@
 #include <libgte.h>
 
 #include <dw/mod_battle.h>
+#include <dw/mod_options.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/attack_object.h>
 #include <dw/btl.h>
@@ -2045,6 +2046,7 @@ int32_t BTL_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		}
 		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
+	dmg = MOD_DIFF_DAMAGE(attacker, defender, ENTITY_TABLE[1], dmg); /* MOD (difficulty): EASY, x2 dealt, /2 taken */
 	if (dmg <= BM(DMG_MIN) - 1) {
 		dmg = BM(DMG_MIN);
 	}
@@ -2854,6 +2856,7 @@ void BTL_tickStatusEffects(void)
 			if (fighter->poisonTimer == 0) {
 				fighter->poisonTimer = BM(POISON_FRAMES);
 				dmg = stats->base.hp * (randomLimit(BMS(POISON_SPAN)) + BM(POISON_MIN)) / 100;
+				dmg = MOD_DIFF_DAMAGE(NULL, entity, ENTITY_TABLE[1], dmg); /* MOD (difficulty) */
 				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 				if (i != 0) {

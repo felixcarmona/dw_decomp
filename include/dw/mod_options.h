@@ -72,4 +72,20 @@ char *modStoryFile(char *name);
 int32_t modStoryChoice(void);
 void modSetStory(int32_t extended);
 
+/*
+ * MOD (difficulty): DIFFICULTY (docs/mods/options.md). EASY: in the wild battles and the tournaments (the BTL and STD
+ * overlays) every hit, finisher and block chip the partner deals is doubled and every one it takes, poison included, is
+ * halved (rounded up, so a hit still does at least 1); the stats and the saved HP are not touched, so NORMAL is the original
+ * game again at once. The VS mode is two players and stays as it is.
+ */
+#define MOD_DIFF_NORMAL	0
+#define MOD_DIFF_EASY	1
+extern int32_t MOD_OPT_DIFFICULTY; /* DIFFICULTY: MOD_DIFF_EASY or MOD_DIFF_NORMAL */
+/* the damage `dmg` that `attacker` deals `defender` with the difficulty (`partner`: the partner's entity) */
+#define MOD_DIFF_DAMAGE(attacker, defender, partner, dmg)                                                              \
+	(MOD_OPT_DIFFICULTY != MOD_DIFF_EASY ? (dmg)                                                                       \
+	 : (Entity *)(attacker) == (partner) ? (dmg) * 2                                                                  \
+	 : (Entity *)(defender) == (partner) ? ((dmg) + 1) / 2                                                               \
+					     : (dmg))
+
 #endif
