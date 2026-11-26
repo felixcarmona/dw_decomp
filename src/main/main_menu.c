@@ -7,6 +7,7 @@
 
 #include <dw/entity.h>
 #include <dw/font.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/main.h>
@@ -188,8 +189,6 @@ static void *main_menu_sbss_order[] = {
 SaveSlotPreview SAVEGAME_SLOT_INFO[15];
 
 extern int8_t MAIN_STATE;
-extern uint8_t CURRENT_SCREEN;
-extern uint8_t PREVIOUS_SCREEN;
 extern uint8_t CURRENT_EXIT;
 extern uint8_t PREVIOUS_EXIT;
 extern int8_t TAMER_WAYPOINT_X[];
@@ -2206,7 +2205,7 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos)
 
 	if (anim >= 0x2E && anim < 0x3E) {
 		move = DIGIMON_DATA[type].moves[anim - 0x2E];
-		if (move >= 0 && move < 0x79) {
+		if (move >= 0 && move < NUM_MOVE_NAMES) {
 			drawString(MOVE_NAMES[move], color, pos);
 		}
 	}
@@ -3841,7 +3840,7 @@ void initializeDefaultSavegame(void)
 		*cursor++ = 0;
 	}
 	savegame->mainState = 0;
-	savegame->currentScreen = 0xCC;
+	savegame->currentScreen = SCREEN_LEGACY_NONE;
 	savegame->currentExit = 9;
 	savegame->partnerType = 0x72;
 	strcpy(savegame->playerName, MAIN_D_801346C4);

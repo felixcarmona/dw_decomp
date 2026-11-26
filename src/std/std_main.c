@@ -16,6 +16,7 @@
 #include <dw/evl.h>
 #include <dw/font.h>
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/main.h>
@@ -72,7 +73,6 @@ extern int32_t STD_CAMERA_STATE;
 extern GsRVIEW2 GS_VIEWPOINT;
 extern int32_t VIEWPORT_DISTANCE;
 extern Entity *STD_OPPONENT_ENTITY;
-extern uint8_t CURRENT_SCREEN;
 extern char MAIN_D_80124C0C[][12];
 extern char MAIN_D_80124C54[];
 extern int32_t COMBAT_AREA_X;

@@ -6,6 +6,7 @@
 #include <dw/attack_object.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
+#include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/move.h>
@@ -35,7 +36,6 @@ extern PACKET GS_WORK_BASES[2][0x14000];
 extern DR_OFFSET DR_OFFSETS[2];
 extern DigimonEntity *BATTLE_TARGETED_DIGIMON;
 extern DigimonEntity *BATTLE_ATTACKING_DIGIMON;
-extern uint8_t CURRENT_SCREEN;
 extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int8_t PARTNER_WAYPOINT_COUNT;
 extern int8_t PARTNER_WAYPOINT_CURRENT;

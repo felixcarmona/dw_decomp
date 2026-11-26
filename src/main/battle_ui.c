@@ -4,6 +4,7 @@
 #include <dw/entity.h>
 #include <dw/font.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
 #include <dw/input.h>
 #include <dw/item.h>
 #include <dw/line.h>
@@ -57,7 +58,7 @@ void tickPostBattleStatsBox();
 void renderPostBattleStatsBox(int16_t depth);
 void removeBattleEndBox(int32_t id);
 
-extern uint8_t MOVE_LEARN_CHANCES[58][3];
+extern uint8_t MOVE_LEARN_CHANCES[NUM_LEARNABLE_MOVES][3];
 extern int16_t ENEMY_COUNT;
 extern int32_t HAS_TAKEN_DAMAGE;
 extern uint32_t POLLED_INPUT;
@@ -69,7 +70,6 @@ extern int8_t BTL_END_BOX_TEXTBUFFER[];
 extern char MAIN_D_80124C0C[];
 extern char MAIN_D_80124C54[];
 extern uint8_t GAME_STATE;
-extern uint8_t CURRENT_SCREEN;
 
 int8_t STAT_GAIN_ENEMY_FACTORS[4] = { 10, 12, 16, 0 };
 

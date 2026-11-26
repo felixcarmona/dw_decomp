@@ -1358,10 +1358,10 @@ uint8_t rollCard(void)
 		rarity = 4;
 	}
 
-	cards = (uint8_t *)allocateArray(0x42);
+	cards = (uint8_t *)allocateArray(NUM_CARDS);
 	p = cards;
 	count = 0;
-	for (i = 0; i < 0x42; i++) {
+	for (i = 0; i < NUM_CARDS; i++) {
 		if (rarity == CARD_DATA[i].spriteId) {
 			*p++ = i;
 			count++;

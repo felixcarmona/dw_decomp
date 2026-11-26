@@ -5,6 +5,7 @@
 #include <libgte.h>
 
 #include <dw/entity.h>
+#include <dw/ids.h>
 #include <dw/map_object.h>
 #include <dw/params.h>
 #include <dw/trigger.h>
@@ -40,7 +41,6 @@ typedef struct {
 	int32_t pad34;
 } WarpCrystalData;
 
-extern uint8_t CURRENT_SCREEN;
 extern uint8_t MAP_LAYER_ENABLED;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern GsOT GS_ORDERING_TABLE[2];

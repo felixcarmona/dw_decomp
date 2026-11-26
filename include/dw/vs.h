@@ -8,14 +8,15 @@
 #include <dw/efe.h>
 #include <dw/entity.h>
 #include <dw/graphics.h>
+#include <dw/memmap.h>
 #include <dw/types.h>
 #include <dw/version.h>
 
-#define VS_FINISHER_TIM	((char *)0x80052ae0)
-#define VS_FINISHER_MODEL	((char *)0x80053800)
-#define VS_CONFUSION_MODEL	((char *)0x80054838)
-#define VS_STUN_MODEL		((char *)0x80054d00)
-#define VS_BUFF_MODEL		((TMDModel *)0x80055328)
+#define VS_FINISHER_TIM	((char *)BATTLE_FINISHER_TIM_ADDR)
+#define VS_FINISHER_MODEL	((char *)BATTLE_FINISHER_MODEL_ADDR)
+#define VS_CONFUSION_MODEL	((char *)BATTLE_CONFUSION_MODEL_ADDR)
+#define VS_STUN_MODEL		((char *)BATTLE_STUN_MODEL_ADDR)
+#define VS_BUFF_MODEL		((TMDModel *)BATTLE_BUFF_MODEL_ADDR)
 
 typedef struct {
 	int16_t hp;

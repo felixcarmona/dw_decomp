@@ -4,6 +4,7 @@
 #include <dw/entity.h>
 #include <dw/evl.h>
 #include <dw/garbage.h>
+#include <dw/ids.h>
 #include <dw/math.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -16,7 +17,6 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 int32_t hasDigimonRaised(int32_t digimonId);
 void setDigimonRaised(int32_t type);
 
-extern uint8_t CURRENT_SCREEN;
 extern int32_t NANIMON_TRIGGER;
 
 extern Stats DEATH_STATS;
@@ -27,7 +27,7 @@ int8_t calculateRequirementScore(int32_t current, int8_t target,
 int8_t getNumMasteredMoves(void);
 
 // clang-format off
-EvoRequirements EVOLUTION_REQS[63] = {
+EvoRequirements EVOLUTION_REQS[NUM_EVOLVING_DIGIMON] = {
 	{
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x00,
@@ -345,7 +345,7 @@ EvoRequirements EVOLUTION_REQS[63] = {
 	},
 };
 
-EvoStatsGains EVOLUTION_STATS_GAINS[66] = {
+EvoStatsGains EVOLUTION_STATS_GAINS[NUM_PARTNER_DIGIMON] = {
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0000 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0001 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0002 },
@@ -414,7 +414,7 @@ EvoStatsGains EVOLUTION_STATS_GAINS[66] = {
 	{ 0x1770, 0x1d4c, 0x0384, 0x02bc, 0x0384, 0x02ee, 0x0041 },
 };
 
-EvolutionPath EVOLUTION_PATHS[62] = {
+EvolutionPath EVOLUTION_PATHS[NUM_EVOLVING_DIGIMON - 1] = {
 	{
 		{ 0xff, 0xff, 0xff, 0xff, 0xff },
 		{ 0xff, 0xff, 0x02, 0xff, 0xff, 0xff },

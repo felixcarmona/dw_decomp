@@ -11,6 +11,7 @@
 #include <dw/combat.h>
 #include <dw/entity.h>
 #include <dw/graphics.h>
+#include <dw/ids.h>
 #include <dw/main.h>
 #include <dw/math.h>
 #include <dw/model.h>
@@ -24,11 +25,11 @@
 
 #include "common.h"
 
-#define STD_FINISHER_TIM	((char *)0x80052ae0)
-#define STD_FINISHER_MODEL	((char *)0x80053800)
-#define STD_CONFUSION_MODEL	((char *)0x80054838)
-#define STD_STUN_MODEL		((char *)0x80054d00)
-#define STD_BUFF_MODEL		((TMDModel *)0x80055328)
+#define STD_FINISHER_TIM	((char *)BATTLE_FINISHER_TIM_ADDR)
+#define STD_FINISHER_MODEL	((char *)BATTLE_FINISHER_MODEL_ADDR)
+#define STD_CONFUSION_MODEL	((char *)BATTLE_CONFUSION_MODEL_ADDR)
+#define STD_STUN_MODEL		((char *)BATTLE_STUN_MODEL_ADDR)
+#define STD_BUFF_MODEL		((TMDModel *)BATTLE_BUFF_MODEL_ADDR)
 
 extern TMDModel *STD_ARENA_MODEL;
 extern int8_t GAME_STATE;
@@ -37,7 +38,6 @@ extern GsOT *ACTIVE_ORDERING_TABLE;
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern int32_t DRAWING_OFFSET_X;
 extern int32_t DRAWING_OFFSET_Y;
-extern uint8_t CURRENT_SCREEN;
 extern char *STD_ARENA_TIMS[];
 extern char *STD_ARENA_MODELS[];
 extern char *STD_ARENA_COLLISIONS[];
