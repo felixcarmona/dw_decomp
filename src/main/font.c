@@ -1547,7 +1547,11 @@ void drawString(str, x, y)
 #define FIT_GAP		1	/* blank columns between two letters (tools/fontgen.py FIT_GAP) */
 #define FIT_SPACE	3	/* what a glyph without ink (a space) adds (FIT_SPACE) */
 
-static uint8_t FIT_STRIP[(TEXT_AREA_SIZE / 2) * GLYPH_HEIGHT] __attribute__((aligned(4))); /* LoadImage reads words */
+/* MOD (item names): the strip covers 144 pixels, not the text area's 256: the widest line it composes is a name drawn
+ * tight within a field of at most 136 (MetalGreymonVaccine: 131, at most 136 with x & 3); 616 bytes of bss back for
+ * the item lists' code */
+#define FIT_STRIP_W	144
+static uint8_t FIT_STRIP[(FIT_STRIP_W / 2) * GLYPH_HEIGHT] __attribute__((aligned(4))); /* LoadImage reads words */
 
 /* the glyph of the next character of a drawString text (its GLYPH_HEIGHT rows, then the advance); *str moves on */
 static uint16_t *nextGlyph(char **str, int32_t mode)
@@ -1688,6 +1692,9 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 	if ((x & ~3) + stride > TEXT_AREA_SIZE) {
 		stride = TEXT_AREA_SIZE - (x & ~3);
 	}
+	if (stride > FIT_STRIP_W) {
+		stride = FIT_STRIP_W; /* MOD (item names): ink past it is not drawn (px < stride below) */
+	}
 	DrawSync(0); /* the previous strip's upload has read FIT_STRIP */
 	for (i = 0; i < (stride / 2) * GLYPH_HEIGHT; i++) {
 		FIT_STRIP[i] = 0;
@@ -1716,5 +1723,18 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode)
 	setRECT(&rect, (x / 4) + TEXT_VRAM_X, y + TEXT_VRAM_Y, stride / 4, GLYPH_HEIGHT);
 	LoadImage(&rect, (u_long *)FIT_STRIP);
 	return w;
+}
+
+/* MOD (item names): the drawString2 code that draws a name within maxW pixels: 1 (a colour code, the name as the font
+ * draws it) when it fits so, else TEXT_FIT_TIGHT or TEXT_FIT_CONDENSED (font.h) */
+int32_t textFitCode(char *str, int32_t maxW)
+{
+	int32_t mode;
+
+	mode = fitStringMode(str, maxW);
+	if (mode == FIT_VANILLA) {
+		return 1;
+	}
+	return TEXT_FIT_TIGHT - FIT_TIGHT + mode;
 }
 #endif
