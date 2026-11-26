@@ -78,8 +78,7 @@ typedef struct {
 	int32_t valid;
 	char playerName[14];
 	uint8_t pad12[6];
-	char digimonName[18];
-	uint8_t pad2A[2];
+	char digimonName[20]; /* MOD (long names): was 18 and 2 bytes of padding (19 characters, title and tail) */
 	char location[24];
 } SaveSlotPreview;
 
@@ -323,7 +322,30 @@ void drawMainMenuStrings();
 void drawSaveSlotText(int32_t slot, int32_t row);
 char *formatInteger(int32_t value, char *buf, int32_t digits);
 void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos);
-static int32_t modNameColumn(char *name, int32_t x); /* MOD (long names) */
+/* MOD (long names): screens that show a species name of up to 19 characters whole (font.c drawStringMode) */
+static int32_t modRegisterLong(void);
+static void modTitleNameTail(void);
+static void modDrawSlotName(char *name, int32_t y);
+static int32_t MOD_REG_LIST_LONG;
+static int32_t MOD_SAVE_SLOTS_LONG;
+#define REG_NAME_X		0x64 /* the registration screen's value column (text area x) */
+#define REG_TEXT_W		0xD6 /* its text as the original copied it, to the box's edge */
+#define REG_LONG_TEXT_W		0xEC /* long layout: the box as wide as the title's (0xF6), its text to the edge */
+#define REG_LONG_NAME_W		(REG_LONG_TEXT_W - REG_NAME_X - 12) /* the name ends 12 px inside the box edge */
+#define LIST_NAME_X		0x6C /* the list of registered Digimon: the species column */
+#define LIST_CURSOR_END		0xCC /* where the original's cursor (and its cleared text) ends */
+#define LIST_LONG_NAME_W	(0xE6 - LIST_NAME_X - 6) /* long layout: the cursor 0xE6 wide, the name 6 px inside it */
+#define SLOT_NAME_X		0x6C /* the save slots' species column (text area x) */
+#define SLOT_NAME_W		0x60 /* its width as the original copied it */
+#define SLOT_LONG_NAME_W	0x88 /* long layout: the boxes 0x18 further left and 0x110 wide (SLOT_BOX_W) */
+#if VERSION_IS(US)
+#define SLOT_DX			(MOD_SAVE_SLOTS_LONG ? 0x18 : 0)
+#define SLOT_BOX_W		(MOD_SAVE_SLOTS_LONG ? 0x110 : 0xE0)
+#else
+#define SLOT_DX			0
+#define SLOT_BOX_W		0xE0
+#endif
+static void modSaveSlotsLayout(int32_t isLong);
 void drawRegisteredDigimonSlots(int32_t slot);
 void updateMemoryCardState();
 void tickMainMenu(void);
@@ -1255,7 +1277,13 @@ void renderSaveSlotBox(int32_t slot, int32_t x, int32_t y)
 	renderText(cur++, x + 0xA, y + 5, 0, v, 0x18, 0xC, hl);
 	if (SAVEGAME_SLOT_INFO[slot].valid != 0) {
 		renderText(cur++, x + 0x28, y + 5, 0x18, v, 0x48, 0xC, hl);
+#if VERSION_IS(US)
+		/* MOD (long names): the long layout's species column (drawSaveSlotText) */
+		renderText(cur++, x + 0x76, y + 5, SLOT_NAME_X, v, MOD_SAVE_SLOTS_LONG ? SLOT_LONG_NAME_W : SLOT_NAME_W, 0xC,
+			   hl);
+#else
 		renderText(cur++, x + 0x76, y + 5, 0x6C, v, 0x60, 0xC, hl);
+#endif
 #if !VERSION_IS(US)
 		renderText(cur++, x + 0x28, y + 0x13, 0x18, v + 0xc, 0x6c, 0xc, hl);
 	} else {
@@ -1265,7 +1293,7 @@ void renderSaveSlotBox(int32_t slot, int32_t x, int32_t y)
 #endif
 	}
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(x, y, 0xE0, 0x24);
+	renderMenuBox(x, y, SLOT_BOX_W, 0x24); /* MOD (long names) */
 }
 
 void renderSelectSlot(void)
@@ -1281,9 +1309,11 @@ void renderSelectSlot(void)
 	GsSetWorkBase((PACKET *)ft4);
 	renderMenuBox(0x30, 0x13, 0xb0, 0x16);
 #else
-	renderText(ft4++, 0x3A, 0x18, 0, 0, 0xD6, 0xC, 0);
+	/* MOD (long names): with a species name longer than the slot's column every box is 0xFC wide, 0x10 further
+	 * left (loadSaveSlotData) */
+	renderText(ft4++, 0x3A - SLOT_DX, 0x18, 0, 0, 0xD6, 0xC, 0);
 	GsSetWorkBase((PACKET *)ft4);
-	renderMenuBox(0x30, 0x13, 0xE0, 0x16);
+	renderMenuBox(0x30 - SLOT_DX, 0x13, SLOT_BOX_W, 0x16);
 #endif
 
 	if (SAVE_SLOT_SCROLL_TENTHS < (MENU_HIGHLIGHTS[7].pad[2] * 10)) {
@@ -1306,7 +1336,7 @@ void renderSelectSlot(void)
 			y = 0xB9;
 		}
 
-		renderSaveSlotBox(page + i, 0x30, y);
+		renderSaveSlotBox(page + i, 0x30 - SLOT_DX, y); /* MOD (long names) */
 	}
 
 	y = (page * 10 - SAVE_SLOT_SCROLL_TENTHS) * 36 / 10 + 0x29;
@@ -1318,7 +1348,7 @@ void renderSelectSlot(void)
 		y = 0xB9;
 	}
 
-	renderSaveSlotBox(page, 0x30, y);
+	renderSaveSlotBox(page, 0x30 - SLOT_DX, y); /* MOD (long names) */
 }
 
 void renderConfirmSlotSelection(void)
@@ -1326,31 +1356,32 @@ void renderConfirmSlotSelection(void)
 	POLY_FT4 *cur;
 
 	cur = (POLY_FT4 *)GsGetWorkBase();
-	renderText(cur++, 0x3A, 0x18, 0, 0, 0x90, 0xC, 0);
-	renderText(cur++, 0x3A, 0x2E, 0, 0xC, 0x18, 0xC, 0);
+	/* MOD (long names): the long layout of the slot list (SLOT_DX, loadSaveSlotData) */
+	renderText(cur++, 0x3A - SLOT_DX, 0x18, 0, 0, 0x90, 0xC, 0);
+	renderText(cur++, 0x3A - SLOT_DX, 0x2E, 0, 0xC, 0x18, 0xC, 0);
 	if (SAVEGAME_SLOT_INFO[MEMORY_CARD_SLOT].valid != 0) {
-		renderText(cur++, 0x58, 0x2E, 0x18, 0xC, 0x48, 0xC, 0);
-		renderText(cur++, 0xA6, 0x2E, 0x6C, 0xC, 0x60, 0xC, 0);
+		renderText(cur++, 0x58 - SLOT_DX, 0x2E, 0x18, 0xC, 0x48, 0xC, 0);
+		renderText(cur++, 0xA6 - SLOT_DX, 0x2E, 0x6C, 0xC, MOD_SAVE_SLOTS_LONG ? SLOT_LONG_NAME_W : 0x60, 0xC, 0);
 #if !VERSION_IS(US)
 		renderText(cur++, 0x58, 0x3c, 0x18, 0x18, 0x6c, 0xc, 0);
 #else
-		renderText(cur++, 0x58, 0x3C, 0, 0x18, 0xE0, 0xC, 0);
+		renderText(cur++, 0x58 - SLOT_DX, 0x3C, 0, 0x18, 0xE0, 0xC, 0);
 #endif
 	} else {
-		renderText(cur++, 0x58, 0x2E, 0x90, 0, 0x6C, 0xC, 0);
+		renderText(cur++, 0x58 - SLOT_DX, 0x2E, 0x90, 0, 0x6C, 0xC, 0);
 	}
-	renderText(cur++, 0x3A, 0x52, 0, 0xF0, YES_TEXT_W, 0xC, 0);
-	renderText(cur++, 0x3A, 0x5E, NO_TEXT_U, 0xF0, NO_TEXT_W, 0xC, 0);
+	renderText(cur++, 0x3A - SLOT_DX, 0x52, 0, 0xF0, YES_TEXT_W, 0xC, 0);
+	renderText(cur++, 0x3A - SLOT_DX, 0x5E, NO_TEXT_U, 0xF0, NO_TEXT_W, 0xC, 0);
 #if !VERSION_IS(US)
 	renderText(cur++, 0x3a, 0x74, 0, 0x30, 0xcc, 0xc, 0);
 #else
-	renderText(cur++, 0x3A, 0x74, 0x14, 0x30, 0xCC, 0xC, 0);
+	renderText(cur++, 0x3A - SLOT_DX, 0x74, 0x14, 0x30, 0xCC, 0xC, 0);
 #endif
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x30, 0x13, 0xB0, 0x16);
-	renderMenuBox(0x30, 0x29, 0xE0, 0x24);
-	renderMenuBox(0x30, 0x4D, 0x38, 0x22);
-	renderMenuBox(0x30, 0x6F, 0xE0, 0x16);
+	renderMenuBox(0x30 - SLOT_DX, 0x13, 0xB0, 0x16);
+	renderMenuBox(0x30 - SLOT_DX, 0x29, SLOT_BOX_W, 0x24);
+	renderMenuBox(0x30 - SLOT_DX, 0x4D, 0x38, 0x22);
+	renderMenuBox(0x30 - SLOT_DX, 0x6F, SLOT_BOX_W, 0x16);
 }
 
 void renderFormatMemoryCard(void)
@@ -1493,13 +1524,14 @@ void renderRegisterDigimon(void)
 	renderMenuBox(0x3c, 0xa8, 0xbc, 0x16);
 #else
 	renderText(cur++, 0x32, 0x21, 0, 0, 0xE2, 0xC, 0);
-	renderText(cur++, 0x32, 0x37, 0, 0xC, 0xF0, 0x6C, 0); /* MOD (long names): was 0xD6 wide */
+	/* MOD (long names): a name that does not fit the box (MetalGreymonVaccine) widens it to the title's width */
+	renderText(cur++, 0x32, 0x37, 0, 0xC, modRegisterLong() ? REG_LONG_TEXT_W : REG_TEXT_W, 0x6C, 0);
 	renderText(cur++, 0x46, 0xAD, 0, 0x78, 0xB4, 0xC, 0);
 	renderText(cur++, 0x46, 0xC3, 0, 0x84, 0x24, 0xC, 0);
 	renderText(cur++, 0x46, 0xCF, 0, 0x90, 0x24, 0xC, 0);
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(0x28, 0x1C, 0xF6, 0x16);
-	renderMenuBox(0x28, 0x32, 0xFA, 0x76); /* MOD (long names): was 0xE0 */
+	renderMenuBox(0x28, 0x32, modRegisterLong() ? 0xF6 : 0xE0, 0x76); /* MOD (long names) */
 	renderMenuBox(0x3C, 0xA8, 0xC8, 0x16);
 #endif
 	renderMenuBox(0x3C, 0xBE, 0x38, 0x22);
@@ -1520,11 +1552,21 @@ void renderSelectRegisterSlot(void)
 	renderMenuBox(0x3c, 0xb4, 0xa4, 0x16);
 #else
 	renderText(cur++, 0x32, 0x21, 0, 0, 0xE2, 0xC, 0);
-	renderText(cur++, 0x46, 0x37, 0, 0xC, 0xF0, 0x78, 0); /* MOD (long names): was 0xE0 wide */
+	/* MOD (long names): with a name that would pass the cursor the list moves under the title box, as wide
+	 * (drawRegisteredDigimonSlots) */
+	if (MOD_REG_LIST_LONG) {
+		renderText(cur++, 0x32, 0x37, 0, 0xC, 0xE6, 0x78, 0);
+	} else {
+		renderText(cur++, 0x46, 0x37, 0, 0xC, 0xE0, 0x78, 0);
+	}
 	renderText(cur++, 0x46, 0xB9, 0, 0x84, 0xCA, 0xC, 0);
 	GsSetWorkBase((PACKET *)cur);
 	renderMenuBox(0x28, 0x1C, 0xF6, 0x16);
-	renderMenuBox(0x3C, 0x32, 0xFA, 0x82); /* MOD (long names): was 0xE0 */
+	if (MOD_REG_LIST_LONG) {
+		renderMenuBox(0x28, 0x32, 0xF6, 0x82);
+	} else {
+		renderMenuBox(0x3C, 0x32, 0xE0, 0x82);
+	}
 	renderMenuBox(0x3C, 0xB4, 0xD4, 0x16);
 #endif
 }
@@ -2040,7 +2082,7 @@ void drawMainMenuStrings(int32_t menu)
 		DrawSync(0);
 		drawString(SAVEGAME_SLOT_INFO[MEMORY_CARD_SLOT].playerName, 0x18, 0xC);
 		DrawSync(0);
-		drawString(SAVEGAME_SLOT_INFO[MEMORY_CARD_SLOT].digimonName, 0x6C, 0xC);
+		modDrawSlotName(SAVEGAME_SLOT_INFO[MEMORY_CARD_SLOT].digimonName, 0xC); /* MOD (long names) */
 		DrawSync(0);
 		drawString(SAVEGAME_SLOT_INFO[MEMORY_CARD_SLOT].location, 0, 0x18);
 		DrawSync(0);
@@ -2123,8 +2165,14 @@ void drawMainMenuStrings(int32_t menu)
 		drawString(PARTNER_ENTITY.name, 0x64, 0xC);
 		DrawSync(0);
 		drawString(MAIN_D_8013468C, 0, 0x18);
-		drawString(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type),
-			   modNameColumn(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), 0x64), 0x18); /* MOD (long names) */
+		/* MOD (long names): a name that does not fit the box is drawn tighter in the wider box (modRegisterLong) */
+		if (modRegisterLong()) {
+			drawStringMode(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), REG_NAME_X, 0x18,
+				       fitStringMode(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type),
+						     REG_LONG_NAME_W));
+		} else {
+			drawString(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), REG_NAME_X, 0x18);
+		}
 		DrawSync(0);
 		drawString(MAIN_D_80134694, 0, 0x24);
 		drawString(formatInteger(PARTNER_ENTITY.digimonEntity.stats.base.hp, buf, 4), 0x64, 0x24);
@@ -2224,6 +2272,29 @@ void drawMainMenuStrings(int32_t menu)
 #endif
 }
 
+/*
+ * MOD (long names): the save slot screens' long layout, when a slot's species passes the original column (0x60
+ * pixels: the original cut MetalGreymon to "MetalGreymo"): the boxes, their cursors and texts 0x18 further left, the
+ * boxes 0x110 wide; the species column SLOT_LONG_NAME_W wide, a name tighter if it must.
+ */
+static void modSaveSlotsLayout(int32_t isLong)
+{
+	MOD_SAVE_SLOTS_LONG = isLong;
+	MENU_HIGHLIGHTS[7].x = 0x36 - SLOT_DX;
+	MENU_HIGHLIGHTS[7].w = 0xD4 + SLOT_BOX_W - 0xE0;
+	MENU_HIGHLIGHTS[8].x = 0x37 - SLOT_DX;
+}
+
+/* MOD (long names): a save slot's species in its column, tighter in the long layout if it must */
+static void modDrawSlotName(char *name, int32_t y)
+{
+	if (MOD_SAVE_SLOTS_LONG) {
+		drawStringMode(name, SLOT_NAME_X, y, fitStringMode(name, SLOT_LONG_NAME_W));
+	} else {
+		drawString(name, SLOT_NAME_X, y);
+	}
+}
+
 void drawSaveSlotText(int32_t slot, int32_t row)
 {
 	RECT area;
@@ -2233,13 +2304,17 @@ void drawSaveSlotText(int32_t slot, int32_t row)
 #if !VERSION_IS(US)
 		setRECT(&area, 0, row + 0xc, 0xcc, 0x18);
 #else
-		setRECT(&area, 0, row + 0xC, 0xE0, 0x18);
+		setRECT(&area, 0, row + 0xC, MOD_SAVE_SLOTS_LONG ? 0xF0 : 0xE0, 0x18); /* MOD (long names) */
 #endif
 		clearTextSubArea(&area);
 		drawString(SAVEGAME_ID_LABEL[slot + 1], 0, row + 0xC);
 		drawString(SAVEGAME_SLOT_INFO[slot].playerName, 0x18, row + 0xC);
 		DrawSync(0);
+#if VERSION_IS(US)
+		modDrawSlotName(SAVEGAME_SLOT_INFO[slot].digimonName, row + 0xC); /* MOD (long names) */
+#else
 		drawString(SAVEGAME_SLOT_INFO[slot].digimonName, 0x6C, row + 0xC);
+#endif
 		DrawSync(0);
 		drawString(SAVEGAME_SLOT_INFO[slot].location, 0x18, row + 0x18);
 		DrawSync(0);
@@ -2288,21 +2363,30 @@ void drawMoveName(long type, int32_t anim, int32_t color, int32_t pos)
 }
 
 /*
- * MOD (long names): the x of a Digimon name column in the text area (256 pixels; drawGlyph draws no glyph that
- * starts past 244): the column's own x, or further left when the name would run past 0xF0 (MetalGreymonVaccine
- * lost its last letters on the registration screens).
+ * MOD (long names): the registration screen's long layout, when the partner's species name drawn by the font would
+ * pass the box (REG_TEXT_W): the box as wide as the title's, the name tighter if it must (REG_LONG_NAME_W).
  */
-static int32_t modNameColumn(char *name, int32_t x)
+static int32_t modRegisterLong(void)
 {
-#if VERSION_IS(US)
-	int32_t w;
+	return REG_NAME_X + measureStringMode(DIGIMON_NAME(PARTNER_ENTITY.digimonEntity.entity.type), FIT_VANILLA) >
+	       REG_TEXT_W;
+}
 
-	w = measureString(name);
-	if (x + w > 0xF0) {
-		x = 0xF0 - w;
+/*
+ * MOD (long names): the save title holds 17 characters of the species name (title + 0x1C); the rest of a longer
+ * name goes to the header's reserved bytes after "LN", for the save slots (loadSaveSlotData). SAVE_FILE.reserved was
+ * just cleared.
+ */
+static void modTitleNameTail(void)
+{
+	char *name;
+
+	name = DIGIMON_NAME(SAVE_FILE.saves[0].partnerType);
+	if (strlen(name) > 0x11) {
+		SAVE_FILE.reserved[0] = 'L';
+		SAVE_FILE.reserved[1] = 'N';
+		strncpy((char *)&SAVE_FILE.reserved[2], name + 0x11, sizeof(SAVE_FILE.reserved) - 3);
 	}
-#endif
-	return x;
 }
 
 void drawRegisteredDigimonSlots(int32_t slot)
@@ -2313,7 +2397,18 @@ void drawRegisteredDigimonSlots(int32_t slot)
 	int32_t y;
 	int32_t currentSlot;
 
-	setRECT(&area, 0, 0xC, 0xF0, 0x78); /* MOD (long names): was 0xCC wide */
+	/* MOD (long names): the long layout when a registered name drawn by the font would pass the cursor; decided
+	 * over every slot, so the layout does not change while scrolling */
+	MOD_REG_LIST_LONG = 0;
+	for (i = 0; i < 40; i++) {
+		type = SAVE_FILE.saves[0].battleRegistrationData[i].digimonId;
+		if (type != 0 && LIST_NAME_X + measureStringMode(DIGIMON_NAME(type), FIT_VANILLA) > LIST_CURSOR_END) {
+			MOD_REG_LIST_LONG = 1;
+		}
+	}
+	MENU_HIGHLIGHTS[15].x = MOD_REG_LIST_LONG ? 0x32 : 0x46;
+	MENU_HIGHLIGHTS[15].w = MOD_REG_LIST_LONG ? 0xE6 : 0xCC;
+	setRECT(&area, 0, 0xC, 0xF0, 0x78); /* MOD (long names): was 0xCC wide (a longer name was left behind) */
 	clearTextSubArea(&area);
 	for (i = 0; i < 10; i++) {
 		currentSlot = slot + i;
@@ -2322,7 +2417,12 @@ void drawRegisteredDigimonSlots(int32_t slot)
 		drawString(&SAVEGAME_ID_LABEL[(currentSlot + 1) % 10][2], 0xC, y);
 		if ((type = SAVE_FILE.saves[0].battleRegistrationData[currentSlot].digimonId) != 0) {
 			drawString(SAVE_FILE.saves[0].battleRegistrationData[currentSlot].name, 0x1e, y);
-			drawString(DIGIMON_NAME(type), modNameColumn(DIGIMON_NAME(type), 0x6C), y); /* MOD (long names) */
+			if (MOD_REG_LIST_LONG) { /* MOD (long names) */
+				drawStringMode(DIGIMON_NAME(type), LIST_NAME_X, y,
+					       fitStringMode(DIGIMON_NAME(type), LIST_LONG_NAME_W));
+			} else {
+				drawString(DIGIMON_NAME(type), LIST_NAME_X, y);
+			}
 		} else {
 			setTextColor(9);
 #if !VERSION_IS(US)
@@ -2670,6 +2770,7 @@ void tickMainMenu(void)
 			 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
 			 0x11);
 		memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
+		modTitleNameTail(); /* MOD (long names) */
 #endif
 		prepareSaveFile(0); /* MOD (save v2): checksums, extension, mirror */
 		status = writeSaveFile();
@@ -3040,6 +3141,7 @@ void tickMainMenu(void)
 				 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
+			modTitleNameTail(); /* MOD (long names) */
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
@@ -3394,6 +3496,7 @@ void tickMainMenu(void)
 				 DIGIMON_NAME(SAVE_FILE.saves[0].partnerType),
 				 0x11);
 			memcpy(SAVE_FILE.reserved, SAVE_TITLE_RESERVED, 0x1C);
+			modTitleNameTail(); /* MOD (long names) */
 #endif
 			prepareSaveFile(1); /* MOD (save v2): checksums, extension, mirror */
 			status = writeSaveFile();
@@ -3854,6 +3957,7 @@ int32_t loadSaveSlotData(int32_t channel, char *filename, SaveSlotPreview *slots
 	for (i = 0; i < 15; i++) {
 		slots[i].valid = 0;
 	}
+	modSaveSlotsLayout(0); /* MOD (long names) */
 	for (i = 0; i < fileCount; i++) {
 		if ((MEMCARD_DIRENTRIES[i].name[15] >= '0') &&
 				(MEMCARD_DIRENTRIES[i].name[15] < ':')) {
@@ -3881,6 +3985,15 @@ int32_t loadSaveSlotData(int32_t channel, char *filename, SaveSlotPreview *slots
 			slots[slot].playerName[13] = '\0';
 			strncpy(slots[slot].digimonName, (char *)&data[0x20], 17);
 			slots[slot].digimonName[17] = '\0';
+			/* MOD (long names): the rest of a longer name (modTitleNameTail) */
+			if (data[0x44] == 'L' && data[0x45] == 'N' && strlen(slots[slot].digimonName) == 17) {
+				strncpy(slots[slot].digimonName + 17, (char *)&data[0x46], 2);
+				slots[slot].digimonName[19] = '\0';
+			}
+			/* the long layout of the slot screens when a species passes the original column */
+			if (measureStringMode(slots[slot].digimonName, FIT_VANILLA) > SLOT_NAME_W) {
+				modSaveSlotsLayout(1);
+			}
 			strncpy(slots[slot].location, (char *)&data[0x32], 24);
 			slots[slot].location[23] = '\0';
 #endif

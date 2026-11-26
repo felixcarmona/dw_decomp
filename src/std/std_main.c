@@ -4556,12 +4556,29 @@ void STD_addTimeoutWindow(void)
 	RECT finalPos;
 	RECT startPos;
 	Stats *stats;
+#if VERSION_IS(US)
+	char *name; /* MOD (long names) */
+	int32_t x;
+	int32_t mode;
+#endif
 
 	clearTextArea();
 	drawString(STD_STR_DEALT, 6, 0);
 	drawString(STD_STR_DAMAGE, 0, 12);
 	drawString(PARTNER_ENTITY.name, (120 - strlen(PARTNER_ENTITY.name) * 6) / 2, 24);
+#if VERSION_IS(US)
+	/* MOD (long names): a name that passes the window's 120 pixels is drawn tighter, centred by its width */
+	name = DIGIMON_NAME(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type);
+	x = (120 - (int32_t)strlen(name) * 6) / 2;
+	if (x + measureStringMode(name, FIT_VANILLA) <= 120) {
+		drawString(name, x, 36);
+	} else {
+		mode = fitStringMode(name, 120);
+		drawStringMode(name, (120 - measureStringMode(name, mode)) / 2, 36, mode);
+	}
+#else
 	drawString(DIGIMON_NAME(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type), (120 - strlen(DIGIMON_NAME(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type)) * 6) / 2, 36);
+#endif
 	DrawSync(0);
 	removeObject(0x1a2, 0);
 	stats = &((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]])->stats;

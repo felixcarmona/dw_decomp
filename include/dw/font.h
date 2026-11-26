@@ -17,8 +17,13 @@ int32_t drawGlyph(/* uint16_t codepoint, uint16_t x, uint16_t y */);
 #endif
 void drawString(/* char *str, uint16_t x, uint16_t y */);
 #if VERSION_IS(US)
-/* MOD (long names): the width drawString gives a text, in pixels (font.c) */
-int32_t measureString(char *str);
+/* MOD (long names): a name drawn tighter when it does not fit its field (font.c drawStringMode) */
+#define FIT_VANILLA	0 /* drawString: the font's own spacing */
+#define FIT_TIGHT	1 /* the same glyphs, one blank column between letters */
+#define FIT_CONDENSED	2 /* the same, with a 5-column lowercase */
+int32_t measureStringMode(char *str, int32_t mode);
+int32_t fitStringMode(char *str, int32_t maxW);
+int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode);
 #endif
 
 #endif

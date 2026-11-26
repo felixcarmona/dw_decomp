@@ -401,8 +401,9 @@ char FMT_PLAYTIME[8] = "%d : %d";
 RECT EVO_CHART_TEXT_AREA = { 0, 12, 256, 200 };
 
 RECT EVO_CHART_NAME_AREA = { 0, 48, 200, 12 }; /* MOD (long names): was 120 wide (a name of 19 characters is ~160) */
-void renderStringFit(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t maxW, int16_t h, uint8_t u, uint8_t v,
-		     long layer, int32_t shadow);
+/* MOD (long names): the status screen's name field and the chart's name, in pixels (font.c drawStringMode) */
+#define STATUS_NAME_W	0x78
+#define CHART_NAME_W	0x88
 
 /* MOD (mega): the level name of the Megas, drawn into the text area with the
  * chart's other level names (row 0x3C holds "Ultimate"; 0x48 is free) */
@@ -2216,6 +2217,9 @@ void renderDigimonStatsView(void)
 	int16_t special;
 	int16_t clut;
 	uint8_t frame;
+#if VERSION_IS(US)
+	int32_t fit; /* MOD (long names) */
+#endif
 
 	cluts = STATS_VIEW_ELEMENT_CLUT;
 	switch (MENU_STATE) {
@@ -2240,10 +2244,21 @@ void renderDigimonStatsView(void)
 #if !VERSION_IS(US)
 		renderString(0, -0x6d, -0x33, (w / 2) * 12, 0xc, 0x9c, 0x24, 5, 0);
 #else
-		/* MOD (long names): the name as wide as drawn, a longer one narrowed into the field (was len * 10, cut
-		 * at 0x78: MetalGreymonVirus showed as "MetalGreymonVi") */
-		(void)w;
-		renderStringFit(0, -0x6c, -0x32, measureString(DIGIMON_NAME(ENTITY_TABLE[1]->type)), 0x78, 0xc, 0, 0x48, 5, 0);
+		/* MOD (long names): a name that fits the field is copied as the original did (len * 10 pixels, cut at
+		 * 0x78); a longer one was drawn tighter (drawDigimonStatsStrings) and is copied whole */
+		fit = fitStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), STATUS_NAME_W);
+		if (fit == FIT_VANILLA) {
+			w = w * 10;
+			if (w >= 0x79) {
+				w = 0x78;
+			}
+		} else {
+			w = measureStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), fit);
+			if (w > STATUS_NAME_W) {
+				w = STATUS_NAME_W; /* never over the SPECIAL icons */
+			}
+		}
+		renderString(0, -0x6c, -0x32, w, 0xc, 0, 0x48, 5, 0);
 #endif
 		renderNumber(0, -0x6d, -0x22, 2, PARTNER_PARA.age, 5);
 #if !VERSION_IS(US)
@@ -3439,11 +3454,16 @@ void renderEvoChartDetail(void)
 	}
 #endif
 #if VERSION_IS(US)
-	/* MOD (long names): centred by its drawn width in the level's panel, a long name narrowed (was centred by
-	 * an estimate of 12 px a character and cut at 0x78) */
-	w = measureString(DIGIMON_NAME(CHART_DETAIL_ID));
-	len = w > 0x88 ? 0x88 : w;
-	renderStringFit(0, -0x42 - len / 2, 0x4d, w, 0x88, 0xc, 0, 0x30, 4, 0);
+	/* MOD (long names): a name that fits the original 0x78 is placed and copied as the original did; a longer
+	 * one (drawn tighter if it must, drawEvoChartStrings) is centred in the level's panel by its width */
+	if (measureStringMode(DIGIMON_NAME(CHART_DETAIL_ID), FIT_VANILLA) <= 0x78) {
+		len = strlen(DIGIMON_NAME(CHART_DETAIL_ID)) / 2;
+		renderString(0, -0x5c - ((len - 4) * 6), 0x4d, 0x78, 0xc, 0, 0x30, 4);
+	} else {
+		w = measureStringMode(DIGIMON_NAME(CHART_DETAIL_ID),
+				      fitStringMode(DIGIMON_NAME(CHART_DETAIL_ID), CHART_NAME_W));
+		renderString(0, -0x42 - w / 2, 0x4d, w, 0xc, 0, 0x30, 4);
+	}
 #else
 	len = strlen(DIGIMON_NAME(CHART_DETAIL_ID)) / 2;
 	renderString(0, -0x5c - ((len - 4) * 6), 0x4d, 0x78, 0xc, 0, 0x30, 4);
@@ -3651,7 +3671,9 @@ int32_t drawDigimonStatsStrings(void)
 #if !VERSION_IS(US)
 		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0x9c, 0x24);
 #else
-		drawString(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0, 0x48);
+		/* MOD (long names): drawn tighter when it does not fit the field */
+		drawStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), 0, 0x48,
+			       fitStringMode(DIGIMON_NAME(ENTITY_TABLE[1]->type), STATUS_NAME_W));
 #endif
 		drawString(PARTNER_ENTITY.name, 0, 0x3c);
 		MENU_SUB_STATE = 2;
@@ -3979,8 +4001,12 @@ int32_t drawEvoChartStrings(int32_t arg)
 		return 1;
 	case 2:
 		clearTextSubArea(&rect2);
+#if VERSION_IS(US)
+		/* MOD (long names): drawn tighter when it does not fit the panel (renderEvoChartDetail) */
+		drawStringMode((char *)digimonPara(arg), 0, 0x30, fitStringMode((char *)digimonPara(arg), CHART_NAME_W));
+#else
 		drawString((char *)digimonPara(arg), 0, 0x30);
-
+#endif
 	}
 	return 0;
 }

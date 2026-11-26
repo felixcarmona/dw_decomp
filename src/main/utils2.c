@@ -269,34 +269,6 @@ void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h,
 	GsSetWorkBase((PACKET *)prim);
 }
 
-/*
- * MOD (long names): renderString of a text `w` pixels wide in a field of `maxW`: wider texts are drawn
- * narrower (the textured quad scales them), so a name of 19 characters (MetalGreymonVaccine) stays whole
- * where the screen has room for some 14.
- */
-void renderStringFit(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t maxW, int16_t h, uint8_t u, uint8_t v,
-		     long layer, int32_t shadow)
-{
-	POLY_FT4 *prim;
-	int16_t dw;
-
-	dw = w > maxW ? maxW : w;
-	prim = (POLY_FT4 *)GsGetWorkBase();
-	initStringFT4(prim);
-	setRGB0(prim, TEXT_COLORS[color].r, TEXT_COLORS[color].g, TEXT_COLORS[color].b);
-	setUVDataPolyFT4(prim, u, v, w, h);
-	setPosDataPolyFT4(prim, x, y, dw, h);
-	AddPrim(ACTIVE_ORDERING_TABLE->org + layer, prim++);
-	if (shadow != 0) {
-		initStringFT4(prim);
-		setRGB0(prim, 0, 0, 0);
-		setUVDataPolyFT4(prim, u, v, w, h);
-		setPosDataPolyFT4(prim, x + 1, y + 1, dw, h);
-		AddPrim(ACTIVE_ORDERING_TABLE->org + layer, prim++);
-	}
-	GsSetWorkBase((PACKET *)prim);
-}
-
 void renderItemSprite(ItemId type, int16_t x, int16_t y, int32_t layer) /* MOD: was u8 */
 {
 	POLY_FT4 *prim;
