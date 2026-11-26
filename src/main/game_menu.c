@@ -3145,9 +3145,20 @@ void lookPageRender(void)
 
 void modLookOverlay(void);
 
+void loadMenuOverlay(void);
+
+/* The Look page's code for a menu that is open: EVL's first sector lies over MENU's last one, which is read again */
+static void lookMenuOverlay(void)
+{
+	if (*(volatile uint32_t *)&lookPageMagic != 0x4B4F4F4C) {
+		modLookOverlay();
+		loadMenuOverlay();
+	}
+}
+
 static int32_t playerLookEnter(void)
 {
-	modLookOverlay();
+	lookMenuOverlay();
 	return lookPageOpen();
 }
 
@@ -6722,7 +6733,7 @@ int8_t entityId;
 			/* MOD (tamer looks): the hair's far faces too */
 			if (entityId == 0 && MOD_TAMER_LOOK > 1 &&
 			    (void *)pos->obj.tmd == (void *)&TAMER_MODEL.modelPtr->obj[LOOK_HEAD_OBJECT]) {
-				modLookOverlay();
+				lookMenuOverlay();
 				lookPageHairInside(&pos->obj, FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER]);
 			}
 		}
