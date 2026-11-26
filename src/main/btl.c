@@ -22,6 +22,7 @@
 #include <dw/utils.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/mod_battle.h>
 
 #define BTL_FINISHER_TIM	((char *)BATTLE_FINISHER_TIM_ADDR)
 #define BTL_FINISHER_MODEL	((char *)BATTLE_FINISHER_MODEL_ADDR)
@@ -350,8 +351,9 @@ void loadBattleData(int32_t entityId, int32_t count)
 	DigimonEntity *e;
 
 	ENEMY_COUNT = count;
-	if (ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type == 0x73) {
-		playMusic(0x21, 3);
+	/* MOD (battle as data): the species that makes the battle play the last-battle track, and the track, were 0x73 and 3 */
+	if (BMV(MUSIC_LAST_SPECIES) >= 0 && ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[1]]->type == BMV(MUSIC_LAST_SPECIES)) {
+		playMusic(0x21, BM(MUSIC_LAST_TRACK));
 	} else if ((entityId >= 2) && (entityId < 10)) {
 		if (IS_PREDEFINED_BATTLE == 1) {
 			playMusic(0x21, 0);

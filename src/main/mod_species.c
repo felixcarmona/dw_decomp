@@ -7,6 +7,7 @@
 #include <dw/file.h>
 #include <dw/main.h>
 #include <dw/memmap.h>
+#include <dw/mod_rules.h>
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/species.h>
@@ -719,4 +720,32 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry)
 	first = sector + ((size + 0x7FF) >> 11) + (offset >> 11);
 	readFileSectors(file, COLD_ANIM_BUFFER, first, count);
 	return COLD_ANIM_BUFFER + (offset & 0x7FF);
+}
+
+/* MOD (species rules as data): see mod_rules.h. Every row starts empty (species -1) and tools/balance.py writes them from content/tables/species-rules.json */
+int16_t MOD_MODEL_SCALE[MOD_MODEL_SCALE_ROWS][2] = { [0 ... MOD_MODEL_SCALE_ROWS - 1] = { -1, -1 } };
+int16_t MOD_ANIM_TEXTURE[MOD_ANIM_TEXTURE_ROWS][2] = { [0 ... MOD_ANIM_TEXTURE_ROWS - 1] = { -1, -1 } };
+
+int32_t modModelScale(int32_t type)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_MODEL_SCALE_ROWS; i++) {
+		if (MOD_MODEL_SCALE[i][0] == type && MOD_MODEL_SCALE[i][1] > 0) {
+			return MOD_MODEL_SCALE[i][1] * 0x1000 / 100;
+		}
+	}
+	return 0x1000;
+}
+
+int32_t modAnimatedTextureWidth(int32_t type)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_ANIM_TEXTURE_ROWS; i++) {
+		if (MOD_ANIM_TEXTURE[i][0] == type && MOD_ANIM_TEXTURE[i][1] > 0) {
+			return MOD_ANIM_TEXTURE[i][1];
+		}
+	}
+	return 0;
 }

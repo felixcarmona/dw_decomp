@@ -36,6 +36,7 @@
 #include <dw/vecmath.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/mod_rules.h>
 #include <text/std/std_main.h>
 
 #include "common.h"
@@ -4463,15 +4464,7 @@ void STD_resetFlatten(int16_t index)
 	entity->flatSprite = -1;
 	fighter->flags &= ~FIGHTER_FLAG_FLATTENED;
 	fighter->flatTimer = 0;
-	if (entity->type != 0x71) {
-		entity->posData->scale.vx = 0x1000;
-		entity->posData->scale.vy = 0x1000;
-		entity->posData->scale.vz = 0x1000;
-	} else {
-		entity->posData->scale.vx = 0x1800;
-		entity->posData->scale.vy = 0x1800;
-		entity->posData->scale.vz = 0x1800;
-	}
+	entity->posData->scale.vx = entity->posData->scale.vy = entity->posData->scale.vz = modModelScale(entity->type); /* MOD (species rules as data) */
 }
 
 int32_t STD_areAllEnemyDigimonDead(void)
