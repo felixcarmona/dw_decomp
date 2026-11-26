@@ -5,6 +5,7 @@
 #include <dw/garbage.h>
 #include <dw/graphics.h>
 #include <dw/main.h>
+#include <dw/mod_qol.h>
 #include <dw/utils.h>
 #include <dw/world_object.h>
 
@@ -73,6 +74,9 @@ void renderEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
+	if (MOD_EVO_SKIP == 1) {
+		modPlate(0x80, 0x60, "START", 5, 0, 0, 0); /* MOD (evolution skip): the hint (mod_qol.c) */
+	}
 }
 
 GARBAGE(getEvoSequenceState, 20);

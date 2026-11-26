@@ -5203,14 +5203,19 @@ static ModRollbackSet *modLoopRollback; /* the last loop's set (MOD_PRESENT_PAUS
 
 /* MOD (battle speed): R2 in a battle switches x2 on and off (MOD_BATTLE_FAST, kept until the console resets); the
  * battle sets MOD_BATTLE_FAST_TICK before each tick when that tick may run fast (not with the item menu open or an
- * item in hand, not while the defeat countdown runs). A fast tick lasts 2 and 1 refreshes in turn (40 ticks a second)
- * with one render each; MOD_REAL_TICK is 0 on the second tick of a pair, so what counts real time (the play time)
- * skips it. The fight's logic is the same per tick: only the real time between ticks changes. */
+ * item in hand, not while the defeat countdown runs). Fast ticks go in pairs over 3 refreshes (40 ticks a second):
+ * the first is due 2 refreshes after the pair began and is shown; the second, MOD_REAL_TICK 0, renders as every tick
+ * does (render functions advance state: effect scripts, gauges) but its frame is thrown away and it waits for no
+ * refresh. A tick and its render take a little more than one refresh in a fight (measured: ~270 of 263 lines), so
+ * one shown frame per tick could not pass 30 ticks a second. Each fast tick is due from when the one before was
+ * due, not from when it ended. What counts real time (the play time) skips MOD_REAL_TICK 0. The fight's logic is the
+ * same per tick: only the real time between ticks changes. */
 int8_t MOD_BATTLE_FAST;
 int8_t MOD_BATTLE_FAST_TICK;
 int8_t MOD_TICK_FAST;
 int8_t MOD_REAL_TICK = 1;
 static int32_t modTickPeriod = 3;
+static int32_t modFastDue; /* the refresh the next fast tick is due at */
 int8_t MOD_TRAIN_BLOCK; /* MOD (training block, src/trn/trn_block.h): R2 in a gym session, x1 (0) or x5 (1) */
 
 static int32_t modTickRefreshes(void)
@@ -5237,7 +5242,12 @@ void modTickStart(int32_t flags)
 		MOD_REAL_TICK = 1;
 		modTickPeriod = 3;
 	}
-	if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < modTickRefreshes()) {
+	if (MOD_TICK_FAST) {
+		/* due when the one before was due plus its period, unless that is more than a pair behind */
+		modTickV = (now >= modFastDue && now - modFastDue <= 3) ? modFastDue : now;
+		modTickL0 = modLines();
+		modFastDue = modTickV + modTickRefreshes();
+	} else if ((flags & MOD_PRESENT_BATTLE) && now - modLastEndV < modTickRefreshes()) {
 		/* VSync(3) counts from the previous tick's last VSync: the battle
 		 * AI, which runs before the loop function, is part of this tick */
 		modTickV = modLastEndV;
@@ -5273,6 +5283,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	int32_t battle = flags & MOD_PRESENT_BATTLE;
 	int32_t period = modTickRefreshes(); /* refreshes per tick: 3 */
 	int32_t force = MOD_FPS_TEST_TICK > 0;
+	int32_t discard = MOD_TICK_FAST && !MOD_REAL_TICK; /* battle speed: rendered, not shown */
 	int32_t thirds[3];
 
 	if (flags & MOD_PRESENT_PAUSE) {
@@ -5415,6 +5426,9 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			MOD_PERF_XEND = (l3 - l0) & 0xFFFF;
 			MOD_PERF_XENDV = VSync(-1) - tickV;
 		}
+		if (discard) {
+			break; /* the next tick clears this ordering table and draws over the work area */
+		}
 		if (VSync(-1) >= endV) {
 			MOD_PERF_LATE++;
 		}
@@ -5433,7 +5447,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	if (battle) {
 		GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
 	}
-	while (VSync(-1) < tickV + period) {
+	while (!discard && VSync(-1) < tickV + period) {
 		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
 	}
 	MOD_RENDER_PASS = 0;
