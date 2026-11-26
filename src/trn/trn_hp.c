@@ -122,7 +122,10 @@ int16_t instanceId;
 			TRAINING_STATE = 3;
 			MAIN_D_8013537A /= TRN_STEP_OF(MOD_TRAIN_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
-			TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			} while (TRN_modBlockNext());
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 		}
 		break;

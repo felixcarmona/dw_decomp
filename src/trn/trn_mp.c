@@ -94,7 +94,10 @@ int16_t instanceId;
 			r = TRN_getSlotSessionResult();
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
-			TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockBegin(); /* MOD (training block) */
+			do {
+				TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			} while (TRN_modBlockNext());
 			setMapObjectsFlag(MAIN_D_80135372, MAIN_D_80135374, 0);
 			setMapObjectsFlag(MAIN_D_80135376, MAIN_D_80135378, 1);
 			loadMapObjectPosition(TRN_D_8008F368, TRN_D_8008F388, MAIN_D_8013536C, MAIN_D_8013536E);
