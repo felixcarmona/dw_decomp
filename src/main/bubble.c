@@ -577,6 +577,8 @@ int32_t MOD_RING_CLOCK = 1;
 int32_t MOD_RING_BIG = 1; /* the big condition, +1 */
 int32_t MOD_RING_HOLD = 1;
 int32_t MOD_RING_POS[18] = { 1 }; /* x, y, size per condition */
+int32_t MOD_RING_PREV[18] = { 1 }; /* the same before the last tick */
+extern int32_t MOD_RENDER_ALPHA;
 
 static void drawRingBubble(int32_t j, int32_t cx, int32_t cy, int32_t depth,
 			   uint32_t scale, int32_t size, int32_t k)
@@ -621,11 +623,16 @@ static void renderConditionRing(int32_t x, int32_t y, int32_t depth,
 
 	for (j = 0; j < 6; ++j) {
 		int32_t *v = &MOD_RING_POS[j * 3];
+		int32_t *o = &MOD_RING_PREV[j * 3];
+		int32_t a = MOD_RENDER_ALPHA;
+		int32_t px = o[0] + (((v[0] - o[0]) * a) >> 12);
+		int32_t py = o[1] + (((v[1] - o[1]) * a) >> 12);
+		int32_t ps = o[2] + (((v[2] - o[2]) * a) >> 12);
 
-		if (v[2] > 4) {
-			drawRingBubble(j, x + ((v[0] * k) >> 16),
-				       cy0 + ((v[1] * k) >> 16), depth, scale,
-				       v[2], k);
+		if (ps > 4) {
+			drawRingBubble(j, x + ((px * k) >> 16),
+				       cy0 + ((py * k) >> 16), depth, scale,
+				       ps, k);
 		}
 	}
 }
@@ -658,7 +665,7 @@ void renderConditionRingObject(int32_t instanceId)
 
 	translateConditionFXToEntity(entity, &pos);
 	pos.vy = -DIGI_PARA(entity->type).height + 20 - 65 +
-		 ((_sin(lerp(0, 512, 0, 20, MOD_RING_CLOCK % 40)) * 12) >> 12) +
+		 ((_sin((((MOD_RING_CLOCK % 20) * 4096 + MOD_RENDER_ALPHA) * 512) / 81920) * 12) >> 12) +
 		 entity->posData->location.vy;
 	depth = worldPosToScreenPos(&pos, &screen);
 	if (depth <= 0) {
@@ -727,6 +734,10 @@ void tickConditionRingObject(int32_t instanceId)
 	for (j = 0; j < 6; ++j) {
 		int32_t *v = &MOD_RING_POS[j * 3];
 		int32_t tx = v[0];
+
+		MOD_RING_PREV[j * 3] = v[0];
+		MOD_RING_PREV[j * 3 + 1] = v[1];
+		MOD_RING_PREV[j * 3 + 2] = v[2];
 		int32_t ty = v[1];
 		int32_t ts = 0;
 
@@ -751,6 +762,8 @@ void tickConditionRingObject(int32_t instanceId)
 			if (v[2] <= 4) {
 				v[0] = tx;
 				v[1] = ty;
+				MOD_RING_PREV[j * 3] = tx;
+				MOD_RING_PREV[j * 3 + 1] = ty;
 			}
 		}
 		v[0] = ringStep(v[0], tx);
