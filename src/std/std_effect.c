@@ -1006,7 +1006,7 @@ EfeAuraType STD_AURA_PROJECTILE_TYPES[129] = {
 	{ 0x0076, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
 	{ 0x0077, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
 	{ 0x0078, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
-	{ 0x0079, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
+	{ 0x0079, 0x0000, 0x0000, 0xff6a, 0xff38, 0x0040 }, /* MOD (cherrymon): Vegiemon's u (was 0xffff) */
 	{ 0x007a, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
 	{ 0x007b, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
 	{ 0x007c, 0x0000, 0x0000, 0xff6a, 0xff38, 0xffff },
@@ -4682,12 +4682,22 @@ void STD_initializeUVAnim(void)
 void STD_checkTechCompatibility(void)
 {
 	EfeTechBoneOffset *entry;
+	EfeTechBoneOffset *table;
+	EfeBoneOffset *mod;
 	int16_t type;
 
 	entry = EFE_POP1(EfeTechBoneOffset *);
+	table = entry;
 	type = (int16_t)getOriginalType(EFE_SCRIPT_CONTEXT->sourceEntity->type);
 	while (entry->type != type) {
 		if (entry->type < 0) {
+			/* MOD (cherrymon): a type without a row may borrow one (efe.c) */
+			mod = getModTechBoneOffset(type, table);
+			if (mod != NULL) {
+				EFE_BONE_OFFSET = mod;
+				EFE_SCRIPT_CONTEXT->boneOffset = mod;
+				return;
+			}
 			EFE_ACTIVE_SECTION = -1;
 			EFE_SCRIPT_PTR = NULL;
 			break;

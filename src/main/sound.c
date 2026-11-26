@@ -129,6 +129,7 @@ uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON 
 	 */
 	[NUM_PARTNER_DIGIMON ... NUM_DIGIMON - 1] = 15,
 	[DIGIMON_MASTER_TYRANNOMON] = 0x02,
+	[DIGIMON_CHERRYMON] = 0x0e, /* MOD (cherrymon): Vegiemon's partner sounds */
 };
 
 uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {
@@ -253,7 +254,7 @@ uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {
 	0x00,	/* Market Manager */
 	0x00,	/* ShogunGekomon */
 	0x00,	/* King of Sukamon */
-	0x00,	/* Cherrymon */
+	0x17,	/* Cherrymon; MOD (cherrymon): Vegiemon's voice (was 0x00) */
 	0x00,	/* Hagurumon */
 	0x00,	/* Tinmon */
 	0x00,	/* Master Tyrannomon */
