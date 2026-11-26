@@ -788,6 +788,38 @@ int32_t shopFillSellItemList(void)
 	return result;
 }
 
+/* Keep the buy list's lower panel on the selected item, using its existing text page. */
+static void updateShopItemDescription(ItemMenuBox *box)
+{
+	TextBoxData *entry = &TEXTBOX_DATA.box[0];
+	uint8_t item;
+	char *line;
+	RECT area;
+	int32_t row;
+
+	if ((ITEM_MENU_TYPE != 0 && ITEM_MENU_TYPE != 7) || box->itemCount == 0 ||
+	    SCRIPT_TEXTBOX_MODE != 0 || entry->idle == 0 ||
+	    entry->writeCount != entry->renderCount) {
+		return;
+	}
+	item = box->buf[(box->topRow + box->cursor) * 2];
+	if (item == 0xff) {
+		return;
+	}
+	row = entry->vramRow + entry->backPage * entry->vramRows;
+	line = (char *)TEXTBOX_LINES_PTR + row * 64;
+	if (strcmp(line, ITEM_DESCS[item]) == 0) {
+		return;
+	}
+	memset(line, 0, entry->vramRows * 64);
+	strcpy(line, ITEM_DESCS[item]);
+	setRECT(&area, 0, row * 12, 0xfc, entry->vramRows * 12);
+	clearTextSubArea(&area);
+	setTextColor(1);
+	drawString(ITEM_DESCS[item], 0, row * 12);
+	DrawSync(0);
+}
+
 void tickItemMenu(void)
 {
 	ItemMenuBox *box;
@@ -819,6 +851,8 @@ void tickItemMenu(void)
 	if (SCRIPT_STATE_2 != 1) {
 		return;
 	}
+
+	updateShopItemDescription(box);
 
 	if (isKeyDown(CONFIRM_BUTTON)) {
 		src = &ITEM_MENU_DESCRIPTION_RECTS[ITEM_MENU_TYPE * 4];
