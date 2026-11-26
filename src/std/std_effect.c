@@ -22,6 +22,7 @@
 #include <dw/math.h>
 #include <dw/memmap.h>
 #include <dw/mod_present.h>
+#include <dw/mod_efe_smooth.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -1460,6 +1461,7 @@ void STD_renderEFEEngine(void)
 	target = EFE_TARGET_ENTITY_INDEX;
 	hit = EFE_HIT_ENTITY_INDEX;
 	section = EFE_ACTIVE_SECTION;
+	modSmoothBegin(); /* MOD (smooth effects) */
 	EFE_DATA_ITERATOR = EFE_DATA_PTR;
 	for (i = 0; i < 0x10; i++) {
 		saved = 0;
@@ -1484,6 +1486,7 @@ void STD_renderEFEEngine(void)
 				if ((int32_t)EFE_SCRIPT_CONTEXT->inst != 0) {
 					EFE_CURRENT_DATA_SEGMENT = EFE_SCRIPT_CONTEXT->instance;
 					EFE_PREVIOUS_DATA_SEGMENT = (int32_t)EFE_SCRIPT_CONTEXT->parentInstance;
+					modSmoothSub(i, j);
 					STD_runEFEScript((int32_t)EFE_SCRIPT_CONTEXT->someInst);
 				}
 			}
@@ -1501,6 +1504,7 @@ void STD_renderEFEEngine(void)
 		EFE_ACTIVE_SECTION = section;
 	}
 	STD_renderParticleEmitters();
+	modSmoothEnd(); /* MOD (smooth effects) */
 }
 
 void STD_clearEFESoundChannels(void)
@@ -1817,6 +1821,7 @@ void STD_tickParticleEmitters(void)
 	EfeParticle *pt;
 	int32_t k;
 
+	modSmoothEmitTicked(); /* MOD (smooth effects) */
 	e = EFE_PARTICLE_EMITTERS;
 	for (i = 0; i < 4; e++, i++) {
 		if (e->transform == NULL) {
@@ -1873,6 +1878,7 @@ void STD_renderParticleEmitters(void)
 	int32_t k;
 	int32_t f0;
 	int32_t f1;
+	int32_t dist;
 	EfeInstance *owner;
 	SVECTOR a;
 	SVECTOR b;
@@ -1898,22 +1904,24 @@ void STD_renderParticleEmitters(void)
 			}
 
 			pt = &e->particles[k];
+			/* MOD (smooth effects): where it is at this pass */
+			dist = modSmoothParticle(pt->distance, pt->velocity, e->acceleration, e->startOffset);
 			switch (kind) {
 			case 0:
-				f0 = pt->distance << 4;
-				f1 = (pt->distance + 7) << 4;
+				f0 = dist << 4;
+				f1 = (dist + 7) << 4;
 				break;
 			case 1:
-				f0 = pt->distance << 4;
-				f1 = pt->distance << 2;
+				f0 = dist << 4;
+				f1 = dist << 2;
 				break;
 			case 3:
-				f0 = (e->startOffset - pt->distance) << 4;
-				f1 = (e->startOffset - pt->distance) << 2;
+				f0 = (e->startOffset - dist) << 4;
+				f1 = (e->startOffset - dist) << 2;
 				break;
 			case 2:
-				f0 = (e->startOffset - pt->distance) << 4;
-				f1 = ((e->startOffset - pt->distance) - 5) << 4;
+				f0 = (e->startOffset - dist) << 4;
+				f1 = ((e->startOffset - dist) - 5) << 4;
 				break;
 			}
 
@@ -4839,7 +4847,7 @@ void STD_returnFromEFESubroutine(void)
 void STD_dispatchEFESubOpcode(void)
 {
 	EFE_SCRIPT_PTR = (int16_t *)((int32_t)EFE_SCRIPT_PTR + 2);
-	STD_EFE_SUB_OPCODE_HANDLERS[EFE_SCRIPT_CURRENT_VALUE >> 8]();
+	modSmoothCall(STD_EFE_SUB_OPCODE_HANDLERS[EFE_SCRIPT_CURRENT_VALUE >> 8], EFE_SCRIPT_CURRENT_VALUE >> 8); /* MOD (smooth effects) */
 }
 
 void STD_callEFESubroutine(void)
