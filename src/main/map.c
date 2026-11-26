@@ -3820,6 +3820,30 @@ int32_t isTileOffScreen(int8_t tileX, int8_t tileZ)
 	return 0;
 }
 
+/* MOD (run button): while R1 is held in free field control the tamer's run, and the partner's follow
+   locomotion while it follows, cover 1.4 times their animation's root step. Scripts, menus, battles,
+   walking (R2, which takes R1's original role, or the cancel button) and the lab's SELECT combos are untouched. */
+extern int8_t TAMER_STATE;
+extern int32_t IS_IN_MENU;
+#define MOD_RUN_SCALE 358 /* the run's step in 256ths: 358 = 1.4 (anim.c has the same value) */
+
+int32_t modRunBoost(Entity *entity)
+{
+	int32_t id;
+
+	if ((GAME_STATE != 0) || (TAMER_STATE != 0) || (IS_IN_MENU != 0) ||
+	    (IS_SCRIPT_PAUSED != 1) || ((POLLED_INPUT & 0x108) != 8) ||
+	    (TAMER_ENTITY.entity.anim.animId != 3)) {
+		return 0;
+	}
+	if (entity == &TAMER_ENTITY.entity) {
+		return 1;
+	}
+	id = entity->anim.animId;
+	return (entity == &PARTNER_ENTITY.digimonEntity.entity) && (PARTNER_STATE == 1) &&
+	       (id >= 2) && (id <= 4);
+}
+
 void entityMoveForward(Entity *entity)
 {
 	PositionData *posData;
@@ -3845,6 +3869,10 @@ void entityMoveForward(Entity *entity)
 		}
 	} else {
 		vz = *delta << 15;
+	}
+
+	if (modRunBoost(entity)) { /* MOD (run button): probe the step the root will take */
+		vz = (vz >> 8) * MOD_RUN_SCALE;
 	}
 
 	posData = entity->posData;

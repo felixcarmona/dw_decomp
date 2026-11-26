@@ -529,7 +529,7 @@ void tamerTickWalkingState(void)
 	    ((POLLED_INPUT & 0x4000) != 0) ||
 	    ((POLLED_INPUT & 0x8000) != 0) ||
 	    ((POLLED_INPUT & 0x2000) != 0)) {
-		if (((POLLED_INPUT & 8) != 0) ||
+		if (((POLLED_INPUT & 2) != 0) || /* MOD (run button): walking moves from R1 to R2, R1 runs (map.c) */
 		    ((POLLED_INPUT & CANCEL_BUTTON) != 0)) {
 			if (TAMER_ENTITY.entity.anim.animId != 2) {
 				startAnimation(&TAMER_ENTITY.entity, 2);

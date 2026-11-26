@@ -33,6 +33,8 @@ void animReadMomentumInstruction(int16_t *delta, int16_t *reload1,
 int32_t animApplyMomentum(int16_t base, int16_t reload, int16_t delta,
 		          int16_t *counter, int8_t step, int32_t offset);
 void applyRootMomentum(MomentumData *momentum, Entity *entity);
+int32_t modRunBoost(Entity *entity);
+#define MOD_RUN_SCALE 358 /* MOD (run button): 1.4, as in map.c */
 
 static void *anim_text_order[] = {
 	applyRootMomentum,
@@ -490,6 +492,10 @@ void applyRootMomentum(MomentumData *momentum, Entity *entity)
 		input.vy = base[1];
 		input.vz = base[2];
 		ApplyMatrixLV(&posData->posMatrix.coord, &input, &result);
+		if (modRunBoost(entity)) { /* MOD (run button, map.c) */
+			result.vx = (result.vx >> 8) * MOD_RUN_SCALE;
+			result.vz = (result.vz >> 8) * MOD_RUN_SCALE;
+		}
 
 		if ((entity->anim.animFlag & 8) && result.vz < 0)
 			result.vz = 0;
