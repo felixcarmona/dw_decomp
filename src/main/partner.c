@@ -957,6 +957,9 @@ void partnerTickWalking(void)
 	}
 }
 
+extern int16_t MOD_CAM_CFG[]; /* MOD (camera), map.c: [5] = trailCap */
+#define MOD_CAM_TRAIL_CAP (MOD_CAM_CFG[5])
+
 int8_t getPartnerTamerCloseness(void)
 {
 	VECTOR *tamerLocation;
@@ -972,8 +975,15 @@ int8_t getPartnerTamerCloseness(void)
 		   (tamerLocation->vz - partnerLocation->vz) * (tamerLocation->vz - partnerLocation->vz);
 
 	radius = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).radius;
-	walkDistance = (radius * 5 / 2) * (radius * 5 / 2);
-	sprintDistanceSquared = (radius * 7 / 2) * (radius * 7 / 2);
+	walkDistance = radius * 5 / 2;
+	sprintDistanceSquared = radius * 7 / 2;
+	/* MOD (camera): a big partner trails closer (0: off; MOD_CAM_CFG in map.c) */
+	if (MOD_CAM_TRAIL_CAP > 0 && walkDistance > MOD_CAM_TRAIL_CAP) {
+		sprintDistanceSquared = sprintDistanceSquared * MOD_CAM_TRAIL_CAP / walkDistance;
+		walkDistance = MOD_CAM_TRAIL_CAP;
+	}
+	walkDistance = walkDistance * walkDistance;
+	sprintDistanceSquared = sprintDistanceSquared * sprintDistanceSquared;
 
 	if (distance > sprintDistanceSquared) {
 		return 0;
