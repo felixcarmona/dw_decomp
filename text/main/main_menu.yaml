@@ -420,14 +420,14 @@ MOD_OPTIONS:
       ja: "ITALIANO"
       en_us: "ITALIANO"
     MOD_OPT_STR_CATALAN:
-      ja: "CATALA"
-      en_us: "CATALA"
+      ja: "CATALÀ"
+      en_us: "CATALÀ"
     MOD_OPT_STR_JAPANESE:
       ja: "NIHONGO"
       en_us: "NIHONGO"
     MOD_OPT_STR_PORTUGUESE:
-      ja: "PORTUGUES"
-      en_us: "PORTUGUES"
+      ja: "PORTUGUÊS"
+      en_us: "PORTUGUÊS"
     MOD_OPT_STR_SPANISH:
       ja: "ESPANOL"
       en_us: "ESPANOL"
