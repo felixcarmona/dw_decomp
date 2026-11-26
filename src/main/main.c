@@ -4158,10 +4158,44 @@ void modRenderRollbackEnd(void)
 
 static uint32_t modRenderLcg = 0x1234567;
 
+/* The random numbers the first render pass of a tick drew (modRenderRand,
+ * modRenderCustomRandom) are logged and handed out again, in the same order,
+ * to the extra passes: what render code places at random (sparkles, the
+ * wireframe colours) then changes once per tick as before, not on every
+ * frame. Past the log (or if a pass draws more) a private generator is used;
+ * the game's generators never advance on an extra pass. */
+#define MOD_RAND_LOG_MAX 256
+static int32_t modRandLog[MOD_RAND_LOG_MAX];
+static int32_t modRandLogCount;
+static int32_t modRandLogPos;
+static int8_t modRandLogging;   /* inside the first pass's renderObjects */
+
+int32_t modRenderRandRecord(int32_t value)
+{
+	if (modRandLogging && modRandLogCount < MOD_RAND_LOG_MAX) {
+		modRandLog[modRandLogCount++] = value;
+	}
+	return value;
+}
+
+int32_t modRenderRandReplay(int32_t *value)
+{
+	if (modRandLogPos < modRandLogCount) {
+		*value = modRandLog[modRandLogPos++];
+		return 1;
+	}
+	return 0;
+}
+
 int32_t modRenderRand(void)
 {
+	int32_t value;
+
 	if (MOD_RENDER_PASS == 0) {
-		return rand();
+		return modRenderRandRecord(rand());
+	}
+	if (modRenderRandReplay(&value)) {
+		return value;
 	}
 	modRenderLcg = modRenderLcg * 1103515245 + 12345;
 	return (modRenderLcg >> 16) & 0x7FFF;
@@ -4962,7 +4996,15 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			MOD_PERF_INTERP[0] += (modLines() - l2) & 0xFFFF;
 			MOD_PERF_INTERP[2]++;
 		}
+		/* the first pass logs its render random numbers, the others
+		 * replay them */
+		modRandLogging = r == 0 && n > 1;
+		if (r == 0) {
+			modRandLogCount = 0;
+		}
+		modRandLogPos = 0;
 		renderObjects();
+		modRandLogging = 0;
 		applyDrawOffset(ACTIVE_FRAMEBUFFER);
 		if (battle) {
 			/* the origin this frame is drawn with (the interpolated one if

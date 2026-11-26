@@ -33,8 +33,11 @@ int32_t customRandom(long min, long max)
 
 /* MOD (fps): customRandom for render code. The extra render passes of a tick
  * (dw/mod_fps.h) do not advance the generator, so it advances exactly as with
- * one render per tick. */
+ * one render per tick; they get the first pass's numbers again
+ * (modRenderRand, main.c). */
 extern int32_t MOD_RENDER_PASS;
+int32_t modRenderRandRecord(int32_t value);
+int32_t modRenderRandReplay(int32_t *value);
 
 int32_t modRenderCustomRandom(long min, long max)
 {
@@ -43,7 +46,10 @@ int32_t modRenderCustomRandom(long min, long max)
 	int32_t result;
 
 	if (MOD_RENDER_PASS == 0) {
-		return customRandom(min, max);
+		return modRenderRandRecord(customRandom(min, max));
+	}
+	if (modRenderRandReplay(&result)) {
+		return result;
 	}
 	val1 = CUSTOM_RNG_VAL1;
 	val2 = CUSTOM_RNG_VAL2;
