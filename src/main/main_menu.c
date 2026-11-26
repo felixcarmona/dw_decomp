@@ -5573,9 +5573,8 @@ static long saveFileStart(int32_t write)
 	uint8_t *ram;
 
 	SAVE_IO_FAILED = 0;
-	for (part = 0; part < 3; part++) {
+	for (part = 0; part < (write ? 2 : 3); part++) {
 		if (write) {
-			if (part == 2) break;
 			copy = 1 - part;
 			offset = copy * __builtin_offsetof(SaveFile, saves[1]);
 			ram = (uint8_t *)&SAVE_FILE + offset;
@@ -5592,8 +5591,9 @@ static long saveFileStart(int32_t write)
 			size = ext;
 		}
 		result = SAVE_IO_ERROR;
-		if ((write ? MemCardWriteFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)ram, offset, size)
-			   : MemCardReadFile(MEMORY_CARD_ID, SAVE_FILE_NAME, (void *)ram, offset, size)) == 1) {
+		/* Both operations have the same ABI. Share argument setup to keep MENU compact. */
+		if ((write ? MemCardWriteFile : MemCardReadFile)(MEMORY_CARD_ID, SAVE_FILE_NAME,
+							     (void *)ram, offset, size) == 1) {
 			MemCardSync(0, (long *)&command, (long *)&result);
 		}
 		if (result != 0) {
