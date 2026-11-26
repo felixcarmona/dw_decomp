@@ -2564,12 +2564,17 @@ static void KAR_renderDraw(void)
 			if (round >= 2) {
 				KAR_lobbyFace(won[i], -0x70 + 0x44, top + 10 + i * 40,
 				              round == 2 ? (i < 2 ? 0x80 : 0x58) : won[i] == s[12 + i / 2] ? 0x58 : 0x28);
+			} else {
+				/* nobody there yet: the line goes on to the next tie */
+				drawLine2P(0xa0a0a0, -0x70 + 64, top + 18 + i * 40, -0x70 + 0x44 + 20, top + 18 + i * 40, 6, 0);
 			}
 		}
 		for (i = 0; i < 2; i++) {
 			KAR_drawLink(-0x70 + 0x44, top + 10 + i * 80, top + 10 + i * 80 + 40);
 			if (round >= 3) {
 				KAR_lobbyFace(s[12 + i], -0x70 + 0x88, top + 30 + i * 80, 0x80);
+			} else {
+				drawLine2P(0xa0a0a0, -0x70 + 0x44 + 64, top + 38 + i * 80, -0x70 + 0x88 + 20, top + 38 + i * 80, 6, 0);
 			}
 		}
 		KAR_drawLink(-0x70 + 0x88, top + 30, top + 30 + 80);
