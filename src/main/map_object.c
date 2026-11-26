@@ -1069,6 +1069,14 @@ void decreaseDirtPileSize(void)
 	rotation = DIRT_PILE_SIZE_ROTATION;
 
 	DIRT_PILE_SIZE_COUNTER -= 1;
+	/* The pile stops rendering below six; remove its live obstacle too. */
+	if (DIRT_PILE_SIZE_COUNTER == 5) {
+		int32_t x, y;
+		extern uint8_t MAP_COLLISION_DATA[];
+		for (y = 41; y < 43; y++) {
+			for (x = 69; x < 72; x++) MAP_COLLISION_DATA[y * 100 + x] = 81;
+		}
+	}
 	scaleValue = (DIRT_PILE_SIZE_COUNTER * 0x1000) / 15;
 	scale.vx = scaleValue;
 	scale.vy = scaleValue;
