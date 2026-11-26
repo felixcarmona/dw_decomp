@@ -33,6 +33,20 @@ typedef uint16_t CardId;
 #define NUM_EVO_CHART_DIGIMON	61	/* EVO_CHART_BOXES, by type - 1 */
 #define NUM_RECRUITABLE_DIGIMON	0x70	/* recruited flags = trigger 200 + type, types 0..111 */
 
+/*
+ * MOD (master-tyrannomon): MasterTyrannomon is a partner too. Its per-partner
+ * data lives at index 124 of tables sized NUM_DIGIMON (RAISE_DATA,
+ * EVOLUTION_REQS, EVOLUTION_STATS_GAINS, ITEM_TAKE_DISTANCE, the VLALL voice
+ * ids, the training animation ids); it reuses Tyrannomon's animations,
+ * techniques and partner voice. Its "raised" flag is trigger 0x200 + 124 = 636,
+ * a free trigger (scripts.md, "Free triggers"); the flags of the types between
+ * NUM_EVOLVING_DIGIMON and 124 are used by scripts and stay out of range.
+ */
+#define DIGIMON_TYRANNOMON		8
+#define DIGIMON_MASTER_TYRANNOMON	124
+#define HAS_RAISED_FLAG(type) \
+	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_MASTER_TYRANNOMON)
+
 /* Screens (maps) */
 #define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */
 /*

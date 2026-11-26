@@ -2,7 +2,7 @@
  * MOD: lab menu.
  *
  * With the game paused (START) and no script running, SELECT opens a box with
- * the partner's state and five options (up/down to choose, X to accept,
+ * the partner's state and six options (up/down to choose, X to accept,
  * triangle or SELECT to close):
  *   - "+1000 bits"     adds 1000 to the money
  *   - "Heal partner"   current HP and MP to the maximum
@@ -10,7 +10,14 @@
  *                      afterwards it says the gift was already taken
  *   - "Frame rate  60 fps"  X (or right) cycles 20 -> 30 -> 60 fps, left
  *                      goes back (MOD_FPS_MODE, main.c; experimental branch)
+ *   - "To MasterTyrannomon"  starts the real evolution sequence into
+ *                      MasterTyrannomon (type 124) when the game is unpaused,
+ *                      the way an evolution item does, but with the natural
+ *                      stat gains (HAS_USED_EVOITEM = 0)
  *   - "Close"
+ *
+ * The result of an option replaces the stats line until the next key, so the
+ * box keeps 8 text rows (0x90..0xEF; the pause label is at 0xF0).
  *
  * Hooked from handlePause() (utils2.c). Only uses game functions:
  * drawString/renderString (text in the VRAM text area), UI boxes
@@ -22,6 +29,8 @@
 
 #include <dw/btl.h>
 #include <dw/entity.h>
+#include <dw/ids.h>
+#include <dw/params.h>
 #include <dw/font.h>
 #include <dw/script.h>
 #include <dw/sound.h>
@@ -31,8 +40,9 @@
 #define MOD_LAB_TRIGGER	799	/* free and saved trigger (docs/mods/scripts.md, 717-799) */
 #define MOD_LAB_BOX	5	/* same box the pause uses */
 #define MOD_LAB_TEXT_Y	0x90	/* text area rows we use: 0x90..0xEF (0xF0 is the pause label) */
-#define MOD_LAB_OPTIONS	5
+#define MOD_LAB_OPTIONS	6
 #define MOD_LAB_OPT_FPS	3	/* the frame rate option */
+#define MOD_LAB_OPT_EVOLVE	4	/* MOD (master-tyrannomon) */
 #define ITEM_MEAT	38
 
 #define PAD_SELECT	0x100
@@ -46,6 +56,8 @@
 extern UIBoxData UI_BOX_DATA[];
 extern int32_t IS_SCRIPT_PAUSED;
 extern int32_t MOD_FPS_MODE; /* 0 = 20 fps, 1 = 30, 2 = 60 (main.c) */
+extern int16_t EVOLUTION_TARGET;
+extern uint8_t HAS_USED_EVOITEM;
 
 void drawString(char *str, int32_t x, int32_t y);
 void renderString(int32_t color, int32_t x, int32_t y, int32_t w, int32_t h,
@@ -55,6 +67,10 @@ char *formatInteger(int32_t value, char *buf, int32_t digits);
 int32_t giveItem(ItemId item, uint8_t amount);
 void pauseFrame(void);
 void renderSelectionCursor(int32_t x, int32_t y, int16_t w, int16_t h, int32_t layer);
+int32_t partnerGetState(void);
+void partnerSetState(int32_t state);
+int32_t tamerGetState(void);
+void tamerSetState(int32_t state);
 
 static int32_t modLabCursor;
 static char *modLabMessage;
@@ -64,6 +80,7 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"Heal partner",
 	"One-time gift",
 	NULL, /* MOD_LAB_FPS_TEXT */
+	"To MasterTyrannomon",
 	"Close",
 };
 
@@ -99,9 +116,9 @@ static char *appendStr(char *dst, char *src)
 #define ROW_TITLE	0
 #define ROW_STATS	1
 #define ROW_OPTIONS	2
-#define ROW_MESSAGE	(ROW_OPTIONS + MOD_LAB_OPTIONS)
+#define ROW_COUNT	(ROW_OPTIONS + MOD_LAB_OPTIONS)
 #define TEXT_ROW_Y(r)	(MOD_LAB_TEXT_Y + (r) * 0xC)
-#define BOX_H		(8 + (ROW_MESSAGE + 1) * ROW_PITCH + 2) /* centred vertically */
+#define BOX_H		(8 + ROW_COUNT * ROW_PITCH + 2) /* centred vertically */
 
 static void modLabClearRow(int32_t row)
 {
@@ -119,18 +136,22 @@ static void modLabDrawText(void)
 	int32_t i;
 	Stats *stats = &PARTNER_ENTITY.digimonEntity.stats;
 
-	for (i = 0; i < ROW_MESSAGE; i++) {
+	for (i = 0; i < ROW_COUNT; i++) {
 		modLabClearRow(i);
 	}
 	drawString("LAB MENU", 0, TEXT_ROW_Y(ROW_TITLE));
 
-	p = appendStr(line, "Bits ");
-	p = appendStr(p, formatInteger(MONEY, num, 6));
-	p = appendStr(p, "   HP ");
-	p = appendStr(p, formatInteger(stats->current.currentHP, num, 4));
-	p = appendStr(p, " of ");
-	appendStr(p, formatInteger(stats->base.hp, num, 4));
-	drawString(line, 0, TEXT_ROW_Y(ROW_STATS));
+	if (modLabMessage != NULL) {
+		drawString(modLabMessage, 0, TEXT_ROW_Y(ROW_STATS));
+	} else {
+		p = appendStr(line, "Bits ");
+		p = appendStr(p, formatInteger(MONEY, num, 6));
+		p = appendStr(p, "   HP ");
+		p = appendStr(p, formatInteger(stats->current.currentHP, num, 4));
+		p = appendStr(p, " of ");
+		appendStr(p, formatInteger(stats->base.hp, num, 4));
+		drawString(line, 0, TEXT_ROW_Y(ROW_STATS));
+	}
 
 	for (i = 0; i < MOD_LAB_OPTIONS; i++) {
 		if (i == MOD_LAB_OPT_FPS) {
@@ -155,11 +176,8 @@ static void modLabRender(int32_t instanceId)
 	GsSortBoxFill(&box, ACTIVE_ORDERING_TABLE, 7 - instanceId);
 	pos = &UI_BOX_DATA[MOD_LAB_BOX].finalPos;
 
-	for (row = 0; row <= ROW_MESSAGE; row++) {
-		if (row == ROW_MESSAGE && modLabMessage == NULL) {
-			break;
-		}
-		color = row == ROW_TITLE ? 4 : row == ROW_MESSAGE ? 3 : 0;
+	for (row = 0; row < ROW_COUNT; row++) {
+		color = row == ROW_TITLE ? 4 : (row == ROW_STATS && modLabMessage != NULL) ? 3 : 0;
 		renderString(color, pos->x + 12, pos->y + 8 + row * ROW_PITCH, BOX_W - 24, 0xC,
 			     0, TEXT_ROW_Y(row), 0, 1);
 	}
@@ -167,12 +185,10 @@ static void modLabRender(int32_t instanceId)
 			      BOX_W - 18, 0x10, 0);
 }
 
+/* shown in the stats row by the next modLabDrawText, until the next key */
 static void modLabShowMessage(char *msg)
 {
 	modLabMessage = msg;
-	modLabClearRow(ROW_MESSAGE);
-	drawString(msg, 0, TEXT_ROW_Y(ROW_MESSAGE));
-	DrawSync(0);
 }
 
 static void modLabFrames(int32_t n)
@@ -187,7 +203,6 @@ static void modLabSetFps(int32_t step)
 	MOD_FPS_MODE = (modLabFpsMode() + step + 3) % 3;
 	/* the option shows the new rate; an older message would only confuse */
 	modLabMessage = NULL;
-	modLabClearRow(ROW_MESSAGE);
 }
 
 static void modLabApply(void)
@@ -215,6 +230,20 @@ static void modLabApply(void)
 		break;
 	case MOD_LAB_OPT_FPS:
 		modLabSetFps(1);
+		break;
+	case MOD_LAB_OPT_EVOLVE:
+		/* MOD (master-tyrannomon): as handleEvoItems does, with natural gains */
+		if (PARTNER_ENTITY.digimonEntity.entity.type == DIGIMON_MASTER_TYRANNOMON) {
+			modLabShowMessage("Already evolved");
+		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
+			modLabShowMessage("Not now, try later");
+		} else {
+			EVOLUTION_TARGET = DIGIMON_MASTER_TYRANNOMON;
+			HAS_USED_EVOITEM = 0;
+			tamerSetState(6);
+			partnerSetState(13);
+			modLabShowMessage("Unpause to evolve");
+		}
 		break;
 	}
 }
@@ -248,6 +277,9 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 		if (pressed & (PAD_TRIANGLE | PAD_SELECT)) {
 			break;
 		}
+		if (pressed & (PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT | PAD_CROSS)) {
+			modLabMessage = NULL;
+		}
 		if (pressed & PAD_UP) {
 			modLabCursor = (modLabCursor + MOD_LAB_OPTIONS - 1) % MOD_LAB_OPTIONS;
 			playSound(0, 2);
@@ -273,7 +305,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 
 	playSound(0, 4);
 	removeStaticUIBox(MOD_LAB_BOX);
-	setRECT(&pos, 0, MOD_LAB_TEXT_Y, 0x100, (ROW_MESSAGE + 1) * 0xC);
+	setRECT(&pos, 0, MOD_LAB_TEXT_Y, 0x100, ROW_COUNT * 0xC);
 	clearTextSubArea(&pos);
 	modLabFrames(8);
 }
