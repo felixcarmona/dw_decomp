@@ -5693,6 +5693,12 @@ void BTL_checkTechCompatibility(void)
 
 	entry = EFE_POP1(EfeTechBoneOffset *);
 	table = entry;
+	if (entry->type == -2) {
+		/* MOD (new rows): an authored effect starts at its caster's entity point, whoever casts it */
+		EFE_BONE_OFFSET = &entry->offset;
+		EFE_SCRIPT_CONTEXT->boneOffset = EFE_BONE_OFFSET;
+		return;
+	}
 	type = (int16_t)getOriginalType(EFE_SCRIPT_CONTEXT->sourceEntity->type);
 	while (entry->type != type) {
 		if (entry->type < 0) {
