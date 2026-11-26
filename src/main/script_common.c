@@ -2955,6 +2955,10 @@ void renderVerticalLine(uint8_t boxId, int16_t x, int16_t y, int16_t h)
 	drawLine2P(color, x, y, x, (y + h) - 1, boxId, 0);
 }
 
+#if VERSION_IS(US)
+extern int32_t MAIN_D_80134FF0;
+#endif
+
 // clang-format off
 void setDialogueOwner(owner)
 	uint8_t owner;
@@ -2964,6 +2968,12 @@ void setDialogueOwner(owner)
 		CURRENT_DIALOGUE_OWNER = owner;
 		scriptPauseGame(CURRENT_DIALOGUE_OWNER);
 		setupDialogueBox(CURRENT_DIALOGUE_OWNER);
+#if VERSION_IS(US)
+	} else if (MAIN_D_80134FF0 == 0) {
+		/* MOD: a script that starts with the tamer's own line (owner 0xfd, the initial one) never paused the game:
+		   the tamer walked with the d-pad while the dialogue and its Yes/No were up */
+		scriptPauseGame(0xff);
+#endif
 	}
 }
 
