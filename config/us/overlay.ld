@@ -322,6 +322,15 @@ SECTIONS
                 .rodata.MOD_LANGUAGE_TITLE_GLYPHS
             );
             . = ALIGN(., 4);
+            /* Only the title reaches these (its first menu, the new game's card and its no-card question, the VS slot): out of
+             * MENU, which is full, to make room for the Player view's Look page. Their text stays in MENU. */
+            BUILD_DIR/src/main/main_menu.c.o(
+                .text.renderInitialMenu* .text.renderSelectNewGameCard* .text.renderConfirmVSSlot*
+                .text.renderConfirmNoCard*
+                .rodata.renderInitialMenu* .rodata.renderSelectNewGameCard* .rodata.renderConfirmVSSlot*
+                .rodata.renderConfirmNoCard*
+            );
+            . = ALIGN(., 4);
             /* Detection display only runs while the title owns EVL and MENU. */
             BUILD_DIR/src/main/main_menu.c.o(
                 .text.modNoticeDraw* .text.modNoticeRender* .text.modNoticeString*
@@ -330,6 +339,15 @@ SECTIONS
             );
             . = ALIGN(., 4);
             title_ui_END = .;
+
+            /* MOD (tamer looks): the Look page of the Player view. MENU, which that view runs from, is full; in the
+             * world nothing is kept at EVL's address (an evolution reads EVL when it starts, a closing menu reads
+             * KAR again), so the Player tab reads EVL to open the page. Its text is MENU's. */
+            look_ui_START = .;
+            BUILD_DIR/src/main/game_menu.c.o(.text.lookPage* .rodata.lookPage* .bss.lookPageState);
+            BUILD_DIR/src/main/mod_species.c.o(.text.lookTamerLoad .text.lookHairPalette);
+            BUILD_DIR/src/main/model.c.o(.text.lookTamerRelook);
+            . = ALIGN(., 4);
 
 		}
 	}
@@ -1011,7 +1029,8 @@ SECTIONS
              * the BIOS does not zero overlay bss. Card reloads occur only after
              * the lab's render callback has been removed. */
             BUILD_DIR/src/main/mod_lab.c.o(.rodata .rodata.LAB_FIELDS
-                .rodata.LAB_HOME_TEXT .rodata.LAB_NUMBER_LINES .bss.labTextHash .bss.labTextWidth);
+                .rodata.LAB_HOME_TEXT .rodata.LAB_NUMBER_LINES .bss.labTextHash .bss.labTextWidth
+                .rodata.LAB_LOOK_TEXT .rodata.LAB_HAIR_TEXT .rodata.LOOK_PAGE_TEXT);
             . = ALIGN(., 4);
 
 			LONG(0);

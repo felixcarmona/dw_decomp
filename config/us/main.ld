@@ -1073,6 +1073,7 @@ ASSERT(renderCardsView >= OVL_BTL_BASE + 0x800 && modCardTop >= OVL_BTL_BASE + 0
        "Card metadata sector overlaps the album renderer")
 ASSERT(title_ui_START >= OVL_READ_END(.MENU), "MENU sector read overwrites the title UI in EVL")
 ASSERT(title_ui_END <= OVL_END(.EVL), "Title UI is outside EVL")
+ASSERT(look_ui_START >= OVL_READ_END(.MENU), "MENU sector read overwrites the Look page in EVL")
 ASSERT(TFS_RING_ADDR + TFS_RING_SLOTS * TFS_SLOT_SIZE == TFS_RING_END,
        "TFS ring size does not match TFS_RING_END")
 ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with the curling map")

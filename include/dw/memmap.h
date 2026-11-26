@@ -133,6 +133,7 @@
  */
 #include <partner_mmd_max.h>
 #define TAMER_MMD_MAX		0xE000	/* BOYS.MMD 0xDECC (GCC: one array, mod 0002) */
+#define TAMER_COLD_MAX		0x1000	/* MOD (tamer looks): the buffer's tail, where a look's scene animation is read */
 #define MAP_SCRIPT_MAX		0x4000	/* a DG.SCN entry; the largest is 0x3800 */
 /*
  * MOD (MAPHEAD buffer, docs/mods/memory.md "MAPHEAD buffer"): the offset table

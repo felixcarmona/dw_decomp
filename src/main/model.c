@@ -3629,22 +3629,43 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	} else {
 		return 0;
 	}
-	/* MOD (partners-npc-c): the partner may have its own file */
-	name = (modelType == 3) ? getPartnerModelName(digiType) : getDigimonModelName(digiType);
-	loadDigimonTexture(digiType, name, m);
-	concatStrings(path, MAIN_D_8011D484, name);
-	concatStrings(path, path, MAIN_D_801340E4);
-	path[9] = digiType / 30 + '0';
-	if (modelType == 3 && getDigimonModelFileSize(digiType, path) > PARTNER_MMD_MAX) {
-		return 0; /* MOD (scale): never past PARTNER_MODEL_BUFFER (isPartnerModelFit) */
+	/* MOD (tamer looks): a chosen look brings its own texture and model */
+	if (modelType != 2 || digiType != 0 || !modLoadTamerLook(m)) {
+		/* MOD (partners-npc-c): the partner may have its own file */
+		name = (modelType == 3) ? getPartnerModelName(digiType) : getDigimonModelName(digiType);
+		loadDigimonTexture(digiType, name, m);
+		concatStrings(path, MAIN_D_8011D484, name);
+		concatStrings(path, path, MAIN_D_801340E4);
+		path[9] = digiType / 30 + '0';
+		if (modelType == 3 && getDigimonModelFileSize(digiType, path) > PARTNER_MMD_MAX) {
+			return 0; /* MOD (scale): never past PARTNER_MODEL_BUFFER (isPartnerModelFit) */
+		}
+		readDigimonModel(digiType, path, m->mmdPtr);
 	}
-	readDigimonModel(digiType, path, m->mmdPtr);
 	m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 	m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
 	GsMapModelingData((u_long *)&m->modelPtr->flags);
 	updateTMDTextureData((char *)m->modelPtr, m->pixelPage, m->pixelOffsetX, m->pixelOffsetY,
 	                     m->clutPage - 0x7A00);
 	return m;
+}
+
+/* MOD (tamer looks): the tamer on screen takes the chosen look. Same skeleton and animation slots: only its objects are linked again. */
+void lookTamerRelook(void)
+{
+	Entity *entity = &TAMER_ENTITY.entity;
+	PositionData *pos = entity->posData;
+	SkeletonBone *bone = getDigimonSkeleton(0);
+	int32_t i;
+
+	loadMMD(0, 2);
+	entity->animPtr = TAMER_MODEL.animTablePtr;
+	for (i = 0; i < DIGI_PARA(0).boneCount; ++pos, ++bone, ++i) {
+		if (bone->objIndex != -1) {
+			GsLinkObject4((u_long)TAMER_MODEL.modelPtr->obj, &pos->obj, bone->objIndex);
+		}
+	}
+	startAnimation(entity, 0);
 }
 
 void unloadModel(int32_t digiType, int32_t modelType)

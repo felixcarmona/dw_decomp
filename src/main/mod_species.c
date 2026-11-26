@@ -12,6 +12,7 @@
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/species.h>
+#include <dw/utils.h>
 #include <dw/mod_options.h>
 #include <dw/chinese.h>
 
@@ -1015,6 +1016,145 @@ void tickColdAnimation(Entity *entity)
 	}
 }
 
+/* MOD (tamer looks): see species.h */
+#define TAMER_LOOK_FILE		"TAMER.DAT"
+#define TAMER_COLD_BUFFER	(TAMER_MODEL_BUFFER + TAMER_MMD_MAX - TAMER_COLD_MAX)
+#define TAMER_COLD_CACHE	((uint8_t *)0x80210000) /* with RAM above 2 MB: right after the partner's cache */
+extern uint8_t TAMER_MODEL_BUFFER[];
+void uploadModelTexture(void *textureData, void *component);
+void modSmoothMapReset(void);
+uint8_t MOD_TAMER_LOOK;
+uint8_t MOD_TAMER_HAIR;
+static uint32_t TAMER_COLD_READY;	/* the entry the buffer's tail holds */
+static uint16_t TAMER_COLD_SECTOR;	/* 0: the loaded tamer has no cold entries */
+static uint8_t TAMER_COLD_CACHED;
+
+/* The loader and the relinking live in the EVL overlay's tail (config/us/overlay.ld, look_ui): that memory is free
+ * in the world, and the overlay is read when a look is asked for and its tail is not there. */
+#define LOOK_UI_MAGIC	0x4B4F4F4C
+extern const uint32_t lookPageMagic[]; /* game_menu.c, in the tail (an array here: not addressed through gp) */
+int32_t lookTamerLoad(void *component);
+void lookTamerRelook(void);
+#define LOOK_TIM_PALETTE	20	/* the first palette row inside a TIM */
+#define LOOK_HAIR_ROW	1	/* the hair's palette row (tools/tamer_looks/wig.py) */
+#define LOOK_LEVELS	0xC0	/* in the file's first sector: the brightness of each of the row's sixteen tones */
+void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels);
+
+void modLookOverlay(void)
+{
+	if (lookPageMagic[0] != LOOK_UI_MAGIC) {
+		loadDynamicLibrary(EVL_REL, NULL, 0, NULL, NULL);
+	}
+}
+
+/* The texture and the resident model of the chosen look; 0 = load the disc's tamer (look 0, or no file) */
+int32_t modLoadTamerLook(void *component)
+{
+	TAMER_COLD_SECTOR = 0;
+	if (MOD_TAMER_LOOK == 0) {
+		return 0;
+	}
+	modLookOverlay();
+	return lookTamerLoad(component);
+}
+
+void modTamerRelook(void)
+{
+	modLookOverlay();
+	lookTamerRelook();
+}
+
+/* The hair's palette row for a colour: tone i shows colour * level / 128. Tone 0 is the transparent one; the others
+ * carry the top bit so that black hair is never read as transparent. */
+void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels)
+{
+	int32_t i;
+	int32_t k;
+	uint32_t c;
+	uint32_t v;
+
+	row[0] = 0;
+	for (i = 1; i < 16; i++) {
+		v = 0x8000;
+		for (k = 0; k < 3; k++) {
+			c = (((rgb[k] * levels[i]) >> 7) + 4) >> 3;
+			v |= (c > 31 ? 31 : c) << (5 * k);
+		}
+		row[i] = v;
+	}
+}
+
+int32_t lookTamerLoad(void *component)
+{
+	uint16_t *head = (uint16_t *)TAMER_MODEL_BUFFER;
+	uint8_t *rgb;
+	void *texture;
+	int32_t sector;
+	int32_t sectors;
+	int32_t cold;
+
+	TAMER_COLD_SECTOR = 0;
+	TAMER_COLD_READY = 0;
+	TAMER_COLD_CACHED = 0;
+	if (!modFileOnDisc(TAMER_LOOK_FILE)) {
+		return 0;
+	}
+	readFileSectors(TAMER_LOOK_FILE, head, 0, 1);
+	sector = head[8 + 2 * (MOD_TAMER_LOOK - 1)];
+	sectors = head[9 + 2 * (MOD_TAMER_LOOK - 1)];
+	if (MOD_TAMER_LOOK > head[2] || head[6] == 0 || (sectors << 11) > TAMER_MMD_MAX - TAMER_COLD_MAX) {
+		return 0;
+	}
+	rgb = (uint8_t *)head + 0x80 + 3 * (MOD_TAMER_HAIR % head[6]);
+	cold = head[4];
+	if (MOD_COLD_CACHE_TYPE >= 0) {
+		readFileSectors(TAMER_LOOK_FILE, TAMER_COLD_CACHE, cold, head[5]);
+		TAMER_COLD_CACHED = 1;
+	}
+	modSmoothMapReset();
+	texture = malloc3(0x4800);
+	readFileSectors(TAMER_LOOK_FILE, texture, head[3], 9);
+	lookHairPalette((uint16_t *)((uint8_t *)texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW), rgb, (uint8_t *)head + LOOK_LEVELS);
+	uploadModelTexture(texture, component);
+	free3(texture);
+	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER, sector, sectors);
+	TAMER_COLD_SECTOR = cold;
+	return 1;
+}
+
+/* A scene animation of a look: from the cache above 2 MB, else read (the game waits) into the buffer's tail */
+static uint8_t *loadTamerColdAnimation(uint32_t entry)
+{
+	int32_t offset = (entry & 0xFFFF) * 4;
+	int32_t length = ((entry >> 16) & 0x7FFF) * 4;
+	int32_t count = ((offset & 0x7FF) + length + 0x7FF) >> 11;
+
+	if (TAMER_COLD_SECTOR == 0 || length == 0 || (count << 11) > TAMER_COLD_MAX) {
+		return NULL;
+	}
+	if (TAMER_COLD_CACHED) {
+		return TAMER_COLD_CACHE + offset;
+	}
+	if (entry != TAMER_COLD_READY) {
+		while (COLD_READ_BUSY) { /* the partner's read in flight */
+			tickFileReadQueue(0);
+		}
+		readFileSectors(TAMER_LOOK_FILE, TAMER_COLD_BUFFER, TAMER_COLD_SECTOR + (offset >> 11), count);
+		TAMER_COLD_READY = entry;
+	}
+	return TAMER_COLD_BUFFER + (offset & 0x7FF);
+}
+
+/* Reads a cold animation of the tamer's look ahead of its use, where the disc is being read anyway (a gym's load) */
+void modTamerColdPrefetch(int32_t animId)
+{
+	uint32_t *table = (uint32_t *)TAMER_ENTITY.entity.animPtr;
+
+	if (TAMER_COLD_SECTOR != 0 && table != NULL && (table[animId] & COLD_ANIM_FLAG)) {
+		loadTamerColdAnimation(table[animId]);
+	}
+}
+
 uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 {
 	Entity *entity = ent;
@@ -1026,6 +1166,9 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 	int32_t offset;
 	int32_t length;
 
+	if (entity == &TAMER_ENTITY.entity) {
+		return loadTamerColdAnimation(entry);
+	}
 	if (entity != (Entity *)&PARTNER_ENTITY.digimonEntity.entity) {
 		return NULL;
 	}

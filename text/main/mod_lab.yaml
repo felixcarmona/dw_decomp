@@ -319,6 +319,129 @@ MOD_LAB:
     LAB_STR_UNLOCK_CHART:
       ja: "Unlock evolution chart"
       en_us: "Unlock evolution chart"
+    LAB_STR_HAIRSTYLE:
+      ja: "Hairstyle"
+      en_us: "Hairstyle"
+    LAB_STR_HAIR_COLOUR:
+      ja: "Hair colour"
+      en_us: "Hair colour"
+    LAB_STR_LOOK_ORIGINAL:
+      ja: "Original"
+      en_us: "Original"
+    LAB_STR_LOOK_BALD:
+      ja: "Bald"
+      en_us: "Bald"
+    LAB_STR_LOOK_CLASSIC:
+      ja: "Classic"
+      en_us: "Classic"
+    LAB_STR_LOOK_MESSY:
+      ja: "Messy"
+      en_us: "Messy"
+    LAB_STR_LOOK_QUIFF:
+      ja: "Quiff"
+      en_us: "Quiff"
+    LAB_STR_LOOK_CURTAINS:
+      ja: "Curtains"
+      en_us: "Curtains"
+    LAB_STR_LOOK_BUZZ:
+      ja: "Buzz cut"
+      en_us: "Buzz cut"
+    LAB_STR_LOOK_LONG:
+      ja: "Long"
+      en_us: "Long"
+    LAB_STR_LOOK_MULLET:
+      ja: "Mullet"
+      en_us: "Mullet"
+    LAB_STR_LOOK_PONYTAIL:
+      ja: "Ponytail"
+      en_us: "Ponytail"
+    LAB_STR_LOOK_PIGTAILS:
+      ja: "Pigtails"
+      en_us: "Pigtails"
+    LAB_STR_LOOK_BUN:
+      ja: "Bun"
+      en_us: "Bun"
+    LAB_STR_LOOK_BUNS:
+      ja: "Twin buns"
+      en_us: "Twin buns"
+    LAB_STR_HAIR_BROWN:
+      ja: "Brown"
+      en_us: "Brown"
+    LAB_STR_HAIR_DARK_BROWN:
+      ja: "Dark brown"
+      en_us: "Dark brown"
+    LAB_STR_HAIR_BLACK:
+      ja: "Black"
+      en_us: "Black"
+    LAB_STR_HAIR_CHESTNUT:
+      ja: "Chestnut"
+      en_us: "Chestnut"
+    LAB_STR_HAIR_BLOND:
+      ja: "Blond"
+      en_us: "Blond"
+    LAB_STR_HAIR_LIGHT_BLOND:
+      ja: "Light blond"
+      en_us: "Light blond"
+    LAB_STR_HAIR_GINGER:
+      ja: "Ginger"
+      en_us: "Ginger"
+    LAB_STR_HAIR_RED:
+      ja: "Red"
+      en_us: "Red"
+    LAB_STR_HAIR_BURGUNDY:
+      ja: "Burgundy"
+      en_us: "Burgundy"
+    LAB_STR_HAIR_PINK:
+      ja: "Pink"
+      en_us: "Pink"
+    LAB_STR_HAIR_LAVENDER:
+      ja: "Lavender"
+      en_us: "Lavender"
+    LAB_STR_HAIR_PURPLE:
+      ja: "Purple"
+      en_us: "Purple"
+    LAB_STR_HAIR_NAVY:
+      ja: "Navy"
+      en_us: "Navy"
+    LAB_STR_HAIR_BLUE:
+      ja: "Blue"
+      en_us: "Blue"
+    LAB_STR_HAIR_TURQUOISE:
+      ja: "Turquoise"
+      en_us: "Turquoise"
+    LAB_STR_HAIR_GREEN:
+      ja: "Green"
+      en_us: "Green"
+    LAB_STR_HAIR_LIME:
+      ja: "Lime"
+      en_us: "Lime"
+    LAB_STR_HAIR_GREY:
+      ja: "Grey"
+      en_us: "Grey"
+    LAB_STR_HAIR_SILVER:
+      ja: "Silver"
+      en_us: "Silver"
+    LAB_STR_HAIR_WHITE:
+      ja: "White"
+      en_us: "White"
+    LAB_STR_LOOK_TURN:
+      ja: "L1/R1: turn"
+      en_us: "L1/R1: turn"
+    LAB_STR_LOOK_OPEN:
+      ja: "Look"
+      en_us: "Look"
+    LAB_STR_LOOK_SAVE:
+      ja: "Save"
+      en_us: "Save"
+    LAB_STR_LOOK_EXIT:
+      ja: "Exit"
+      en_us: "Exit"
+    LAB_STR_KEY_CONFIRM:
+      ja: "△"
+      en_us: "△"
+    LAB_STR_KEY_CANCEL:
+      ja: "×"
+      en_us: "×"
     LAB_STR_MSG_LEARNED:
       ja: "Learned!"
       en_us: "Learned!"

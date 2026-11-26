@@ -336,6 +336,20 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
  */
 #define COLD_ANIM_FLAG		0x80000000
 #define COLD_ANIM_MAX		0x2000
+
+/*
+ * MOD (tamer looks): look 0 is the disc's tamer; looks 1.. (bald, then the hairstyles) and the hair colours are in TAMER.DAT
+ * (tools/tamer_pack.py). A look's model keeps its scene-only animations as cold entries, read into the tail of the tamer's
+ * buffer. Hair polygons are textured with their own palette row, written for the chosen colour (lookHairPalette).
+ */
+#define TAMER_LOOK_COUNT	13
+#define TAMER_HAIR_COUNT	20
+extern uint8_t MOD_TAMER_LOOK;
+extern uint8_t MOD_TAMER_HAIR;
+struct ModelComponent;
+int32_t modLoadTamerLook(void *component);
+void modTamerRelook(void);
+void modTamerColdPrefetch(int32_t animId);
 uint8_t *loadColdAnimation(void *entity, uint32_t entry, int32_t animId); /* an Entity * */
 extern uint32_t MOD_COLD_PENDING;
 int32_t modProbeRam(void);

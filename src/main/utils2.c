@@ -419,6 +419,9 @@ void loadDynamicLibrary(Overlay lib, uint8_t *isComplete, uint8_t isAsync,
 	if (lib != BTL_REL) {
 		modBtlPreloadDrop(); /* MOD (quick battle start), btl.c */
 	}
+	if (lib == TRN_REL || lib == TRN2_REL) {
+		modTamerColdPrefetch(9); /* MOD (tamer looks): the gym's gesture, read with the gym and not when it starts */
+	}
 	if (!isAsync) {
 		readFile(REL_BIN_FILES[lib - 1], (nv = REL_BIN_OFFSETS[lib - 1]));
 	} else {
