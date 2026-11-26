@@ -18,10 +18,6 @@
  * NEW STATUS BARS. The field's happiness and discipline bars as patches 0162-0164 draw them (one fill, red below the
  * midpoint, green from it, on a grey track), or off, as the original drew them (renderStatusBars, partner_impl.c).
  *
- * FRAME RATE. 20 (the original: one render per tick) or 60 fps (MOD_FPS_MODE, dw/mod_fps.h); the game logic runs
- * at 20 Hz in both (30 is still a mode for an FPS=30 build). A build made with FPS=20
- * keeps 20 and the option shows it without a choice.
- *
  * LANGUAGE. English or Spanish (docs/mods/language.md). The executable is built in both languages with every string
  * padded to the longer of its two texts, so the two builds differ only in those bytes: the disc carries the other
  * language's as runs (address, bytes; tools/langpatch.py), written over the strings when the language changes. The
@@ -335,18 +331,6 @@ void modSetButtons(int32_t layout)
 {
 	MOD_OPT_BUTTONS = layout == MOD_BUTTONS_JP ? MOD_BUTTONS_JP : MOD_BUTTONS_US;
 	uploadFrames();
-}
-
-int32_t modFrameRate(void)
-{
-	return MOD_FPS_MODE == 2 ? 60 : MOD_FPS_MODE == 1 ? 30 : 20;
-}
-
-void modSetFrameRate(int32_t fps)
-{
-#if FPS != 20
-	MOD_FPS_MODE_RUN = fps == 60 ? 2 : fps == 30 ? 1 : 0;
-#endif
 }
 
 /* MOD (language): the disc has the file (its FILE_OFFSET_TABLE entry got a sector: build-disc.py wrote it) */

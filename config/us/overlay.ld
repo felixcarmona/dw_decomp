@@ -896,7 +896,8 @@ SECTIONS
 			. = ALIGN(., 4);
 			/* their switch tables and literals, which only they read */
 			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
-				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue);
+				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue
+                .rodata.MOD_OPT_TEXT); /* Options row pointers are read only while MENU is loaded. */
 			. = ALIGN(., 4);
 			/* MOD (heap): read-only data of the card menus that only this overlay reaches (tools/xref.py classes): their
 			 * messages, labels and the save icon. Nothing that is ever written goes here: a reload would undo it */
@@ -992,7 +993,6 @@ SECTIONS
             BUILD_DIR/src/main/main_menu.c.o(.text.modOptionBytes .text.modOptionText .text.modOptionCount*);
             BUILD_DIR/src/main/main_menu.c.o(.text.setRegisteredSpecies*);
             BUILD_DIR/src/main/main_menu.c.o(.text.swapPartnerSpecies);
-            BUILD_DIR/src/main/mod_options.c.o(.text.modFrameRate);
             BUILD_DIR/src/main/sjis.c.o(.text.asciiToShiftJIS);
             . = ALIGN(., 4);
 

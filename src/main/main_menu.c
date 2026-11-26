@@ -11,6 +11,7 @@ extern int MOD_CHEATS_CARD_MODE, MOD_CHEATS_CARD_DONE;
 #include <dw/font.h>
 #include <dw/ids.h>
 #include <dw/mod_options.h>
+#include <dw/mod_fps.h>
 #include <dw/mod_version.h>
 #include <dw/mod_rules.h>
 #include <dw/pstat.h>
@@ -288,14 +289,13 @@ static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen i
 #define MOD_OPT_ROW_STORY	3 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
 #define MOD_OPT_ROW_DIFF	4 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
 #define MOD_OPT_ROW_QUICK	5 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
-#define MOD_OPT_ROW_FPS	6
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	11 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	7
-#define MOD_OPT_ROW_LANG	8
-#else
-#define MOD_OPT_ROWS	10
+#define MOD_OPT_ROWS	10 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	6
 #define MOD_OPT_ROW_LANG	7
+#else
+#define MOD_OPT_ROWS	9
+#define MOD_OPT_ROW_LANG	6
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4728,7 +4728,7 @@ static void modOptionBytes(uint8_t *d)
 {
 	d[0] = MOD_OPT_BUTTONS;
 	d[1] = 1; /* Reserved digital-clock byte. */
-	d[2] = modFrameRate();
+	d[2] = 20; /* Reserved frame-rate byte; safe for older readers. */
 	d[3] = 1; /* Reserved care-HUD byte: always enabled, including for older readers. */
 #if FONT_SWITCH
 	d[4] = MOD_FONT == MOD_FONT_NEW ? 1 : MOD_FONT == MOD_FONT_CLASSIC ? 2 : 0; /* FONT */
@@ -4757,11 +4757,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 1) {
 		modSetButtons(d[0]);
 	}
-	/* Bytes 1, 3 and 13 are reserved; legacy display choices are ignored. */
-	if (len >= 3 && (d[2] == 20 || d[2] == 30 || d[2] == 60)) {
-		modSetFrameRate(d[2]);
-	}
-	/* Byte 3 is reserved; older saves may contain either value. */
+	/* Bytes 1, 2, 3 and 13 are reserved; legacy display choices are ignored. */
 #if FONT_SWITCH
 	if (len >= 5) {
 		modSetFont(d[4] == 0 ? MOD_FONT_ORIGINAL : d[4] == 2 ? MOD_FONT_CLASSIC : MOD_FONT_NEW);
@@ -4932,8 +4928,6 @@ void modBootOptions(void)
  * counter that fit in MOD_CPU_LINES lines. The counter follows the screen whatever the emulated CPU does, so the count grows with
  * an overclock: DuckStation 3801 at 100 %, 7389 at 200 %, 9303 at 250 %, 10977 at 300 %. MOD_CPU_SPINS_FAST sits between 200 and 250.
  */
-#define MOD_CPU_LINES		16
-#define MOD_CPU_SPINS_FAST	8500
 #define MOD_NOTICE_NO_RAM	1
 #define MOD_NOTICE_SLOW_CPU	2
 #define MOD_NOTICE_LEFT		-148 /* the panel, over the top of the logo */
@@ -4954,7 +4948,8 @@ static char *MOD_NOTICE_TEXT[MOD_NOTICE_STRS] = {
 	MOD_NOTICE_STR_HEAD1, MOD_NOTICE_STR_HEAD2, MOD_NOTICE_STR_RAM, MOD_NOTICE_STR_CPU, MOD_NOTICE_STR_MISSING, MOD_NOTICE_STR_READY,
 };
 
-void modNoticeProbe(void)
+/* Keep this loop identical at boot and during idle presentation waits. */
+int32_t modCpuProbe(void)
 {
 	volatile uint16_t *lines = (volatile uint16_t *)0x1F801110;
 	uint16_t start = *lines;
@@ -4964,6 +4959,17 @@ void modNoticeProbe(void)
 		spins++;
 	} while ((uint16_t)(*lines - start) < MOD_CPU_LINES);
 	MOD_CPU_SPINS = spins;
+	/* Keep CPU advice current without repeating the RAM probe during play. */
+	MOD_NOTICE = (MOD_NOTICE & MOD_NOTICE_NO_RAM) | (spins < MOD_CPU_SPINS_FAST ? MOD_NOTICE_SLOW_CPU : 0);
+	return spins;
+}
+
+void modNoticeProbe(void)
+{
+	modCpuProbe();
+#if FPS != 20
+	MOD_FPS_MODE_RUN = MOD_CPU_SPINS >= MOD_CPU_SPINS_FAST ? 2 : 0;
+#endif
 	MOD_NOTICE = (modProbeRam() ? 0 : MOD_NOTICE_NO_RAM) | (MOD_CPU_SPINS < MOD_CPU_SPINS_FAST ? MOD_NOTICE_SLOW_CPU : 0);
 }
 
@@ -5993,7 +5999,7 @@ void renderInitialMenu(void)
  * MOD (options): the box's rows, each a label and its values side by side (two, three for FONT); the chosen value is
  * drawn yellow and the others grey, so the row reads as a switch. Left and right step through the values, confirm takes
  * the next one (round). With the original font the values do not fit the screen beside "JAPANESE CONTROLS" (200 pixels,
- * and 61 for "20 FPS"): a row then shows its chosen value only, as the original game's own settings do. When even that
+ * and the values): a row then shows its chosen value only, as the original game's own settings do. When even that
  * does not fit with the labels and the values in two columns (the widest label beside the widest value, "TRANSLATED":
  * 342 pixels), each row's value ends at the box's right edge instead, so only a row's own label and values count.
  */
@@ -6010,7 +6016,6 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
 	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL }, /* MOD (difficulty) */
 	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
-	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC },
 #endif
@@ -6073,7 +6078,7 @@ static int32_t modOptionCount(int32_t row)
     return 2;
 }
 
-/* the index of the row's chosen value, -1 none (an FPS=20 build's frame rate, or 30 from an FPS=30 build) */
+/* The index of the row's chosen value. */
 static int32_t modOptionValue(int32_t row)
 {
 	switch (row) {
@@ -6106,11 +6111,7 @@ static int32_t modOptionValue(int32_t row)
 	case MOD_OPT_ROW_SIGNS:
 		return MOD_OPT_SIGNS;
 	}
-#if FPS == 20
-	return -1;
-#else
-	return modFrameRate() == 60 ? 1 : modFrameRate() == 20 ? 0 : -1;
-#endif
+	return 0;
 }
 
 static void modSetOption(int32_t row, int32_t value)
@@ -6139,9 +6140,6 @@ static void modSetOption(int32_t row, int32_t value)
 		break;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = value;
-		break;
-	case MOD_OPT_ROW_FPS:
-		modSetFrameRate(value ? 60 : 20);
 		break;
 #if FONT_SWITCH
 	case MOD_OPT_ROW_FONT:
