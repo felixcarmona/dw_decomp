@@ -487,3 +487,12 @@ TOURNAMENT_GRADES:
       ja: ＢＴ
       en_us: NULL
       en_eu: BT
+
+# MOD (amounts): the mark of a new card in the list of what a purchase of card packs gave (script_common.c,
+# calculateCardMenuStrings). `storage: define`: a literal where the C uses it.
+MOD_PACK_RESULTS_TEXT:
+  storage: define
+  strings:
+    STR_CARD_NEW:
+      ja: NEW
+      en_us: NEW

@@ -839,6 +839,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/font.c.o(.sbss.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/shop/script_menu.c.o(.sbss.*); /* MOD (amounts) */
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/main_menu.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/btl/battle_setup.c.o(.sbss.*);
@@ -936,6 +938,8 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_feed.c.o(.bss.*);
         BUILD_DIR/src/main/mod_qol.c.o(.bss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/shop/script_menu.c.o(.bss.*); /* MOD (amounts) */
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tfs_stream.c.o(.bss.*);
         . = ALIGN(., 4);

@@ -1447,11 +1447,43 @@ int32_t isPartnerBaby(void)
 	return 0;
 }
 
+/*
+ * MOD (amounts): UP and DOWN change SHOP_AMOUNT by one, by ten with ALT held, from 1 to MAX_SHOP_AMOUNT and round:
+ * down from 1 is the most, up from the most is 1 (a ten-step stops at either end). The shop's amount box, Mojyamon's
+ * trades and the card packs (script_menu.c). 1 when it changed.
+ */
+int32_t modAmountStep(void)
+{
+	int32_t n;
+	int32_t step;
+
+	n = SHOP_AMOUNT;
+	step = (POLLED_INPUT & ALT_BUTTON) ? 10 : 1;
+	if (isKeyDown(0x1000)) {
+		n = n >= MAX_SHOP_AMOUNT ? 1 : n + step;
+		if (n > MAX_SHOP_AMOUNT) {
+			n = MAX_SHOP_AMOUNT;
+		}
+	} else if (isKeyDown(0x4000)) {
+		n = n <= 1 ? MAX_SHOP_AMOUNT : n - step;
+		if (n < 1) {
+			n = 1;
+		}
+	} else {
+		return 0;
+	}
+	if (n != SHOP_AMOUNT) {
+		SHOP_AMOUNT = n;
+		playSound(0, 2);
+	}
+
+	return 1;
+}
+
 void tickItemMenuAmountBox(void)
 {
 	RECT origin;
 	uint8_t owner;
-	int8_t q;
 	int32_t unitPrice;
 
 	if (UI_BOX_DATA[3].state != 1) {
@@ -1462,34 +1494,7 @@ void tickItemMenuAmountBox(void)
 		return;
 	}
 
-	if (SHOP_AMOUNT != MAX_SHOP_AMOUNT && isKeyDown(0x1000)) {
-		if (POLLED_INPUT & ALT_BUTTON) {
-			SHOP_AMOUNT += 10;
-			if (SHOP_AMOUNT > MAX_SHOP_AMOUNT) {
-				SHOP_AMOUNT -= 10;
-			}
-		} else {
-			SHOP_AMOUNT += 1;
-		}
-
-		playSound(0, 2);
-		updateItemMenuAmountBoxString();
-
-		return;
-	}
-	if (SHOP_AMOUNT != 1 && isKeyDown(0x4000)) {
-		if (POLLED_INPUT & ALT_BUTTON) {
-			q = SHOP_AMOUNT;
-			q -= 10;
-			if (q <= 0) {
-				q += 10;
-			}
-			SHOP_AMOUNT = q;
-		} else {
-			SHOP_AMOUNT -= 1;
-		}
-
-		playSound(0, 2);
+	if (modAmountStep() != 0) { /* MOD (amounts): wraps, as the Mojyamon and card pack boxes */
 		updateItemMenuAmountBoxString();
 
 		return;
@@ -2710,7 +2715,24 @@ void calculateCardMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 	type = box->buf[idx];
 	amount = box->buf[idx + 1];
 
-	if (type != 0xff) {
+	if (type != 0xff && MOD_PACK_RESULTS) {
+		/* MOD (amounts): a card of a purchase of packs: its name (colour 7 when it is new), how many came, NEW */
+		*out++ = 1;
+		*out++ = (amount & 0x80) ? 7 : 1;
+		id = CARD_DATA[type].digimonId;
+		strcpy(out, DIGIMON_NAME(id));
+		out += strlen(DIGIMON_NAME(id));
+		*out++ = 0x17;
+		*out++ = 0;
+		*out++ = 'x';
+		out = intToStringSJIS(out, amount & 0x7f, 2, 0);
+		if (amount & 0x80) {
+			*out++ = 0xf;
+			*out++ = 0;
+			strcpy(out, STR_CARD_NEW);
+			out += strlen(STR_CARD_NEW);
+		}
+	} else if (type != 0xff) {
 		*out++ = 1;
 		if (ITEM_MENU_TYPE == 3) {
 			if (amount != 0) {
