@@ -1025,6 +1025,7 @@ void uploadModelTexture(void *textureData, void *component);
 void modSmoothMapReset(void);
 uint8_t MOD_TAMER_LOOK;
 uint8_t MOD_TAMER_HAIR;
+uint8_t MOD_TAMER_FACE;
 static uint32_t TAMER_COLD_READY;	/* the entry the buffer's tail holds */
 static uint16_t TAMER_COLD_SECTOR;	/* 0: the loaded tamer has no cold entries */
 static uint8_t TAMER_COLD_CACHED;
@@ -1113,7 +1114,7 @@ int32_t lookTamerLoad(void *component)
 	}
 	modSmoothMapReset();
 	texture = malloc3(0x4800);
-	readFileSectors(TAMER_LOOK_FILE, texture, head[3], 9);
+	readFileSectors(TAMER_LOOK_FILE, texture, head[3] + (MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE * 9 : 0), 9); /* one texture per face */
 	lookHairPalette((uint16_t *)((uint8_t *)texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW), rgb, (uint8_t *)head + LOOK_LEVELS);
 	uploadModelTexture(texture, component);
 	free3(texture);

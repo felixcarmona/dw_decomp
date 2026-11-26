@@ -245,7 +245,7 @@ SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* Bound every record, including the optional swap and daily pickup bitmap. */
 #define SAVE_RECORDS_MAX (sizeof(SaveExtHead) + 12 * 4 + 4 + 60 + 4 + 32 + 80 + 200 + \
                          2 * (NUM_DIGIMON / 8) + MOD_OPT_BYTES + 4 + sizeof(MOD_GROUND_PICKED) + 4 + 4 + 8 + CARD_EXTRA_BYTES + 12 + \
-                         4 + 2 /* the tamer's look */)
+                         4 + 3 /* the tamer's look */)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_INLINE_BYTES);
 SAVE_LAYOUT_CHECK(inlinePadding, sizeof(((RegisteredDigimon *)0)->unk24) == 28 &&
                   __builtin_offsetof(RegisteredDigimon, unk24) == 0x24 && sizeof(RegisteredDigimon) == 0x40);
@@ -4444,6 +4444,7 @@ void loadSavegame(SavegamePayload *savegame)
 	modForgetGroundPicked(); /* A missing new record, in any old layout, means no pickups today. */
 	MOD_TAMER_LOOK = 0; /* MOD (tamer looks): and the original tamer */
 	MOD_TAMER_HAIR = 0;
+	MOD_TAMER_FACE = 0;
 
 	SAVED_STATE.playerPos = savegame->tamerPosition;
 	SAVED_STATE.money = savegame->money;
@@ -5153,7 +5154,8 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_CARD_COUNTS, MOD_CARD_EXTRA, sizeof(MOD_CARD_EXTRA));
 		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 		swap[0] = MOD_TAMER_LOOK | (MOD_TAMER_HAIR << 8); /* MOD (tamer looks) */
-		p = putRecord(p, SAVE_TAG_TAMER_LOOK, swap, 2);
+		swap[1] = MOD_TAMER_FACE;
+		p = putRecord(p, SAVE_TAG_TAMER_LOOK, swap, 3);
 	}
 	{ uint8_t layout = 1; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
@@ -5534,6 +5536,7 @@ static void applyRecords(uint8_t *e)
 			if (len >= 2 && d[0] < TAMER_LOOK_COUNT && d[1] < TAMER_HAIR_COUNT) {
 				MOD_TAMER_LOOK = d[0];
 				MOD_TAMER_HAIR = d[1];
+				MOD_TAMER_FACE = len >= 3 && d[2] < TAMER_FACE_COUNT ? d[2] : 0;
 			}
 			break;
 		case SAVE_TAG_GROUND_PICKUP_BITS:

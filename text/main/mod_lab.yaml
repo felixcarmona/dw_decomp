@@ -436,6 +436,9 @@ MOD_LAB:
     LAB_STR_LOOK_EXIT:
       ja: "Exit"
       en_us: "Exit"
+    LAB_STR_LOOK_FACE:
+      ja: "Face"
+      en_us: "Face"
     LAB_STR_KEY_CONFIRM:
       ja: "△"
       en_us: "△"

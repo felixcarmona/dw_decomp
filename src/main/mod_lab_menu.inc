@@ -77,7 +77,7 @@ char *const LAB_HAIR_TEXT[] = {
 /* The Player view's Look page (game_menu.c): its two row names, its two hints, what its three buttons do and the two buttons */
 char *const LOOK_PAGE_TEXT[] = { LAB_STR_HAIRSTYLE, LAB_STR_HAIR_COLOUR, LAB_STR_SIMPLE_ADJUST, LAB_STR_LOOK_TURN,
                                  LAB_STR_LOOK_OPEN, LAB_STR_LOOK_SAVE, LAB_STR_LOOK_EXIT,
-                                 LAB_STR_KEY_CONFIRM, LAB_STR_KEY_CANCEL };
+                                 LAB_STR_KEY_CONFIRM, LAB_STR_KEY_CANCEL, LAB_STR_LOOK_FACE };
 static char *LAB_STAGES[] = { "", "Baby I", "Baby II", "Rookie", "Champion", "Ultimate", "Mega" };
 
 static char *appendStr(char *dst, const char *src)

@@ -344,8 +344,10 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
  */
 #define TAMER_LOOK_COUNT	13
 #define TAMER_HAIR_COUNT	20
+#define TAMER_FACE_COUNT	2	/* the faces of looks 1..: one texture each (tools/tamer_looks/face.py) */
 extern uint8_t MOD_TAMER_LOOK;
 extern uint8_t MOD_TAMER_HAIR;
+extern uint8_t MOD_TAMER_FACE;
 struct ModelComponent;
 int32_t modLoadTamerLook(void *component);
 void modTamerRelook(void);

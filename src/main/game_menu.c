@@ -2581,6 +2581,11 @@ void free3(void *ptr);
 #define LOOK_KEY_W	0x7c
 #define LOOK_VALUE_X	0x33	/* the value box, from the middle of the window */
 #define LOOK_VALUE_W	86
+#define LOOK_ROWS	3	/* hairstyle, hair colour, face */
+/* Where each row's name and value are drawn in the text area: the face's go right of the first hint */
+static const uint8_t lookPageNameU[LOOK_ROWS] = { 0, 0x80, 0xb8 };
+static const uint8_t lookPageValueU[LOOK_ROWS] = { 0, 0x80, 0xf0 };
+#define LOOK_ROW_V(row, v)	((row) == 2 ? LOOK_HINT_Y : (v))
 #define LOOK_HEAD_OBJECT	1
 #define LOOK_HAIR_MODE		0x34u	/* textured gouraud triangle: seven words */
 #define LOOK_HAIR_WORDS		7
@@ -2591,8 +2596,8 @@ static int16_t lookTurn;
 static struct {
 	uint16_t palette[16]; /* the hair's palette row on its way to video memory */
 	uint8_t levels[16];
-	uint8_t saved[2]; /* the look and the colour when the page opened: leaving without saving brings them back */
-	int16_t width[2];
+	uint8_t saved[3]; /* the look, the colour and the face when the page opened: leaving without saving brings them back */
+	int16_t width[3];
 	uint8_t row;
 	uint8_t looks;
 	uint8_t colours;
@@ -2617,19 +2622,29 @@ int32_t playerKeyHint(int32_t key, int32_t x, int32_t y)
 	return (x + drawStringMode(str, x, y, fitStringMode(str, 0x60)) + 11) & ~3;
 }
 
+/* Whether a row has something to choose: the original tamer has only his hairstyle, the bald head has no hair colour */
+static const char lookPageFaces[TAMER_FACE_COUNT][2] = { "1", "2" };
+static const char lookPageDash[] = "-"; /* a row with nothing to choose */
+static int32_t lookPageRowOpen(int32_t row)
+{
+	return MOD_TAMER_LOOK >= (row == 1 ? 2 : row == 2 ? 1 : 0);
+}
+
 static void lookPageValue(int32_t row)
 {
 	RECT rect;
-	char *str = row == 0 ? LAB_LOOK_TEXT[MOD_TAMER_LOOK] : MOD_TAMER_LOOK >= 2 ? LAB_HAIR_TEXT[MOD_TAMER_HAIR] : "-"; /* no hair, no colour */
+	char *str = !lookPageRowOpen(row) ? (char *)lookPageDash : row == 0 ? LAB_LOOK_TEXT[MOD_TAMER_LOOK] :
+	            row == 1 ? LAB_HAIR_TEXT[MOD_TAMER_HAIR] : (char *)lookPageFaces[MOD_TAMER_FACE];
 	int32_t mode = fitStringMode(str, LOOK_VALUE_W - 6);
+	int32_t u = lookPageValueU[row];
+	int32_t v = LOOK_ROW_V(row, LOOK_VALUE_Y);
 
-	setRECT(&rect, row * 0x80, LOOK_VALUE_Y, 0x80, 12);
+	setRECT(&rect, u, v, row == 2 ? 0x0c : 0x80, 12);
 	clearTextSubArea(&rect);
-	drawStringMode(str, row * 0x80, LOOK_VALUE_Y, mode);
+	drawStringMode(str, u, v, mode);
 	lookPageState.width[row] = measureStringMode(str, mode);
 }
 
-/* A new hair colour is a new palette row: sixteen words sent to video memory, the model is not touched. */
 static void lookPageRetint(void)
 {
 	RECT rect;
@@ -2682,6 +2697,7 @@ int32_t lookPageOpen(void)
 {
 	RECT rect;
 	uint16_t *head;
+	char *str;
 	int32_t i;
 
 	if (!modFileOnDisc((char *)lookPageFile) || (head = malloc3(0x800)) == NULL) {
@@ -2704,13 +2720,15 @@ int32_t lookPageOpen(void)
 	lookPageState.row = 0;
 	lookPageState.saved[0] = MOD_TAMER_LOOK;
 	lookPageState.saved[1] = MOD_TAMER_HAIR;
+	lookPageState.saved[2] = MOD_TAMER_FACE;
 	lookTurn = 0;
 	setRECT(&rect, 0, LOOK_HINT_Y, 256, 48);
 	clearTextSubArea(&rect);
-	drawString(LOOK_PAGE_TEXT[2], 0, LOOK_HINT_Y);
+	drawStringMode(LOOK_PAGE_TEXT[2], 0, LOOK_HINT_Y, fitStringMode(LOOK_PAGE_TEXT[2], 0xb4));
 	drawString(LOOK_PAGE_TEXT[3], 0, LOOK_HINT_Y + 12);
-	for (i = 0; i < 2; i++) {
-		drawStringMode(LOOK_PAGE_TEXT[i], i * 0x80, LOOK_NAME_Y, fitStringMode(LOOK_PAGE_TEXT[i], 84));
+	for (i = 0; i < LOOK_ROWS; i++) {
+		str = LOOK_PAGE_TEXT[i == 2 ? 9 : i];
+		drawStringMode(str, lookPageNameU[i], LOOK_ROW_V(i, LOOK_NAME_Y), fitStringMode(str, i == 2 ? 0x36 : 84));
 		lookPageValue(i);
 	}
 	playerKeyHint(2, playerKeyHint(1, LOOK_LEAVE_U, LOOK_HINT_Y + 12), LOOK_HINT_Y + 12);
@@ -2722,9 +2740,10 @@ void lookPageClose(void)
 {
 	RECT rect;
 
-	if (MOD_TAMER_LOOK != lookPageState.saved[0]) {
+	if (MOD_TAMER_LOOK != lookPageState.saved[0] || MOD_TAMER_FACE != lookPageState.saved[2]) {
 		MOD_TAMER_LOOK = lookPageState.saved[0];
 		MOD_TAMER_HAIR = lookPageState.saved[1];
+		MOD_TAMER_FACE = lookPageState.saved[2];
 		modTamerRelook();
 	} else if (MOD_TAMER_HAIR != lookPageState.saved[1]) {
 		MOD_TAMER_HAIR = lookPageState.saved[1];
@@ -2745,6 +2764,7 @@ void lookPageInput(void)
 	if (isKeyDown(CONFIRM_BUTTON) != 0) { /* save: the page closes with the look as it is */
 		lookPageState.saved[0] = MOD_TAMER_LOOK;
 		lookPageState.saved[1] = MOD_TAMER_HAIR;
+		lookPageState.saved[2] = MOD_TAMER_FACE;
 		lookPageClose();
 		playSound(0, 3);
 		MENU_STATE = 1;
@@ -2756,9 +2776,16 @@ void lookPageInput(void)
 	if (POLLED_INPUT & 8) {
 		lookTurn = (lookTurn + 96) & 0xFFF;
 	}
-	if ((CHANGED_INPUT & 0x5000) && MOD_TAMER_LOOK >= 2) {
-		lookPageState.row ^= 1;
-		playSound(0, 2);
+	if (CHANGED_INPUT & 0x5000) { /* up or down: the next row that has something to choose */
+		step = lookPageState.row;
+		do {
+			step = (step + ((CHANGED_INPUT & 0x1000) ? LOOK_ROWS - 1 : 1)) % LOOK_ROWS;
+		} while (!lookPageRowOpen(step));
+		if (step != lookPageState.row) {
+			lookPageState.row = step;
+			playSound(0, 2);
+		}
+		step = 0;
 	}
 	if (CHANGED_INPUT & 0x2000) {
 		step = 1;
@@ -2773,9 +2800,13 @@ void lookPageInput(void)
 		MOD_TAMER_LOOK = (MOD_TAMER_LOOK + lookPageState.looks + step) % lookPageState.looks;
 		modTamerRelook();
 		lookPageValue(1);
-	} else {
+		lookPageValue(2);
+	} else if (lookPageState.row == 1) {
 		MOD_TAMER_HAIR = (MOD_TAMER_HAIR + lookPageState.colours + step) % lookPageState.colours;
 		lookPageRetint();
+	} else {
+		MOD_TAMER_FACE = (MOD_TAMER_FACE + TAMER_FACE_COUNT + step) % TAMER_FACE_COUNT;
+		modTamerRelook();
 	}
 	lookPageValue(lookPageState.row);
 }
@@ -2788,17 +2819,18 @@ void lookPageRender(void)
 	int32_t k;
 	int32_t y;
 
-	if (MOD_TAMER_LOOK < 2) { /* the colour row stays, showing a dash, and cannot be chosen */
+	if (!lookPageRowOpen(lookPageState.row)) { /* a row with nothing to choose stays, showing a dash */
 		lookPageState.row = 0;
 	}
 	renderSeparatorLines(TAMER_VIEW_PLAYER_LINES, 0xb, 5);
 	renderString(3, e->posX, e->posY + 1, e->uvWidth, 0xc, e->uvX, e->uvY, 5, 1);
 	renderString(0, -0x54, -0x50, 0x48, 0xc, 0, 0x30, 5, 1);
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < LOOK_ROWS; i++) {
 		y = -0x34 + i * 0x14;
-		renderString(i == lookPageState.row ? 3 : 0, -0x29, y, 0x54, 0xc, i * 0x80, LOOK_NAME_Y, 5, 1);
+		renderString(i == lookPageState.row ? 3 : 0, -0x29, y, i == 2 ? 0x38 : 0x54, 0xc, lookPageNameU[i],
+		             LOOK_ROW_V(i, LOOK_NAME_Y), 5, 1);
 		renderString(0, LOOK_VALUE_X + (LOOK_VALUE_W - lookPageState.width[i]) / 2, y, lookPageState.width[i], 0xc,
-		             i * 0x80, LOOK_VALUE_Y, 5, 1);
+		             lookPageValueU[i], LOOK_ROW_V(i, LOOK_VALUE_Y), 5, 1);
 		if (i == lookPageState.row) {
 			for (k = 0; k < 4; k++) {
 				drawLine2P(0x73f6ff, LOOK_VALUE_X - 7 + k, y + 5 - k, LOOK_VALUE_X - 7 + k, y + 6 + k, 5, 0);
@@ -2812,7 +2844,7 @@ void lookPageRender(void)
 	renderString(0, LOOK_KEY_X, -0x50, LOOK_KEY_W, 0xc, LOOK_LEAVE_U, LOOK_HINT_Y + 12, 5, 1);
 	renderDigiviceEntity(ENTITY_TABLE[0], 0);
 	renderInsetBox(r->x, r->y, r->w, r->h, 5);
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < LOOK_ROWS; i++) {
 		renderInsetBox(160 + LOOK_VALUE_X, 118 - 0x34 + i * 0x14, LOOK_VALUE_W, 14, 5);
 	}
 }
