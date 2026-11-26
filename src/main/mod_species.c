@@ -36,6 +36,7 @@ static uint16_t SPECIES_CACHE_AGE[SPECIES_CACHE_SLOTS];
 static uint16_t SPECIES_CACHE_CLOCK;
 static int32_t SPECIES_LAST_SLOT;
 static uint32_t SPECIES_SECTOR[0x800 / 4];
+static SVECTOR CONDITION_FX_COPY __attribute__((aligned(4)));
 static uint32_t SPECIES_FALLBACK_PORTRAIT;
 static uint8_t SPECIES_PORTRAIT_BUFFER[SPECIES_PORTRAIT_SIZE] __attribute__((aligned(4)));
 static EvolutionPath NO_EVOLUTION_PATH;
@@ -492,7 +493,13 @@ SVECTOR *getConditionFxOffset(int32_t type)
 
 	rec = getSpeciesRecord(type);
 	if (rec != NULL && (rec->flags & SPECIES_FLAG_COND_FX)) {
-		return (SVECTOR *)rec->conditionFx;
+		/* the record's x, y, z, bone are 2-aligned: the GTE loads an SVECTOR with LWC2, which needs 4 (the
+		 * condition bubble of a hungry WarGrowlmon crashed on it) */
+		CONDITION_FX_COPY.vx = rec->conditionFx[0];
+		CONDITION_FX_COPY.vy = rec->conditionFx[1];
+		CONDITION_FX_COPY.vz = rec->conditionFx[2];
+		CONDITION_FX_COPY.pad = rec->conditionFx[3];
+		return &CONDITION_FX_COPY;
 	}
 	return &CONDITION_FX_OFFSETS[getOriginalType(type)];
 }
