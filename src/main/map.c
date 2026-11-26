@@ -4861,6 +4861,22 @@ static void modCamBattleStep(void)
 	/* no handleTileUpdate: the window is not touched in a battle (tfs_stream.c would refuse it anyway) */
 }
 
+/* Both following and a scripted world pan must keep ticking while a band is
+ * cold. Select its window without uploading, then restore the resident window
+ * before checking the incoming tiles. */
+static __attribute__((noinline)) int32_t modCamBandReady(int32_t flags)
+{
+	int32_t wx = MAP_TILE_X, wy = MAP_TILE_Y;
+	int32_t nextX, nextY;
+
+	handleTileUpdate(flags, 2);
+	nextX = MAP_TILE_X;
+	nextY = MAP_TILE_Y;
+	MAP_TILE_X = wx;
+	MAP_TILE_Y = wy;
+	return tfsCameraReady(nextX, nextY);
+}
+
 /* Scroll debt is consumed gradually after a band arrives, including with the
  * pad released. Entities, animation, input and the file queue keep ticking. */
 static int16_t modCamDebtX;
@@ -4926,18 +4942,11 @@ void tickCameraFollowPlayer(void)
 		PLAYER_OFFSET_Y += debtY;
 		{
 			int32_t wx = MAP_TILE_X, wy = MAP_TILE_Y;
-			int32_t nextX, nextY, ready, x, y;
+			int32_t x, y;
 			int32_t flags = ((MAP_TILE_DATA.cameraX < oldCameraX) ? 0x8000 : 0x2000) |
 				       ((MAP_TILE_DATA.cameraY < oldCameraY) ? 0x1000 : 0x4000);
 
-			/* Calculate the original window without uploading, then preflight it. */
-			handleTileUpdate(flags, 2);
-			nextX = MAP_TILE_X;
-			nextY = MAP_TILE_Y;
-			MAP_TILE_X = wx;
-			MAP_TILE_Y = wy;
-			ready = tfsCameraReady(nextX, nextY);
-			if (!ready) {
+			if (!modCamBandReady(flags)) {
 				/* Use the current window's spare pixels while reading. Only hold
 				 * at its visible edge, retaining scroll for a later tick. */
 				x = MAP_TILE_DATA.cameraX;
@@ -4962,7 +4971,8 @@ void tickCameraFollowPlayer(void)
 		tfsCameraDone();
 	} else {
 		modCamDebtX = modCamDebtY = 0;
-		tfsCameraDone();
+		/* A scripted pan owns its pending band until its next tick/upload. */
+		if (GAME_STATE != 0 || CAMERA_HAS_TARGET == 0) tfsCameraDone();
 		if (GAME_STATE == 1 && CAMERA_HAS_TARGET == 0 && MOD_CAM_CFG.battle != 0) {
 			modCamBattleStep(); /* MOD (camera) */
 		}
@@ -5263,12 +5273,15 @@ void tickCameraMovement(instanceId)
 	int32_t atEdgeX;
 	int32_t atEdgeY;
 	int16_t stepX;
-	int16_t qx;
-	int16_t qy;
+	int32_t qx;
+	int32_t qy;
 	int16_t stepY;
 	int16_t oldCameraX;
 	int16_t oldCameraY;
 	uint32_t flags;
+	int32_t oldDrawX, oldDrawY;
+	int32_t asyncPan;
+	int16_t oldDeltaX, oldDeltaY;
 
 	if (CAMERA_HAS_TARGET == 0) {
 		SetRotMatrix(&GsWSMATRIX);
@@ -5338,6 +5351,10 @@ void tickCameraMovement(instanceId)
 	qy = (CAMERA_MOVE_DRAW_OFFSET_Y - CAMERA_MOVE_DIFF_Y) / instanceId;
 	stepX = (CAMERA_MOVE_DIFF_X - CAMERA_DATA) / instanceId;
 	stepY = (CAMERA_MOVE_DIFF_Y - CAMERA_MOVE_DRAW_OFFSET_Y) / instanceId;
+	oldDrawX = DRAWING_OFFSET_X;
+	oldDrawY = DRAWING_OFFSET_Y;
+	oldDeltaX = CAMERA_MOVE_DELTA_X;
+	oldDeltaY = CAMERA_MOVE_DELTA_Y;
 	oldCameraX = MAP_TILE_DATA.cameraX;
 	oldCameraY = MAP_TILE_DATA.cameraY;
 	MAP_TILE_DATA.cameraX += qx;
@@ -5433,16 +5450,41 @@ void tickCameraMovement(instanceId)
 		flags |= 0x1000;
 	}
 
-	if ((((CAMERA_DATA - CAMERA_MOVE_DIFF_X) / instanceId) >= 0x50) ||
-	    (((CAMERA_MOVE_DRAW_OFFSET_Y - CAMERA_MOVE_DIFF_Y) / instanceId) >= 0x50)) {
+	/* Ordinary world pans, including a won battle's return to the tamer,
+	 * share the asynchronous band preflight. Retry this exact step after the
+	 * tiles arrive; actors, scripts and the file queue continue to tick.
+	 * Instant/large jumps keep the original forced-upload path. */
+	asyncPan = GAME_STATE == 0 && qx > -80 && qx < 80 && qy > -80 && qy < 80;
+	if (asyncPan && !modCamBandReady(flags)) {
+		MAP_TILE_DATA.cameraX = oldCameraX;
+		MAP_TILE_DATA.cameraY = oldCameraY;
+		DRAWING_OFFSET_X = oldDrawX;
+		DRAWING_OFFSET_Y = oldDrawY;
+		CAMERA_MOVE_DELTA_X = oldDeltaX;
+		CAMERA_MOVE_DELTA_Y = oldDeltaY;
+		return;
+	}
+
+	if (qx >= 0x50 || qy >= 0x50) {
 		handleTileUpdate(flags, 1);
 	}
 
-	if ((((CAMERA_DATA - CAMERA_MOVE_DIFF_X) / instanceId) < 0x50) ||
-	    (((CAMERA_MOVE_DRAW_OFFSET_Y - CAMERA_MOVE_DIFF_Y) / instanceId) < 0x50)) {
+	if (qx < 0x50 || qy < 0x50) {
 		handleTileUpdate(flags, 0);
 	}
 
+	tfsCameraDone();
+	if (asyncPan && (atEdgeX || atEdgeY)) {
+		/* Start the destination band before this pan reaches its boundary.
+		 * A far jump that cannot fit in the ring keeps normal nearby prefetch. */
+		oldCameraX = MAP_TILE_DATA.cameraX;
+		oldCameraY = MAP_TILE_DATA.cameraY;
+		MAP_TILE_DATA.cameraX = CAMERA_MOVE_FINAL_X;
+		MAP_TILE_DATA.cameraY = CAMERA_MOVE_FINAL_Y;
+		modCamBandReady(flags);
+		MAP_TILE_DATA.cameraX = oldCameraX;
+		MAP_TILE_DATA.cameraY = oldCameraY;
+	}
 	if ((atEdgeX == 0) && (atEdgeY == 0)) {
 		CAMERA_HAS_TARGET = 0;
 		modCamFromTamer = 0; /* MOD (camera) */
