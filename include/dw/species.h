@@ -235,6 +235,17 @@ int32_t getSpeciesBattleMusic(int32_t type);
 /* where the model and the texture of a type are: file name (or NULL for the
  * CHDAT\MMDn\NAME.MMD path), first sector and size */
 int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *size);
+
+/*
+ * MOD (cold animations, tools/coldsplit.py): a partner's rare animations (eating, reactions, pooping) are not in its
+ * model buffer. Their animation table entries are 0x80000000 | length in words << 16 | offset in words, into a cold part
+ * that follows the model's (resident) part on the disc, from the next sector. startAnimation reads the one it starts into
+ * COLD_ANIM_BUFFER (whole sectors: the longest cold animation plus 2047 bytes) and plays it from there; only the partner
+ * has cold animations, and one plays at a time.
+ */
+#define COLD_ANIM_FLAG		0x80000000
+#define COLD_ANIM_MAX		0x2000
+uint8_t *loadColdAnimation(void *entity, uint32_t entry); /* an Entity * */
 int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t *sectors);
 /* the evolution paths of a type (EVOLUTION_PATHS covers types 1..62, new
  * species have their own rows; any other type has none) */
