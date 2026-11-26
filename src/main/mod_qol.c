@@ -180,6 +180,65 @@ void modShopPlateAdd(void)
 int8_t MOD_EVO_CANCEL;
 char MOD_EVO_CANCEL_TEXT[] = QOL_STR_EVO_CANCEL;
 
+/* the cancel's button, bottom left, worked out a pixel at a time from its centre (squared distances): a dark disc, a
+   black gap, a band from 6.6 to 9.5 pixels that fills clockwise from the top (yellow, white once full) over a dark
+   track, a black edge round the outside, and the cancel button inside as an outline (a green triangle, with
+   JAPANESE CONTROLS a blue cross), brighter while held. Each row goes out as runs of one colour; the line beside it
+   is the text area's row the EVL overlay drew, dim, white while held */
+#define EVO_CANCEL_X (-141)
+#define EVO_CANCEL_Y 104
+static int32_t modEvoCancelPixel(int32_t x, int32_t y, int32_t hold, int32_t ticks)
+{
+	int32_t ax = x < 0 ? -x : x;
+	int32_t ay = y < 0 ? -y : y;
+	int32_t d = x * x + y * y;
+	int32_t hw = (y + 4) >> 1;
+
+	if (MOD_OPT_BUTTONS ? (ax == ay && ax <= 2) : (y >= -3 && y <= 2 && (ax == hw || (y == 2 && ax <= 3)))) {
+		if (MOD_OPT_BUTTONS) {
+			return hold ? 0x68a8ff : 0x4078d8;
+		}
+		return hold ? 0x48e8b8 : 0x30a888;
+	}
+	if (d <= 31) {
+		return 0x2c2c34;
+	}
+	if (d <= 43) {
+		return 0;
+	}
+	if (d <= 90) {
+		if (((ratan2(x, -y) + 4096) & 4095) * ticks < hold * 4096) {
+			return hold >= ticks ? 0xffffff : 0xffcc28;
+		}
+		return 0x383840;
+	}
+	ax = ax ? ax - 1 : 0;
+	ay = ay ? ay - 1 : 0;
+	return ax * ax + ay * ay <= 90 ? 0 : -1;
+}
+
+void modEvoCancelDraw(int32_t hold, int32_t ticks, int32_t w, int32_t row)
+{
+	int32_t x, y, c, prev, start;
+
+	for (y = -11; y <= 11; y++) {
+		prev = -1;
+		start = 0;
+		for (x = -11; x <= 12; x++) {
+			c = x > 11 ? -1 : modEvoCancelPixel(x, y, hold, ticks);
+			if (c != prev) {
+				if (prev >= 0) {
+					modPlateRect(EVO_CANCEL_X + start, EVO_CANCEL_Y + y, x - start, 1, prev >> 16, (prev >> 8) & 0xff,
+					             prev & 0xff, 5);
+				}
+				prev = c;
+				start = x;
+			}
+		}
+	}
+	renderString(hold ? 0 : 8, EVO_CANCEL_X + 15, EVO_CANCEL_Y - 6, w, 12, 0, row, 4, 1);
+}
+
 /* the tallies' skip hint (patch 0333): "Press × to skip" in a row of its own at the bottom of the box that counts (the
    gym's stats box, the battle's bits box), under a divider like the battle box's. The line is drawn once into a row of
    the text area when the box opens, its button in the colour of the button that confirms: × blue (6), with JAPANESE

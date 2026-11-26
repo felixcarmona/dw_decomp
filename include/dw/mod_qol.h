@@ -34,5 +34,6 @@ int32_t modTrainStopReason(int32_t t0, int32_t tiredAt);
 #define MOD_EVO_CANCEL_HELD 2
 extern int8_t MOD_EVO_CANCEL;
 extern char MOD_EVO_CANCEL_TEXT[];
+void modEvoCancelDraw(int32_t hold, int32_t ticks, int32_t w, int32_t row);
 
 #endif

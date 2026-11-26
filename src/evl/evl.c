@@ -312,16 +312,11 @@ void EVL_resetSparks(void)
 #define EVL_CANCEL_TICKS 20
 #define EVL_CANCEL_FADE 16
 #define EVL_CANCEL_ROW 0xD8 /* the text area's row of the tallies' hint: never on screen together */
-#define EVL_CANCEL_X (-141)
-#define EVL_CANCEL_Y 103
 extern uint32_t POLLED_INPUT;
 extern uint8_t PAUSE_STATE;
 extern uint8_t *GENERAL_BUFFER_PTR;
-void drawLine2P(uint32_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t order, uint32_t mode);
-void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h, uint8_t u, uint8_t v, long layer, int32_t shadow);
 void clearTextSubArea(RECT *rect);
 void setTextColor(int32_t color);
-int32_t fitStringMode(char *str, int32_t maxW);
 int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode);
 int32_t loadVLALL(int32_t idx, uint8_t *buffer);
 void fadeToBlack(int16_t frames);
@@ -333,19 +328,15 @@ static int8_t EVL_cancelHold = 0;
 static int8_t EVL_cancelPhase = 0; /* 1 fading out */
 static int8_t EVL_cancelShown = 0;
 
-/* the cancel button's glyph in its colour (the font draws it as the button that cancels now: a green triangle, with
- * JAPANESE CONTROLS a blue cross), then the line */
+/* the line, into a row of the text area; main draws the button and its ring (modEvoCancelDraw) */
 static void EVL_cancelHintDraw(void)
 {
 	RECT area;
-	static char glyph[] = { 0x81, 0x7E, 0 };
 
 	setRECT(&area, 0, EVL_CANCEL_ROW, 256, 12);
 	clearTextSubArea(&area);
-	setTextColor(MOD_OPT_BUTTONS ? 6 : 5);
-	drawStringMode(glyph, 0, EVL_CANCEL_ROW, 0);
 	setTextColor(1);
-	EVL_cancelW = 20 + drawStringMode(MOD_EVO_CANCEL_TEXT, 20, EVL_CANCEL_ROW, 0);
+	EVL_cancelW = drawStringMode(MOD_EVO_CANCEL_TEXT, 0, EVL_CANCEL_ROW, 0);
 }
 
 /* every part of the model solid again, and the scene's pending loads done */
@@ -431,21 +422,9 @@ static void EVL_cancelEnd(EvoSequenceData *data, int32_t instanceId)
 	removeObject(0x80a, instanceId);
 }
 
-/* the ring: twenty segments from the top, clockwise, one per tick held (nine pixels of radius, the corners of each
- * segment below); yellow as it fills, a dark track for the rest. The glyph and the line beside it (one piece of
- * the row) are dim, bright while the button is held, with the game's own drop shadow */
 static void EVL_cancelRender(void)
 {
-	static const int8_t ring[] = { 0, -9, 3, -9, 5, -7, 7, -5, 9, -3, 9, 0, 9, 3, 7, 5, 5, 7, 3, 9, 0, 9, -3, 9, -5, 7, -7, 5, -9, 3, -9, 0, -9, -3, -7, -5, -5, -7, -3, -9, 0, -9 };
-	const int8_t *p = ring;
-	int32_t i;
-	int32_t color;
-
-	for (i = 1; i <= EVL_CANCEL_TICKS; i++, p += 2) {
-		color = i > EVL_cancelHold ? 0x483c3c : 0x28ccff;
-		drawLine2P(color, EVL_CANCEL_X + p[0], EVL_CANCEL_Y + p[1], EVL_CANCEL_X + p[2], EVL_CANCEL_Y + p[3], 4, 0);
-	}
-	renderString(EVL_cancelHold ? 0 : 8, EVL_CANCEL_X - 5, EVL_CANCEL_Y - 6, EVL_cancelW, 12, 0, EVL_CANCEL_ROW, 4, 1);
+	modEvoCancelDraw(EVL_cancelHold, EVL_CANCEL_TICKS, EVL_cancelW, EVL_CANCEL_ROW);
 }
 
 void EVL_tickEvoSequence(int32_t instanceId)
