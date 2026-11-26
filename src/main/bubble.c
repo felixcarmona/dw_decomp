@@ -914,13 +914,14 @@ static int32_t ringAnyBubble(void)
 
 /*
  * MOD (farm bubble): over the meat farmer, a still bubble with the meat while a harvest waits. The upper city's
- * twelve layouts (168-179) always talk through NPC slot 6, script 207's section 11, so the test here is that
- * section's: a day has passed since the last harvest (p31), or this is the first visit to Tanemon, who gives Meat
+ * twelve layouts (168-179) always talk through NPC slot 6, script 207's section 11; before the city grows, the File
+ * City of a new game (204) has Tanemon in the same slot, and its section 11 keeps the same rule. The test here is: a day has passed since the last harvest (p31), or this is the first visit to Tanemon, who gives Meat
  * at once; Palmon and Vegiemon have no such first gift. A full stack keeps the bubble, as the harvest is still
  * there. Nothing is drawn while a script runs: the bubble would hang over the farmer's own dialogue.
  */
 #define FARM_FIRST_SCREEN	168
 #define FARM_LAST_SCREEN	179
+#define FARM_START_SCREEN	204	/* the File City of a new game */
 #define FARM_ENTITY		(6 + 2)	/* NPC slot 6 in ENTITY_TABLE */
 #define FARM_TRIGGER_EXPLAINED	74
 #define FARM_TRIGGER_VEGIEMON	225
@@ -935,7 +936,8 @@ static void renderFarmBubble(void)
 	DVECTOR screen;
 	int32_t depth;
 
-	if (CURRENT_SCREEN < FARM_FIRST_SCREEN || CURRENT_SCREEN > FARM_LAST_SCREEN ||
+	if (((CURRENT_SCREEN < FARM_FIRST_SCREEN || CURRENT_SCREEN > FARM_LAST_SCREEN) &&
+	     CURRENT_SCREEN != FARM_START_SCREEN) ||
 	    IS_SCRIPT_PAUSED != 1 || entity == NULL || entity->isOnMap == 0 ||
 	    entity->isOnScreen == 0 ||
 	    (readPStat(FARM_PSTAT_DAYS) < 1 &&
