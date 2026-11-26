@@ -15,8 +15,6 @@
 #define GLYPH_WIDTH		12
 #define GLYPH_HEIGHT		11
 
-#define TEXT_VRAM_X		704
-#define TEXT_VRAM_Y		256
 #define TEXT_AREA_SIZE		256
 #define TEXT_DRAW_LIMIT		(TEXT_AREA_SIZE - GLYPH_WIDTH)
 

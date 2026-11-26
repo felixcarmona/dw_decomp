@@ -273,6 +273,24 @@ void removeAnimatedUIBox(int16_t id, RECT *target)
 	UI_BOX_DATA[id].state = 3;
 }
 
+/* MOD (cheats): a box without an instance: the frame and fill renderUIBoxStatic gives a featureless box */
+void renderUIBoxPlain(RECT *rect, int32_t color, int32_t layer)
+{
+	GsBOXF box;
+
+	renderUIBoxBorder(rect, layer);
+	drawLine2P(0x20202, rect->x + 3, rect->y + 3, rect->x + 3, rect->y + rect->h - 3, layer, 0);
+	drawLine2P(0x20202, rect->x + rect->w - 4, rect->y + 3, rect->x + rect->w - 4, rect->y + rect->h - 3, layer, 0);
+	box.attribute = 0;
+	box.r = UI_BOX_COLORS[color].r;
+	box.g = UI_BOX_COLORS[color].g;
+	box.b = UI_BOX_COLORS[color].b;
+	box.x = rect->x + 4;
+	box.y = rect->y + 3;
+	setWH(&box, rect->w - 8, rect->h - 3);
+	GsSortBoxFill(&box, ACTIVE_ORDERING_TABLE, layer);
+}
+
 void renderUIBoxBorder(RECT *rect, int32_t layer)
 {
 	POLY_FT4 *p;
