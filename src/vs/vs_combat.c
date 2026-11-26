@@ -458,7 +458,7 @@ void VS_setupDemoCombat(void)
 
 		for (j = 0; j < 4; ++j) {
 			if (entity->stats.base.moves[j] != 0xff) {
-				effect = DIGI_PARA(entity->entity.type).moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
+				effect = getSpeciesTechEffect(entity->entity.type, entity->stats.base.moves[j]);
 				moves[moveCount++] = effect;
 			}
 		}
@@ -789,7 +789,7 @@ void VS__combatSetup(void)
 
 		for (j = 0; j < 4; ++j) {
 			if (entity->stats.base.moves[j] != 0xff) {
-				effect = DIGI_PARA(entity->entity.type).moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
+				effect = getSpeciesTechEffect(entity->entity.type, entity->stats.base.moves[j]);
 				moves[moveCount++] = effect;
 			}
 		}
