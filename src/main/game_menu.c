@@ -2688,9 +2688,9 @@ static const char *const lookPageRowNames[2 * LOOK_GARMENTS + 2] = { lookPageTex
 	                                                               lookPageTextTrousersColour, lookPageTextShoes,
 	                                                               lookPageTextShoesColour, lookPageTextPack, lookPageTextPackColour,
 	                                                               lookPageTextSkin, lookPageTextSkin };
-/* The rows as the page shows them: boy or girl first (the face's byte), and the hands' row is not shown: they follow it */
+/* The rows as the page shows them: boy or girl first (the face's byte) and the skin under it, and the hands' row is not shown: they follow it */
 #define LOOK_PLACES	(LOOK_ROWS - 1)
-static const uint8_t lookPageOrder[LOOK_PLACES] = { 2, 0, 1, 3, 4, 5, 6, 7, 8, 9, 10, LOOK_SKIN_ROW };
+static const uint8_t lookPageOrder[LOOK_PLACES] = { 2, LOOK_SKIN_ROW, 0, 1, 3, 4, 5, 6, 7, 8, 9, 10 };
 #define LOOK_WHO	0x260	/* in the file's first sector: per garment the boy's choices and the girl's, a bit each */
 /* A cloth colour's name: a hair colour's (its number in LAB_HAIR_TEXT), or one of the two only cloth has */
 #define LOOK_CLOTH_ORANGE	0xFE
