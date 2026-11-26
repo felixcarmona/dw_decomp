@@ -4000,16 +4000,14 @@ void initializeLoadedMap(void)
 }
 
 #if VERSION_EQUAL_OR_NEWER(US)
-void recalculatePPandArena(void)
+void recalculateProsperity(void)
 {
 	uint8_t pp;
 	int32_t i;
 
 	pp = 0;
-	/* MOD (city recruits): every species with a recruit flag counts, not only the
-	 * original's 3..58: a story mod recruits Gotsumon, Guardromon, Gekomon... and
-	 * the rule is the same (stage - 2: rookie 1, champion 2, ultimate 3). */
-	for (i = 3; i < NUM_RECRUITABLE_DIGIMON; i++) {
+	/* Original story counts only ids 3..58, including after a Continue changes stories. */
+	for (i = 3; i < (MOD_OPT_STORY ? NUM_RECRUITABLE_DIGIMON : 59); i++) {
 		if ((DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
@@ -4019,6 +4017,13 @@ void recalculatePPandArena(void)
 		}
 	}
 	writePStat(1, pp);
+}
+
+void recalculatePPandArena(void)
+{
+	uint8_t pp;
+
+	recalculateProsperity();
 	pp = readPStat(3);
 	if ((pp < 0) || (pp >= 0x17)) {
 		if (isTriggerSet(0x25) != 0) {
