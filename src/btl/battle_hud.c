@@ -583,11 +583,49 @@ void BTL_appendCommandLearnedText(void)
 	}
 }
 
+/* MOD (end box rows): the rows the end box draws for s, walked as BTL_drawBattleEndText walks
+ * it: each row end (#R or #W; R or W between the Japanese two-byte glyphs) is one row. */
+static int16_t BTL_countEndTextRows(const char *s)
+{
+	int16_t rows = 0;
+
+	while (*s != 0) {
+#if !VERSION_IS(US)
+		if (*s == 'C') {
+			if (*++s != 0) {
+				s++;
+			}
+		} else if ((*s == 'R') || (*s == 'W')) {
+			rows++;
+			s++;
+		} else {
+			if (*++s != 0) {
+				s++;
+			}
+		}
+#else
+		if (*s++ != '#') {
+			continue;
+		}
+		if (*s == 'C') {
+			if (*++s != 0) {
+				s++;
+			}
+		} else if ((*s == 'R') || (*s == 'W')) {
+			rows++;
+			s++;
+		}
+#endif
+	}
+	return rows;
+}
+
 void BTL_appendMPBonusText(void)
 {
 	char buf[8];
 	int16_t old;
 	int16_t total;
+	char *start; /* MOD (end box rows) */
 
 	total = INITIAL_COMBAT_STATS[0].brains + STATS_GAINS.brains;
 	if (total < 0x2bc) {
@@ -618,13 +656,17 @@ void BTL_appendMPBonusText(void)
 		return;
 	}
 
+	start = BTL_END_BOX_TEXTBUFFER + strlen(BTL_END_BOX_TEXTBUFFER);
 	strcat(BTL_END_BOX_TEXTBUFFER, BTL_STR_MP_CONSUMPTION_BONUS);
 #if VERSION_IS(US)
 	strcat(BTL_END_BOX_TEXTBUFFER, BTL_STR_REDUCED_BY);
 #endif
 	strcat(BTL_END_BOX_TEXTBUFFER, buf);
 	strcat(BTL_END_BOX_TEXTBUFFER, BTL_STR_MP_BONUS_PERCENT);
-	BATTLE_END_BOX_LINE_COUNT += 4;
+	/* MOD (end box rows): the original added 4, the rows of the Japanese text ("C1...R...W...R"
+	 * + "...W"). The US text has one row end (#W), so the box waited for three rows that never
+	 * came: BTL_isEndBoxTextFinished stayed 0 and the battle never ended. */
+	BATTLE_END_BOX_LINE_COUNT += BTL_countEndTextRows(start);
 }
 
 // clang-format off
@@ -663,7 +705,7 @@ void BTL_drawBattleEndText(int32_t flag)
 			BATTLE_END_ROWS_SHOWN++;
 			BATTLE_END_ROWS_DRAWN++;
 			return;
-		case '0':
+		case '\0': /* MOD (end box rows): the original tested '0' (0x30), never a lead byte here */
 			return;
 		default:
 			glyph = BATTLE_END_CURSOR[0] | (BATTLE_END_CURSOR[1] << 8);
@@ -701,7 +743,9 @@ void BTL_drawBattleEndText(int32_t flag)
 			continue;
 		}
 		c = *BATTLE_END_CURSOR;
-		if (c == '0') {
+		/* MOD (end box rows): the original tested c == '0' (0x30), so the "0" of the US MP bonus's
+		 * "10"/"20" stopped the text for good, and the end of the text (0) was drawn as a glyph */
+		if (c == '\0') {
 			return;
 		}
 		glyph = swapShortBytes(convertAsciiToJis(c));
