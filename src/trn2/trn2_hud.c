@@ -30,6 +30,7 @@ extern char MAIN_D_80124C54[];
 extern GsOT *ACTIVE_ORDERING_TABLE;
 
 uint8_t getItemCount(ItemId type);
+int32_t TRN2_statGainsAreZero(void); /* MOD (skip hint) */
 void worldPosToScreenPos(TrainingSpot *item, SVECTOR *out);
 void renderNumber(int32_t a, int32_t x, int32_t y, int32_t digits, int32_t value, int32_t layer);
 void renderString(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h, int32_t i);
@@ -350,12 +351,9 @@ void TRN2_modOpenStatsBox(void)
 
 	setRECT(&finalPos, -94, -78, 188, 96);
 	/* MOD (skip hint, patch 0333): a row at the bottom for "Press × to skip" while the gains count */
-	for (i = 0; i < 6; i++) {
-		if (STATS_GAINS[i] != 0) {
-			finalPos.h += MOD_COUNT_ROW_H;
-			modCountHintDraw();
-			break;
-		}
+	if (!TRN2_statGainsAreZero()) {
+		finalPos.h += MOD_COUNT_ROW_H;
+		modCountHintDraw();
 	}
 
 	getEntityScreenPos(ENTITY_TABLE[1], 1, &screenPos);
@@ -453,9 +451,7 @@ void TRN2_renderPostTrainingStatsBox(int16_t depth)
 	drawLine2P(0xfad990, box->x + 122, box->y + 2, box->x + 122, y, 6 - depth, 0);
 	drawLine2P(0x20202, box->x + 123, box->y + 2, box->x + 123, y, 6 - depth, 0);
 	if (box->h > 96) {
-		for (i = 0; i < 6 && STATS_GAINS[i] == 0; i++) {
-		}
-		modCountHintRow(box->x, box->w, box->y + 91, i < 6, 6 - depth);
+		modCountHintRow(box->x, box->w, box->y + 91, !TRN2_statGainsAreZero(), 6 - depth);
 	}
 
 	for (i = 0; i < 6; i++) {
