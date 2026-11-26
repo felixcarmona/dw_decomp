@@ -282,6 +282,15 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
 #define SPECIES_CHART_TABS		5
 #define SPECIES_CHART_ICON_SIZE		0x120
 #define SPECIES_CHART_ICONS_PER_SECTOR	7
+/* the card album's icons, the SPECIES_CARD_ICON_SECTORS sectors just before the chart block (tools/species.py
+ * card_icon_block): by card number from 66, SPECIES_CARD_ICONS_PER_SECTOR to a sector, the first 16x16 4 bpp idle frame
+ * of the chart's icon of each card's species side by side, under them their 16-colour CLUTs (icon n's on line 16 + n % 4,
+ * the (n / 4)th): a 48x20 image of 16-bit words, one upload; then a 16-bit mask of the cards that have one (the others
+ * keep their own sprite) */
+#define SPECIES_CARD_ICONS_PER_SECTOR	12
+#define SPECIES_CARD_ICON_SECTORS	((NUM_CARDS - 66 + SPECIES_CARD_ICONS_PER_SECTOR - 1) / SPECIES_CARD_ICONS_PER_SECTOR)
+#define SPECIES_CARD_ICON_CLUTS		0x600
+#define SPECIES_CARD_ICON_MASK		0x780
 /* the sector `k` of the chart block (0: the counts and ids, 1.. the icons) read into the species sector buffer, which
  * the next read of DIGI.DAT reuses; NULL when the file has no chart block */
 /* City sector pointer at header byte 0x38; zero in archives without City. */
