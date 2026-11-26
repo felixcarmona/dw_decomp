@@ -717,6 +717,11 @@ SECTIONS
 			. = ALIGN(., 4);
 			BUILD_DIR/src/vs/vs_combat.c.o(.rodata .rodata.*);
 			. = ALIGN(., 4);
+			/* the fighter selection (VS__initialize): modMenuVsBattle reads VS before it calls it */
+			BUILD_DIR/src/vs/vs_select.c.o(.text.*);
+			. = ALIGN(., 4);
+			BUILD_DIR/src/vs/vs_select.c.o(.rodata .rodata.*);
+			. = ALIGN(., 4);
 
 			/* Trailer */
 			LONG(0);
