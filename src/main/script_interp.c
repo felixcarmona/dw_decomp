@@ -1130,7 +1130,7 @@ void scriptInstruction28to3F(op)
 		break;
 	case SCRIPT_OP_REDUCE_MERIT:
 		skipOneReadOneUShort(&value);
-		MERIT = -value;
+		MERIT -= value; /* MOD (fix): was MERIT = -value, which always ended at 0 */
 		if (MERIT < 0) {
 			MERIT = 0;
 		}
