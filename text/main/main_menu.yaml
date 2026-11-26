@@ -410,6 +410,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_ENGLISH:
       ja: "ENGLISH"
       en_us: "ENGLISH"
+    MOD_OPT_STR_PORTUGUESE:
+      ja: "PORTUGUES"
+      en_us: "PORTUGUES"
     MOD_OPT_STR_SPANISH:
       ja: "ESPANOL"
       en_us: "ESPANOL"

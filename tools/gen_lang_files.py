@@ -33,18 +33,22 @@ def main():
         hashes.setdefault(fnv1a(n), set()).add(n)
     rows = []
     for spec in a.lang.split():
-        key, es, en = spec.split(':')
+        parts = spec.split(':')
+        if len(parts) not in (3, 4):
+            sys.exit(f'gen_lang_files: expected NAME:ES:EN[:PT], got {spec}')
+        key, es, en = parts[:3]
+        pt = parts[3] if len(parts) == 4 else '-'
         if len(hashes.get(fnv1a(key), ())) > 1:
             sys.exit(f'gen_lang_files: {key} shares its hash with {sorted(hashes[fnv1a(key)] - {key})}')
         idx = []
-        for c in (es, en):
+        for c in (es, en, pt):
             if c == '-':
                 idx.append(0xFFFF)
             elif c in where:
                 idx.append(where[c])
             else:
                 sys.exit(f'gen_lang_files: {c} (a copy of {key}) is not in NEW_FILES')
-        rows.append(f'{{ 0x{fnv1a(key):08X}, {idx[0]}, {idx[1]} }}, /* {key} */')
+        rows.append(f'{{ 0x{fnv1a(key):08X}, {idx[0]}, {idx[1]}, {idx[2]} }}, /* {key} */')
     text = ''.join(r + '\n' for r in rows)
     if not os.path.exists(a.out) or open(a.out).read() != text:
         open(a.out, 'w').write(text)

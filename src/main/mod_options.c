@@ -368,12 +368,12 @@ int32_t modFileOnDisc(char *name)
  */
 typedef struct {
 	uint32_t hash;
-	uint16_t copy[2]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
+	uint16_t copy[3]; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
 } LangFileRow;
 
 static LangFileRow LANG_FILE_TABLE[] = {
 #include <lang_files.h>
-	{ 0, { 0xFFFF, 0xFFFF } },
+	{ 0, { 0xFFFF, 0xFFFF, 0xFFFF } },
 };
 
 static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entry's has no NUL at 12 letters) */
@@ -404,8 +404,8 @@ char *modLangFile(char *name)
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : 1];
-		if (copy == 0xFFFF || (!tfs && MOD_LANG != MOD_LANG_ES)) {
+		copy = LANG_FILE_TABLE[i].copy[MOD_LANG == MOD_LANG_ES ? 0 : MOD_LANG == MOD_LANG_PT_BR ? 2 : 1];
+		if (copy == 0xFFFF || (!tfs && MOD_LANG == MOD_LANG_EN)) {
 			return name;
 		}
 		memcpy(MOD_LANG_NAME, FILE_OFFSET_TABLE[FILE_TABLE_NEW_FIRST + copy].filename, FILE_NAME_MAX);
@@ -439,7 +439,25 @@ int32_t modStoryChoice(void)
 }
 
 /* MOD (language): the patch that turns the executable's strings into each language */
-static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN" };
+static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN" };
+int32_t modLanguageAt(int32_t index)
+{
+    int32_t lang;
+    for (lang = 0; lang < MOD_LANGS; lang++) {
+        if (lang == MOD_LANG || modFileOnDisc(LANG_PATCH_FILE[lang])) {
+            if (index-- == 0) return lang;
+        }
+    }
+    return -1;
+}
+
+int32_t modLanguageCount(void)
+{
+    int32_t count = 0;
+    while (modLanguageAt(count) >= 0) count++;
+    return count;
+}
+
 extern char MAIN_D_8012CE64[]; /* main.c: "\\ETCDAT\\FI_INFO.TIM" */
 void tickFileReadQueue(int32_t unused);
 int32_t isFileReadQueueBusy(void);
@@ -453,7 +471,7 @@ void modSetLanguage(int32_t lang)
 	uint32_t count;
 	uint32_t len;
 
-	lang = lang == MOD_LANG_ES ? MOD_LANG_ES : MOD_LANG_EN;
+	lang = lang >= 0 && lang < MOD_LANGS ? lang : MOD_LANG_EN;
 	if (lang == MOD_LANG || !modFileOnDisc(LANG_PATCH_FILE[lang])) { /* a disc in one language: no choice */
 		return;
 	}
