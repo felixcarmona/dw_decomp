@@ -43,3 +43,8 @@ const uint8_t NPC_ANIM_KEEP_INDEX[180] = {
 	 1,  1, 10,  1,  1,  1, 11,  1,  1,  1,  /* 160-169 */
 	 1,  1,  1,  1,  1,  1,  1, 12,  1,  1,  /* 170-179 */
 };
+
+/* Shared by imported species, including script-only slots. */
+const uint32_t NPC_ANIM_IMPORT_KEEP[2] = {
+	0xF008001F, 0xFFFFFFFF
+};
