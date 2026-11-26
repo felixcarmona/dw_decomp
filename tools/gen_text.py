@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
+# MOD (text sources, docs/handoff/text-sources-design.md): a text bank can replace any entry's text by its key, and the
+# characters of the mod executable's extra glyphs (F040.., docs/mods/font.md) encode as their two-byte codes. The bank is
+# the JSON file $TEXT_BANK (default: text-bank.json in the working directory, if it exists), written by the project's
+# tools/build-full.sh: {"font": {"á": "F040", ...}, "text": {"main.MOVE_NAMES.12": "...", "main.STR_YES": "..."}}. Keys:
+# <dir>.<SYMBOL> for a `strings:` entry, <dir>.<BLOCK> for a single entry, <dir>.<BLOCK>.<index> for a table row (<dir> is
+# the folder of the yaml under text/). An empty bank gives the yaml's own text: the same headers as without it.
+# `storage: define` on a `strings:` block writes `#define SYMBOL "text"` (a literal where the C uses it, as the original
+# literal was), so text that was a literal in the code can be keyed without changing the binary.
 
 import argparse
+import json
+import os
 import sys
 from pathlib import Path
 
 import yaml
+
+__BANK = {'font': {}, 'text': {}}
 
 __LANGUAGES = {
     'jp': 'ja',
@@ -49,10 +61,14 @@ def __fail(where, message):
 def __c_string(text, where):
     out = ''
     for c in text:
+        if c in __BANK['font']:
+            code = int(__BANK['font'][c], 16)
+            out += '\\{:03o}\\{:03o}'.format(code >> 8, code & 0xff)
+            continue
         try:
             b = c.encode('cp932')
         except UnicodeEncodeError:
-            __fail(where, 'no Shift-JIS character for {!r}'.format(c))
+            __fail(where, 'no Shift-JIS character for {!r} (and no glyph of the mod font)'.format(c))
         if c in '"\\':
             out += '\\' + c
         elif c == '?' and out.endswith('?'):
@@ -98,15 +114,22 @@ def __text(entry, release, where):
     __fail(where, 'no {} text'.format(__LANGUAGES[release]))
 
 
-def __string(entry, release, where):
-    value = __text(entry, release, where)
+def __banked(key, value):
+    # an entry with no text for this release stays without one (the same symbol may be another file's in this release)
+    if key is not None and value is not None and key in __BANK['text']:
+        return __BANK['text'][key]
+    return value
+
+
+def __string(entry, release, where, key=None):
+    value = __banked(key, __text(entry, release, where))
     if isinstance(value, list):
         __fail(where, 'expected one string, not lines')
     return value
 
 
-def __lines(entry, release, count, where):
-    value = __text(entry, release, where)
+def __lines(entry, release, count, where, key=None):
+    value = __banked(key, __text(entry, release, where))
     if not isinstance(value, list):
         value = [value]
     if len(value) > count:
@@ -119,10 +142,14 @@ def __generate(release, blocks, source):
     header = []
     macros = {}
     named = {}
+    folder = Path(source).parent.name
 
-    def define(symbol, entry, where):
-        text = __string(entry, release, where)
+    def define(symbol, entry, where, key=None, as_macro=False):
+        text = __string(entry, release, where, key)
         if text is None:
+            return []
+        if as_macro:
+            header.append('#define {} {}'.format(symbol, __c_string(text, where)))
             return []
         literal = __c_string(text, where)
         if literal in named:
@@ -137,18 +164,19 @@ def __generate(release, blocks, source):
             __fail(where, 'expected a mapping')
 
         if 'strings' in body:
-            __check_keys(body, {'strings'}, where)
+            __check_keys(body, {'strings', 'storage'}, where)
+            as_macro = body.get('storage') == 'define'
             lines = []
             for symbol, entry in body['strings'].items():
                 where = '{}: {}'.format(source, symbol)
                 __check_keys(entry, (), where)
-                lines += define(symbol, entry, where)
+                lines += define(symbol, entry, where, '{}.{}'.format(folder, symbol), as_macro)
             macros[block + '_TEXT'] = lines
             continue
 
         if 'entries' not in body:
             __check_keys(body, (), where)
-            macros[block + '_TEXT'] = define(block, body, where)
+            macros[block + '_TEXT'] = define(block, body, where, '{}.{}'.format(folder, block))
             continue
 
         __check_keys(body, __TABLE_KEYS, where)
@@ -181,17 +209,21 @@ def __generate(release, blocks, source):
             __check_keys(entry, {'name', 'named'}, where)
             name = entry.get('name')
 
+            key = '{}.{}.{}'.format(folder, block, index)
             if storage == 'embedded':
                 if not name:
                     __fail(where, 'embedded entries need a name')
-                literal = __c_string(__string(entry, release, where), where)
+                text = __string(entry, release, where, key)
+                if text is None:
+                    continue
+                literal = __c_string(text, where)
                 header.append('#define {}_{} {},'.format(macro, name,
                                                          literal))
                 continue
 
             named_here = release in entry.get('named', ())
             refs = []
-            for line in __lines(entry, release, count, where):
+            for line in __lines(entry, release, count, where, key):
                 if line is None:
                     refs.append('NULL')
                     continue
@@ -204,6 +236,8 @@ def __generate(release, blocks, source):
                 elif literal in named:
                     refs.append(named[literal])
                     continue
+                elif not name and key in __BANK['text']:
+                    symbol = '{}_BANK_{}'.format(block, index)      # a banked text no other entry has
                 elif not name:
                     __fail(where,
                            'a new {} text needs a name'.format(release))
@@ -246,6 +280,10 @@ def __parse_args():
 
 def __main():
     args = __parse_args()
+    bank = os.environ.get('TEXT_BANK') or 'text-bank.json'
+    if os.path.exists(bank):
+        with open(bank, encoding='utf-8') as f:
+            __BANK.update(json.load(f))
 
     with open(args.yaml, encoding='utf-8') as f:
         blocks = yaml.load(f, Loader=yaml.BaseLoader)

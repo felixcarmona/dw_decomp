@@ -51,6 +51,7 @@
 #include <dw/font.h>
 #include <dw/script.h>
 #include <dw/sound.h>
+#include <text/main/mod_lab.h>   /* MOD (text sources): the lab menu's text, keyed (main.LAB_STR_*) */
 #include <dw/species.h>
 #include <dw/types.h>
 #include <dw/ui.h>
@@ -99,12 +100,12 @@ int32_t MOD_LAB_EVO_CHOICE; /* MOD (cherrymon): the evolve entry (global so test
 static char *modLabMessage;
 
 static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
-	"+1000 bits",
-	"Heal partner",
-	"One-time gift",
+	LAB_STR_ADD_BITS,
+	LAB_STR_HEAL,
+	LAB_STR_GIFT,
 	NULL, /* the evolve entry: "To <name>" of its target, drawn from the species data */
-	"Status bubbles  All",
-	"Close",
+	LAB_STR_BUBBLES_ALL,
+	LAB_STR_CLOSE,
 };
 
 /*
@@ -235,37 +236,37 @@ static void modLabDrawText(void)
 	for (i = 0; i < ROW_COUNT; i++) {
 		modLabClearRow(i);
 	}
-	drawString("LAB MENU", 0, TEXT_ROW_Y(ROW_TITLE));
+	drawString(LAB_STR_TITLE, 0, TEXT_ROW_Y(ROW_TITLE));
 
 	if (modLabMessage != NULL) {
 		drawString(modLabMessage, 0, TEXT_ROW_Y(ROW_STATS));
 	} else {
-		p = appendStr(line, "Bits ");
+		p = appendStr(line, LAB_STR_BITS);
 		p = appendStr(p, formatInteger(MONEY, num, 6));
-		p = appendStr(p, "   HP ");
+		p = appendStr(p, LAB_STR_HP);
 		p = appendStr(p, formatInteger(stats->current.currentHP, num, 4));
-		p = appendStr(p, " of ");
+		p = appendStr(p, LAB_STR_OF);
 		appendStr(p, formatInteger(stats->base.hp, num, 4));
 		drawString(line, 0, TEXT_ROW_Y(ROW_STATS));
 	}
 
 	for (i = 0; i < MOD_LAB_OPTIONS; i++) {
 		if (i == MOD_LAB_OPT_BUBBLES) {
-			drawString(MOD_STATUS_BUBBLES ? "Status bubbles  All" : "Status bubbles  Classic",
+			drawString(MOD_STATUS_BUBBLES ? LAB_STR_BUBBLES_ALL : LAB_STR_BUBBLES_CLASSIC,
 				   0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		} else if (i == MOD_LAB_OPT_EVOLVE) {
 			if (MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED + getSpeciesPartnerCount()) {
 				/* MOD (mega): "To Mega <name>" */
-				p = appendStr(modLabMegaText, "To Mega ");
+				p = appendStr(modLabMegaText, LAB_STR_TO_MEGA);
 				mega = modLabMegaTarget();
-				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
+				appendStr(p, mega < 0 ? LAB_STR_NONE : DIGIMON_NAME(mega));
 				drawString(modLabMegaText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 			} else {
 				/* MOD (scale): "To <name>" of a species of DIGI.DAT; MOD (renames): of the fixed entries too,
 				 * so the menu shows the species' name as the data has it */
-				p = appendStr(modLabSpeciesText, "To ");
+				p = appendStr(modLabSpeciesText, LAB_STR_TO);
 				mega = modLabEvoTarget();
-				appendStr(p, mega < 0 ? "none" : DIGIMON_NAME(mega));
+				appendStr(p, mega < 0 ? LAB_STR_NONE : DIGIMON_NAME(mega));
 				drawString(modLabSpeciesText, 0, TEXT_ROW_Y(ROW_OPTIONS + i));
 			}
 		} else {
@@ -318,20 +319,20 @@ static void modLabApply(void)
 	switch (MOD_LAB_CURSOR) {
 	case 0:
 		MONEY += 1000;
-		modLabShowMessage("Bits +1000");
+		modLabShowMessage(LAB_STR_MSG_BITS);
 		break;
 	case 1:
 		stats->current.currentHP = stats->base.hp;
 		stats->current.currentMP = stats->base.mp;
-		modLabShowMessage("Partner healed");
+		modLabShowMessage(LAB_STR_MSG_HEALED);
 		break;
 	case 2:
 		if (isTriggerSet(MOD_LAB_TRIGGER)) {
-			modLabShowMessage("Gift already taken");
+			modLabShowMessage(LAB_STR_MSG_GIFT_TAKEN);
 		} else {
 			giveItem(ITEM_MEAT, 1);
 			setTrigger(MOD_LAB_TRIGGER);
-			modLabShowMessage("You got 1 Meat");
+			modLabShowMessage(LAB_STR_MSG_GOT_MEAT);
 		}
 		break;
 	case MOD_LAB_OPT_BUBBLES:
@@ -342,19 +343,19 @@ static void modLabApply(void)
 		mega = modLabEvoTarget();
 		if (mega < 0) {
 			modLabShowMessage(MOD_LAB_EVO_CHOICE >= MOD_LAB_EVO_FIXED + getSpeciesPartnerCount()
-						  ? "No Mega on this disc" : "Not on this disc");
+						  ? LAB_STR_MSG_NO_MEGA : LAB_STR_MSG_NOT_ON_DISC);
 		} else if (!isPartnerModelFit(mega)) {
-			modLabShowMessage("Model too big for it");
+			modLabShowMessage(LAB_STR_MSG_TOO_BIG);
 		} else if (PARTNER_ENTITY.digimonEntity.entity.type == mega) {
-			modLabShowMessage("Already evolved");
+			modLabShowMessage(LAB_STR_MSG_ALREADY);
 		} else if (partnerGetState() != 1 || tamerGetState() != 0 || EVOLUTION_TARGET != -1) {
-			modLabShowMessage("Not now, try later");
+			modLabShowMessage(LAB_STR_MSG_NOT_NOW);
 		} else {
 			EVOLUTION_TARGET = mega;
 			HAS_USED_EVOITEM = 0;
 			tamerSetState(6);
 			partnerSetState(13);
-			modLabShowMessage("Unpause to evolve");
+			modLabShowMessage(LAB_STR_MSG_UNPAUSE);
 		}
 		break;
 	}

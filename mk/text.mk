@@ -3,7 +3,9 @@
 TEXT_YAML := $(shell find text -mindepth 2 -name '*.yaml')
 TEXT_SRC := $(TEXT_YAML:text/%.yaml=%)
 
-$(GEN_DIR)/text/%.h: text/%.yaml tools/gen_text.py
+# MOD (text sources): text-bank.json (written by the project's tools/build-full.sh) replaces texts by key and encodes the
+# mod font's extra glyphs; the headers are made again when it changes
+$(GEN_DIR)/text/%.h: text/%.yaml tools/gen_text.py $(wildcard text-bank.json)
 	$(PYTHON) tools/gen_text.py $(VERSION) $< $@
 
 $(TEXT_SRC:%=$(BUILD_DIR)/src/%.c.o): $(BUILD_DIR)/src/%.c.o: \
