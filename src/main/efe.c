@@ -1467,6 +1467,8 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 	 * breath from the mouth, a shot from a hand) it starts from the record's effectDefault, its own launch
 	 * point (tools/species.py "effect_origin_fallback"). A species without a record, which is every disc
 	 * species not carried by one, never gets here with an origin: its effects are exactly the original's.
+	 * SPECIES_FLAG_SHOTS_FROM_DEFAULT sends the entity-point case to effectDefault as well: a species that fires
+	 * everything from one weapon (Beelzemon's cannon) instead of from where the donor's body stood.
 	 */
 	rec = getSpeciesRecord(EFE_SCRIPT_CONTEXT->sourceEntity->type);
 	if (rec == NULL || !(rec->flags & SPECIES_FLAG_EFFECT_DEFAULT)) {
@@ -1493,7 +1495,7 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 	}
 	out = &ring[next];
 	next = (next + 1) & 7;
-	if (row != NULL && onEntity >= onBone) {
+	if (row != NULL && onEntity >= onBone && !(rec->flags & SPECIES_FLAG_SHOTS_FROM_DEFAULT)) {
 		*out = *row;
 	} else {
 		out->boneId = rec->effectDefault[0];
