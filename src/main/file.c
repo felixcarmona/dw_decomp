@@ -40,7 +40,15 @@ char *modFontFile(char *path, char *originalFont)
 
 int32_t fileEntryIs(FileEntry *entry, char *name)
 {
-	return !strncmp(entry->filename, name, FILE_NAME_MAX) && strlen(name) <= FILE_NAME_MAX;
+    uint32_t hash = 0x811C9DC5;
+    int32_t i;
+    if (name[0] == '@') { /* internal language-copy key; not an ISO filename */
+        hash = 0;
+        for (i = 1; i <= 8; i++) hash = (hash << 4) | (name[i] <= '9' ? name[i]-'0' : name[i]-'A'+10);
+    } else {
+        for (i = 0; name[i]; i++) hash = (hash ^ (uint8_t)name[i]) * 0x01000193;
+    }
+    return hash == entry->nameHash;
 }
 
 int32_t lookupFileTable(FileLookup *lookup, char *path)

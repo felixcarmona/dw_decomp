@@ -16,7 +16,7 @@ extern int16_t SIN_LOOKUP_TABLE[];
 typedef struct {
     int32_t sector;
     int32_t size;
-    char filename[FILE_NAME_MAX];
+    uint32_t nameHash; /* FNV-1a of the filename; the builder rejects collisions. */
 } FileEntry;
 
 extern FileEntry FILE_OFFSET_TABLE[];
