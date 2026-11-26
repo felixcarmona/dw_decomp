@@ -371,3 +371,6 @@ MOD_OPTIONS:
     MOD_OPT_STR_60:
       ja: "60 FPS"
       en_us: "60 FPS"
+    MOD_OPT_STR_FONT:
+      ja: "NEW FONT"
+      en_us: "NEW FONT"
