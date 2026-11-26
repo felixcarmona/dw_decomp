@@ -172,6 +172,8 @@ void tickGameClock(int32_t instanceId)
 
 void tickPlaytime(int32_t instanceId)
 {
+	if (!MOD_REAL_TICK) /* MOD (battle speed): the second tick of a fast pair is no real time */
+		return;
 	++PLAYTIME_FRAMES;
 	if ((PLAYTIME_FRAMES % 1200) == 0) {
 		++PLAYTIME_MINUTES;
