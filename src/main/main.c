@@ -25,6 +25,7 @@
 #include <dw/map.h>
 #include <dw/map_object.h>
 #include <dw/mod_fps.h>
+#include <dw/mod_options.h>
 #include <dw/mod_rules.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -3877,6 +3878,7 @@ void initializeLoadedMap(void)
 	int16_t rot;
 	int16_t idx;
 	int16_t exit;
+	int32_t arrive;
 
 	STORED_TAMER_POS = TAMER_ENTITY.entity.posData->location = SAVED_STATE.playerPos;
 	PARTNER_ENTITY.digimonEntity.entity.posData->location = SAVED_STATE.partnerPos;
@@ -3898,8 +3900,10 @@ void initializeLoadedMap(void)
 	startAnimation(ENTITY_TABLE[1], 0);
 
 	idx = entityCheckCollision(&PARTNER_ENTITY.digimonEntity.entity, &TAMER_ENTITY.entity, 0, 0);
-	if ((idx >= 2) && (idx < 10)) {
-		type = ENTITY_TABLE[idx]->type;
+	arrive = MOD_STORY_ARRIVE; /* MOD (story): a save of the other story arrives at the exit (main_menu.c modStoryRelocate) */
+	MOD_STORY_ARRIVE = 0;
+	if (arrive || ((idx >= 2) && (idx < 10))) {
+		type = arrive ? 0x6d : ENTITY_TABLE[idx]->type; /* 0x6d: one of the types that move the tamer to the exit */
 		if ((type == 0x6d) || (type >= 0x75) ||
 		    ((type == 0x5c) && (SAVED_STATE.currentScreen == 0x9b)) ||
 		    ((type == 0x6a) && (SAVED_STATE.currentScreen == 0x55)) ||
