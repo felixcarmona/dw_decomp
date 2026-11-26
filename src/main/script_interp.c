@@ -1049,7 +1049,7 @@ void scriptInstruction28to3F(op)
 	switch (op) {
 	case SCRIPT_OP_GIVE_ITEM:
 		skipOnePollTwoScriptBytes(&byteArg1, &byteArg2);
-		result = giveItem(byteArg1, byteArg2);
+		result = giveItem(itemFromLegacy(byteArg1), byteArg2); /* MOD */
 		if (result != 0) {
 			unsetTrigger(0);
 		} else {
@@ -1058,7 +1058,7 @@ void scriptInstruction28to3F(op)
 		break;
 	case SCRIPT_OP_REMOVE_ITEM:
 		skipOnePollTwoScriptBytes(&byteArg1, &byteArg2);
-		removeItem(byteArg1, byteArg2);
+		removeItem(itemFromLegacy(byteArg1), byteArg2); /* MOD */
 		break;
 	case SCRIPT_OP_ADD_MONEY:
 		skipOneReadInteger(&intArg);

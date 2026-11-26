@@ -673,7 +673,7 @@ int32_t shopFillBuyItemList()
 	ITEM_MENU_LEFT->itemCount = 0;
 
 	for (slotId = 0; slotId < inventorySize; slotId++) {
-		if (INVENTORY.types.array[slotId] == 0xff) {
+		if (INVENTORY.types.array[slotId] == ITEM_NONE) {
 			hasSpace = 1;
 
 			break;
@@ -1296,7 +1296,7 @@ void handleItemLoss(void)
 	k = 0;
 	count = 0;
 	while (k < size) {
-		if (INVENTORY.types.array[k] != 0xff) {
+		if (INVENTORY.types.array[k] != ITEM_NONE) {
 			pool[count] = k;
 			count += 1;
 		}
@@ -1314,7 +1314,7 @@ void handleItemLoss(void)
 		k = 0;
 		count = 0;
 		while (k < size) {
-			if (INVENTORY.types.array[k] != 0xff) {
+			if (INVENTORY.types.array[k] != ITEM_NONE) {
 				pool[count] = k;
 				count += 1;
 			}
@@ -1332,8 +1332,7 @@ void handleItemLoss(void)
 			}
 		}
 
-		recycleId = INVENTORY.types.array[slot];
-		removeItem(recycleId, 0x63);
+		removeItem(INVENTORY.types.array[slot], 0x63); /* MOD: the whole id */
 	}
 
 	freeArray((uint32_t *)pool);

@@ -210,7 +210,7 @@ void renderDateDigits(void);
 void renderTriangleCursor(int8_t selection, int16_t yOffset);
 int32_t isUIBoxAvailable(int32_t id);
 void setSleepDisabled(int16_t arg);
-void startFeedingItem(uint8_t arg);
+void startFeedingItem(ItemId arg);
 void removeOneSelectedItem(void);
 void renderFeedingItem(int16_t arg);
 int8_t getEquippedSlot(void);
@@ -2016,7 +2016,7 @@ void setSleepDisabled(int16_t arg)
 	MENU_OPTIONS[6].disabled = arg;
 }
 
-void startFeedingItem(uint8_t arg)
+void startFeedingItem(ItemId arg) /* MOD: was u8 */
 {
 	if (TAMER_ITEM.worldItem.type == 0xff) {
 		TAMER_ITEM.worldItem.type = arg;

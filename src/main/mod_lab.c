@@ -46,7 +46,7 @@ void renderString(int32_t color, int32_t x, int32_t y, int32_t w, int32_t h,
 		  int32_t u, int32_t v, int32_t layer, int32_t shadow);
 void clearTextSubArea(RECT *rect);
 char *formatInteger(int32_t value, char *buf, int32_t digits);
-int32_t giveItem(uint8_t item, uint8_t amount);
+int32_t giveItem(ItemId item, uint8_t amount);
 void pauseFrame(void);
 void renderSelectionCursor(int32_t x, int32_t y, int16_t w, int16_t h, int32_t layer);
 
