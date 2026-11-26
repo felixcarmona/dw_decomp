@@ -2796,10 +2796,12 @@ void scriptInstructionFBtoFF(op)
 /*
  * MOD: wide opcodes 0x80-0x9F and wide IF conditions (docs/mods/ids.md
  * § 8.3, docs/mods/scripts.md). Each one does what its 8-bit original does,
- * with the id read as a u16, or works on the wide registers w0..w63. The
- * callees still take u8 ids (giveItem, spawnItem, playBGM...), so ids
- * above 255 are cut to their low byte until the carriers are widened
- * (ids.md § 10, step 3).
+ * with the id read as a u16, or works on the wide registers w0..w63. Since
+ * step 3 of ids.md § 10 the screen, item and Digimon ids reach 16-bit
+ * carriers (CURRENT_SCREEN, MAPHEAD sections, INVENTORY, DROPPED_ITEMS,
+ * CHEST_ARRAY, LOADED_DIGIMON_MODELS). Techniques, cards and music are
+ * still bounded by their tables (64-bit learnedMoves, 66 card nibbles,
+ * 33 FAALL fonts) until their own steps.
  */
 #define WREG(n) (SCRIPT_STATE_PTR->wregs[(n) & (SCRIPT_NUM_WREGS - 1)])
 
