@@ -31,6 +31,9 @@ static void ENDI_getParticleBase(int32_t arg0, SVECTOR *dst);
 static void ENDI_setParticleBase(int32_t arg0, SVECTOR *src);
 static void ENDI_stopParticles(void);
 static void ENDI_clearParticles(void);
+/* MOD (fps): render-side random numbers, see dw/mod_fps.h */
+int32_t modRenderRand(void);
+
 static void ENDI_renderParticles(int32_t objectId);
 static void ENDI_tickEndingParticles(int32_t objectId);
 
@@ -383,11 +386,11 @@ static void ENDI_renderParticles(int32_t objectId)
 				p->worldPos.vz = p->pos.vz + ENDI_DATA.base.vz;
 			}
 
-			color.r = rand() % 70 + 60;
-			color.g = rand() % 70 + 60;
-			color.b = rand() % 70 + 60;
+			color.r = modRenderRand() % 70 + 60;
+			color.g = modRenderRand() % 70 + 60;
+			color.b = modRenderRand() % 70 + 60;
 
-			size = rand() % 15 + 15;
+			size = modRenderRand() % 15 + 15;
 			renderFXParticle(&p->worldPos, size, &color);
 		}
 	}

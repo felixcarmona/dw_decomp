@@ -646,6 +646,8 @@ void spawnToyTownBoxes(void)
 	addObject(0xfbd, 0, NULL, renderToyTownBoxes);
 }
 
+extern int32_t MOD_RENDER_PASS;
+
 void renderToyTownBoxes(int32_t instanceId)
 {
 	SVECTOR rot;
@@ -653,7 +655,9 @@ void renderToyTownBoxes(int32_t instanceId)
 
 	if (MAP_LAYER_ENABLED) {
 		if (TOY_TOWN_SELECTED_BOX == 1) {
-			BOX_LID_PROGRESS.big -= 100;
+			if (MOD_RENDER_PASS == 0) { /* MOD (fps): once per tick */
+				BOX_LID_PROGRESS.big -= 100;
+			}
 			if (BOX_LID_PROGRESS.big < -0x400) {
 				BOX_LID_PROGRESS.big = -0x400;
 			}
@@ -666,7 +670,9 @@ void renderToyTownBoxes(int32_t instanceId)
 		}
 
 		if (TOY_TOWN_SELECTED_BOX == 2) {
-			BOX_LID_PROGRESS.small -= 100;
+			if (MOD_RENDER_PASS == 0) { /* MOD (fps): once per tick */
+				BOX_LID_PROGRESS.small -= 100;
+			}
 			if (BOX_LID_PROGRESS.small < -0x400) {
 				BOX_LID_PROGRESS.small = -0x400;
 			}

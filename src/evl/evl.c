@@ -117,6 +117,10 @@ void EVL_tickShardSet(int32_t id);
 void EVL_renderShardSet(int32_t index);
 void EVL_renderTriShard(EvlModelVertex *drift, int32_t unused1, int16_t speed, int16_t timer, ModelComponent *model);
 void EVL_renderQuadShard(EvlModelVertex *drift, int32_t unused1, int16_t speed, int16_t timer, ModelComponent *model);
+/* MOD (fps): render-side random numbers, see dw/mod_fps.h */
+int32_t modRenderRand(void);
+int32_t modRenderCustomRandom(long min, long max);
+
 void EVL_renderSparkStreak(int32_t id);
 void EVL_tickSpark(int32_t id);
 void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t digimonId);
@@ -1194,21 +1198,21 @@ void EVL_renderSparkStreak(int32_t id)
 	a.vy = m.t[1];
 	a.vz = m.t[2];
 	lenSq = ((b.vx * b.vx) + (b.vy * b.vy)) + (b.vz * b.vz);
-	scale = customRandom(0x190, 0x1f4);
+	scale = modRenderCustomRandom(0x190, 0x1f4);
 	scale = scale * scale;
 	b.vx = a.vx + ((b.vx * scale) / lenSq);
 	b.vy = a.vy + ((b.vy * scale) / lenSq);
 	b.vz = a.vz + ((b.vz * scale) / lenSq);
-	c.vx = b.vx + customRandom(-0x50, 0x50);
-	c.vy = b.vy + customRandom(-0x50, 0x50);
-	c.vz = b.vz + customRandom(-0x50, 0x50);
+	c.vx = b.vx + modRenderCustomRandom(-0x50, 0x50);
+	c.vy = b.vy + modRenderCustomRandom(-0x50, 0x50);
+	c.vz = b.vz + modRenderCustomRandom(-0x50, 0x50);
 	prim = (POLY_FT3 *)GsGetWorkBase();
 	SetPolyFT3(prim);
 	SetSemiTrans(prim, 1);
 	prim->tpage = getTPage(0, 1, 768, 256);
 	prim->clut = getClut(192, 489);
 	setUV3(prim, 0x5f, 0xa0, 0x5f, 0xa7, 0x30, 0xa0);
-	setRGB0(prim, (rand() % 128) + 10, prim->r0, prim->r0);
+	setRGB0(prim, (modRenderRand() % 128) + 10, prim->r0, prim->r0);
 	addScreenPolyFT3(prim, &c, &a, &b);
 }
 
