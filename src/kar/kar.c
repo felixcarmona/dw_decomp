@@ -2006,7 +2006,7 @@ int8_t KAR_tickYesNoPrompt(void)
 	startPos = MAIN_D_80134A18;
 	strs = MAIN_D_80134A20;
 	while (MAIN_D_80135250 < 2) {
-		DRAW_STRING_CELLS(strs.text[MAIN_D_80135250], 0, (MAIN_D_80135250 * 13) + 0xdd);
+		DRAW_STRING_PIECES(strs.text[MAIN_D_80135250], 0, (MAIN_D_80135250 * 13) + 0xdd, 0, 0x53);
 		MAIN_D_80135250++;
 		break;
 	}

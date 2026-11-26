@@ -172,10 +172,12 @@ void buildScheduleLabels(void)
 #else
 		dayOfMonth = day % 30;
 		str = (uint8_t *)intToStringSJIS(str, dayOfMonth + 1, 2, 0);
+#if !FONT_PROPORTIONAL /* MOD (font): the figure space that pads it already advances a digit's 8 pixels */
 		if ((i == 0) && ((dayOfMonth + 1) < 10)) {
 			*str++ = 0x81;
 			*str++ = 0x40;
 		}
+#endif
 #endif
 	}
 
