@@ -401,6 +401,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_QUICK:
       ja: "QUICK BATTLE START"
       en_us: "QUICK BATTLE START"
+    MOD_OPT_STR_STRENGTH:
+      ja: "DANGER ALERT"
+      en_us: "DANGER ALERT"
     MOD_OPT_STR_FONT:
       ja: "FONT"
       en_us: "FONT"

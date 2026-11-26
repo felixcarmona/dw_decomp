@@ -90,6 +90,7 @@ void modSetStory(int32_t extended);
 #define MOD_DIFF_HARD	2
 extern int32_t MOD_OPT_DIFFICULTY; /* Saved values: NORMAL=0, EASY=1, HARD=2. */
 extern int32_t MOD_OPT_QUICK_BATTLE; /* QUICK BATTLE START: a field battle starts at once, its intro over the fight (battle_setup.c, btl.c); 0 = the original start */
+extern int32_t MOD_OPT_STRENGTH; /* DANGER ALERT: marks over wild Digimon in the field (clock.c), 1 = shown; saved inverted in option byte 6 bit 0x40 */
 /* the damage `dmg` that `attacker` deals `defender` with the difficulty (`partner`: the partner's entity) */
 #define MOD_DIFF_DAMAGE(attacker, defender, partner, dmg)                                                              \
 	(MOD_OPT_DIFFICULTY != MOD_DIFF_EASY ? (dmg)                                                                       \

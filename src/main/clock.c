@@ -22,6 +22,7 @@ int32_t isFishing();
 void addTamerLevel(int32_t chance, int32_t amount);
 void updateBGM();
 void renderStatusBars(int32_t isGameTimeRunning);
+void modStrengthMarks(void); /* btl.c: MOD (danger mark) */
 void tickStatusBarsSlide(int32_t isGameTimeRunning);
 
 extern uint16_t LAST_HANDLED_FRAME;
@@ -381,6 +382,7 @@ void renderGameClock(int32_t instanceId)
 	renderDigitalClock(CLOCK_OFFSET_X + 13, -46);
 
 	renderStatusBars(IS_GAMETIME_RUNNING);
+	modStrengthMarks();
 }
 
 void updateMinuteHand(hour, minute)

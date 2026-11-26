@@ -10,13 +10,16 @@
 #include <dw/graphics.h>
 #include <dw/ids.h>
 #include <dw/mod_options.h> /* MOD (quick battle start) */
+#include <dw/mod_hard.h> /* MOD (danger mark): the scaling a fight applies, so the mark judges the fight */
 #include <dw/species.h>
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/math.h>
 #include <dw/mod_present.h>
 #include <dw/params.h>
+#include <dw/screen.h>
 #include <dw/script.h>
+#include <dw/tamer.h>
 #include <dw/sound.h>
 #include <dw/sound_async.h>
 #include <dw/tfs_stream.h> /* MOD (post-battle stall) */
@@ -803,6 +806,127 @@ void loadBattleData(int32_t entityId, int32_t count)
 }
 
 GARBAGE(renderFleeBubble, 23);
+
+/*
+ * MOD (danger mark): a purple devil above each wild Digimon in the field that is stronger than the partner.
+ * Strength is HP x (Offense + Defense) as the Digimon stand in the field, before the difficulty's scaling (the limit is 2.5 times, far coarser than it); the limit is
+ * battleFormulas.strength (tools/battle_audit.py calibrates it against simulated fights). Only Digimon whose touch script
+ * starts a fight (strengthFights) get one.
+ */
+extern int32_t IS_IN_MENU;
+
+#define SKULL_W 11
+#define SKULL_H 9
+/* the smiling devil, one bit per pixel (bit c = column c), a row per entry: the whole body, then the eyes and grin */
+static const uint16_t SKULL_BODY[SKULL_H] = { 0x401, 0x6fb, 0x3fe, 0x3fe, 0x3fe, 0x3fe, 0x3fe, 0x3fe, 0x1fc };
+static const uint16_t SKULL_DARK[SKULL_H] = { 0, 0, 0, 0, 0x18c, 0xd8, 0x104, 0xf8, 0 };
+
+/* one colour of the skull as horizontal runs; grow 1 draws it a pixel fatter all round, which is the outline */
+static __attribute__((noinline)) void strengthMask(const uint16_t *m, int32_t x, int32_t y, int32_t grow, uint32_t rgb, int32_t z)
+{
+	int32_t r, c, start, k;
+	uint32_t v;
+
+	for (r = -grow; r < SKULL_H + grow; r++) {
+		v = 0;
+		for (k = r - grow; k <= r + grow; k++) {
+			if (k >= 0 && k < SKULL_H) v |= m[k];
+		}
+		v <<= 1; /* bit 0 is the column left of the sprite, so growing never loses a pixel */
+		if (grow) v |= (v << 1) | (v >> 1);
+		for (c = 0, start = -1; c <= SKULL_W + 2; c++) {
+			if ((v >> c) & 1) {
+				if (start < 0) start = c;
+			} else if (start >= 0) {
+				modPlateRect(x + start - 1, y + r, c - start, 1, rgb >> 16, (rgb >> 8) & 0xff, rgb & 0xff, z);
+				start = -1;
+			}
+		}
+	}
+}
+
+static void strengthSkull(int32_t x, int32_t y)
+{
+	strengthMask(SKULL_BODY, x, y, 1, 0x2a0a50, 9);
+	strengthMask(SKULL_BODY, x, y, 0, 0xb050ff, 8);
+	strengthMask(SKULL_DARK, x, y, 0, 0x2a0a50, 7);
+}
+
+/*
+ * Whether touching this Digimon starts a fight: its script section holds the battle opcodes the game and the story tools
+ * always write together, FADEOUT_HUD 0, DELAY 1, START_BATTLE 0. Digimon that only talk on touch (story characters,
+ * shopkeepers) never do. The section is read where callScriptSection(CURRENT_SCRIPT_ID, scriptId) would run it, without
+ * loading anything: the bytes stop at the next section of the script (at most 0x180 further for the last one).
+ */
+extern uint8_t *MAP_SCRIPT_PTR;
+
+static __attribute__((noinline)) int32_t strengthFights(NPCEntity *npc)
+{
+	uint8_t *script;
+	uint16_t *entry;
+	uint32_t start, end, i;
+
+	if (CURRENT_SCRIPT_ID == 0) {
+		if (isNewScreen(npc->scriptId)) return 0;
+		script = MAPHEAD_SCRIPT_PTR;
+	} else if (CURRENT_SCRIPT_ID != 0xffff && ACTIVE_MAP_SCRIPT == CURRENT_SCRIPT_ID) {
+		script = MAP_SCRIPT_PTR;
+	} else {
+		return 0;
+	}
+	if (script == NULL) return 0;
+	start = 0xffffffff;
+	for (entry = (uint16_t *)&script[2]; entry[0] != 0xffff; entry += 2) {
+		if (entry[0] == npc->scriptId) start = entry[1];
+	}
+	if (start == 0xffffffff) return 0;
+	end = start + 0x180;
+	for (entry = (uint16_t *)&script[2]; entry[0] != 0xffff; entry += 2) {
+		if (entry[1] > start && entry[1] < end) end = entry[1];
+	}
+	for (i = start; i + 8 <= end; i++) {
+		if (script[i] == 0x27 && script[i + 1] == 0x00 && script[i + 2] == 0x67 && script[i + 3] == 0x00 &&
+		    script[i + 4] == 0x01 && script[i + 5] == 0x00 && script[i + 6] == 0x66 && script[i + 7] == 0x00) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int32_t strengthScore(Stats *s)
+{
+	return (s->base.hp * (s->base.off + s->base.def)) >> 6;
+}
+
+void modStrengthMarks(void)
+{
+	int32_t i, x, y, partner, wild;
+	DigimonEntity *d;
+	NPCEntity *npc;
+	SVECTOR world;
+	DVECTOR head;
+
+	/* only while a touch could start a fight now: the tamer is free and the partner can stand */
+	if (!MOD_OPT_STRENGTH || GAME_STATE != 0 || IS_SCRIPT_PAUSED != 1 || IS_IN_MENU != 0 || ENTITY_TABLE[1] == NULL ||
+	    tamerGetState() != 0 || PARTNER_ENTITY.digimonEntity.stats.current.currentHP <= 0) return;
+	partner = strengthScore(&PARTNER_ENTITY.digimonEntity.stats);
+	for (i = 2; i < 10; i++) {
+		if (ENTITY_TABLE[i] == NULL || ENTITY_TABLE[i]->isOnMap == 0 || ENTITY_TABLE[i]->isOnScreen == 0) continue;
+		npc = &NPC_ENTITIES[i - 2];
+		d = &npc->digimonEntity;
+		if (npc->autotalk != 1 || d->stats.base.hp <= 0 || d->stats.base.moves[0] == 0xff || isInvisible(&d->entity) || !strengthFights(npc)) continue;
+		wild = strengthScore(&d->stats);
+		if (partner > wild / 100 * BM(STRENGTH_STRONGER)) continue;
+		world.vx = d->entity.posData->location.vx;
+		world.vy = -DIGI_PARA(d->entity.type).height;
+		world.vz = d->entity.posData->location.vz;
+		if (worldPosToScreenPos(&world, &head) <= 0) continue;
+		x = head.vx - (160 - DRAWING_OFFSET_X) - 5;
+		y = head.vy - (120 - DRAWING_OFFSET_Y) - 14;
+		if (x < -160 || x > 148 || y < -120 || y > 108) continue; /* the head is off the screen */
+		strengthSkull(x, y);
+	}
+}
 
 void renderFleeBubble(int32_t instanceId)
 {

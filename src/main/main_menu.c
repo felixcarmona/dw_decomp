@@ -278,14 +278,15 @@ static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen i
 #define MOD_OPT_ROW_STORY	4 /* MOD (story): EXTENDED STORY, under NEW CARDS */
 #define MOD_OPT_ROW_DIFF	5 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
 #define MOD_OPT_ROW_QUICK	6 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
-#define MOD_OPT_ROW_FPS 7
+#define MOD_OPT_ROW_STRENGTH	7 /* MOD (danger mark): DANGER ALERT, under QUICK BATTLE START */
+#define MOD_OPT_ROW_FPS 8
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	12 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	8
-#define MOD_OPT_ROW_LANG	9
+#define MOD_OPT_ROWS	13 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	9
+#define MOD_OPT_ROW_LANG	10
 #else
-#define MOD_OPT_ROWS	11
-#define MOD_OPT_ROW_LANG	8
+#define MOD_OPT_ROWS	12
+#define MOD_OPT_ROW_LANG	9
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4767,7 +4768,8 @@ static void modOptionBytes(uint8_t *d)
 	d[4] = 0;
 #endif
 	d[5] = MOD_OPT_EVO_GUIDE;
-	d[6] = MOD_OPT_NEW_DIGIMON | (MOD_OPT_NEW_CARDS ? 0 : 0x80); /* Inverted: old saves enable new cards. */
+	/* Inverted: old saves enable new cards and the danger marks. */
+	d[6] = MOD_OPT_NEW_DIGIMON | (MOD_OPT_NEW_CARDS ? 0 : 0x80) | (MOD_OPT_STRENGTH ? 0 : 0x40);
 	d[7] = MOD_LANG; /* MOD (language) */
 	d[8] = MOD_OPT_SIGNS;
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
@@ -4800,6 +4802,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 		MOD_OPT_EVO_GUIDE = d[5] != 0;
 	}
 	MOD_OPT_NEW_CARDS = len < 7 || !(d[6] & 0x80);
+	MOD_OPT_STRENGTH = len < 7 || !(d[6] & 0x40);
 	if (len >= 7) {
 		MOD_OPT_NEW_DIGIMON = (d[6] & 1) != 0;
 		modApplySpeciesLevels(); /* MOD (canon levels) */
@@ -6100,6 +6103,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][4] = {
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
 	{ MOD_OPT_STR_DIFF, MOD_OPT_STR_EASY, MOD_OPT_STR_NORMAL, MOD_OPT_STR_HARD }, /* MOD (difficulty) */
 	{ MOD_OPT_STR_QUICK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (quick battle start) */
+	{ MOD_OPT_STR_STRENGTH, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (danger mark) */
     { MOD_OPT_STR_FPS, MOD_OPT_STR_AUTO, MOD_OPT_STR_60, MOD_OPT_STR_20 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
@@ -6192,6 +6196,8 @@ static int32_t modOptionValue(int32_t row)
         return MOD_OPT_FPS;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		return MOD_OPT_QUICK_BATTLE != 0;
+	case MOD_OPT_ROW_STRENGTH: /* MOD (danger mark) */
+		return MOD_OPT_STRENGTH != 0;
 #if FONT_SWITCH
 	case MOD_OPT_ROW_FONT: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
@@ -6244,6 +6250,9 @@ static void __attribute__((noinline)) modSetOption(int32_t row, int32_t value)
         break;
 	case MOD_OPT_ROW_QUICK: /* MOD (quick battle start) */
 		MOD_OPT_QUICK_BATTLE = value;
+		break;
+	case MOD_OPT_ROW_STRENGTH: /* MOD (danger mark) */
+		MOD_OPT_STRENGTH = value;
 		break;
 #if FONT_SWITCH
 	case MOD_OPT_ROW_FONT:
