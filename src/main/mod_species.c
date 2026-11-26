@@ -922,26 +922,6 @@ uint8_t *readSpeciesChart(int32_t k, int32_t city)
 	return (uint8_t *)SPECIES_SECTOR;
 }
 
-int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t max)
-{
-	int32_t i;
-	int32_t n;
-	uint8_t level;
-
-	if (SPECIES_INDEX_SECTOR == 0) {
-		return 0;
-	}
-	readSpeciesSector(0);
-	n = 0;
-	for (i = 0; i < SPECIES_PARTNER_COUNT && n < max; i++) {
-		level = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_LEVELS + i];
-		if (level >= lo && level <= hi) {
-			out[n++] = SPECIES_PARTNER_IDS[i];
-		}
-	}
-	return n;
-}
-
 /*
  * MOD (cold animations): see COLD_ANIM_FLAG in species.h. Returns where the animation's first word is, or NULL when it cannot
  * be played (not the partner, a model not in DIGI.DAT, a bad entry): the caller then starts nothing, as for a missing slot.

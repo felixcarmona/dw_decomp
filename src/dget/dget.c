@@ -15,6 +15,7 @@
 #include <dw/pstat.h>
 #include <dw/script.h>
 #include <dw/species.h>
+#include <dw/cup_rules.h>
 #include <dw/tournament.h>
 #include <dw/trigger.h>
 #include <dw/ui.h>
@@ -89,6 +90,17 @@ static void *dget_sbss_order[] = {
 	&TOURNAMENT_SELECTED_ROW,
 	&TOURNAMENT_SELECTED_COLUMN,
 	&DGET_BUFFER,
+};
+
+/* MOD (cup rules): Rookie, Champion, Ultimate, Mega; Vaccine, Data, Virus; the six Fields */
+#define NEW_CUP_COUNT	13
+/*
+ * one character each, as the calendar's cells hold (the original's are single letters too): 1..4 the level cups by their
+ * order, V E U Vaccine, Data, Virus, and in small letters the Fields: n d s g e b (Nature Spirits, Deep Savers, Nightmare
+ * Soldiers, Wind Guardians, Metal Empire, Virus Busters)
+ */
+static char NEW_CUP_GRADES[NEW_CUP_COUNT][2] = {
+	"1", "2", "3", "4", "V", "E", "U", "n", "d", "s", "g", "e", "b",
 };
 
 void fillEnabledTournamentTable(void)
@@ -172,8 +184,16 @@ void buildScheduleLabels(void)
 #else
 		dayOfMonth = day % 30;
 #if FONT_SWITCH
-		if (FONT_PROPORTIONAL) { /* MOD (font): the figure space that pads it already advances a digit's 8 pixels */
-			str = (uint8_t *)intToStringSJIS(str, dayOfMonth + 1, 2, 0);
+		if (FONT_PROPORTIONAL) {
+			/*
+			 * MOD (font): each date starts at its own 16-pixel piece, a date under 10 in its middle: left to the
+			 * advances, the pieces drifted ("1 2", "2 3", "4", "5")
+			 */
+			if (i != 0 || dayOfMonth + 1 < 10) {
+				*str++ = TEXT_COLUMN;
+				*str++ = i * 16 + (dayOfMonth + 1 < 10 ? 4 : 0);
+			}
+			str = (uint8_t *)intToStringSJIS(str, dayOfMonth + 1, dayOfMonth + 1 < 10 ? 1 : 2, 0);
 			continue;
 		}
 #endif
@@ -207,6 +227,7 @@ void buildScheduleEntries(void)
 	uint8_t *textPtr;
 	uint8_t entry;
 	int32_t i;
+	int32_t mark;
 
 	color = 0xe1;
 	TOURNAMENT_SELECTED_COLUMN = TOURNAMENT_SELECTED_ROW = 0;
@@ -225,8 +246,25 @@ void buildScheduleEntries(void)
 		textStart = textPtr;
 		entryPtr = (uint8_t *)(DGET_BUFFER + i);
 		for (col = 0; col < 5; ++col, entryPtr += 6) {
-			*textPtr++ = '\x01';
 			entry = *entryPtr;
+#if VERSION_IS(US)
+			/*
+			 * MOD (cup rules): each day's mark starts at its own 12-pixel column, whatever the marks before it
+			 * measured (the figures and small letters of the cups after the original's are 8 wide: 2 further in)
+			 */
+			gradeLen = col * 12;
+			if (entry != 0xff && (entry & 0x3f) >= 23) {
+				mark = NEW_CUP_GRADES[((entry & 0x3f) - 23) % NEW_CUP_COUNT][0];
+				if (mark < 'A' || mark > 'Z') {
+					gradeLen += 2;
+				}
+			}
+			if (gradeLen != 0) {
+				*textPtr++ = TEXT_COLUMN;
+				*textPtr++ = gradeLen;
+			}
+#endif
+			*textPtr++ = '\x01';
 			if (entry != 0xff) {
 				if ((entry & 0xc0) == 0) {
 					*textPtr++ = '\x03';
@@ -236,7 +274,8 @@ void buildScheduleEntries(void)
 					*textPtr++ = '\x01';
 				}
 				entry &= 0x3f;
-				grade = TOURNAMENT_GRADES[entry];
+				/* MOD (cup rules): the cups after the original's have their mark here, the same in every language */
+				grade = entry < 23 ? TOURNAMENT_GRADES[entry] : NEW_CUP_GRADES[(entry - 23) % NEW_CUP_COUNT];
 				gradeLen = strlen(grade);
 				if (gradeLen == 2) {
 					*textPtr++ = '\x0f';
@@ -330,6 +369,34 @@ void initTournamentInfo(int32_t arg)
  */
 #define CUP_OPEN_LEVEL_COUNT	9
 
+/* MOD (cup rules): the partner's cup tag, read from DIGI.DAT once per species (key: the type + 1) */
+static int32_t CUP_TAG_KEY;
+static uint32_t CUP_TAG;
+
+static uint32_t partnerCupTag(int32_t type)
+{
+	uint32_t *sector;
+	uint32_t ref;
+
+	if (CUP_TAG_KEY == type + 1) {
+		return CUP_TAG;
+	}
+	CUP_TAG_KEY = type + 1;
+	CUP_TAG = 0;
+	sector = (uint32_t *)allocateArray(0x800);
+	while (isFileReadQueueBusy()) {
+		tickFileReadQueue(0);
+	}
+	readFileSectors(SPECIES_FILE_NAME, sector, 0, 1);
+	ref = sector[SPECIES_HEADER_CUP_TAGS / 4];
+	if (sector[0] == 0x49474944 && ref != 0 && type / CUP_TAGS_PER_SECTOR < (int32_t)(ref >> 24)) {
+		readFileSectors(SPECIES_FILE_NAME, sector, (ref & 0xffffff) + type / CUP_TAGS_PER_SECTOR, 1);
+		CUP_TAG = sector[type % CUP_TAGS_PER_SECTOR];
+	}
+	freeArray(sector);
+	return CUP_TAG;
+}
+
 static int32_t cupListHasType(uint8_t *typePtr, DigimonId partnerType)
 {
 	int32_t sameLevel;
@@ -338,6 +405,17 @@ static int32_t cupListHasType(uint8_t *typePtr, DigimonId partnerType)
 	int32_t hasOther;
 	uint8_t type;
 
+	if (*typePtr == CUP_RULE_MARK) { /* MOD (cup rules): the ids of the list, and whoever meets the rule */
+		level = typePtr[1];
+		other = typePtr[2];
+		typePtr += 3;
+		while ((type = *typePtr++) < 0xfe) {
+			if (type == partnerType) {
+				return 1;
+			}
+		}
+		return cupRuleHolds(level, other, partnerCupTag(partnerType), DIGI_PARA(partnerType).level);
+	}
 	if (partnerType < NUM_ORIGINAL_DIGIMON && !isRecordOriginal(partnerType)) { /* MOD (record originals): by level */
 		while ((type = *typePtr++) < 0xfe) {
 			if (type == partnerType) {

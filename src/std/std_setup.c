@@ -25,6 +25,11 @@
 #include <dw/types.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/level.h>
+#include <dw/mod_options.h>
+#include <dw/cup_rules.h>
+#include <dw/mod_rules.h>
+#include <dw/tournament.h>
 
 #include "common.h"
 
@@ -69,7 +74,6 @@ void STD_runIntro(int32_t arg);
 int32_t STD_combatMain(Entity *entity, Entity *other);
 void STD_removeCameraIntro(void);
 void GsGetTimInfo(unsigned long *tim, GsIMAGE *img);
-void readFile(char *path, void *dest);
 void STD_loadArenaTIMToVRAM(char *path, int32_t count);
 void STD_initializeLighting();
 int32_t STD_isBracketFinished(void);
@@ -81,7 +85,8 @@ void STD_initializeConfusionEffect(char *base);
 void STD_initializeStunEffect(char *base);
 void initializeBuffModel(TMDModel *model);
 void STD_battleTickFrame(void);
-int32_t loadTIMFile(char *path, void *buffer);
+void *allocateArray(uint32_t size);
+void freeArray(void *array);
 void removeMapEntities(void);
 void STD_loadWinLoseModel(void);
 void STD_initializeTournament(int32_t arena, uint16_t *arg);
@@ -145,11 +150,20 @@ static void *std_setup_sbss_order[] = {
 };
 
 // clang-format off
+/* MOD (cup rules): 36 rows, was 24: the cups 23..35 (tools/balance.py writes them from content/tables/tournaments.json) */
 int16_t STD_OPPONENT_BASE_STATS[24] = {
 	0x0064, 0x0096, 0x00c8, 0x00fa, 0x012c, 0x0000, 0x00c8, 0x00c8,
 	0x00c8, 0x00c8, 0x00c8, 0x00fa, 0x00fa, 0x00fa, 0x00fa, 0x00fa,
 	0x00fa, 0x00fa, 0x00fa, 0x00fa, 0x00fa, 0x00fa, 0x015e, 0x0000,
 };
+/* MOD (cup rules): the same number for the cups after the original's, 23 onwards (content/tables/tournament-rules.json,
+ * newCupStats; balance.py writes it here). */
+int16_t STD_NEW_CUP_BASE_STATS[13] = {
+	150, 200, 250, 220, 250, 250, 250, 250, 250, 250, 250, 250, 250,
+};
+#define STD_NEW_CUPS		13
+#define STD_NEW_CUP_SECTORS	17
+static char STD_PATH_NEW_CUPS[] = "\\STDDAT\\GRADE\\NEWCUPS.BIN";
 
 char STD_PATH_GRADE_STDDAT_GRADE_GRADED_TIM[] = "\\STDDAT\\GRADE\\GRADED.TIM";
 
@@ -256,7 +270,14 @@ void STD_initializeTournament(int32_t arena, uint16_t *arg)
 	STD_initializeLighting(arena);
 	STD_loadArenaAssets(arena);
 	STD_loadWinLoseModel();
-	loadTIMFile(STD_GRADES[arg[0]], GENERAL_BUFFER_PTR);
+	if (arg[0] < 23) {
+		loadTIMFile(STD_GRADES[arg[0]], GENERAL_BUFFER_PTR);
+	} else {
+		/* MOD (cup rules): the cups after the original's share one file: a banner per language and cup, each
+		 * STD_NEW_CUP_SECTORS long (tools/cup_banners.py) */
+		loadStackedTIMEntry(STD_PATH_NEW_CUPS, GENERAL_BUFFER_PTR,
+				    (MOD_LANG * STD_NEW_CUPS + (arg[0] - 23) % STD_NEW_CUPS) * STD_NEW_CUP_SECTORS, STD_NEW_CUP_SECTORS);
+	}
 	STD_loadTIMToVRAM(STD_PATH_STDDAT_STDTIM_BIN);
 	loadTIMFile(STD_PATH_STDDAT_TIME_TIM, GENERAL_BUFFER);
 	STD_initializeFinisherAuraModel(STD_FINISHER_TIM, STD_FINISHER_MODEL);
@@ -279,7 +300,7 @@ void STD_initializeOpponent(int16_t type, int16_t slot, uint8_t tier)
 	int32_t i;
 	int16_t base;
 
-	base = STD_OPPONENT_BASE_STATS[tier];
+	base = tier < 23 ? STD_OPPONENT_BASE_STATS[tier] : STD_NEW_CUP_BASE_STATS[(tier - 23) % STD_NEW_CUPS];
 	scriptLoadModel(type);
 	ENTITY_TABLE[slot + 2] = (Entity *)&NPC_ENTITIES[slot];
 	initializeDigimonObject(type, slot + 2, STD_tickNPCTournament);
@@ -517,6 +538,195 @@ void STD_loadTIMToVRAM(char *path)
 int16_t STD_REMAP[STD_REMAP_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
 int16_t STD_ARENA_SCREEN = -1;
 
+/*
+ * MOD (cup rules): the seven rivals of the cup arg[0], written to arg[1..7]. It was startTournament's work, in the main
+ * executable; here it costs the field no memory.
+ *
+ * A cup of the original's lists: the recruited originals of its list (all the recruited ones when the list is empty), and
+ * species of DIGI.DAT whose level lies in the levels of that list (a Mega is not drawn), up to as many as half the pool, at
+ * least seven. The special cup 0x16 fields its own list and nothing else.
+ *
+ * A cup with a rule (CUP_RULE_MARK in its entry list): CUP_RULE_EXACT draws only the recruited species of its rival list
+ * (the whole list while none is recruited). Any other rule adds every species that meets it, an original once it is
+ * recruited and a species of DIGI.DAT always. The cups that mix levels (attribute, Field) keep to the partner's level and
+ * the ones next to it while seven such rivals exist.
+ */
+#define STD_POOL_MAX	640
+
+static void STD_pickOpponents(uint16_t *arg)
+{
+	uint8_t *jumpTable;
+	uint8_t *rule;
+	uint8_t *p;
+	uint16_t *pool;
+	uint32_t *tags;
+	uint32_t ref;
+	uint32_t tag;
+	int32_t kind;
+	int32_t value;
+	int32_t partner;
+	int32_t own;
+	int32_t count;
+	int32_t listed;
+	int32_t lo;
+	int32_t hi;
+	int32_t level;
+	int32_t pass;
+	int32_t id;
+	int32_t i;
+	int32_t k;
+	int32_t n;
+	uint16_t t;
+
+	partner = PARTNER_ENTITY.digimonEntity.entity.type;
+	own = DIGI_PARA(partner).level;
+	jumpTable = getCupDataJumpTable(10, arg[0]);
+	rule = getCupDataJumpTableEntry(jumpTable, 3) + 2;
+	p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
+	kind = -1;
+	value = 0;
+	if (*rule == CUP_RULE_MARK) {
+		kind = rule[1];
+		value = rule[2];
+	}
+	pool = (uint16_t *)allocateArray(STD_POOL_MAX * 2);
+	tags = (uint32_t *)allocateArray(0x800);
+	count = 0;
+	lo = MOD_TOURNAMENT[MOD_TR_POOL_LOW];
+	hi = MOD_TOURNAMENT[MOD_TR_POOL_HIGH];
+	if (*p < 0xfe) {
+		lo = 9;
+		hi = 0;
+		while ((i = *p++) < 0xfe) {
+			k = DIGI_PARA(i).level > LEVEL_ULTIMATE ? LEVEL_ULTIMATE : DIGI_PARA(i).level;
+			if (k < lo) {
+				lo = k;
+			}
+			if (k > hi) {
+				hi = k;
+			}
+			if (arg[0] == 0x16 || isDigimonRecruited(i)) {
+				pool[count++] = i;
+			}
+		}
+		if (count == 0 && kind == CUP_RULE_EXACT) {
+			p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
+			while ((i = *p++) < 0xfe) {
+				pool[count++] = i;
+			}
+		}
+	} else if (kind < 0) {
+		for (i = 0; i < NUM_RECRUITABLE_DIGIMON; i++) {
+			if (isDigimonRecruited(i)) {
+				pool[count++] = i;
+			}
+		}
+	}
+	if (lo > MOD_TOURNAMENT[MOD_TR_POOL_HIGH]) {
+		lo = MOD_TOURNAMENT[MOD_TR_POOL_HIGH];
+	}
+	if (hi > MOD_TOURNAMENT[MOD_TR_POOL_HIGH]) {
+		hi = MOD_TOURNAMENT[MOD_TR_POOL_HIGH];
+	}
+	listed = count;
+	if (arg[0] != 0x16 && kind != CUP_RULE_EXACT) {
+		while (isFileReadQueueBusy()) {
+			tickFileReadQueue(0);
+		}
+		readFileSectors(SPECIES_FILE_NAME, tags, 0, 1);
+		ref = tags[SPECIES_HEADER_CUP_TAGS / 4];
+		if (tags[0] != 0x49474944) {
+			ref = 0;
+		}
+		/* pass 0: the mixed cups keep near the partner's level; pass 1: anyone, when that left fewer than seven */
+		for (pass = kind == CUP_RULE_ATTRIBUTE || kind == CUP_RULE_FIELD ? 0 : 1; pass < 2; pass++) {
+			count = listed;
+			for (k = 0; k < (int32_t)(ref >> 24); k++) {
+				readFileSectors(SPECIES_FILE_NAME, tags, (ref & 0xffffff) + k, 1);
+				for (i = 0; i < CUP_TAGS_PER_SECTOR && count < STD_POOL_MAX; i++) {
+					id = k * CUP_TAGS_PER_SECTOR + i;
+					tag = tags[i];
+					if (tag == 0 || id == partner) {
+						continue;
+					}
+					level = id < NUM_ORIGINAL_DIGIMON ? DIGI_PARA(id).level : (int32_t)CUP_TAG_LEVEL(tag);
+					if (kind < 0) {
+						if (!(tag & CUP_TAG_RIVAL) || level < lo || level > hi) {
+							continue;
+						}
+					} else {
+						if (!cupRuleHolds(kind, value, tag, level) || level < LEVEL_ROOKIE) {
+							continue;
+						}
+						if (!(tag & CUP_TAG_RIVAL) && !(id < NUM_RECRUITABLE_DIGIMON && isDigimonRecruited(id))) {
+							continue;
+						}
+						if (pass == 0 && (level < own - 1 || level > own + 1)) {
+							continue;
+						}
+						for (n = 0; n < listed && pool[n] != id; n++) {
+						}
+						if (n < listed) {
+							continue;
+						}
+					}
+					pool[count++] = id;
+				}
+			}
+			if (count >= 7) {
+				break;
+			}
+		}
+		if (kind < 0) {
+			/* MOD (economy as data): MOD_TOURNAMENT's pool rules: how many of them join */
+			n = count - listed;
+			k = listed > MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN] && MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] > 0 ? listed / MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] : MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN];
+			if (k < 0) {
+				k = 0;
+			}
+			if (k > 64) {
+				k = 64;
+			}
+			if (k > n) {
+				k = n;
+			}
+			for (i = 0; i < k; i++) {
+				id = listed + i + randomLimit(n - i);
+				t = pool[id];
+				pool[id] = pool[listed + i];
+				pool[listed + i] = t;
+			}
+			count = listed + k;
+		}
+	}
+	freeArray(tags);
+	if (count == 0) {
+		pool[count++] = partner;
+	}
+	arg++;
+	if (count <= 7) {
+		for (k = 0; k < count; k++) {
+			*arg++ = pool[k];
+		}
+		for (; k < 7; k++) {
+			*arg++ = pool[randomLimit(count)];
+		}
+	} else {
+		for (k = 0; k < count; k++) {
+			if (pool[k] == partner) {
+				pool[k] = pool[--count];
+				break;
+			}
+		}
+		for (k = 0; k < 7; k++) {
+			n = randomLimit(count);
+			*arg++ = pool[n];
+			pool[n] = pool[--count];
+		}
+	}
+	freeArray(pool);
+}
+
 int16_t STD_tournamentMain(uint16_t *arg)
 {
 	int32_t j;
@@ -526,6 +736,7 @@ int16_t STD_tournamentMain(uint16_t *arg)
 	long n;
 	long i;
 
+	STD_pickOpponents(arg);
 	/* MOD (rules as data): the opponents whose models do not exist here are swapped for another species: STD_REMAP */
 	for (n = 1; n < 8; n++) {
 		for (i = 0; i < STD_REMAP_MAX; i++) {

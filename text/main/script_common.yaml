@@ -334,6 +334,45 @@ TOURNAMENT_NAMES:
     STR_TOURNAMENT_NAME_BEETLE_CUP:
       ja: ビートルカップ
       en_us: Beetle Cup
+    STR_TOURNAMENT_NAME_ROOKIE_CUP:
+      ja: ルーキーカップ
+      en_us: Rookie Cup
+    STR_TOURNAMENT_NAME_CHAMPION_CUP:
+      ja: チャンピオンカップ
+      en_us: Champion Cup
+    STR_TOURNAMENT_NAME_ULTIMATE_CUP:
+      ja: アルティメットカップ
+      en_us: Ultimate Cup
+    STR_TOURNAMENT_NAME_MEGA_CUP:
+      ja: メガカップ
+      en_us: Mega Cup
+    STR_TOURNAMENT_NAME_VACCINE_CUP:
+      ja: ワクチンカップ
+      en_us: Vaccine Cup
+    STR_TOURNAMENT_NAME_DATA_CUP:
+      ja: データカップ
+      en_us: Data Cup
+    STR_TOURNAMENT_NAME_VIRUS_CUP:
+      ja: ウイルスカップ
+      en_us: Virus Cup
+    STR_TOURNAMENT_NAME_NATURE_SPIRITS_CUP:
+      ja: ネイチャースピリッツカップ
+      en_us: Nature Spirits Cup
+    STR_TOURNAMENT_NAME_DEEP_SAVERS_CUP:
+      ja: ディープセイバーズカップ
+      en_us: Deep Savers Cup
+    STR_TOURNAMENT_NAME_NIGHTMARE_SOLDIERS_CUP:
+      ja: ナイトメアソルジャーズカップ
+      en_us: Nightmare Soldiers Cup
+    STR_TOURNAMENT_NAME_WIND_GUARDIANS_CUP:
+      ja: ウィンドガーディアンズカップ
+      en_us: Wind Guardians Cup
+    STR_TOURNAMENT_NAME_METAL_EMPIRE_CUP:
+      ja: メタルエンパイアカップ
+      en_us: Metal Empire Cup
+    STR_TOURNAMENT_NAME_VIRUS_BUSTERS_CUP:
+      ja: ウイルスバスターズカップ
+      en_us: Virus Busters Cup
 
 TOURNAMENT_GRADES:
   strings:

@@ -715,55 +715,11 @@ void updateMapLightState(void)
 }
 
 /*
- * MOD (portraits): species of DIGI.DAT as opponents. The cup's pool is the recruited originals of its list
- * (all recruited ones when the list is empty); partner species whose level lies in the levels of that list
- * (all of the list, recruited or not: Rookie, Champion, Ultimate; a Mega is not drawn) join it, up to as many
- * as half the pool, at least seven, so an early game with few recruits still meets a different bracket. The
- * opponents' stats depend on the cup and the level only (STD_initializeOpponent), so a species of the level
- * is as strong as the original.
+ * MOD (cup rules): the rivals are drawn by the arena itself (STD_pickOpponents, in the STD overlay): the pool that was
+ * built here cost the field its memory all the time. `t` is the cup and room for the seven species.
  */
-#define TOURNAMENT_NEW_MAX	64
-
-static int32_t addTournamentSpecies(uint16_t *pool, int32_t count, int32_t lo, int32_t hi)
-{
-	uint16_t *cand;
-	int32_t n;
-	int32_t add;
-	int32_t i;
-	int32_t j;
-	uint16_t t;
-
-	cand = (uint16_t *)allocateArray(SPECIES_MAX_PARTNERS * 2);
-	n = getSpeciesPartnersByLevel(lo, hi, cand, SPECIES_MAX_PARTNERS);
-	/* MOD (economy as data): MOD_TOURNAMENT's pool rules */
-	add = count > MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN] && MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] > 0 ? count / MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_DIV] : MOD_TOURNAMENT[MOD_TR_POOL_EXTRA_MIN];
-	if (add < 0) {
-		add = 0;
-	}
-	if (add > TOURNAMENT_NEW_MAX) {
-		add = TOURNAMENT_NEW_MAX;
-	}
-	for (i = 0; i < n && add > 0; i++) {
-		j = i + randomLimit(n - i);
-		t = cand[j];
-		cand[j] = cand[i];
-		cand[i] = t;
-		if (t == PARTNER_ENTITY.digimonEntity.entity.type) {
-			continue;
-		}
-		pool[count++] = t;
-		add--;
-	}
-	freeArray((uint32_t *)cand);
-	return count;
-}
-
 void startTournament(void)
 {
-	uint8_t *p;
-	uint16_t *pool;
-	uint8_t *jumpTable;
-	uint16_t *w;
 	struct {
 		uint16_t cup; /* MOD (portraits): the opponents may be species >= 256 (was u8) */
 		uint16_t opponents[7];
@@ -772,99 +728,9 @@ void startTournament(void)
 	int16_t expected;
 	uint8_t id;
 	uint8_t isComplete;
-	uint8_t i;
-	int32_t count;
-	uint16_t *o;
-	int32_t k;
-	int32_t lo;
-	int32_t hi;
 
 	id = readPStat(3);
 	t.cup = id;
-	pool = (uint16_t *)allocateArray((0x70 + TOURNAMENT_NEW_MAX) * 2);
-	w = pool;
-	jumpTable = getCupDataJumpTable(10, id);
-	p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
-	count = 0;
-	lo = MOD_TOURNAMENT[MOD_TR_POOL_LOW]; /* MOD (portraits): the levels of the cup's list: Rookie..Ultimate for a list that is every recruit */
-	hi = MOD_TOURNAMENT[MOD_TR_POOL_HIGH];
-	i = *p;
-	if (i < 0xfe) {
-		lo = 9;
-		hi = 0;
-		if (id != 0x16) {
-			while ((i = *p++) < 0xfe) {
-				/* MOD (canon levels): a cup of the original's lists draws no Mega (Phoenixmon, HerculesKabuterimon
-				 * and MetalEtemon are Mega now; the Ultimate cups list them) */
-				k = DIGI_PARA(i).level > LEVEL_ULTIMATE ? LEVEL_ULTIMATE : DIGI_PARA(i).level;
-				if (k < lo) {
-					lo = k;
-				}
-				if (k > hi) {
-					hi = k;
-				}
-				if (isDigimonRecruited(i)) {
-					*w++ = i;
-					count++;
-				}
-			}
-		} else {
-			while ((i = *p++) < 0xfe) {
-				*w++ = i;
-				count++;
-			}
-		}
-	} else {
-		for (i = 0; i < NUM_RECRUITABLE_DIGIMON; i++) {
-			if (isDigimonRecruited(i)) {
-				*w++ = i;
-				count++;
-			}
-		}
-	}
-	if (id != 0x16) {
-		/* MOD (portraits): the special cup 0x16 lists its own contestants */
-		count = addTournamentSpecies(pool, count, lo > MOD_TOURNAMENT[MOD_TR_POOL_HIGH] ? MOD_TOURNAMENT[MOD_TR_POOL_HIGH] : lo,
-					     hi > MOD_TOURNAMENT[MOD_TR_POOL_HIGH] ? MOD_TOURNAMENT[MOD_TR_POOL_HIGH] : hi);
-	}
-	o = t.opponents;
-	if (count == 7) {
-		for (k = 0; k < 7; k++) {
-			*o++ = pool[k];
-		}
-	} else if (count < 7) {
-		for (k = 0; k < count; k++) {
-			*o++ = pool[k];
-		}
-		for (k = count; k < 7; k++) {
-			*o++ = pool[randomLimit(count)];
-		}
-	} else {
-		for (k = 0; k < count; k++) {
-			/* MOD: the whole type, not its low byte */
-			if (PARTNER_ENTITY.digimonEntity.entity.type == pool[k]) {
-				pool[k] = 0xffff;
-				count--;
-				break;
-			}
-		}
-		for (k = 0; k < 7; k++) {
-			int32_t n;
-
-			n = randomLimit(count) + 1;
-			w = pool;
-			while (n != 0) {
-				if (*w++ != 0xffff) {
-					n--;
-				}
-			}
-			w--;
-			*o++ = *w;
-			*w = 0xffff;
-			count--;
-		}
-	}
-	freeArray((uint32_t *)pool);
 	stopBGM();
 	loadDynamicLibrary(STD_REL, &isComplete, 0, NULL, NULL);
 	result = STD_tournamentMain(&t.cup);
@@ -888,7 +754,9 @@ void startTournament(void)
 	if (result == expected) {
 		TOURNAMENTS_WON++;
 		TOURNAMENTS_WON = enforceStatsLimits(0x11, TOURNAMENTS_WON);
-		setTrigger(id + 15);
+		if (id < 23) { /* MOD (cup rules): the cups after the original's have no trigger of their own (38.. are taken) */
+			setTrigger(id + 15);
+		}
 	} else {
 		TOURNAMENTS_LOST++;
 	}
