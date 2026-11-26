@@ -1066,7 +1066,7 @@ void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb);
 /* the shirt: the torso, the upper arms, the forearms; the trousers: each thigh and shin; the shoes: the feet; then how
  * many each garment has (the backpack none), its palette row, and where its count and its directory are in the file's first sector (in u16s) */
 const uint16_t lookShirtObjects[LOOK_SHIRT_OBJECTS + 4 * LOOK_GARMENTS] = { 0, 2, 3, 5, 6, 8, 9, 11, 12, 10, 13,
-	5, 4, 2, 0, 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x80, 0xA0, 0x100, 0x120 };
+	5, 4, 2, 0, 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x200, 0xA0, 0x240, 0x120 };
 /* The original tamer's cap in a cloth colour (the hair colour's byte, with no hairstyle): its nine greys of wool, from
  * the light to the shade; the letters of its band stay. It is drawn in the hair's palette row. */
 const LookShirtRecipe lookCapRecipe = { { 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 },

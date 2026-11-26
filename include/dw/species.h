@@ -356,16 +356,17 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define MOD_TAMER_TROUSERS	MOD_TAMER_STATE[5]
 #define MOD_TAMER_SHOES		MOD_TAMER_STATE[7]
 #define MOD_TAMER_PACK		MOD_TAMER_STATE[9]
-#define MOD_TAMER_HANDS		(MOD_TAMER_STATE[11] & 1)	/* 1 = small hands */
+#define MOD_TAMER_GIRL		(MOD_TAMER_FACE != 0)	/* the girl: the second face, small hands, her own clothes */
+#define MOD_TAMER_HANDS		MOD_TAMER_GIRL	/* small hands */
 #define MOD_TAMER_SKIN		(MOD_TAMER_STATE[11] >> 1)	/* the same byte's other bits: 0 his own skin, then the tones */
 #define TAMER_SKIN_COUNT	6
 /* The clothes (tools/tamer_looks/shirts.py, legs.py, shoes.py): a shirt is the torso and the arms of any look, a
  * pair of trousers its legs, a pair of shoes its feet. Garment 0 of each kind is the original tamer's; the others
  * are drawn with the tones of one palette row each, written for the chosen cloth colour. */
-#define TAMER_SHIRT_COUNT	11
+#define TAMER_SHIRT_COUNT	16
 #define TAMER_CLOTH_COUNT	16
 #define TAMER_TROUSERS_COUNT	9
-#define TAMER_SHOES_COUNT	12
+#define TAMER_SHOES_COUNT	17
 #define TAMER_PACK_COUNT	7	/* the original backpack, none, then the others */
 #define TAMER_PACK_NONE		1
 #define LOOK_GARMENTS		4	/* the shirt, the trousers, the shoes, the backpack: MOD_TAMER_STATE[3 + 2 * n] and its colour after it */

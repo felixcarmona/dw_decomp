@@ -514,9 +514,6 @@ MOD_LAB:
     LAB_STR_SHOES_TRAINERS:
       ja: "Trainers"
       en_us: "Trainers"
-    LAB_STR_SHOES_SMALL_TRAINERS:
-      ja: "Small trainers"
-      en_us: "Small trainers"
     LAB_STR_SHOES_PLAIN:
       ja: "Plain"
       en_us: "Plain"
@@ -529,9 +526,6 @@ MOD_LAB:
     LAB_STR_SHOES_ANKLE_BOOTS:
       ja: "Ankle boots"
       en_us: "Ankle boots"
-    LAB_STR_SHOES_SMALL_ANKLE_BOOTS:
-      ja: "Small boots"
-      en_us: "Small boots"
     LAB_STR_SHOES_BOOTS:
       ja: "Boots"
       en_us: "Boots"
@@ -568,15 +562,15 @@ MOD_LAB:
     LAB_STR_BACKPACK_ROUND:
       ja: "Round"
       en_us: "Round"
-    LAB_STR_HANDS:
-      ja: "Hands"
-      en_us: "Hands"
-    LAB_STR_HANDS_NORMAL:
-      ja: "Normal"
-      en_us: "Normal"
-    LAB_STR_HANDS_SMALL:
-      ja: "Small"
-      en_us: "Small"
+    LAB_STR_TAMER_KIND:
+      ja: "Tamer"
+      en_us: "Tamer"
+    LAB_STR_TAMER_BOY:
+      ja: "Boy"
+      en_us: "Boy"
+    LAB_STR_TAMER_GIRL:
+      ja: "Girl"
+      en_us: "Girl"
     LAB_STR_CAP_COLOUR:
       ja: "Cap colour"
       en_us: "Cap colour"
