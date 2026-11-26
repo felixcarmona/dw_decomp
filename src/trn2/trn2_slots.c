@@ -329,13 +329,8 @@ scan:
 	case 2:
 		switch (p->assist) {
 		case 0:
-			if (p->targetSymbol[0] != p->targetSymbol[1]) {
-				break;
-			}
-			if (p->targetSymbol[0] != TRN2_D_8008DAA8[i][(p->reelPos[i] + 12) % 13]) {
-				break;
-			}
-			p->stopSteps[i] = (rand() % 2) + 1;
+			/* MOD (fair Bonus Try): the reel stops where the player pressed; the original slipped one or two
+			 * symbols past a triple here, so half the rounds could not be won */
 			break;
 		case 1:
 			if (p->targetSymbol[0] != p->targetSymbol[1]) {
@@ -354,9 +349,7 @@ scan:
 					p->stopSteps[i] = j - 1;
 					p->targetSymbol[i] = p->targetSymbol[0];
 				}
-			} else if (TRN2_D_8008DAA8[i][(p->reelPos[i] + 12) % 13] == 7) {
-				p->stopSteps[i] = (rand() % 2) + 1;
-			}
+			} /* MOD (fair Bonus Try): two jackpot symbols no longer make the third reel slip past the third one */
 			break;
 		case 2:
 			if ((p->targetSymbol[0] == 7) && (p->targetSymbol[1] == 7)) {
