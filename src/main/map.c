@@ -6,6 +6,7 @@
 #include <libgs.h>
 
 #include <dw/clock.h>
+#include <dw/mod_rules.h>
 #include <dw/entity.h>
 #include <dw/fade.h>
 #include <dw/file.h>
@@ -4097,15 +4098,16 @@ void lateTickMap(int32_t arg0)
 
 	skipTimeOfDay = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
 	if ((skipTimeOfDay == 0) && ((CURRENT_FRAME % 1200) == 0)) {
-		if (HOUR == 16) {
+		/* MOD (rules as data): the hours come from MOD_DAYTIME (-1: no transition) */
+		if (HOUR == MOD_DAYTIME[MOD_DT_DUSK]) {
 			initializeDaytimeTransition(0);
 		}
 
-		if (HOUR == 20) {
+		if (HOUR == MOD_DAYTIME[MOD_DT_NIGHT]) {
 			initializeDaytimeTransition(1);
 		}
 
-		if (HOUR == 6) {
+		if (HOUR == MOD_DAYTIME[MOD_DT_DAWN]) {
 			initializeDaytimeTransition(2);
 		}
 	}
@@ -4469,13 +4471,13 @@ void updateTimeOfDay(void)
 	} else {
 		red = green = 10;
 
-		if ((HOUR >= 16) && (HOUR < 20)) {
+		if (modTimeOfDay(HOUR) == 0) {
 			LoadClut(MAP_CLUTS[1], 0, 480);
-			green = 7;
+			green = MOD_DAYTIME[MOD_DT_DUSK_GREEN] >= 0 ? MOD_DAYTIME[MOD_DT_DUSK_GREEN] : 10;
 			CURRENT_TIME_OF_DAY = 0;
-		} else if ((HOUR < 6) || (HOUR >= 20)) {
+		} else if (modTimeOfDay(HOUR) == 1) {
 			LoadClut(MAP_CLUTS[2], 0, 480);
-			red = green = 5;
+			red = green = MOD_DAYTIME[MOD_DT_NIGHT_TINT] >= 0 ? MOD_DAYTIME[MOD_DT_NIGHT_TINT] : 10;
 			CURRENT_TIME_OF_DAY = 1;
 		} else {
 			LoadClut(MAP_CLUTS[0], 0, 480);

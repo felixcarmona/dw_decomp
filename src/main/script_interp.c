@@ -3,6 +3,7 @@
 #include <libcd.h>
 
 #include <dw/clock.h>
+#include <dw/mod_rules.h>
 #include <dw/doo2.h>
 #include <dw/eab.h>
 #include <dw/fade.h>
@@ -1554,7 +1555,7 @@ void handleMusicOverride(uint8_t *outFont, uint8_t *outVariant)
 	mode = readPStat(PSTAT_245);
 	switch (mode) {
 	case 0:
-		if (HOUR >= 6 && HOUR < 21) {
+		if (MOD_DAYTIME[MOD_DT_BGM_TO] < 0 || (HOUR >= MOD_DAYTIME[MOD_DT_BGM_FROM] && HOUR < MOD_DAYTIME[MOD_DT_BGM_TO])) {
 			*outVariant = 0;
 		} else {
 			*outVariant = 1;
@@ -1764,16 +1765,20 @@ void scriptInstruction64to7E(op)
 			initializeNamingBuffer(readPStat(0xfe));
 			longjmp(SCRIPT_JMP_BUF, 2);
 		case 0x21:
+			/* MOD (rules as data): the Beetle cup and its day come from MOD_TOURNAMENT (-1: the routine registers nothing) */
+			if (MOD_TOURNAMENT[MOD_TR_BEETLE_CUP] < 0) {
+				break;
+			}
 			setTrigger(0x25);
 			setTrigger(0x26);
 			setTrigger(0x27);
-			if (DAY != 0x16) {
-				byteArg1 = 0x95;
+			if (DAY != MOD_TOURNAMENT[MOD_TR_BEETLE_DAY]) {
+				byteArg1 = MOD_TOURNAMENT[MOD_TR_BEETLE_OTHER];
 			} else {
-				byteArg1 = 0x16;
+				byteArg1 = MOD_TOURNAMENT[MOD_TR_BEETLE_DAY];
 			}
 			writePStat(2, byteArg1);
-			writePStat(3, 0x16);
+			writePStat(3, MOD_TOURNAMENT[MOD_TR_BEETLE_CUP]);
 			writePStat(4,
 			           PARTNER_ENTITY.digimonEntity.entity.type);
 			break;
