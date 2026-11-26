@@ -2701,6 +2701,9 @@ void free3(void *ptr);
 #define LOOK_SCROLL_X	(LOOK_VALUE_X + LOOK_VALUE_W + 7)	/* the scroll bar: right of the value boxes, as tall as the rows shown */
 #define LOOK_SCROLL_H	((LOOK_SHOWN - 1) * 0x14 + 14)
 #define LOOK_HEAD_OBJECT	1
+#define LOOK_THIGH_LEFT		8
+#define LOOK_THIGH_RIGHT	11
+#define LOOK_THIGH_DEPTH	16	/* half a bucket of the portrait's table (shift 3) */
 #define LOOK_HAIR_MODE		0x34u	/* textured gouraud triangle: seven words */
 #define LOOK_HAIR_WORDS		7
 #define LOOK_HAIR_ROW		1	/* the hair's palette row (tools/tamer_looks/wig.py) */
@@ -3023,6 +3026,26 @@ void lookPageHairInside(GsDOBJ2 *obj, GsOT *ot)
 			GsSortObject4(obj, &back, 4, getScratchAddr(0));
 			tmd->primn = count;
 		}
+	}
+}
+
+/* The thighs' tops lie inside the shirt and come out under its hem, and a skirt or wide shorts flare out from there:
+ * their polygons' average depth can then be a bucket nearer than the hem that covers them, and the trousers showed
+ * through the shirt's lower edge. On the Look page they sort a little deeper: the matrix that takes them to the screen
+ * is scaled about the eye, which keeps every corner where it was on the screen and only adds depth. */
+static void lookPageThighDepth(MATRIX *m)
+{
+	int32_t z = m->t[2];
+	int32_t i, j;
+
+	if (z <= 0) {
+		return;
+	}
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			m->m[i][j] = (int16_t)(m->m[i][j] * (z + LOOK_THIGH_DEPTH) / z);
+		}
+		m->t[i] = m->t[i] * (z + LOOK_THIGH_DEPTH) / z;
 	}
 }
 
@@ -7055,6 +7078,12 @@ int8_t entityId;
 			GsGetLw(pos->obj.coord2, &m);
 			GsSetLightMatrix(&m);
 			GsGetLs(pos->obj.coord2, &m);
+			/* MOD (tamer looks): the thighs a little deeper, under the shirt's hem */
+			if (entityId == 0 && MOD_TAMER_LOOK > 1 &&
+			    ((void *)pos->obj.tmd == (void *)&TAMER_MODEL.modelPtr->obj[LOOK_THIGH_LEFT] ||
+			     (void *)pos->obj.tmd == (void *)&TAMER_MODEL.modelPtr->obj[LOOK_THIGH_RIGHT])) {
+				lookPageThighDepth(&m);
+			}
 			GsSetLsMatrix(&m);
 			/* MOD (status portrait): shift 3, not 5. With 5 the 512-entry OT
 			 * buckets are 128 depth units deep, and a portrait camera farther
