@@ -2064,13 +2064,7 @@ int32_t BTL_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		dmg = BMD((off + modSpeciesMove(attacker->entity.type, move)->power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
 	} else {
 		diff = off - def;
-		if (diff > BM(DIFF_CLAMP)) {
-			diff = BM(DIFF_CLAMP);
-		}
-		if (diff < -BM(DIFF_CLAMP)) {
-			diff = -BM(DIFF_CLAMP);
-		}
-		dmg = BMD((mult[0] + mult[1] + mult[2]) * (modSpeciesMove(attacker->entity.type, move)->power + BMD(diff * modSpeciesMove(attacker->entity.type, move)->power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
+		dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, diff), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
 		if ((Entity *)attacker == ENTITY_TABLE[1]) {

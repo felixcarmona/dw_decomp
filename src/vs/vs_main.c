@@ -369,13 +369,7 @@ int32_t VS_rollAttackOutcome(DigimonEntity *attacker, DigimonEntity *defender, i
 		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	} else {
 		diff = atk - def;
-		if (diff > BM(DIFF_CLAMP)) {
-			diff = BM(DIFF_CLAMP);
-		}
-		if (diff < -BM(DIFF_CLAMP)) {
-			diff = -BM(DIFF_CLAMP);
-		}
-		dmg = BMD((eff[2] + (eff[0] + eff[1])) * (modSpeciesMove(attacker->entity.type, move)->power + BMD(diff * modSpeciesMove(attacker->entity.type, move)->power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
+		dmg = BMD((eff[2] + (eff[0] + eff[1])) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, diff), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 
 	if (dmg <= BM(DMG_MIN) - 1) {
