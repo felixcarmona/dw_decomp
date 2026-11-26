@@ -724,4 +724,93 @@ SECTIONS
 			. = ALIGN(., 4);
 		}
 	}
+
+	/*
+	 * MOD (menu overlay, docs/mods/memory.md "The menu overlay"): main_menu.c's code that only runs while a card menu
+	 * is open (the title's menus, new game and continue, the save and load screens of the title, the save machine,
+	 * the sleep save and the game-clear save), read by loadMenuOverlay where each opens. The functions are named
+	 * one by one: one this list does not name (a new one) stays in the executable (main.ld takes the rest of the
+	 * file), which is always safe. Its rodata, data and bss stay in the executable too (they outlive the overlay).
+	 */
+	OVERLAY OVL_BTL_BASE : NOCROSSREFS
+	{
+		.MENU {
+			menu_START = .;
+			BUILD_DIR/src/main/main_menu.c.o(
+				.text._strncpy
+				.text.awardMachinedramonData
+				.text.countRegisteredDigimon
+				.text.createByteSum
+				.text.createSavegameChecksum
+				.text.drawMainMenuStrings
+				.text.drawMoveName
+				.text.drawOptionsText
+				.text.drawRegisteredDigimonSlots
+				.text.drawSaveSlotText
+				.text.dropAbsentRegistered.constprop.0
+				.text.getCardUsedBlockCount
+				.text.getMenuOnCardChange
+				.text.getSaveFileBytes
+				.text.getSaveVersion
+				.text.initializeDefaultSavegame
+				.text.isExtensionValid
+				.text.isMoveAbsent
+				.text.loadSaveCopy
+				.text.loadSaveSlotData
+				.text.loadSavegame
+				.text.modDrawSlot2.constprop.0
+				.text.modDrawSlot2.part.0.constprop.0
+				.text.modDrawSlotName
+				.text.modOptionValue
+				.text.modRegisterLong
+				.text.modTitleNameTail
+				.text.modTitleOptions
+				.text.modTitlePlayerName
+				.text.pickSaveCopy
+				.text.prepareSaveFile
+				.text.putRecord
+				.text.registerBattleData
+				.text.renderCantRegister
+				.text.renderCantRegisterBaby
+				.text.renderCheckingCard
+				.text.renderConfirmNoCard
+				.text.renderConfirmOverwrite
+				.text.renderConfirmRegister
+				.text.renderConfirmSlotSelection
+				.text.renderConfirmVSSlot
+				.text.renderDoYouWantToSave
+				.text.renderFormatMemoryCard
+				.text.renderInitialMenu
+				.text.renderMainMenu
+				.text.renderMemoryCardReadError
+				.text.renderMenuBox
+				.text.renderMenuSelector
+				.text.renderRegisterDigimon
+				.text.renderSaveSlotBox
+				.text.renderSelectCardSlot
+				.text.renderSelectNewGameCard
+				.text.renderSelectRegisterSlot
+				.text.renderSelectSlot
+				.text.renderSleepMenu
+				.text.renderText
+				.text.saveExtOf
+				.text.saveExtSize
+				.text.saveFileStart
+				.text.setMemoryCardReadError
+				.text.tickMainMenu
+				.text.tickMenuInput
+				.text.tickSelectSlotInput
+				.text.updateMemoryCardState
+				.text.writeSaveFile
+				.text.writeSavegame
+			);
+			. = ALIGN(., 4);
+			/* their switch tables and literals, which only they read */
+			BUILD_DIR/src/main/main_menu.c.o(.rodata.tickMainMenu .rodata.renderMainMenu .rodata.drawMainMenuStrings
+				.rodata.drawMainMenuStrings.str1.4 .rodata.loadSaveCopy .rodata.modOptionValue);
+			. = ALIGN(., 4);
+			LONG(0);
+			. = ALIGN(., 4);
+		}
+	}
 }
