@@ -30,8 +30,14 @@
  *   game's readMapTFS calls (map load, battle exit, evolution, death,
  *   jukebox...) reopen it. A tile needed while the ring is invalid reopens
  *   it first, which only happens in the world.
+ * - The palettes are not read from the header once the screen is set up: a
+ *   load over it in the world is only noticed by the ring, and the header
+ *   is read again lazily (the next tile the window needs), while the hour
+ *   can change first (updateTimeOfDay, tickDaytimeTransition). Each header
+ *   read copies them to MOD_TFS_CLUTS, which MAP_CLUTS points to.
  */
 #include <libcd.h>
+#include <string.h>
 #include <libetc.h>
 #include <libgpu.h>
 #include <sys/types.h>
@@ -60,6 +66,7 @@ typedef struct {
 /* k-th non-empty tile of the file for each MAP_TILE_DATA.tiles entry (setupMap) */
 int8_t MOD_TFS_TILE_SEQ[35];
 TfsStreamStats MOD_TFS_STATS;
+u_long MOD_TFS_CLUTS[3][128];
 
 static TfsSlot TFS_SLOTS[TFS_RING_SLOTS];
 static char TFS_PATH[32];
@@ -221,6 +228,7 @@ void tfsStreamOpen(char *path)
 	TFS_FIRST_SECTOR = CdPosToInt(&lookup.pos);
 	readFileSectors(TFS_PATH, (void *)TFS_HEADER_ADDR, 0, TFS_HEADER_SIZE >> 11);
 	TFS_DATA_OFFSET = 8 + 512 * ((uint32_t *)TFS_HEADER_ADDR)[1];
+	memcpy(MOD_TFS_CLUTS, (uint8_t *)TFS_HEADER_ADDR + 8, sizeof(MOD_TFS_CLUTS));
 
 	/*
 	 * Never use more of the load area than this screen's whole TFS took in

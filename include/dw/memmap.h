@@ -62,6 +62,10 @@
  * is free in the world (WORLD_SCRATCH_*): every mode that writes there
  * (battle, evolution, death, menus, sound staging) is followed by a
  * readMapTFS, the same as when the whole TFS lived there.
+ * Nothing in the world may read the header after the screen is set up: sound
+ * banks and music fonts are staged over it at any time (the lab's roster
+ * switch, a script's music change), and the ring only notices. The palettes
+ * the time of day loads are a resident copy (MOD_TFS_CLUTS, tfs_stream.h).
  */
 #define TFS_HEADER_ADDR		0x80010000
 #define TFS_HEADER_SIZE		0x1000
