@@ -22,6 +22,7 @@
 #include <dw/mod_present.h>
 #include <dw/mod_qol.h>
 #include <dw/model.h>
+#include <dw/mod_options.h>
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/sound.h>
@@ -1996,6 +1997,20 @@ void STD_renderFighterHPBar(int16_t id)
 {
 	int32_t n;
 	int32_t i;
+
+	/* MOD (cheat full finisher): with CHEATS on and the Cheats menu's row on, the partner's gauge is always full
+	 * (only for a partner whose fourth move is a finisher, as STD_addFinisherProgress asks) */
+	if (id == 0 && MOD_OPT_CHEATS && MOD_OPT_FULL_FINISHER) {
+		Entity *modEntity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[0]];
+		int32_t modTech = ((DigimonEntity *)modEntity)->stats.base.moves[3];
+
+		if (modTech != 0xff) {
+			modTech = entityGetTechFromAnim(modEntity, modTech);
+			if (modTech >= 0x3a && modTech < 0x71) {
+				COMBAT_DATA_PTR->fighter[0].finisherProgress = COMBAT_DATA_PTR->fighter[0].finisherGoal;
+			}
+		}
+	}
 
 	if (GAME_STATE != 4) {
 		return;

@@ -16,6 +16,12 @@ MOD_LAB:
     LAB_STR_SHORTCUTS_ON:
       ja: "SELECT shortcuts: ON"
       en_us: "SELECT shortcuts: ON"
+    LAB_STR_FINISHER_OFF:
+      ja: "Full finisher: OFF"
+      en_us: "Full finisher: OFF"
+    LAB_STR_FINISHER_ON:
+      ja: "Full finisher: ON"
+      en_us: "Full finisher: ON"
     LAB_STR_SHORTCUTS_HELP:
       ja: "SELECT + L1/R1: Digimon, L2/R2: map"
       en_us: "SELECT + L1/R1: Digimon, L2/R2: map"

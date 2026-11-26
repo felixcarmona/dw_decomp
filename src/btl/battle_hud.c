@@ -12,6 +12,7 @@
 #include <dw/combat.h>
 #include <dw/font.h>
 #include <dw/input.h>
+#include <dw/mod_options.h>
 #include <dw/mod_present.h>
 #include <dw/mod_qol.h>
 #include <dw/item.h>
@@ -1296,6 +1297,20 @@ void BTL_renderFinisherGauge(int16_t idx)
 {
 	int32_t hp;
 	int32_t i;
+
+	/* MOD (cheat full finisher): with CHEATS on and the Cheats menu's row on, the partner's gauge is always full
+	 * (only for a partner whose fourth move is a finisher, as BTL_addFinisherProgress asks) */
+	if (idx == 0 && MOD_OPT_CHEATS && MOD_OPT_FULL_FINISHER) {
+		Entity *modEntity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[0]];
+		int32_t modTech = ((DigimonEntity *)modEntity)->stats.base.moves[3];
+
+		if (modTech != 0xff) {
+			modTech = entityGetTechFromAnim(modEntity, modTech);
+			if (modTech >= 0x3a && modTech < 0x71) {
+				COMBAT_DATA_PTR->fighter[0].finisherProgress = COMBAT_DATA_PTR->fighter[0].finisherGoal;
+			}
+		}
+	}
 
 	if (BTL_STATUS_BARS_STEP != 7) {
 		return;

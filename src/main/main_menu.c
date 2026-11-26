@@ -273,6 +273,7 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 #define MOD_OPT_HEADER_COUNT 0x1f
 #define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
 #define MOD_OPT_SHORTCUTS_BIT 2
+#define MOD_OPT_FULL_FINISHER_BIT 4 /* the Cheats menu's full finisher gauge */
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
 #define MOD_OPT_ROW_CARDS 3
 #define MOD_OPT_ROW_STORY	4 /* MOD (story): EXTENDED STORY, under NEW CARDS */
@@ -4775,7 +4776,8 @@ static void modOptionBytes(uint8_t *d)
 	d[9] = MOD_OPT_STORY; /* MOD (story) */
 	d[10] = MOD_OPT_DIFFICULTY; /* MOD (difficulty) */
 	d[11] = MOD_OPT_QUICK_BATTLE;
-	d[12] = (MOD_OPT_CHEATS ? MOD_OPT_CHEATS_BIT : 0) | (MOD_OPT_SHORTCUTS ? MOD_OPT_SHORTCUTS_BIT : 0);
+	d[12] = (MOD_OPT_CHEATS ? MOD_OPT_CHEATS_BIT : 0) | (MOD_OPT_SHORTCUTS ? MOD_OPT_SHORTCUTS_BIT : 0) |
+		(MOD_OPT_FULL_FINISHER ? MOD_OPT_FULL_FINISHER_BIT : 0);
 	d[13] = 0; /* Reserved inverted enemy-bar flags: always ON/shown. */
 }
 
@@ -4784,6 +4786,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 {
 	/* not a row of OPTIONS: a save always decides it. Old saves and the card header: OFF */
 	MOD_OPT_SHORTCUTS = len >= 13 && (d[12] & MOD_OPT_SHORTCUTS_BIT) != 0;
+	MOD_OPT_FULL_FINISHER = len >= 13 && (d[12] & MOD_OPT_FULL_FINISHER_BIT) != 0;
 	if (MOD_OPT_TOUCHED) {
 		return;
 	}

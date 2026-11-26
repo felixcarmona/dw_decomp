@@ -1,8 +1,9 @@
 /* Private laboratory implementation; included by mod_lab.c. Ten texture rows fit below UV 256; createPauseBox restores its shared last row on return. */
 #define MOD_LAB_BOX 5
 #define MOD_LAB_TEXT_Y 0x84
-#define MOD_LAB_OPTIONS 15
+#define MOD_LAB_OPTIONS 16
 #define LAB_ROW_SHORTCUTS 6
+#define LAB_ROW_FINISHER 14 /* MOD (cheat full finisher): a switch like the shortcuts row */
 #define MOD_LAB_OPT_EVOLVE 3
 #define PAD_SELECT 0x100
 #define PAD_UP 0x1000
@@ -62,7 +63,7 @@ static uint32_t labTextHash[LAB_ROWS];
 static int16_t labTextWidth[LAB_ROWS];
 static char *const LAB_HOME_TEXT[] = { LAB_STR_ADD_BITS, LAB_STR_SATIATE, LAB_STR_PARAMETERS,
     LAB_STR_EVOLVE, LAB_STR_TELEPORT, LAB_STR_HEAL, LAB_STR_SHORTCUTS_OFF, LAB_STR_SAVE_GAME, LAB_STR_LOAD_GAME, LAB_STR_MAIN_MENU, LAB_STR_OLD_AGE,
-    LAB_STR_LEARN, LAB_STR_LEARN_ALL, LAB_STR_UNLOCK_CHART, LAB_STR_CLOSE };
+    LAB_STR_LEARN, LAB_STR_LEARN_ALL, LAB_STR_UNLOCK_CHART, LAB_STR_FINISHER_OFF, LAB_STR_CLOSE };
 /* MOD (tamer looks): the names of the looks and of the hair colours, in the order of TAMER.DAT (tools/tamer_pack.py) */
 char *const LAB_LOOK_TEXT[] = {
     LAB_STR_LOOK_ORIGINAL, LAB_STR_LOOK_BALD, LAB_STR_LOOK_CLASSIC, LAB_STR_LOOK_MESSY,
@@ -78,7 +79,6 @@ char *const LAB_HAIR_TEXT[] = {
 char *const LOOK_PAGE_TEXT[] = { LAB_STR_HAIRSTYLE, LAB_STR_HAIR_COLOUR, LAB_STR_SIMPLE_ADJUST, LAB_STR_LOOK_TURN,
                                  LAB_STR_LOOK_OPEN, LAB_STR_LOOK_SAVE, LAB_STR_LOOK_EXIT,
                                  LAB_STR_KEY_CONFIRM, LAB_STR_KEY_CANCEL, LAB_STR_LOOK_FACE };
-static char *LAB_STAGES[] = { "", "Baby I", "Baby II", "Rookie", "Champion", "Ultimate", "Mega" };
 
 static char *appendStr(char *dst, const char *src)
 {
@@ -107,11 +107,12 @@ static char *labInt(char *p, int32_t value)
 typedef struct {
     char *name;
     uint16_t offset;
-    int16_t min, max, careMin, careMax;
+    int16_t min, max;
+    int8_t care; /* the care rule of the minimum (the maximum is the next one), -1 none */
     uint8_t group; /* 0 PartnerPara, 1 Stats */
-} LabField;
-#define LAB_P(name, field, lo, hi, cmin, cmax) { name, __builtin_offsetof(PartnerPara, field), lo, hi, cmin, cmax, 0 }
-#define LAB_S(name, field, lo, hi) { name, __builtin_offsetof(Stats, field), lo, hi, -1, -1, 1 }
+} LabField; /* 12 bytes a row: the menu overlay is full to the sector */
+#define LAB_P(name, field, lo, hi, cmin, cmax) { name, __builtin_offsetof(PartnerPara, field), lo, hi, cmin, 0 }
+#define LAB_S(name, field, lo, hi) { name, __builtin_offsetof(Stats, field), lo, hi, -1, 1 }
 static const LabField LAB_FIELDS[] = {
     LAB_P(LAB_STR_DISCIPLINE, discipline, 0, 100, MOD_CARE_LIM_DISC_MIN, MOD_CARE_LIM_DISC_MAX),
     LAB_P(LAB_STR_HAPPINESS, happiness, -100, 100, MOD_CARE_LIM_HAPPY_MIN, MOD_CARE_LIM_HAPPY_MAX),
@@ -146,8 +147,7 @@ static int16_t *modLabFieldPtr(int32_t field)
 static int32_t modLabBound(int32_t field, int32_t maximum)
 {
     const LabField *f = &LAB_FIELDS[field];
-    int32_t slot = maximum ? f->careMax : f->careMin;
-    int32_t value = slot >= 0 ? careGet(slot) : -1;
+    int32_t value = f->care >= 0 ? careGet(f->care + (maximum != 0)) : -1;
     if (value == -1) value = maximum ? f->max : f->min;
     if (maximum && field == 10) value = RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap;
     if (maximum && field == 18) value = PARTNER_ENTITY.digimonEntity.stats.base.hp;
@@ -318,8 +318,7 @@ static void modLabEntry(char *out, int32_t id, int32_t evolution)
     if (!evolution) modLabTrimLabel(name);
     if (evolution) {
         level = modLabStage(id);
-        p = appendStr(p, " - ");
-        p = appendStr(p, level >= 1 && level <= 6 ? LAB_STAGES[level] : "?");
+        if (level >= 1 && level <= 6) p = appendStr(p, LEVEL_TEXT[level]); /* as the roster captions write it */
     }
     if (!evolution) {
         p = appendStr(p, " - "); p = appendStr(p, getScreenEntry(id)->filename);
@@ -356,7 +355,8 @@ static void modLabDrawText(void)
         n = labTop + row;
         if (n >= count) break;
         p = lines[row + firstRow];
-        if (MOD_LAB_VIEW == LAB_HOME) appendStr(p, n == LAB_ROW_SHORTCUTS && MOD_OPT_SHORTCUTS ? LAB_STR_SHORTCUTS_ON : LAB_HOME_TEXT[n]);
+        if (MOD_LAB_VIEW == LAB_HOME) appendStr(p, n == LAB_ROW_SHORTCUTS && MOD_OPT_SHORTCUTS ? LAB_STR_SHORTCUTS_ON :
+            n == LAB_ROW_FINISHER && MOD_OPT_FULL_FINISHER ? LAB_STR_FINISHER_ON : LAB_HOME_TEXT[n]);
         else if (MOD_LAB_VIEW == LAB_VALUES) {
             p = appendStr(p, LAB_FIELDS[n].name); p = appendStr(p, ": "); labInt(p, *modLabFieldPtr(n));
         } else {
@@ -582,7 +582,8 @@ void modLabMenuLoaded(uint32_t *input, uint32_t *previous)
                 case 13:
                     for (step = 1; step < NUM_DIGIMON; step++) setDigimonRaised(step);
                     modLabMessage = LAB_STR_MSG_UNLOCKED; break;
-                case 14: done = 1; break;
+                case LAB_ROW_FINISHER: MOD_OPT_FULL_FINISHER = !MOD_OPT_FULL_FINISHER; break;
+                case 15: done = 1; break;
                 }
             } else if (MOD_LAB_VIEW == LAB_VALUES) {
                 labField = MOD_LAB_CURSOR; MOD_LAB_VALUE = modLabClamp(labField, *modLabFieldPtr(labField)); MOD_LAB_VIEW = LAB_NUMBER; labStep = 1;

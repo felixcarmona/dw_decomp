@@ -21,6 +21,7 @@ extern int32_t MOD_OPT_EVO_GUIDE; /* EVOLUTION GUIDE: the evolution chart's requ
 extern int32_t MOD_OPT_NEW_CARDS; /* NEW CARDS: OFF hides ids >= 66 without clearing saved counts. */
 extern int32_t MOD_OPT_NEW_DIGIMON; /* NEW DIGIMON: the species the mod made raisable; 0 = the original's only */
 extern int32_t MOD_OPT_CHEATS; /* CHEATS: lab menu, off by default */
+extern int32_t MOD_OPT_FULL_FINISHER; /* the Cheats menu's row: the partner's finisher gauge stays full, under CHEATS, off by default */
 extern int32_t MOD_OPT_SHORTCUTS; /* the Cheats menu's row: Select + L1/R1/L2/R2 under CHEATS, off by default */
 extern int32_t MOD_OPT_TOUCHED;	/* changed in OPTIONS since the console started: a loaded save keeps it */
 
