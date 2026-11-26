@@ -164,6 +164,7 @@ void entityLookAtLocation(Entity *entity, VECTOR *pos);
 void setupEntityMatrix(int32_t entityId);
 void changeMap(int16_t mapId, int16_t exitId);
 void addMapNameObject(int32_t mapId);
+int32_t modRosterTick(void); /* MOD (roster switch): mod_lab.c */
 void renderString(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t,
                   int32_t, int32_t, int32_t);
 void renderUIBox(int32_t id);
@@ -492,6 +493,10 @@ void tamerTickWalkingState(void)
 	int16_t quadrant;
 
 	tickTamerWaypoints();
+
+	if (modRosterTick()) { /* MOD (roster switch): SELECT + L1/L2/R1/R2, mod_lab.c */
+		return;
+	}
 
 	if ((isKeyDown(0x10) != 0) &&
 	    (IS_SCRIPT_PAUSED == 1) &&

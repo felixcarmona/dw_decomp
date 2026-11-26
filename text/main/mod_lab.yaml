@@ -73,3 +73,21 @@ MOD_LAB:
     LAB_STR_MSG_UNPAUSE:
       ja: "Unpause to evolve"
       en_us: "Unpause to evolve"
+    LAB_STR_LEVEL_FRESH:
+      ja: "  Fresh"
+      en_us: "  Fresh"
+    LAB_STR_LEVEL_IN_TRAINING:
+      ja: "  In-Training"
+      en_us: "  In-Training"
+    LAB_STR_LEVEL_ROOKIE:
+      ja: "  Rookie"
+      en_us: "  Rookie"
+    LAB_STR_LEVEL_CHAMPION:
+      ja: "  Champion"
+      en_us: "  Champion"
+    LAB_STR_LEVEL_ULTIMATE:
+      ja: "  Ultimate"
+      en_us: "  Ultimate"
+    LAB_STR_LEVEL_MEGA:
+      ja: "  Mega"
+      en_us: "  Mega"
