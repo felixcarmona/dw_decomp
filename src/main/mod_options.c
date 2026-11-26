@@ -18,7 +18,8 @@
  * NEW STATUS BARS. The field's happiness and discipline bars as patches 0162-0164 draw them (one fill, red below the
  * midpoint, green from it, on a grey track), or off, as the original drew them (renderStatusBars, partner_impl.c).
  *
- * FRAME RATE. 60 or 30 fps (MOD_FPS_MODE, dw/mod_fps.h); the game logic runs at 20 Hz in both. A build made with FPS=20
+ * FRAME RATE. 20 (the original: one render per tick), 30 or 60 fps (MOD_FPS_MODE, dw/mod_fps.h); the game logic runs
+ * at 20 Hz in all three. A build made with FPS=20
  * keeps 20 and the option shows it without a choice.
  */
 #include <dw/mod_options.h>
@@ -225,6 +226,6 @@ int32_t modFrameRate(void)
 void modSetFrameRate(int32_t fps)
 {
 #if FPS != 20
-	MOD_FPS_MODE_RUN = fps == 30 ? 1 : 2;
+	MOD_FPS_MODE_RUN = fps == 60 ? 2 : fps == 30 ? 1 : 0;
 #endif
 }
