@@ -180,6 +180,7 @@ int32_t isVanillaSpecies(int32_t type)
 	return (uint32_t)type < NUM_DIGIMON && ((SPECIES_VANILLA[type >> 3] >> (type & 7)) & 1);
 }
 
+/* Shared by MENU and DOOA; evolution and battle can replace MENU before rebirth. Keep resident. */
 int32_t getSpeciesVanillaAs(int32_t type)
 {
 	SpeciesRecord *rec;
