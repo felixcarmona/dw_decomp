@@ -25,6 +25,14 @@ GEN_DIR := build/$(VERSION)/$(PLATFORM)/generated
 
 VERSION_MACRO := VERSION_$(shell echo $(VERSION) | tr a-z A-Z)
 
+# MOD (scale): bytes of the partner model buffer (include/dw/memmap.h, docs/mods/memory.md
+# "Partner model buffer"). The original's is 0x18800; the default fits the largest imported
+# model. The value goes through a generated header so a change rebuilds what depends on it.
+PARTNER_MMD_MAX ?= 0x20000
+$(shell mkdir -p $(GEN_DIR); printf '#define PARTNER_MMD_MAX %s\n' '$(PARTNER_MMD_MAX)' > $(GEN_DIR)/partner_mmd_max.h.tmp; \
+	cmp -s $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h && rm $(GEN_DIR)/partner_mmd_max.h.tmp \
+	|| mv $(GEN_DIR)/partner_mmd_max.h.tmp $(GEN_DIR)/partner_mmd_max.h)
+
 PYTHON := python3
 
 .DEFAULT_GOAL := all
