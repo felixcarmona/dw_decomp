@@ -1411,6 +1411,9 @@ void dailyPStatTrigger(void)
 	 * (The original compared the new card with the slot it was filling, so a card could repeat; it is compared with the earlier ones now.) */
 	st = SCRIPT_STATE_PTR;
 	modForgetGroundPicked(); /* MOD (ground items a day) */
+	/* Vending stock shares the original saved trigger array, with no new resident state. */
+	unsetTrigger(798); /* Happy mushroom */
+	unsetTrigger(799); /* Ice mushroom */
 	for (i = 0; i < 6; i++) {
 		st->smth[i] = 0xff;
 	}
