@@ -383,7 +383,9 @@ TriangleCursorOffsetData SELECTION_CURSOR_WIDTH = { { 0x04, 0x04, 0x04, 0x04, 0x
 
 TriangleCursorOffsetData SELECTION_CURSOR_HEIGHT = { { 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x16, 0x16 } };
 
-RECT MENU_TEXT_AREA = { 0, 232, 24, 12 };
+/* MOD (font): the whole row the header copies (the original cleared 24 pixels; its cells overwrote the rest, the mod's
+ * glyphs leave a piece's leading spaces undrawn) */
+RECT MENU_TEXT_AREA = { 0, 232, 64, 12 };
 
 YEAR_DAY_TEXT
 
@@ -1671,8 +1673,10 @@ void renderGameMenu(void)
 	renderString(3, 7, -0x49, 0xc, 0xc, 0, 0xe8, 6, 1);
 	renderString(3, 0x2c, -0x49, 0xc, 0xc, 0xc, 0xe8, 6, 1);
 #else
-	renderString(3, -0x3c, -0x49, 0x24, 0xc, 0, 0xe7, 6, 1);
-	renderString(3, 6, -0x49, 0x1c, 0xc, 0x24, 0xe7, 6, 1);
+	/* MOD (font): from the row the text is drawn on (0xe8), not the one above, which no one clears: the player screen's
+	 * play time (0xe4) left its pixels there over "Year" (the same place on screen, one row shorter) */
+	renderString(3, -0x3c, -0x48, 0x24, 0xb, 0, 0xe8, 6, 1);
+	renderString(3, 6, -0x48, 0x1c, 0xb, 0x24, 0xe8, 6, 1);
 #endif
 	convertValueToDigits(3, DAY, &digitCount, digits);
 }
