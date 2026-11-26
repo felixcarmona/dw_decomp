@@ -1,6 +1,17 @@
 #ifndef DW_EVL_H
 #define DW_EVL_H
 
+/*
+ * MOD: the evolution's shard scratch (EVL_D_80066274, EVL_buildShardSet).
+ * The original's 0x153C bytes held the vanilla partners (HerculesKabuterimon
+ * needs 5292) but not the boss and imported models (MegaGargomon 10056):
+ * a piece reserves 6 * (vern + primn) and nothing is released until the
+ * sequence ends (docs/mods/models.md "Digivolution shard buffer"). The
+ * overlay grows with it (main.ld checks it ends below FISH, 0x80070000);
+ * tools/species.py fails the build when a species needs more.
+ */
+#define EVL_SHARD_SCRATCH_SIZE 0x3000
+
 #include <dw/entity.h>
 #include <dw/ids.h>
 #include <dw/params.h>
