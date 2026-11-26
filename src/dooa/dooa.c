@@ -974,6 +974,33 @@ int32_t DOOA_renderIrisWindow(Entity *entity, int32_t startFrame, long endFrame,
 	return visible;
 }
 
+/*
+ * MOD (eight eggs): REINCARNATION_STATS (written from the species files, ids below 180) has no row for a new baby, so
+ * initializeReincarnatedPartner set no stats: it hatches with the row of the original baby its species file names as
+ * "vanilla_as" (Pabumon Punimon's, Pichimon and YukimiBotamon Botamon's, Nyokimon Yuramon's), the inherited share
+ * on top as for any egg.
+ */
+static void eggHatchStats(int32_t type)
+{
+	ReincarnationStats *row;
+	int32_t as;
+	int32_t i;
+
+	as = getSpeciesVanillaAs(type);
+	for (i = 0; i < 4; i++) {
+		if (REINCARNATION_STATS[i].type == type) {
+			return;
+		}
+	}
+	for (i = 0; i < 4; i++) {
+		row = &REINCARNATION_STATS[i];
+		if (row->type == as) {
+			setReincarnateStats(row->hp, row->mp, row->offense, row->defense, row->speed, row->brains);
+			return;
+		}
+	}
+}
+
 void DOOA_tickRebirth(int32_t instanceId)
 {
 	VECTOR flashPos;
@@ -1027,8 +1054,8 @@ void DOOA_tickRebirth(int32_t instanceId)
 		}
 		seq->phase = 0xce;
 		DOOA_removeShardEffect();
-		loadVLALL(REINCARNATE_BABY_TYPE[seq->eggSlot], GENERAL_BUFFER_PTR);
-		loadMMDAsync(REINCARNATE_BABY_TYPE[seq->eggSlot], 3, DOOA_MMD_BUFFER, &seq->modelData,
+		loadVLALL(eggBabyType(seq->eggSlot), GENERAL_BUFFER_PTR);
+		loadMMDAsync(eggBabyType(seq->eggSlot), 3, DOOA_MMD_BUFFER, &seq->modelData,
 		             (uint8_t *)&seq->isModelLoading);
 		DOO2_resetShardSets(DOOA_SHARD_BUFFER);
 		playSound(8, 6);
@@ -1057,7 +1084,8 @@ void DOOA_tickRebirth(int32_t instanceId)
 			while (seq->isModelLoading != 0) {
 				tickFileReadQueue(0);
 			}
-			reincarnatePartner((int32_t)ENTITY_TABLE[1], &PARTNER_ENTITY.digimonEntity.stats, &PARTNER_PARA, REINCARNATE_BABY_TYPE[seq->eggSlot]);
+			reincarnatePartner((int32_t)ENTITY_TABLE[1], &PARTNER_ENTITY.digimonEntity.stats, &PARTNER_PARA, eggBabyType(seq->eggSlot));
+			eggHatchStats(eggBabyType(seq->eggSlot));
 			waitForSoundBufferLoading(3);
 			entity = (Entity *)&PARTNER_ENTITY;
 			seq->entity = entity;
@@ -1099,7 +1127,7 @@ void DOOA_tickRebirth(int32_t instanceId)
 			offset = DOOA_SPARKLE_OFFSET;
 			if (DOOA_SPARKLE_BONE_IDS[seq->sparkleIndex] >= 0) {
 				shardSet = DOO2_buildShardSet(&offset, (u_long)DOO2_D_80071EE4,
-				                              DOOA_SPARKLE_BONE_IDS[seq->sparkleIndex] + (seq->eggSlot * 6));
+				                              DOOA_SPARKLE_BONE_IDS[seq->sparkleIndex] + (eggModelGroup(seq->eggSlot) * 6));
 				MAIN_D_80135364[DOOA_SPARKLE_BONE_IDS[seq->sparkleIndex]] = -1;
 				playSound(8, 7);
 			}
@@ -1137,7 +1165,7 @@ void DOOA_renderRebirth(int32_t instanceId)
 	panel = &DOOA_REINCARNATION_SEQ;
 	for (i = 0; i < 6; i++) {
 		if (MAIN_D_80135364[i] == 0) {
-			GsLinkObject4((u_long)&DOO2_D_80071EE4[3], &obj, i + (panel->eggSlot * 6));
+			GsLinkObject4((u_long)&DOO2_D_80071EE4[3], &obj, i + (eggModelGroup(panel->eggSlot) * 6));
 			obj.attribute = 0;
 			GsInitCoordinate2(NULL, &coord);
 			obj.coord2 = &coord;
@@ -1718,7 +1746,20 @@ int32_t DOOA_getSequenceState(unused, isInitialized)
 	}
 
 	if (partner->lives == 0) {
-		sequence->eggSlot = rand() % 4;
+		sequence->eggSlot = rand() % eggCount(); /* MOD (eight eggs) */
+	}
+	/* MOD (eight eggs): a new egg's CLUT row over the row of the 3D group it borrows, for this scene (the egg
+	 * texture is loaded again at the next death) */
+	if (sequence->eggSlot >= 4) {
+		uint16_t row[16];
+		RECT rect;
+
+		setRECT(&rect, 128, EGG_NEW_CLUT_ROW + sequence->eggSlot - 4, 16, 1);
+		StoreImage(&rect, (u_long *)row);
+		DrawSync(0);
+		setRECT(&rect, 128, 488 + eggModelGroup(sequence->eggSlot), 16, 1);
+		LoadImage(&rect, (u_long *)row);
+		DrawSync(0);
 	}
 
 	addObject(0x80c, instance, DOOA_tickRebirth, DOOA_renderRebirth);

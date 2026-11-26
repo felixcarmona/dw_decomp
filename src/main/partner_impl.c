@@ -289,10 +289,7 @@ SleepPattern SLEEP_PATTERN[8] = {
  * content/species/*.json ("reincarnation_stats", "new_game_technique") after linking (tools/balance.py build);
  * unused rows have type -1.
  */
-typedef struct {
-	int16_t type;
-	int16_t hp, mp, offense, defense, speed, brains;
-} ReincarnationStats;
+/* (ReincarnationStats: partner.h, which the DOOA overlay reads too) */
 
 typedef struct {
 	int16_t type;
