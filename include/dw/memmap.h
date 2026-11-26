@@ -87,6 +87,12 @@
  * operation runs in a battle.)
  */
 #define SAVE_EXT_ADDR		0x8004E000
+/*
+ * MOD (save robustness): the most a sound bank staged at GENERAL_BUFFER may take (a VHB chunk or file, in
+ * whole sectors: the original's largest, ESALL's 124 sectors), so it ends at or below SAVE_EXT_ADDR (main.ld
+ * checks it; tools/sound.py refuses a bigger chunk and tools/build-full.sh reads this line).
+ */
+#define SOUND_STAGING_MAX	0x3E000
 #define SAVE_EXT_MAX		0x4000
 #define TEXTURE_BUFFER_ADDR	0x80088800	/* temporary TIM, card image, script arrays */
 #define TEXTURE_BUFFER_SIZE	0x7800
