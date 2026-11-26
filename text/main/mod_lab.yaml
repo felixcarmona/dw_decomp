@@ -5,11 +5,11 @@ MOD_LAB:
   storage: define
   strings:
     LAB_STR_TITLE:
-      ja: "LAB MENU"
-      en_us: "LAB MENU"
+      ja: "LABORATORY"
+      en_us: "LABORATORY"
     LAB_STR_ADD_BITS:
-      ja: "+1000 bits"
-      en_us: "+1000 bits"
+      ja: "+10000 bits"
+      en_us: "+10000 bits"
     LAB_STR_HEAL:
       ja: "Heal partner"
       en_us: "Heal partner"
@@ -44,8 +44,8 @@ MOD_LAB:
       ja: "none"
       en_us: "none"
     LAB_STR_MSG_BITS:
-      ja: "Bits +1000"
-      en_us: "Bits +1000"
+      ja: "Bits +10000"
+      en_us: "Bits +10000"
     LAB_STR_MSG_HEALED:
       ja: "Partner healed"
       en_us: "Partner healed"
@@ -91,3 +91,111 @@ MOD_LAB:
     LAB_STR_LEVEL_MEGA:
       ja: "  Mega"
       en_us: "  Mega"
+    LAB_STR_SATIATE:
+      ja: "Satisfy all needs"
+      en_us: "Satisfy all needs"
+    LAB_STR_PARAMETERS:
+      ja: "Edit parameters"
+      en_us: "Edit parameters"
+    LAB_STR_EVOLVE:
+      ja: "Evolve Digimon"
+      en_us: "Evolve Digimon"
+    LAB_STR_TELEPORT:
+      ja: "Teleport to map"
+      en_us: "Teleport to map"
+    LAB_STR_CONFIRM:
+      ja: "Confirm action"
+      en_us: "Confirm action"
+    LAB_STR_NEW_MARK:
+      ja: " + NEW"
+      en_us: " + NEW"
+    LAB_STR_VALUE:
+      ja: "Value: "
+      en_us: "Value: "
+    LAB_STR_STEP_ONE:
+      ja: "Up/down: +1 / -1"
+      en_us: "Up/down: +1 / -1"
+    LAB_STR_MINIMUM:
+      ja: "Square: minimum"
+      en_us: "Square: minimum"
+    LAB_STR_ACCEPT_CANCEL:
+      ja: "Confirm / Cancel"
+      en_us: "Confirm / Cancel"
+    LAB_STR_LIST_HINT:
+      ja: "L1/R1: 10   OK"
+      en_us: "L1/R1: 10   OK"
+    LAB_STR_APPLIED:
+      ja: "Value applied"
+      en_us: "Value applied"
+    LAB_STR_SATISFIED:
+      ja: "All needs satisfied"
+      en_us: "All needs satisfied"
+    LAB_STR_DISCIPLINE:
+      ja: "Discipline"
+      en_us: "Discipline"
+    LAB_STR_HAPPINESS:
+      ja: "Happiness"
+      en_us: "Happiness"
+    LAB_STR_WEIGHT:
+      ja: "Weight"
+      en_us: "Weight"
+    LAB_STR_MISTAKES:
+      ja: "Care mistakes"
+      en_us: "Care mistakes"
+    LAB_STR_BATTLES:
+      ja: "Battles"
+      en_us: "Battles"
+    LAB_STR_EVO_HOURS:
+      ja: "Evolution hours"
+      en_us: "Evolution hours"
+    LAB_STR_AGE:
+      ja: "Age in days"
+      en_us: "Age in days"
+    LAB_STR_LIFETIME:
+      ja: "Life left in hours"
+      en_us: "Life left in hours"
+    LAB_STR_VIRUS:
+      ja: "Virus gauge"
+      en_us: "Virus gauge"
+    LAB_STR_TIREDNESS:
+      ja: "Tiredness"
+      en_us: "Tiredness"
+    LAB_STR_ENERGY:
+      ja: "Energy"
+      en_us: "Energy"
+    LAB_STR_FOOD:
+      ja: "Food in minutes"
+      en_us: "Food in minutes"
+    LAB_STR_HP_MAX:
+      ja: "Maximum HP"
+      en_us: "Maximum HP"
+    LAB_STR_MP_MAX:
+      ja: "Maximum MP"
+      en_us: "Maximum MP"
+    LAB_STR_OFFENSE:
+      ja: "Offense"
+      en_us: "Offense"
+    LAB_STR_DEFENSE:
+      ja: "Defense"
+      en_us: "Defense"
+    LAB_STR_SPEED:
+      ja: "Speed"
+      en_us: "Speed"
+    LAB_STR_BRAINS:
+      ja: "Brains"
+      en_us: "Brains"
+    LAB_STR_HP_CURRENT:
+      ja: "Current HP"
+      en_us: "Current HP"
+    LAB_STR_MP_CURRENT:
+      ja: "Current MP"
+      en_us: "Current MP"
+    LAB_STR_STEP_TEN:
+      ja: "L1/R1: -10 / +10"
+      en_us: "L1/R1: -10 / +10"
+    LAB_STR_STEP_HUNDRED:
+      ja: "L2/R2: -100 / +100"
+      en_us: "L2/R2: -100 / +100"
+    LAB_STR_PICK_HINT:
+      ja: "L1/R1 10  L2/R2 +"
+      en_us: "L1/R1 10  L2/R2 +"
