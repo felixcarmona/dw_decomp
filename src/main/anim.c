@@ -4,6 +4,7 @@
 #include <dw/anim.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
+#include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/sound.h>
@@ -217,6 +218,7 @@ void startAnimation(entity, animId)
 	if (animTable[animId] == 0)
 		return;
 
+	modInterpAnimStarted(entity); /* MOD (fps): a pose jump */
 	instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
 	anim = &entity->anim;
 	boneCount = DIGIMON_DATA[entity->type].boneCount;
