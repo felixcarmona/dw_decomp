@@ -196,6 +196,7 @@ typedef struct {
  */
 #define SCRIPT_NUM_WREGS		64
 #define SCRIPT_WREG_CHOSEN_ITEM		62
+#define SCRIPT_WREG_EVOLUTION_TARGET	61 /* MOD: the species CALL_DIGIMON_ROUTINE 12 evolves the partner into */
 
 typedef struct {
 	uint8_t smth[212];
@@ -207,6 +208,7 @@ typedef struct {
 } ScriptState;
 
 void scriptSetChosenItem(int32_t item); /* MOD: p254 and SCRIPT_WREG_CHOSEN_ITEM */
+int32_t scriptEvolutionTarget(void); /* MOD: SCRIPT_WREG_EVOLUTION_TARGET */
 
 typedef struct {
 	uint8_t mapId;

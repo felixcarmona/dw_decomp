@@ -22,6 +22,8 @@
 #include <dw/utils.h>
 #include <dw/version.h>
 #include <dw/mod_rules.h>
+#include <dw/mod_options.h>
+#include <dw/species.h>
 #include <dw/screen.h>
 
 extern int32_t HAS_BUTTERFLY;
@@ -113,6 +115,7 @@ int16_t entityCheckCollision(Entity *source, Entity *entity, int32_t arg2,
 int32_t randomLimit(int32_t limit);
 void writePStat(int32_t id, int32_t value);
 uint8_t readPStat(int32_t id);
+int32_t scriptEvolutionTarget(void); /* MOD: the wide register of routine 12 (script_interp.c) */
 void addTamerLevel(int32_t chance, int32_t amount);
 int32_t getMapSoundId(int32_t mapId);
 void loadMapSounds(int32_t soundId);
@@ -1270,6 +1273,21 @@ uint8_t routine;
 		EVOLUTION_TARGET = readPStat(PSTAT_254);
 		partnerSetState(13);
 		SOME_SCRIPT_SYNC_BIT = 0;
+		break;
+	case 12:
+		/* MOD: an evolution the partner has to have earned. The target (any id) comes in a wide register; it starts
+		   only when the options allow the species, its model fits and the partner has the stats the target asks for.
+		   p254 tells the script: 1 started, 0 refused. */
+		i = scriptEvolutionTarget();
+		writePStat(PSTAT_254, 0);
+		if (modSpeciesAllowed(i) && isPartnerModelFit(i) &&
+		    (evoRequirementsMet(PARTNER_ENTITY.digimonEntity.entity.type, i, 0, 0) & EVO_MET_STATS)) {
+			EVOLUTION_TARGET = i;
+			partnerSetState(13);
+			writePStat(PSTAT_254, 1);
+		}
+		SOME_SCRIPT_SYNC_BIT = 0;
+		break;
 	default:
 		break;
 	}

@@ -2973,6 +2973,12 @@ int32_t sukamonBackupSpecies(void)
 	return type != 0 ? type : readPStat(PSTAT_SUKAMON_BACKUP_DIGIMON);
 }
 
+/* MOD: the species CALL_DIGIMON_ROUTINE 12 evolves the partner into (partner.c) */
+int32_t scriptEvolutionTarget(void)
+{
+	return WREG(SCRIPT_WREG_EVOLUTION_TARGET);
+}
+
 void scriptSetChosenItem(int32_t item)
 {
 	writePStat(PSTAT_254, item);
