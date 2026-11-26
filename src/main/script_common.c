@@ -1,3 +1,4 @@
+#include <dw/ids.h>
 #include <string.h>
 
 #include <dw/mod_options.h>
@@ -2560,8 +2561,8 @@ void lostAllLives(void)
 
 	i = 0;
 	n = 0;
-	while (i < 0x3a) {
-		if (hasMove(i) != 0) {
+	while (i < NUM_MOVES) {
+		if (IS_GRID_MOVE(i) && hasMove(i) != 0) {
 			n += 1;
 		}
 		i++;
@@ -2588,11 +2589,11 @@ void lostAllLives(void)
 
 	return;
 state2:
-	pool = allocateArray(0x3a);
+	pool = allocateArray(NUM_LEARNABLE_MOVES);
 	j = 0;
 	i = 0;
-	while (i < 0x3a) {
-		if (hasMove(i) != 0) {
+	while (i < NUM_MOVES) {
+		if (IS_GRID_MOVE(i) && hasMove(i) != 0) {
 			pool[j] = i;
 			j += 1;
 		}

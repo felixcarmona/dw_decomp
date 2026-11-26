@@ -41,7 +41,7 @@ typedef struct {
 
 extern int8_t PARTNER_PREVIOUS_TILE_X;
 extern int8_t PARTNER_PREVIOUS_TILE_Y;
-extern uint8_t TYPE_FACTORS[][7];
+extern uint8_t TYPE_FACTORS[][NUM_ELEMENTS];
 extern int32_t COMBAT_AREA_X;
 extern int32_t COMBAT_AREA_Y;
 extern int32_t ACTIVE_FRAMEBUFFER;
@@ -2582,7 +2582,7 @@ void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 				digimon->stats.current.currentMP -= modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
 			}
 		}
-		if (tech < 0x3a) {
+		if (IS_GRID_MOVE(tech)) {
 			for (i = 0; i < 0xc; i++) {
 				if (COMBAT_DATA_PTR->player.usedMoves[i] == tech) {
 					break;

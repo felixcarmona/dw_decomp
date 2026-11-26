@@ -654,7 +654,8 @@ void modInitializeStarterTechniques(int32_t type)
 	 * strength (Gotsumon's is Megaton Punch). */
 	para = &DIGI_PARA(type);
 	special = para->special[0];
-	base = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special] : -1;
+	base = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special]
+		: special < NUM_ELEMENTS ? NEW_MOVE_FIRST + (special - NEW_ELEMENT_FIRST) * 8 : -1; /* MOD (new technique rows) */
 	window = evoAmt(MOD_EVF_LEARN_WINDOW);
 	best = 0xff;
 	slot = 0;
@@ -671,7 +672,7 @@ void modInitializeStarterTechniques(int32_t type)
 	 * are intrinsic, outside the learned-move bitset. */
 	if (best == 0xff) {
 		best = para->moves[0];
-		if (best >= 0x3a) {
+		if (!IS_GRID_MOVE(best)) {
 			return;
 		}
 	}

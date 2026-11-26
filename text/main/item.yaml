@@ -387,6 +387,54 @@ MOVE_NAMES:
     - ja: あわ
       en_us: Bubble
     - NULL
+    - ja: シャドークロー
+      en_us: Shadow Claw
+    - ja: ダークボルト
+      en_us: Dark Bolt
+    - ja: ナイトメア
+      en_us: Nightmare
+    - ja: イビルウィスパー
+      en_us: Evil Whisper
+    - ja: デスグリップ
+      en_us: Death Grip
+    - ja: ベノムミスト
+      en_us: Venom Mist
+    - ja: ブラックゲート
+      en_us: Black Gate
+    - ja: アビスレクイエム
+      en_us: Abyss Requiem
+    - ja: ホーリースパーク
+      en_us: Holy Spark
+    - ja: シャイニングアロー
+      en_us: Shining Arrow
+    - ja: ブレッシング
+      en_us: Blessing
+    - ja: セイクリッドシールド
+      en_us: Sacred Shield
+    - ja: フラッシュバースト
+      en_us: Flash Burst
+    - ja: ジャッジメントレイ
+      en_us: Judgment Ray
+    - ja: ヘブンズリング
+      en_us: "Heaven's Ring"
+    - ja: グランドクロス
+      en_us: Grand Cross
+    - ja: バブルショット
+      en_us: Bubble Shot
+    - ja: アクアジェット
+      en_us: Aqua Jet
+    - ja: レインダンス
+      en_us: Rain Dance
+    - ja: ワールプール
+      en_us: Whirlpool
+    - ja: ハイドロキャノン
+      en_us: Hydro Cannon
+    - ja: シークラッシュ
+      en_us: Sea Crush
+    - ja: タイダルウェーブ
+      en_us: Tidal Wave
+    - ja: オーシャンフューリー
+      en_us: Ocean Fury
 
 STR_IS_SICK:
   ja: は病気になってしまった！

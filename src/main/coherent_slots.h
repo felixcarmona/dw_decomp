@@ -36,10 +36,10 @@ static void migrateCoherentSlots(int32_t type, uint8_t *equipped, const uint32_t
 		if (type == 307 && equipped[i] >= 0x2e && equipped[i] < 0x3e &&
 		    ((0xbd00u >> (equipped[i] - 0x2e)) & 1u)) prior = 0xff;
 		equipped[i] = 0xff;
-		if (prior >= 58) continue;
+		if (!IS_GRID_MOVE(prior)) continue;
 		for (j = 0; j < 16; j++) {
 			tech = para->moves[j];
-			if (tech != prior || (learned && !((learned[tech / 32] >> (tech % 32)) & 1))) continue;
+			if (tech != prior || (learned && !((learned[MOVE_BIT(tech) / 32] >> (MOVE_BIT(tech) % 32)) & 1))) continue;
 			for (k = 0; k < 3 && para->special[k] != MOVE_DATA[tech].special; k++) {}
 			if (k < 3) { equipped[i] = 0x2e + j; break; }
 		}
@@ -53,7 +53,7 @@ static void migrateCoherentSlots(int32_t type, uint8_t *equipped, const uint32_t
 		score = 0x7fffffff;
 		for (j = 0; j < 16; j++) {
 			tech = para->moves[j];
-			if (tech >= 58 || !((learned[tech / 32] >> (tech % 32)) & 1)) continue;
+			if (!IS_GRID_MOVE(tech) || !((learned[MOVE_BIT(tech) / 32] >> (MOVE_BIT(tech) % 32)) & 1)) continue;
 			for (k = 0; k < 3 && para->special[k] != MOVE_DATA[tech].special; k++) {}
 			if (k == 3) continue;
 			for (k = 0; k < 3 && equipped[k] != 0x2e + j; k++) {}
@@ -67,7 +67,8 @@ static void migrateCoherentSlots(int32_t type, uint8_t *equipped, const uint32_t
 	}
 }
 
-/* 0: unversioned slots; 1: layout A; -1: a layout this reader cannot interpret. */
+/* 0: unversioned slots; 1: layout A; 2: layout A with the new rows' bits (64..87); -1: a layout this reader cannot
+ * interpret. */
 static int32_t coherentSlotLayout(uint8_t *e)
 {
 	int32_t at = sizeof(SaveExtHead);
@@ -76,7 +77,7 @@ static int32_t coherentSlotLayout(uint8_t *e)
 		tag = e[at] | (e[at + 1] << 8);
 		len = e[at + 2] | (e[at + 3] << 8);
 		if (tag == SAVE_TAG_END) return 0;
-		if (tag == SAVE_TAG_TECHNIQUE_LAYOUT) return len == 1 && e[at + 4] == 1 ? 1 : -1;
+		if (tag == SAVE_TAG_TECHNIQUE_LAYOUT) return len == 1 && (e[at + 4] == 1 || e[at + 4] == 2) ? e[at + 4] : -1;
 		at += 4 + len;
 	}
 }

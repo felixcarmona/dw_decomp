@@ -83,7 +83,7 @@ extern int32_t DRAWING_OFFSET_Y;
 extern GsOT *ACTIVE_ORDERING_TABLE;
 extern uint32_t POLLED_INPUT;
 extern uint32_t POLLED_INPUT_PREVIOUS;
-extern uint8_t TYPE_FACTORS[][7];
+extern uint8_t TYPE_FACTORS[][NUM_ELEMENTS];
 extern int32_t ACTIVE_FRAMEBUFFER;
 extern GsOT GS_ORDERING_TABLE[];
 extern PACKET GS_WORK_BASES[2][0x14000];
@@ -6771,7 +6771,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		if (!((tech >= 0x3a) && (tech < 0x71))) {
 			digimon->stats.current.currentMP -= (int16_t)(modSpeciesMove(digimon->entity.type, tech)->mpCost * 3);
 		}
-		if (tech < 0x3a) {
+		if (IS_GRID_MOVE(tech)) {
 			for (i = 0; i < 0xc; i++) {
 				if (COMBAT_DATA_PTR->player.usedMoves[i] == tech) {
 					break;

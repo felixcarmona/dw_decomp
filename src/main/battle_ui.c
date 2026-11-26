@@ -268,7 +268,7 @@ void battleMoveLearning(void)
 			continue;
 		}
 
-		if (MOVE_LEARN_CHANCES[moveId][foundIdx] > randomLimit(100)) {
+		if (MOVE_LEARN_CHANCES[MOVE_GRID(moveId)][foundIdx] > randomLimit(100)) {
 			learnableMoves[count++] = moveId;
 		}
 	}

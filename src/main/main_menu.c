@@ -5156,7 +5156,7 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 		p = putRecord(p, SAVE_TAG_TAMER_LOOK, MOD_TAMER_STATE, TAMER_STATE_SIZE); /* MOD (tamer looks) */
 	}
-	{ uint8_t layout = 1; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
+	{ uint8_t layout = 2; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -5276,7 +5276,7 @@ static void swapPartnerSpecies(int32_t to)
 	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) {
 		for (k = 0; k < 16; k++) {
 			tech = DIGI_PARA(to).moves[k];
-			if (tech != 0xff && tech < 0x80 && (learned[tech / 32] >> (tech % 32)) & 1) {
+			if (tech != 0xff && IS_GRID_MOVE(tech) && (learned[MOVE_BIT(tech) / 32] >> (MOVE_BIT(tech) % 32)) & 1) {
 				equipped[0] = 0x2e + k;
 				break;
 			}
@@ -5285,8 +5285,8 @@ static void swapPartnerSpecies(int32_t to)
 	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) { /* none learned: its first one, learned */
 		for (k = 0; k < 16; k++) {
 			tech = DIGI_PARA(to).moves[k];
-			if (tech != 0xff && tech < 0x3a) {
-				learned[tech / 32] |= 1u << (tech % 32);
+			if (tech != 0xff && IS_GRID_MOVE(tech)) {
+				learned[MOVE_BIT(tech) / 32] |= 1u << (MOVE_BIT(tech) % 32);
 				equipped[0] = 0x2e + k;
 				break;
 			}
@@ -5394,8 +5394,8 @@ static void dropAbsentSaveContent(void)
 		}
 	}
 	for (i = 0; i < NUM_MOVES; i++) {
-		if (isMoveAbsent(i)) {
-			learned[i / 32] &= ~(1u << (i % 32));
+		if (IS_GRID_MOVE(i) && isMoveAbsent(i)) { /* MOD (new technique rows): the bit of a technique, not its number */
+			learned[MOVE_BIT(i) / 32] &= ~(1u << (MOVE_BIT(i) % 32));
 		}
 	}
 	memcpy(SAVE_FILE.saves[0].partnerData, learned, 0x10);
@@ -5616,6 +5616,22 @@ static int32_t loadSaveCopy(int32_t copy)
 				     &PARTNER_ENTITY.learnedMoves[0]);
 		for (i = 0; i < 4; i++) {
 			SAVED_STATE.partnerStats.base.moves[i] = PARTNER_ENTITY.digimonEntity.stats.base.moves[i];
+		}
+	}
+	if (layout < 2) {
+		/* MOD (new technique rows): bits 64..87 meant nothing before (the Cheats menu set those of finishers): a
+		 * partner that already has its form gets, once, the first technique of each new row of its species */
+		PARTNER_ENTITY.learnedMoves[1] &= 0x03ffffff;
+		PARTNER_ENTITY.learnedMoves[2] = PARTNER_ENTITY.learnedMoves[3] = 0;
+		for (i = 0; i < 3; i++) {
+			int32_t el = DIGI_PARA(SAVED_STATE.partnerType).special[i];
+			int32_t k;
+
+			if (el < NEW_ELEMENT_FIRST || el >= NUM_ELEMENTS) continue;
+			el = NEW_MOVE_FIRST + (el - NEW_ELEMENT_FIRST) * 8;
+			for (k = 0; k < 16; k++) {
+				if (DIGI_PARA(SAVED_STATE.partnerType).moves[k] == el) learnMove(el);
+			}
 		}
 	}
 	dropAbsentSaveContent();

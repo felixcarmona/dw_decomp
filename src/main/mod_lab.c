@@ -105,8 +105,7 @@ static void modRosterSetMoves(int32_t type)
 		}
 		if (moves[i] >= 58 && moves[i] <= 112) {
 			if (PARTNER_ENTITY.digimonEntity.stats.base.moves[3] == 0xff) {
-				PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = i + 0x2e;
-				learnMove(moves[i]);
+				PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = i + 0x2e; /* a finisher has no learned bit */
 			}
 		} else if (slot < 3) {
 			PARTNER_ENTITY.digimonEntity.stats.base.moves[slot++] = i + 0x2e;

@@ -1,3 +1,4 @@
+#include <dw/ids.h>
 #include <string.h>
 
 #include <dw/caps.h> /* MOD (caps) */
@@ -117,7 +118,7 @@ static int32_t TRN_amt(int32_t slot)
 #define TB_START_MIN (TRN_CURRENT_HOUR * 60 + TRN_CURRENT_MINUTE)
 #include "trn_block.h"
 
-uint8_t TRN_D_8008F14C[56] = {
+uint8_t TRN_D_8008F14C[NUM_ELEMENTS * 8] = { /* MOD (new technique rows): the rows of elements 7..9 written by the build */
 	0x2, 0x5, 0x0, 0x4, 0x3, 0x1, 0x6, 0x7,
 	0x2b, 0x2c, 0x2a, 0x2e, 0x2d, 0x29, 0x28, 0x2f,
 	0xc, 0xa, 0xd, 0x9, 0xb, 0xe, 0x8, 0xf,
@@ -811,9 +812,9 @@ int32_t TRN_tryLearnMove(int32_t type)
 {
 	uint8_t special[3];
 	int8_t unused[7] = { 0, 5, 2, 4, 2, 3, 6 };
-	int8_t moveId[3];
+	int16_t moveId[3]; /* MOD (new technique rows): techniques pass 127 */
 	int8_t weight[3];
-	int8_t move;
+	int16_t move;
 	int32_t n;
 	int32_t r;
 	int32_t j;

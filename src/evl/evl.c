@@ -1454,7 +1454,8 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	}
 	/* MOD (evolution formulas as data): the first technique slot an element teaches, and the window of slots it picks from */
 	special = DIGI_PARA(newId).special[0];
-	moveBase = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special] : -1;
+	moveBase = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special]
+		: special < NUM_ELEMENTS ? NEW_MOVE_FIRST + (special - NEW_ELEMENT_FIRST) * 8 : -1; /* MOD (new technique rows) */
 	movePtr = DIGI_PARA(newId).moves;
 	count = 0;
 	for (i = 0; i < 16; movePtr++, i++) {

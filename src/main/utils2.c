@@ -1,3 +1,4 @@
+#include <dw/ids.h>
 #include <libetc.h>
 
 #include <dw/mod_options.h>
@@ -337,6 +338,10 @@ void setItemTexture(POLY_FT4 *prim, ItemId type) /* MOD: was u8; the icon grid s
 
 int32_t hasMove(int32_t move)
 {
+	if (!IS_GRID_MOVE(move)) { /* MOD (new technique rows): a finisher has no bit, and 64..87 are the new rows' */
+		return 0;
+	}
+	move = MOVE_BIT(move);
 	if (PARTNER_ENTITY.learnedMoves[move / 32] & (1 << (move % 32))) {
 		return 1;
 	}
@@ -352,7 +357,8 @@ void learnMove(int32_t move)
 	} else if (move == 0x37 || move == 0x39) {
 		PARTNER_ENTITY.learnedMoves[1] |= 0x800000;
 		PARTNER_ENTITY.learnedMoves[1] |= 0x2000000;
-	} else {
+	} else if (IS_GRID_MOVE(move)) { /* MOD (new technique rows): a finisher has no bit */
+		move = MOVE_BIT(move);
 		PARTNER_ENTITY.learnedMoves[move / 32] |= 1 << (move % 32);
 	}
 }
@@ -667,6 +673,11 @@ void unlearnMove(int32_t move)
 			PARTNER_ENTITY.digimonEntity.stats.base.moves[i] = 0xff;
 			break;
 		}
+	}
+	if (IS_NEW_MOVE(move)) { /* MOD (new technique rows) */
+		move = MOVE_BIT(move);
+		PARTNER_ENTITY.learnedMoves[move / 32] &= ~(1u << (move % 32));
+		return;
 	}
 	if (move == 0x2c || move == 0x30) {
 		mask = 0x1000;

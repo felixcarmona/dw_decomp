@@ -164,9 +164,24 @@ typedef uint16_t CardId;
 #define NUM_ITEMS		128	/* ITEM_PARA, ITEM_FUNCTIONS, icons (16x8 grid) */
 
 /* Techniques */
-#define NUM_MOVES		122	/* MOVE_DATA rows; row 121 is the flattened Digimon's projectile */
-#define NUM_MOVE_NAMES		121	/* MOVE_NAMES; drawMoveName checks this bound */
-#define NUM_LEARNABLE_MOVES	58	/* MOVE_LEARN_CHANCES, the technique grid */
+#define NUM_MOVES		146	/* MOVE_DATA rows; row 121 is the flattened Digimon's projectile, 122.. the new rows */
+#define NUM_MOVE_NAMES		146	/* MOVE_NAMES; drawMoveName checks this bound */
+#define NUM_LEARNABLE_MOVES	82	/* MOVE_LEARN_CHANCES, the technique grid: 58 originals and the 24 new ones */
+/* MOD (new technique rows): techniques 122..145 are the rows of Darkness, Light and Water (elements 7, 8, 9), eight
+ * each. In the grid tables they follow the 58 originals; in the learned bits they take 64..87; their effects are
+ * the chunks from 330 of EFEDAT.EFE (122..149 hold effects of their own) */
+#define NUM_ELEMENTS		10
+#define NEW_MOVE_FIRST		122
+#define NUM_NEW_MOVES		24
+#define IS_NEW_MOVE(m)		((uint32_t)((m) - NEW_MOVE_FIRST) < NUM_NEW_MOVES)
+#define IS_GRID_MOVE(m)		((uint32_t)(m) < 0x3a || IS_NEW_MOVE(m))
+#define MOVE_GRID(m)		(IS_NEW_MOVE(m) ? (m) - NEW_MOVE_FIRST + 58 : (m))
+#define MOVE_BIT(m)		(IS_NEW_MOVE(m) ? (m) - NEW_MOVE_FIRST + 64 : (m))
+#define GRID_MOVE(g)		((g) < 58 ? (g) : (g) - 58 + NEW_MOVE_FIRST)
+#define NEW_MOVE_EFFECT_CHUNK	330
+#define modNewMoveChunk(m)	((m) - NEW_MOVE_FIRST + NEW_MOVE_EFFECT_CHUNK)
+/* the first technique of an element's row (what evolving teaches is looked for from it) */
+#define NEW_ELEMENT_FIRST	7
 
 /* Cards */
 #define NUM_CARDS		512	/* CARD_DATA, CARD_SPRITE_CLUT, CARD.ALL */

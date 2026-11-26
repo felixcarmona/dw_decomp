@@ -1531,7 +1531,7 @@ int32_t VS_getFirstSpecialMove(int32_t index)
 
 	for (i = 15; i >= 0; i--) {
 		if (DIGI_PARA(index).moves[i] != 0xff) {
-			if (DIGI_PARA(index).moves[i] >= 0x3a) {
+			if (DIGI_PARA(index).moves[i] >= 0x3a && DIGI_PARA(index).moves[i] < 0x71) { /* MOD (new technique rows): ids from 122 are techniques */
 				return i + 0x2e;
 			}
 		}

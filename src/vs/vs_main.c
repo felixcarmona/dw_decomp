@@ -24,7 +24,7 @@
 
 #include "common.h"
 
-extern uint8_t TYPE_FACTORS[][7];
+extern uint8_t TYPE_FACTORS[][10]; /* NUM_ELEMENTS */
 extern int16_t ENEMY_COUNT;
 extern int32_t NO_AI_FLAG;
 extern int32_t VS_DISABLE_HITTING;

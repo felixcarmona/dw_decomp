@@ -2,6 +2,7 @@
  * MOD (species): Digimon species beyond the disc's 180 (include/dw/species.h,
  * docs/mods/ids.md "Species beyond 180").
  */
+#include <dw/ids.h>
 #include <string.h>
 #include <dw/entity.h>
 #include <dw/file.h>
@@ -228,6 +229,8 @@ int32_t getSpeciesTechEffect(int32_t type, int32_t move)
 	/* no own effect leaves both fields 0 (tools/species.py), and chunk 0 for technique 0 is technique 0's own */
 	if (rec != NULL && rec->ownEffectTech == tech) {
 		tech = rec->ownEffectChunk;
+	} else if (IS_NEW_MOVE(tech)) { /* MOD (new technique rows) */
+		tech = modNewMoveChunk(tech);
 	}
 	return tech + 0x100;
 }

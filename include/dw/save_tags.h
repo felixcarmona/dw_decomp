@@ -37,7 +37,7 @@
 #define SAVE_TAG_CARD_STOCK		0x000E /* u16[6] daily shop cards, 0xffff sold */
 #define SAVE_TAG_TAMER_LOOK		0x000F /* MOD_TAMER_STATE: u8 look (0 = the original tamer), hair colour, face, shirt (0 = the original), shirt colour, trousers, their colour, shoes, their colour, backpack (0 = the original, 1 = none), its colour, hands (1 = small); older saves end earlier */
 #define SAVE_TAG_REQUIRED		0x8000
-#define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots; required to prevent silent downgrade substitution */
+#define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots, 2 = and the learned bits 64..87 are the new rows' techniques; required to prevent silent downgrade substitution */
 /* engine tier 2 */
 #define SAVE_TAG_STORY_FLAGS		0x8001 /* bit array: story flag n = trigger 800 + n */
 #define SAVE_TAG_STORY_VARS		0x8002 /* i32[n] story variables */
