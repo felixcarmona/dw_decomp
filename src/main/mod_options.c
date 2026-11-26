@@ -477,6 +477,7 @@ int32_t isFileReadQueueBusy(void);
 int32_t readFile(char *path, void *buffer);
 int32_t loadTIMFile(char *path, void *buffer);
 void modFontScriptsChanged(void);
+void loadMenuOverlay(void); /* main_menu.c */
 
 void modSetLanguage(int32_t lang)
 {
@@ -505,6 +506,16 @@ void modSetLanguage(int32_t lang)
 		run += 2 + (len + 3) / 4;
 	}
 	MOD_LANG = lang;
+	/*
+	 * the title's and the card menus' own strings (NEW GAME, the slots, Yes / No...) are MENU_REL's, read in the
+	 * language it had then: read it again, in the new language's copy (modLangFile), or the menus stay in the old one
+	 * while the executable's cuts of them (YES_NO_PIECES, YES_NO_CROPS) are already the new one's ("Yes N" / "o").
+	 * Every caller runs from MENU_REL (the language picker, OPTIONS, the options read from the card or a save), so
+	 * that is the overlay at OVL_BTL_BASE. The copies differ only in their strings (tools/langpatch.py overlay checks
+	 * the code), so the code that called this is read again byte for byte; its data are constant but the lab's text
+	 * (mod_lab.c), which nothing holds across a language change.
+	 */
+	loadMenuOverlay();
 	modFontScriptsChanged(); /* the script text of the language */
 	loadTIMFile(MAIN_D_8012CE64, GENERAL_BUFFER); /* the triangle menu's labels */
 }
