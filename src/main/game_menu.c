@@ -5660,13 +5660,50 @@ void renderMedalView(void)
 	}
 }
 
-int32_t modCardMove(int32_t id, int32_t input)
+/* Keep the original numbered layout (including 0/65), but trim unused capacity.
+ * Read the existing bitmap: replacement artwork adds no collection entries. */
+static __attribute__((noinline)) int32_t cardAlbumLimit(void)
 {
 	int32_t limit = MOD_OPT_NEW_CARDS ? NUM_CARDS : 66;
-	if ((input & 0x8000) && id % 11 != 0) id--;
-	if ((input & 0x2000) && id % 11 != 10 && id + 1 < limit) id++;
-	if ((input & 0x1000) && id >= 11) id -= 11;
-	if ((input & 0x4000) && id + 11 < limit) id += 11;
+	while (limit > 66 && !modCardIsReal(limit - 1)) limit--;
+	return limit;
+}
+
+static __attribute__((noinline)) int32_t cardAlbumTotal(void)
+{
+	int32_t id, total = 65; /* Preserve the original album's 65-card numbering. */
+	for (id = 66; id < NUM_CARDS; id++) total += modCardIsReal(id);
+	return total;
+}
+
+/* Same thumb-before-track renderBox helper and colours as the chart popup. */
+static __attribute__((noinline)) void cardAlbumScrollBar(int32_t rows)
+{
+	int32_t h, y;
+	if (rows <= 6) return;
+	h = 138 * 6 / rows;
+	y = -63 + (138 - h) * CARD_TOP_ROW / (rows - 6);
+	renderBox(135, y, 3, h, 120, 220, 255, 0, 5);
+	renderBox(135, -63, 3, 138, 20, 30, 38, 0, 5);
+}
+
+static int32_t cardAlbumStep(int32_t id, int32_t step, int32_t limit)
+{
+	int32_t next;
+	for (next = id + step; next >= 0 && next < limit; next += step) {
+		if ((step == -1 || step == 1) && next / 11 != id / 11) break;
+		if (next < 66 || modCardIsReal(next)) return next;
+	}
+	return id;
+}
+
+int32_t modCardMove(int32_t id, int32_t input)
+{
+	int32_t limit = cardAlbumLimit();
+	if (input & 0x8000) id = cardAlbumStep(id, -1, limit);
+	if (input & 0x2000) id = cardAlbumStep(id, 1, limit);
+	if (input & 0x1000) id = cardAlbumStep(id, -11, limit);
+	if (input & 0x4000) id = cardAlbumStep(id, 11, limit);
 	return id;
 }
 
@@ -5684,6 +5721,7 @@ void renderCardsView(void)
 	int32_t i;
 	int16_t card;
 	int8_t amount;
+	int32_t limit;
 
 	sprites = CARD_SPRITE_CLUT;
 
@@ -5701,11 +5739,13 @@ void renderCardsView(void)
 	case 1:
 		renderNumber(0, 0x35, -0x50, 3, SELECTED_CARD, 5);
 		drawLine2P(0xbebebe, 0x5e, -0x45, 0x63, -0x50, 5, 0);
-		renderNumber(0, 0x68, -0x50, 3, (MOD_OPT_NEW_CARDS ? NUM_CARDS : 66) - 1, 5);
+		renderNumber(0, 0x68, -0x50, 3, cardAlbumTotal(), 5);
+		limit = cardAlbumLimit();
+		cardAlbumScrollBar((limit + 10) / 11);
 		for (i = 0; i < 6; i++) {
 			for (j = 0; j < 11; j++) {
 				card = j + (i + CARD_TOP_ROW) * 11;
-				if (card >= NUM_CARDS) continue;
+				if (card >= limit || (card >= 66 && !modCardIsReal(card))) continue;
 				amount = getCardAmount(card);
 				if (amount > 0 && card >= 66) {
 					renderCardSprite(CARD_DATA[card].spriteId, j * 24 - 0x81, i * 24 - 0x3e, 5);

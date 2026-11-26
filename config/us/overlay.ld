@@ -1021,8 +1021,9 @@ SECTIONS
             . = ALIGN(., 4);
             /* Album drawing runs only after Player loads MENU. Keep this code
              * and its portrait CLUT map in the tail: CARDTAB.BIN replaces only
-             * the first sector while the album is active. */
-            BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .text.modCardMove .data.CARD_SPRITE_CLUT);
+             * the first sector while the album is active. Keep only the small top-row
+             * helper here; bitmap navigation stays resident to retain 27 sectors. */
+            BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .text.modCardTop .data.CARD_SPRITE_CLUT);
             . = ALIGN(., 4);
 
 		}
