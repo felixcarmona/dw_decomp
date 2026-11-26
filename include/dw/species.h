@@ -346,7 +346,7 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 #define TAMER_HAIR_COUNT	20
 #define TAMER_FACE_COUNT	2	/* the faces of looks 1..: one texture each (tools/tamer_looks/face.py) */
 /* What the player chose, in the order of the Look page's rows and of the save record */
-#define TAMER_STATE_SIZE	9
+#define TAMER_STATE_SIZE	11
 extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")));
 #define MOD_TAMER_LOOK		MOD_TAMER_STATE[0]
 #define MOD_TAMER_HAIR		MOD_TAMER_STATE[1]
@@ -355,6 +355,7 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define MOD_TAMER_CLOTH		MOD_TAMER_STATE[4]
 #define MOD_TAMER_TROUSERS	MOD_TAMER_STATE[5]
 #define MOD_TAMER_SHOES		MOD_TAMER_STATE[7]
+#define MOD_TAMER_PACK		MOD_TAMER_STATE[9]
 /* The clothes (tools/tamer_looks/shirts.py, legs.py, shoes.py): a shirt is the torso and the arms of any look, a
  * pair of trousers its legs, a pair of shoes its feet. Garment 0 of each kind is the original tamer's; the others
  * are drawn with the tones of one palette row each, written for the chosen cloth colour. */
@@ -362,7 +363,9 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define TAMER_CLOTH_COUNT	16
 #define TAMER_TROUSERS_COUNT	9
 #define TAMER_SHOES_COUNT	12
-#define LOOK_GARMENTS		3	/* the shirt, the trousers, the shoes: MOD_TAMER_STATE[3 + 2 * n] and its colour after it */
+#define TAMER_PACK_COUNT	7	/* the original backpack, none, then the others */
+#define TAMER_PACK_NONE		1
+#define LOOK_GARMENTS		4	/* the shirt, the trousers, the shoes, the backpack: MOD_TAMER_STATE[3 + 2 * n] and its colour after it */
 typedef struct LookShirtRecipe { /* how each tone of a garment's palette row gets its colour (lookShirtPalette) */
 	uint8_t ways[16]; /* 0 as the texture has it, 1 from the cloth's colour, 2 from the second colour, 3 fixed */
 	uint8_t levels[16];

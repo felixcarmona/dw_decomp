@@ -2224,7 +2224,6 @@ void initializeScripts(void)
 	TEXTBOX_ORIGIN_Y = -0x270f;
 	TEXTBOX_ORIGIN_Z = -0x270f;
 
-	memset(MOD_TAMER_STATE, 0, TAMER_STATE_SIZE); /* MOD (tamer looks): a new game or a save without the record has the original tamer */
 	inputInit();
 	dailyPStatTrigger();
 	initializeLoadedNPCModels();

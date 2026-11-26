@@ -544,6 +544,30 @@ MOD_LAB:
     LAB_STR_SHOES_SANDALS:
       ja: "Sandals"
       en_us: "Sandals"
+    LAB_STR_BACKPACK:
+      ja: "Backpack"
+      en_us: "Backpack"
+    LAB_STR_BACKPACK_COLOUR:
+      ja: "Backpack colour"
+      en_us: "Backpack colour"
+    LAB_STR_BACKPACK_NONE:
+      ja: "None"
+      en_us: "None"
+    LAB_STR_BACKPACK_CLASSIC:
+      ja: "Classic"
+      en_us: "Classic"
+    LAB_STR_BACKPACK_SCHOOL:
+      ja: "School bag"
+      en_us: "School bag"
+    LAB_STR_BACKPACK_MINI:
+      ja: "Mini"
+      en_us: "Mini"
+    LAB_STR_BACKPACK_HIKING:
+      ja: "Hiking"
+      en_us: "Hiking"
+    LAB_STR_BACKPACK_ROUND:
+      ja: "Round"
+      en_us: "Round"
     LAB_STR_CLOTH_ORANGE:
       ja: "Orange"
       en_us: "Orange"

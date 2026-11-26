@@ -35,7 +35,7 @@
 #define SAVE_TAG_GROUND_PICKUP_BITS	0x000C /* bit array: stable ground pickup IDs collected today; registry content/ground-items.json */
 #define SAVE_TAG_CARD_COUNTS		0x000D /* nibbles for card ids 66..511, low nibble first */
 #define SAVE_TAG_CARD_STOCK		0x000E /* u16[6] daily shop cards, 0xffff sold */
-#define SAVE_TAG_TAMER_LOOK		0x000F /* MOD_TAMER_STATE: u8 look (0 = the original tamer), hair colour, face, shirt (0 = the original), shirt colour, trousers, their colour, shoes, their colour; older saves end earlier */
+#define SAVE_TAG_TAMER_LOOK		0x000F /* MOD_TAMER_STATE: u8 look (0 = the original tamer), hair colour, face, shirt (0 = the original), shirt colour, trousers, their colour, shoes, their colour, backpack (0 = the original, 1 = none), its colour; older saves end earlier */
 #define SAVE_TAG_REQUIRED		0x8000
 #define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots; required to prevent silent downgrade substitution */
 /* engine tier 2 */

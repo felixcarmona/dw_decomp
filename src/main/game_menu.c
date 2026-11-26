@@ -2562,7 +2562,7 @@ int32_t isUIBoxAvailable(int32_t id)
 /*
  * MOD (tamer looks): the Look page of the Player view. CONFIRM on the Player tab opens it: a row for the hairstyle,
  * one for the hair colour (looks with hair), one for the face, and for the shirt, the trousers and the shoes a row
- * each and one for its colour (every garment but the original), changed with left and right and seen at once on the
+ * each and one for its colour (every garment but the original), the same for the backpack, changed with left and right and seen at once on the
  * tamer beside them, whom L1 and R1 turn. Five rows show at a time, around the chosen one. A hairstyle, a face or a
  * garment is read from TAMER.DAT; a colour only writes a palette row again, with nothing read. The page's code is in
  * EVL's tail (config/us/overlay.ld), read when the page opens: MENU, which the Player view runs from, is full, and
@@ -2577,8 +2577,9 @@ void *malloc3(uint32_t size);
 void free3(void *ptr);
 #define LOOK_TOP_Y	0x40	/* the page's text: one line a row, over the tamer titles, drawn again when the page closes */
 #define LOOK_ROW_V(row)	(LOOK_TOP_Y + 12 * (row))
-#define LOOK_HINT_Y	0xac	/* the two hints: over the last two titles */
 #define LOOK_OPEN_Y	0xc4	/* the button that opens the page, under the titles */
+#define LOOK_HINT_Y	0xc4	/* the two hints: over that button and under it */
+#define LOOK_END_Y	0xdc
 #define LOOK_LEAVE_U	0x80	/* the buttons that save and leave: right of the second hint */
 #define LOOK_KEY_X	0x08	/* on the name's row, right of the name */
 #define LOOK_KEY_W	0x7c
@@ -2609,7 +2610,7 @@ static struct {
 	uint8_t cloth[TAMER_CLOTH_COUNT * 6]; /* per cloth colour: the cloth, and stripes, prints and trim on it */
 } lookPageState;
 /* per garment: its palette row, and where its count and its directory are in the file's first sector (in u16s) */
-static const uint16_t lookPageGarment[3 * LOOK_GARMENTS] = { 2, 5, 7, 0x68, 0x6D, 0x6E, 0x80, 0xA0, 0x100 };
+static const uint16_t lookPageGarment[3 * LOOK_GARMENTS] = { 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x80, 0xA0, 0x100, 0x120 };
 /* The shirts' text: here and not in MENU, which is full */
 static const char lookPageTextShirt[] = LAB_STR_SHIRT;
 static const char lookPageTextCloth[] = LAB_STR_SHIRT_COLOUR;
@@ -2627,7 +2628,8 @@ static const char lookPageTextOrange[] = LAB_STR_CLOTH_ORANGE;
 static const char lookPageTextYellow[] = LAB_STR_CLOTH_YELLOW;
 /* how many choices the page has names for, by row */
 static const uint8_t lookPageCounts[LOOK_ROWS] = { TAMER_LOOK_COUNT, TAMER_HAIR_COUNT, TAMER_FACE_COUNT,
-	TAMER_SHIRT_COUNT, TAMER_CLOTH_COUNT, TAMER_TROUSERS_COUNT, TAMER_CLOTH_COUNT, TAMER_SHOES_COUNT, TAMER_CLOTH_COUNT };
+	TAMER_SHIRT_COUNT, TAMER_CLOTH_COUNT, TAMER_TROUSERS_COUNT, TAMER_CLOTH_COUNT, TAMER_SHOES_COUNT, TAMER_CLOTH_COUNT,
+	TAMER_PACK_COUNT, TAMER_CLOTH_COUNT };
 static const char lookPageTextTrousers[] = LAB_STR_TROUSERS;
 static const char lookPageTextTrousersColour[] = LAB_STR_TROUSERS_COLOUR;
 static const char lookPageTextShoes[] = LAB_STR_SHOES;
@@ -2651,19 +2653,29 @@ static const char lookPageTextShoes8[] = LAB_STR_SHOES_BOOTS;
 static const char lookPageTextShoes9[] = LAB_STR_SHOES_CUFFED_BOOTS;
 static const char lookPageTextShoes10[] = LAB_STR_SHOES_RAIN_BOOTS;
 static const char lookPageTextShoes11[] = LAB_STR_SHOES_SANDALS;
-/* The garments' names but the originals': the shirts', the trousers', the shoes' (lookPageFirst: where each kind starts) */
-static const char *const lookPageClothes[TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT + TAMER_SHOES_COUNT - 3] = {
+static const char lookPageTextPack[] = LAB_STR_BACKPACK;
+static const char lookPageTextPackColour[] = LAB_STR_BACKPACK_COLOUR;
+static const char lookPageTextPack1[] = LAB_STR_BACKPACK_NONE;
+static const char lookPageTextPack2[] = LAB_STR_BACKPACK_CLASSIC;
+static const char lookPageTextPack3[] = LAB_STR_BACKPACK_SCHOOL;
+static const char lookPageTextPack4[] = LAB_STR_BACKPACK_MINI;
+static const char lookPageTextPack5[] = LAB_STR_BACKPACK_HIKING;
+static const char lookPageTextPack6[] = LAB_STR_BACKPACK_ROUND;
+/* The garments' names but the originals': the shirts', the trousers', the shoes', the backpacks' (lookPageFirst: where each kind starts) */
+static const char *const lookPageClothes[TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT + TAMER_SHOES_COUNT + TAMER_PACK_COUNT - 4] = {
 	lookPageTextShirt1, lookPageTextShirt2, lookPageTextShirt3, lookPageTextShirt4, lookPageTextShirt5,
 	lookPageTextShirt6, lookPageTextShirt7, lookPageTextShirt8, lookPageTextShirt9, lookPageTextShirt10,
 	lookPageTextTrousers1, lookPageTextTrousers2, lookPageTextTrousers3, lookPageTextTrousers4, lookPageTextTrousers5,
 	lookPageTextTrousers6, lookPageTextTrousers7, lookPageTextTrousers8,
 	lookPageTextShoes1, lookPageTextShoes2, lookPageTextShoes3, lookPageTextShoes4, lookPageTextShoes5, lookPageTextShoes6,
-	lookPageTextShoes7, lookPageTextShoes8, lookPageTextShoes9, lookPageTextShoes10, lookPageTextShoes11 };
-static const uint8_t lookPageFirst[LOOK_GARMENTS] = { 0, TAMER_SHIRT_COUNT - 1, TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT - 2 };
+	lookPageTextShoes7, lookPageTextShoes8, lookPageTextShoes9, lookPageTextShoes10, lookPageTextShoes11,
+	lookPageTextPack1, lookPageTextPack2, lookPageTextPack3, lookPageTextPack4, lookPageTextPack5, lookPageTextPack6 };
+static const uint8_t lookPageFirst[LOOK_GARMENTS] = { 0, TAMER_SHIRT_COUNT - 1, TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT - 2,
+	                                                    TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT + TAMER_SHOES_COUNT - 3 };
 /* The names of the rows from the shirt's on */
 static const char *const lookPageRowNames[2 * LOOK_GARMENTS] = { lookPageTextShirt, lookPageTextCloth, lookPageTextTrousers,
 	                                                               lookPageTextTrousersColour, lookPageTextShoes,
-	                                                               lookPageTextShoesColour };
+	                                                               lookPageTextShoesColour, lookPageTextPack, lookPageTextPackColour };
 /* A cloth colour's name: a hair colour's (its number in LAB_HAIR_TEXT), or one of the two only cloth has */
 #define LOOK_CLOTH_ORANGE	0xFE
 #define LOOK_CLOTH_YELLOW	0xFF
@@ -2689,12 +2701,12 @@ int32_t playerKeyHint(int32_t key, int32_t x, int32_t y)
 }
 
 /* Whether a row has something to choose: the original tamer and the bald head have no hair colour, an original
- * garment no colour */
+ * garment no colour, and no backpack none either */
 static const char lookPageFaces[TAMER_FACE_COUNT][2] = { "1", "2" };
 static const char lookPageDash[] = "-"; /* a row with nothing to choose */
 static int32_t lookPageRowOpen(int32_t row)
 {
-	return row == 1 ? MOD_TAMER_LOOK >= 2 : (row >= 4 && !(row & 1)) ? MOD_TAMER_STATE[row - 1] != 0 : 1;
+	return row == 1 ? MOD_TAMER_LOOK >= 2 : (row >= 4 && !(row & 1)) ? MOD_TAMER_STATE[row - 1] > (row == 10) : 1;
 }
 
 static char *lookPageValueText(int32_t row)
@@ -2742,7 +2754,7 @@ static void lookPageRetint(void)
 	LoadImage(&rect, (u_long *)lookPageState.palette);
 }
 
-/* A garment (0 the shirt, 1 the trousers, 2 the shoes) in the colour chosen for it */
+/* A garment (0 the shirt, 1 the trousers, 2 the shoes, 3 the backpack) in the colour chosen for it */
 static void lookPageShirtRetint(int32_t garment)
 {
 	RECT rect;
@@ -2849,7 +2861,7 @@ int32_t lookPageOpen(void)
 	lookPageState.row = 0;
 	lookPageKeep();
 	lookTurn = 0;
-	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_OPEN_Y - LOOK_TOP_Y);
+	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_END_Y - LOOK_TOP_Y);
 	clearTextSubArea(&rect);
 	drawStringMode(LOOK_PAGE_TEXT[2], 0, LOOK_HINT_Y, fitStringMode(LOOK_PAGE_TEXT[2], 0xb4));
 	drawString(LOOK_PAGE_TEXT[3], 0, LOOK_HINT_Y + 12);
@@ -2890,11 +2902,12 @@ void lookPageClose(void)
 		}
 	}
 	lookTurn = 0;
-	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_OPEN_Y - LOOK_TOP_Y);
+	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_END_Y - LOOK_TOP_Y);
 	clearTextSubArea(&rect);
 	for (i = 0; i < 11; i++) {
 		drawString(TAMER_LEVEL_TITLES[i], 0, i * 0xc + 0x40);
 	}
+	playerKeyHint(0, 0, LOOK_OPEN_Y);
 }
 
 void lookPageInput(void)

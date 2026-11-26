@@ -1043,8 +1043,9 @@ extern char MAIN_D_801340E4[];
 #define LOOK_LEVELS	0xC0	/* in the file's first sector: the brightness of each of the row's sixteen tones */
 void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels);
 /* A garment (tools/tamer_looks/shirts.py, legs.py, shoes.py): objects read behind a look's model, which has none of
- * them. Its first sector: */
-#define LOOK_SHIRT_OBJECTS	11	/* of the three garments together */
+ * them. A backpack (backpacks.py) is a garment with no objects: its polygons go into the shirt's torso. A garment's
+ * first sector: */
+#define LOOK_SHIRT_OBJECTS	11	/* of the garments together */
 #define LOOK_SHIRT_TABLE	0x04	/* per object where its corners, normals and polygons are */
 #define LOOK_SHIRT_SEAT	0x3C	/* trousers: the texel of plain cloth the seat is drawn with (u, v) */
 #define LOOK_SHIRT_RECIPE	0x40
@@ -1053,14 +1054,17 @@ void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels);
 #define LOOK_SHAFT		0x600	/* shoes: a boot's leg: u16 polygons (0: none), then its corners, normals and polygons */
 #define LOOK_SHAFT_CORNERS	11
 #define LOOK_SHAFT_BYTES	320
+#define LOOK_PACK		0x400	/* a backpack: u16 polygons (0: none), their bytes, corners, 0; then corners, normals, polygons */
+#define LOOK_SHIRT_ROOM		2	/* a shirt's flags (byte 3): its torso keeps room for a backpack, */
+#define LOOK_SHIRT_STRAPS	4	/* and one more drawing follows its own: its trunk with a backpack's straps */
 #define LOOK_SEAT_PRIMS	16	/* a shirt's first polygons are the seat: the trousers' cloth when they are not the original's */
 LookShirtRecipe lookShirtRecipe[LOOK_GARMENTS];
 uint16_t lookShirtRow[LOOK_GARMENTS][16];
 void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb);
 /* the shirt: the torso, the upper arms, the forearms; the trousers: each thigh and shin; the shoes: the feet; then how
- * many each has, its palette row, and where its count and its directory are in the file's first sector (in u16s) */
+ * many each garment has (the backpack none), its palette row, and where its count and its directory are in the file's first sector (in u16s) */
 const uint16_t lookShirtObjects[LOOK_SHIRT_OBJECTS + 4 * LOOK_GARMENTS] = { 0, 2, 3, 5, 6, 8, 9, 11, 12, 10, 13,
-	5, 4, 2, 2, 5, 7, 0x68, 0x6D, 0x6E, 0x80, 0xA0, 0x100 };
+	5, 4, 2, 0, 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x80, 0xA0, 0x100, 0x120 };
 #define LOOK_GARMENT_OBJECTS(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + (g)]
 #define LOOK_GARMENT_ROW(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + LOOK_GARMENTS + (g)]
 #define LOOK_GARMENT_COUNT(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + 2 * LOOK_GARMENTS + (g)]
@@ -1078,7 +1082,7 @@ void modLookOverlay(void)
 int32_t modLoadTamerLook(void *component)
 {
 	TAMER_COLD_SECTOR = 0;
-	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE | MOD_TAMER_SHIRT | MOD_TAMER_TROUSERS | MOD_TAMER_SHOES) == 0) {
+	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE | MOD_TAMER_SHIRT | MOD_TAMER_TROUSERS | MOD_TAMER_SHOES | MOD_TAMER_PACK) == 0) {
 		return 0;
 	}
 	modLookOverlay();
@@ -1158,9 +1162,11 @@ int32_t lookTamerLoad(void *component)
 	uint32_t *object;
 	uint32_t *entry;
 	uint32_t *prim;
+	uint16_t *pack;
 	uint32_t seat;
 	int32_t worn[LOOK_GARMENTS];
 	int32_t slim;
+	int32_t room;
 	int32_t sector;
 	int32_t words;
 	int32_t tim;
@@ -1181,6 +1187,11 @@ int32_t lookTamerLoad(void *component)
 	for (g = 0, k = 0; g < LOOK_GARMENTS; g++) {
 		worn[g] = MOD_TAMER_STATE[3 + 2 * g] < head[LOOK_GARMENT_COUNT(g)] ? MOD_TAMER_STATE[3 + 2 * g] : 0;
 		k |= worn[g];
+	}
+	if (worn[0] == 0 && worn[3] != 0) {
+		/* the original shirt has its backpack in it: under another one, or none, it is one of the two shirts that
+		 * follow those he chooses from, the same hoodie without it */
+		worn[0] = head[0x68] + (worn[3] == TAMER_PACK_NONE);
 	}
 	if (MOD_TAMER_LOOK == 0 && k == 0) {
 		/* the original tamer with another face: the disc's model, and his texture with that face; these textures
@@ -1208,7 +1219,7 @@ int32_t lookTamerLoad(void *component)
 		tim = head[3] + (MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE * 9 : 0); /* one texture per face */
 	}
 	if (MOD_TAMER_LOOK > head[2] || head[6] == 0 || head[0x68] == 0 || head[0x69] == 0 || head[0x6D] == 0 ||
-	    head[0x6E] == 0) {
+	    head[0x6E] == 0 || head[0x6F] == 0) {
 		return 0;
 	}
 	cold = head[4];
@@ -1223,12 +1234,13 @@ int32_t lookTamerLoad(void *component)
 		lookHairPalette((uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW),
 		                (uint8_t *)head + 0x80 + 3 * (MOD_TAMER_HAIR % head[6]), (uint8_t *)head + LOOK_LEVELS);
 	}
-	/* each garment: its drawing over the texture, its colour in its palette row. The shoes' first sector is read
-	 * last and stays: a boot's leg is taken from it further down. */
+	/* each garment: its drawing over the texture, its colour in its palette row. The backpack's first sector is read
+	 * last and stays: its polygons are taken from it further down. */
 	pixels = texture + 8 + *(uint32_t *)(texture + 8) + 12;
 	at[0] = words;
 	seat = 0;
 	slim = 0;
+	room = 0;
 	for (g = 0, t = table; g < LOOK_GARMENTS; g++) {
 		sectors[g][0] = head[LOOK_GARMENT_DIR(g) + 2 * worn[g]];
 		sectors[g][1] = head[LOOK_GARMENT_DIR(g) + 2 * worn[g] + 1];
@@ -1237,11 +1249,18 @@ int32_t lookTamerLoad(void *component)
 			seat = *(uint16_t *)(first + LOOK_SHIRT_SEAT);
 			slim = first[3] & 1;
 		}
+		n = first[2];
+		if (g == 0) {
+			room = first[3] & LOOK_SHIRT_ROOM;
+			if ((first[3] & LOOK_SHIRT_STRAPS) && worn[3] != TAMER_PACK_NONE) {
+				n++;
+			}
+		}
 		for (i = 0; i < LOOK_GARMENT_OBJECTS(g) * 6; i++) {
 			*t++ = ((uint16_t *)(first + LOOK_SHIRT_TABLE))[i];
 		}
 		from = first + LOOK_SHIRT_PIXELS;
-		for (i = 0; i < first[2]; i++) {
+		for (i = 0; i < n; i++) {
 			rect = first + LOOK_SHIRT_RECTS + 4 * i; /* first byte of a row, first row, bytes, rows */
 			for (k = 0; k < rect[3]; k++, from += rect[2]) {
 				memcpy(pixels + (rect[1] + k) * 128 + rect[0], from, rect[2]);
@@ -1261,7 +1280,8 @@ int32_t lookTamerLoad(void *component)
 	free3(texture);
 	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER, sector, (words * 4 + 0x7FF) >> 11);
 	object = (uint32_t *)(TAMER_MODEL_BUFFER + *(uint32_t *)TAMER_MODEL_BUFFER + 12);
-	for (g = 0, t = table, n = 0; g < LOOK_GARMENTS; g++) {
+	pack = (uint16_t *)(first + LOOK_PACK);
+	for (g = 0, t = table, n = 0; g < LOOK_GARMENTS - 1; g++) {
 		to = TAMER_MODEL_BUFFER + at[g] * 4;
 		readFileSectors(TAMER_LOOK_FILE, to, sectors[g][0] + 1, sectors[g][1]);
 		if (g == 0 && seat != 0) {
@@ -1276,6 +1296,18 @@ int32_t lookTamerLoad(void *component)
 				}
 				prim += 1 + ((prim[0] >> 8) & 0xFF);
 			}
+		}
+		if (g == 0 && room && pack[0] != 0) {
+			/* the backpack: into the room the torso keeps for it, its first corners and normals and right before its
+			 * polygons */
+			memcpy(to + t[0], pack + 4, pack[2] * 8);
+			memcpy(to + t[2], (uint8_t *)(pack + 4) + pack[2] * 8, pack[2] * 8);
+			t[4] -= pack[1];
+			memcpy(to + t[4], (uint8_t *)(pack + 4) + pack[2] * 16, pack[1]);
+			t[5] += pack[0];
+		}
+		if (g == 0 && slim) { /* a boot's leg is in the shoes' first sector: once more, over the backpack's */
+			readFileSectors(TAMER_LOOK_FILE, first, sectors[2][0], 1);
 		}
 		/* the garment's objects take their places in the model's table, before its offsets become addresses */
 		for (i = 0; i < LOOK_GARMENT_OBJECTS(g); i++, t += 6, n++) {
