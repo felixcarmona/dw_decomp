@@ -5666,6 +5666,8 @@ void updateTileRow(bottom)
 	}
 
 	if (MAP_TILE_Y != PREV_TILE_Y) {
+		/* A held band can catch up while the camera is stationary or reversing. */
+		bottom = MAP_TILE_Y > PREV_TILE_Y;
 		base = MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width);
 
 		if (MAP_TILE_DATA.width >= 4) {
@@ -5708,6 +5710,7 @@ void updateTileColumn(right)
 	int32_t i;
 
 	if (MAP_TILE_X != PREV_TILE_X) {
+		right = MAP_TILE_X > PREV_TILE_X;
 		base = MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width);
 		stride = MAP_TILE_DATA.width;
 
