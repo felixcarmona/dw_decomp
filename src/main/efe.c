@@ -1382,7 +1382,16 @@ static ModTechOrigin MOD_TECH_ORIGINS_SHOGUNGEKOMON[] = {
 	{ { 2, -102, 0, 155 }, { 7, 90, -270, 30 } }, /* Blasting Spout: a trumpet */
 };
 
-/* MOD_TECH_DONORS_NPC_C (partners-npc-c) is spliced in below when merged */
+/*
+ * MOD (partners-npc-c): Jijimon and Analogman take their donor's animations,
+ * so each donor bone maps to the bone that plays its part in the retargeted
+ * animation (the club hand to the staff hand...), the offset scaled.
+ */
+/* MOD (jijimon): Ogremon's bones 1-17 -> Jijimon's (head and jaw -> face, club -> staff), 250/390 high */
+static int8_t MOD_TECH_BONES_JIJIMON[] = { 0, 1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+/* MOD (analogman): Andromon's bones 1-20 -> Analogman's (the shoulder joints to the torso,
+ * each arm and leg piece to his), 350/400 high */
+static int8_t MOD_TECH_BONES_ANALOGMAN[] = { 0, 1, 2, 3, 2, 4, 5, 6, 2, 8, 9, 10, 11, 11, 12, 13, 14, 11, 15, 16, 17 };
 
 static ModTechDonor MOD_TECH_DONORS[] = {
 	/* MOD (cherrymon) */
@@ -1414,6 +1423,11 @@ static ModTechDonor MOD_TECH_DONORS[] = {
 	{ DIGIMON_MYOTISMON, DIGIMON_DEVIMON, 430, 400, MOD_DONOR_FALLBACK, 0, NULL, { 3, 0, 0, -60 }, NULL, 0 },
 	{ DIGIMON_WARUMONZAEMON, DIGIMON_MONZAEMON, 410, 330, MOD_DONOR_FALLBACK,
 	  MOD_COUNT(MOD_TECH_ORIGINS_WARUMONZAEMON), MOD_TECH_ORIGINS_WARUMONZAEMON, { 2, 0, -62, -179 }, NULL, 0 },
+	/* MOD (partners-npc-c) */
+	{ DIGIMON_JIJIMON, DIGIMON_OGREMON, 16, 25, 0, 0, NULL, { 0 }, MOD_TECH_BONES_JIJIMON,
+	  MOD_COUNT(MOD_TECH_BONES_JIJIMON) },
+	{ DIGIMON_ANALOGMAN, DIGIMON_ANDROMON, 7, 8, 0, 0, NULL, { 0 }, MOD_TECH_BONES_ANALOGMAN,
+	  MOD_COUNT(MOD_TECH_BONES_ANALOGMAN) },
 };
 
 static int32_t modOriginMatches(EfeBoneOffset *from, EfeBoneOffset *row)

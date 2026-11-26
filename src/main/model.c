@@ -11,6 +11,8 @@
 #include <dw/evl.h>
 #include <dw/file.h>
 #include <dw/file_queue.h>
+#include <dw/file_table.h>
+#include <dw/ids.h>
 #include <dw/mod_fps.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -3377,6 +3379,49 @@ static void readDigimonModel(int32_t type, char *path, void *buffer)
 	}
 }
 
+/*
+ * MOD (partners-npc-c): NPC characters that can also be the partner get a
+ * partner-only model file: the partner needs some 45 animation slots, while
+ * the NPC model has the few its scenes play and is loaded into the shared
+ * NPC heap on the screens where the character appears (a grown file there
+ * would take heap from the other NPCs). Partner loads (loadMMD and
+ * loadMMDAsync with class 3: Continue, evolution, reincarnation, VS) read
+ * these names instead; NPC loads keep PTR_DIGIMON_FILE_NAMES. A name whose
+ * FILE_OFFSET_TABLE entry has no sector (the file was not added to the disc)
+ * falls back to the NPC model.
+ */
+typedef struct {
+	int16_t type;
+	char name[6];
+} PartnerModelFile;
+
+static PartnerModelFile PARTNER_MODEL_FILES[] = {
+	{ DIGIMON_MACHINEDRAMON, "MUGP" }, /* MOD (machinedramon) */
+	{ DIGIMON_JIJIMON, "JIJP" },       /* MOD (jijimon) */
+	{ DIGIMON_ANALOGMAN, "ANLP" },     /* MOD (analogman) */
+	{ -1, "" },
+};
+
+static char *getPartnerModelName(int32_t type)
+{
+	PartnerModelFile *p;
+	FileEntry *f;
+	char file[16];
+
+	for (p = PARTNER_MODEL_FILES; p->type >= 0; p++) {
+		if (p->type != type) {
+			continue;
+		}
+		concatStrings(file, p->name, MAIN_D_801340E4);
+		for (f = FILE_OFFSET_TABLE; f->size != 0; f++) {
+			if (f->sector != 0 && strcmp(f->filename, file) == 0) {
+				return p->name;
+			}
+		}
+	}
+	return getDigimonModelName(type); /* MOD (integration): species names */
+}
+
 ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 {
 	ModelComponent *m;
@@ -3462,7 +3507,8 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 	} else {
 		return 0;
 	}
-	name = getDigimonModelName(digiType);
+	/* MOD (partners-npc-c): the partner may have its own file */
+	name = (modelType == 3) ? getPartnerModelName(digiType) : getDigimonModelName(digiType);
 	loadDigimonTexture(digiType, name, m);
 	concatStrings(path, MAIN_D_8011D484, name);
 	concatStrings(path, path, MAIN_D_801340E4);
@@ -3644,7 +3690,8 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	} else {
 		return 0;
 	}
-	name = getDigimonModelName(digimonType);
+	/* MOD (partners-npc-c): the partner may have its own file */
+	name = (entityType == 3) ? getPartnerModelName(digimonType) : getDigimonModelName(digimonType);
 	if ((buffer & 3L) != 0) {
 		buffer += 4 - (buffer & 3);
 	}
@@ -3663,6 +3710,14 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	getDigimonModelRef(digimonType, &file, &sector, &size);
 	if (file != NULL) {
 		addFileReadRequestSection(file, (uint8_t *)buffer, sector, (size + 0x7FF) >> 11, readComplete, 0, 0);
+	} else if (name != getDigimonModelName(digimonType)) {
+		/*
+		 * MOD (partners-npc-c): a partner-only file is found through
+		 * FILE_OFFSET_TABLE, like readFile does: the request by path searches
+		 * the ISO directory "CHDAT\MMDn\", and the added files are in the root.
+		 */
+		addFileReadRequestLookup(path, (uint8_t *)buffer, readComplete, 0, 0);
+		size = lookupFileSize(path);
 	} else {
 		addFileReadRequestPath(path, (uint8_t *)buffer, readComplete, 0, 0);
 		size = lookupFileSize(path);

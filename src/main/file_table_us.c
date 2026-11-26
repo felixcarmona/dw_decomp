@@ -3,7 +3,7 @@
 #include <dw/atan_lookup_table.h>
 
 // clang-format off
-FileEntry FILE_OFFSET_TABLE[820] = { /* MOD: + DIGI.DAT */
+FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + partner models (partners-npc-c) */
 	{ 0x00000017, 0x00000044, "SYSTEM.CNF" },
 	{ 0x00000019, 0x001ce000, "CARD.ALL" },
 	{ 0x000003b6, 0x0032a000, "ALLTIM.TIM" },
@@ -825,6 +825,14 @@ FileEntry FILE_OFFSET_TABLE[820] = { /* MOD: + DIGI.DAT */
 	/* MOD (species): new species (tools/species.py); build-disc.py --relayout
 	 * writes its sector and size. Without the file the header check fails. */
 	{ 0x00000000, 0x00000800, "DIGI.DAT" },
+	/*
+	 * MOD (partners-npc-c): partner-only models (model.c). Sector 0 until
+	 * build-disc.py --relayout --add writes the real one; without the file
+	 * the partner falls back to the NPC model.
+	 */
+	{ 0x00000000, 0x00000001, "MUGP.MMD" }, /* MOD (machinedramon) */
+	{ 0x00000000, 0x00000001, "JIJP.MMD" }, /* MOD (jijimon) */
+	{ 0x00000000, 0x00000001, "ANLP.MMD" }, /* MOD (analogman) */
 	{ 0x00000000, 0x00000000, "NULL" },
 };
 // clang-format on
