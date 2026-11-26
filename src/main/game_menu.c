@@ -6,6 +6,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/mod_fps.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
@@ -3423,6 +3424,11 @@ int16_t e;
 {
 	uint8_t w;
 
+	/* MOD (caps): full at the old limit, which the caller passes (the
+	 * bar has no room past it, and uint8_t w would wrap) */
+	if (a > b) {
+		a = b;
+	}
 	w = c * a / b;
 	renderBox(d, e, w, 2, 0x32, 0xc8, 0xc8, 0, 5);
 }

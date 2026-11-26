@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/item.h>
 #include <dw/params.h>
 #include <dw/script.h>
@@ -33,8 +34,9 @@ static void *script_value_functions[] = {
 // clang-format off
 SPEAKERS_TEXT
 
+/* MOD (caps): Offense..Brains and max HP/MP at the new limits (were 999, 9999) */
 int16_t STATS_LIMIT_ARRAY[22] = {
-	0x03e7, 0x03e7, 0x03e7, 0x03e7, 0x270f, 0x270f, 0x270f, 0x270f,
+	STAT_CAP, STAT_CAP, STAT_CAP, STAT_CAP, HPMP_CAP, HPMP_CAP, 0x270f, 0x270f,
 	0x0064, 0x0064, 0x03e7, 0x03e7, 0x03e7, 0x03e7, 0x270f, 0x270f,
 	0x270f, 0x03e7, 0x03e7, 0x03e7, 0x0063, 0x000a,
 };

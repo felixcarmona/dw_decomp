@@ -4,6 +4,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/butterfly.h>
 #include <dw/clock.h>
@@ -704,9 +705,10 @@ void checkMedalConditions(void)
 
 	if (hasMedal(7) == 0) {
 		BaseStats *bs = &PARTNER_ENTITY.digimonEntity.stats.base;
-		if ((bs->hp == 9999) && (bs->mp == 9999) &&
-		    (bs->off == 999) && (bs->def == 999) &&
-		    (bs->brain == 999) && (bs->speed == 999)) {
+		/* MOD (caps): every stat at the old maximum or past it (was ==) */
+		if ((bs->hp >= OLD_HPMP_CAP) && (bs->mp >= OLD_HPMP_CAP) &&
+		    (bs->off >= OLD_STAT_CAP) && (bs->def >= OLD_STAT_CAP) &&
+		    (bs->brain >= OLD_STAT_CAP) && (bs->speed >= OLD_STAT_CAP)) {
 			unlockMedal(7);
 			MEDAL_AWARD_PENDING = 1;
 		}

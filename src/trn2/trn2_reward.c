@@ -1,3 +1,4 @@
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
 #include <dw/entity.h>
 #include <dw/input.h>
@@ -187,8 +188,8 @@ int32_t c;
 		x = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN2_saveBaseStats();
@@ -264,8 +265,8 @@ void TRN2_awardMpTrainingGains(int32_t a, int16_t b, int32_t c)
 		x = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN2_saveBaseStats();
@@ -310,8 +311,8 @@ void TRN2_awardOffenseTrainingGains(int32_t a, int16_t b, int32_t c)
 		x = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN2_saveBaseStats();
@@ -359,8 +360,8 @@ int32_t c;
 		x = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN2_saveBaseStats();
@@ -431,8 +432,8 @@ int32_t c;
 		x = 1;
 	}
 
-	if (x >= 1000) {
-		x = 999;
+	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
+		x = STAT_CAP;
 	}
 
 	TRN2_saveBaseStats();

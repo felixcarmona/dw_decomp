@@ -1,5 +1,6 @@
 #include <libgs.h>
 
+#include <dw/caps.h> /* MOD (caps) */
 #include <dw/combat.h>
 #include <dw/entity.h>
 #include <dw/font.h>
@@ -136,7 +137,13 @@ void battleStatsGainsAndDrops(uint8_t *droppedItems)
 		}
 
 		if (enemyStat >= partnerStat) {
-			STATS_GAINS[stat] = ((den + (enemyStat * STAT_GAIN_ENEMY_FACTORS[ENEMY_COUNT - 1])) - 1) / den;
+			chance = ((den + (enemyStat * STAT_GAIN_ENEMY_FACTORS[ENEMY_COUNT - 1])) - 1) / den;
+			/* MOD (caps): at most the stat's limit (16 × 30000 would not
+			 * fit STATS_GAINS; the original never passed 16 × 9999) */
+			if (chance > CAP_OF_STAT_INDEX(stat)) {
+				chance = CAP_OF_STAT_INDEX(stat);
+			}
+			STATS_GAINS[stat] = chance;
 		} else {
 			chance = ((enemyStat * STAT_GAIN_ENEMY_FACTORS[ENEMY_COUNT - 1]) * 100) / den;
 			if (randomLimit(100) < chance) {
@@ -549,18 +556,15 @@ void tickPostBattleStatsBox(void)
 
 	for (i = 0; i < 6; i++) {
 		if (STATS_GAINS[i] != 0) {
-			INITIAL_COMBAT_STATS[0][i] += STATS_GAINS[i];
+			/* MOD (caps): summed in 32 bits, the new limits (were
+			 * 9999 / 999) */
+			{
+				int32_t sum = INITIAL_COMBAT_STATS[0][i] + STATS_GAINS[i];
 
-			if (STATS_GAINS[i] > 0) {
-				if (i < 2) {
-					if (INITIAL_COMBAT_STATS[0][i] >= 10000) {
-						INITIAL_COMBAT_STATS[0][i] = 9999;
-					}
-				} else {
-					if (INITIAL_COMBAT_STATS[0][i] >= 1000) {
-						INITIAL_COMBAT_STATS[0][i] = 999;
-					}
+				if ((STATS_GAINS[i] > 0) && (sum > CAP_OF_STAT_INDEX(i))) {
+					sum = CAP_OF_STAT_INDEX(i);
 				}
+				INITIAL_COMBAT_STATS[0][i] = sum;
 			}
 
 			STATS_GAINS[i] = 0;
@@ -593,14 +597,9 @@ void renderPostBattleStatsBox(int16_t depth)
 			STATS_GAINS[i]--;
 			INITIAL_COMBAT_STATS[0][i] += 1;
 
-			if (i < 2) {
-				if (INITIAL_COMBAT_STATS[0][i] >= 10000) {
-					INITIAL_COMBAT_STATS[0][i] = 9999;
-				}
-			} else {
-				if (INITIAL_COMBAT_STATS[0][i] >= 1000) {
-					INITIAL_COMBAT_STATS[0][i] = 999;
-				}
+			/* MOD (caps): the new limits (were 9999 / 999) */
+			if (INITIAL_COMBAT_STATS[0][i] > CAP_OF_STAT_INDEX(i)) {
+				INITIAL_COMBAT_STATS[0][i] = CAP_OF_STAT_INDEX(i);
 			}
 
 			first = 0;
@@ -618,9 +617,11 @@ void renderPostBattleStatsBox(int16_t depth)
 			GsSetWorkBase((PACKET *)prim);
 		}
 
+		/* MOD (caps): a wider gain grows to the right, into the free
+		 * part of the box */
 		renderNumber(5,
 			     box->x + 142, (box->y + 9) + (i * 13),
-			     2, STATS_GAINS[i], 6 - depth);
+			     CAPS_DIGITS(2, STATS_GAINS[i]), STATS_GAINS[i], 6 - depth);
 	}
 
 	for (i = 0; i < 6; i++) {
@@ -650,10 +651,11 @@ void renderPostBattleStatsBox(int16_t depth)
 		y = (box->y + 20) + (i * 13);
 		rect.y = y - 2;
 
+		/* MOD (caps): full at the old limit (the bar has no room past it) */
 		if (i < 2) {
-			rect.w = (INITIAL_COMBAT_STATS[0][i] * 50) / 9999;
+			rect.w = (CAPS_MIN(INITIAL_COMBAT_STATS[0][i], 9999) * 50) / 9999;
 		} else {
-			rect.w = INITIAL_COMBAT_STATS[0][i] * 50 / 999;
+			rect.w = (CAPS_MIN(INITIAL_COMBAT_STATS[0][i], 999) * 50) / 999;
 		}
 
 		switch (STAT_BOX_HAS_GAIN[i]) {
