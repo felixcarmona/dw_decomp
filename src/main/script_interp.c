@@ -2227,6 +2227,8 @@ void initializeScripts(void)
 	MOD_TAMER_LOOK = 0; /* MOD (tamer looks): a new game or a save without the record has the original tamer */
 	MOD_TAMER_HAIR = 0;
 	MOD_TAMER_FACE = 0;
+	MOD_TAMER_SHIRT = 0;
+	MOD_TAMER_CLOTH = 0;
 	inputInit();
 	dailyPStatTrigger();
 	initializeLoadedNPCModels();

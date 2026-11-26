@@ -245,7 +245,7 @@ SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* Bound every record, including the optional swap and daily pickup bitmap. */
 #define SAVE_RECORDS_MAX (sizeof(SaveExtHead) + 12 * 4 + 4 + 60 + 4 + 32 + 80 + 200 + \
                          2 * (NUM_DIGIMON / 8) + MOD_OPT_BYTES + 4 + sizeof(MOD_GROUND_PICKED) + 4 + 4 + 8 + CARD_EXTRA_BYTES + 12 + \
-                         4 + 3 /* the tamer's look */)
+                         4 + 5 /* the tamer's look */)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_INLINE_BYTES);
 SAVE_LAYOUT_CHECK(inlinePadding, sizeof(((RegisteredDigimon *)0)->unk24) == 28 &&
                   __builtin_offsetof(RegisteredDigimon, unk24) == 0x24 && sizeof(RegisteredDigimon) == 0x40);
@@ -4445,6 +4445,8 @@ void loadSavegame(SavegamePayload *savegame)
 	MOD_TAMER_LOOK = 0; /* MOD (tamer looks): and the original tamer */
 	MOD_TAMER_HAIR = 0;
 	MOD_TAMER_FACE = 0;
+	MOD_TAMER_SHIRT = 0;
+	MOD_TAMER_CLOTH = 0;
 
 	SAVED_STATE.playerPos = savegame->tamerPosition;
 	SAVED_STATE.money = savegame->money;
@@ -5087,7 +5089,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t inventory[30];
 	int32_t partnerType;
 	uint8_t options[MOD_OPT_BYTES]; /* MOD (options) */
-	int16_t swap[2];
+	int16_t swap[3];
 	int32_t size;
 	int32_t i;
 
@@ -5154,8 +5156,9 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_CARD_COUNTS, MOD_CARD_EXTRA, sizeof(MOD_CARD_EXTRA));
 		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 		swap[0] = MOD_TAMER_LOOK | (MOD_TAMER_HAIR << 8); /* MOD (tamer looks) */
-		swap[1] = MOD_TAMER_FACE;
-		p = putRecord(p, SAVE_TAG_TAMER_LOOK, swap, 3);
+		swap[1] = MOD_TAMER_FACE | (MOD_TAMER_SHIRT << 8);
+		swap[2] = MOD_TAMER_CLOTH;
+		p = putRecord(p, SAVE_TAG_TAMER_LOOK, swap, 5);
 	}
 	{ uint8_t layout = 1; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
@@ -5537,6 +5540,10 @@ static void applyRecords(uint8_t *e)
 				MOD_TAMER_LOOK = d[0];
 				MOD_TAMER_HAIR = d[1];
 				MOD_TAMER_FACE = len >= 3 && d[2] < TAMER_FACE_COUNT ? d[2] : 0;
+				if (len >= 5 && d[3] < TAMER_SHIRT_COUNT && d[4] < TAMER_CLOTH_COUNT) {
+					MOD_TAMER_SHIRT = d[3];
+					MOD_TAMER_CLOTH = d[4];
+				}
 			}
 			break;
 		case SAVE_TAG_GROUND_PICKUP_BITS:

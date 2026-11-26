@@ -439,6 +439,48 @@ MOD_LAB:
     LAB_STR_LOOK_FACE:
       ja: "Face"
       en_us: "Face"
+    LAB_STR_SHIRT:
+      ja: "Shirt"
+      en_us: "Shirt"
+    LAB_STR_SHIRT_COLOUR:
+      ja: "Shirt colour"
+      en_us: "Shirt colour"
+    LAB_STR_SHIRT_TEE:
+      ja: "T-shirt"
+      en_us: "T-shirt"
+    LAB_STR_SHIRT_STRIPED:
+      ja: "Striped"
+      en_us: "Striped"
+    LAB_STR_SHIRT_PRINT:
+      ja: "Printed"
+      en_us: "Printed"
+    LAB_STR_SHIRT_LONG_SLEEVE:
+      ja: "Long sleeve"
+      en_us: "Long sleeve"
+    LAB_STR_SHIRT_HOODIE:
+      ja: "Hoodie"
+      en_us: "Hoodie"
+    LAB_STR_SHIRT_JACKET:
+      ja: "Jacket"
+      en_us: "Jacket"
+    LAB_STR_SHIRT_FITTED:
+      ja: "Fitted tee"
+      en_us: "Fitted tee"
+    LAB_STR_SHIRT_TOP:
+      ja: "Top"
+      en_us: "Top"
+    LAB_STR_SHIRT_CARDIGAN:
+      ja: "Cardigan"
+      en_us: "Cardigan"
+    LAB_STR_SHIRT_BLOUSE:
+      ja: "Blouse"
+      en_us: "Blouse"
+    LAB_STR_CLOTH_ORANGE:
+      ja: "Orange"
+      en_us: "Orange"
+    LAB_STR_CLOTH_YELLOW:
+      ja: "Yellow"
+      en_us: "Yellow"
     LAB_STR_KEY_CONFIRM:
       ja: "△"
       en_us: "△"

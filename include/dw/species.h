@@ -348,6 +348,18 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 extern uint8_t MOD_TAMER_LOOK;
 extern uint8_t MOD_TAMER_HAIR;
 extern uint8_t MOD_TAMER_FACE;
+/* The shirts (tools/tamer_looks/shirts.py): the torso and the arms of any look. Shirt 0 is the original hoodie and
+ * backpack; the others are drawn with the tones of one palette row, written for the chosen cloth colour. */
+#define TAMER_SHIRT_COUNT	11
+#define TAMER_CLOTH_COUNT	16
+extern uint8_t MOD_TAMER_SHIRT;
+extern uint8_t MOD_TAMER_CLOTH;
+typedef struct LookShirtRecipe { /* how each tone of the cloth's palette row gets its colour (lookShirtPalette) */
+	uint8_t ways[16]; /* 0 as the texture has it, 1 from the cloth's colour, 2 from the second colour, 3 fixed */
+	uint8_t levels[16];
+	uint8_t whites[16];
+	uint16_t fixed[16];
+} LookShirtRecipe;
 struct ModelComponent;
 int32_t modLoadTamerLook(void *component);
 void modTamerRelook(void);

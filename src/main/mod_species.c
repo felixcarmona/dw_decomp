@@ -1027,6 +1027,8 @@ void modSmoothMapReset(void);
 uint8_t MOD_TAMER_LOOK;
 uint8_t MOD_TAMER_HAIR;
 uint8_t MOD_TAMER_FACE;
+uint8_t MOD_TAMER_SHIRT;
+uint8_t MOD_TAMER_CLOTH;
 static uint32_t TAMER_COLD_READY;	/* the entry the buffer's tail holds */
 static uint16_t TAMER_COLD_SECTOR;	/* 0: the loaded tamer has no cold entries */
 static uint8_t TAMER_COLD_CACHED;
@@ -1044,6 +1046,17 @@ extern char MAIN_D_801340E4[];
 #define LOOK_HAIR_ROW	1	/* the hair's palette row (tools/tamer_looks/wig.py) */
 #define LOOK_LEVELS	0xC0	/* in the file's first sector: the brightness of each of the row's sixteen tones */
 void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels);
+/* A shirt (tools/tamer_looks/shirts.py): the torso and the arms, read behind a look's model, which has none */
+#define LOOK_SHIRT_ROW	2	/* the cloth's palette row */
+#define LOOK_SHIRT_OBJECTS	5
+#define LOOK_SHIRT_TABLE	0x04	/* in a shirt's first sector: per object where its corners, normals and polygons are */
+#define LOOK_SHIRT_RECIPE	0x40
+#define LOOK_SHIRT_RECTS	0x90
+#define LOOK_SHIRT_PIXELS	0xA0
+LookShirtRecipe lookShirtRecipe;
+uint16_t lookShirtRow[16];
+void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb);
+const uint8_t lookShirtObjects[LOOK_SHIRT_OBJECTS] = { 0, 2, 3, 5, 6 }; /* the torso, the upper arms, the forearms */
 
 void modLookOverlay(void)
 {
@@ -1057,7 +1070,7 @@ void modLookOverlay(void)
 int32_t modLoadTamerLook(void *component)
 {
 	TAMER_COLD_SECTOR = 0;
-	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE) == 0) {
+	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE | MOD_TAMER_SHIRT) == 0) {
 		return 0;
 	}
 	modLookOverlay();
@@ -1090,14 +1103,56 @@ void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels)
 	}
 }
 
+/* The cloth's palette row for a shirt colour (the cloth's r, g, b and the r, g, b of stripes and prints): per tone the
+ * recipe says whether it stays, is a fixed colour, or shows colour * level / 128 + (255 - colour) * white / 128. */
+void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb)
+{
+	int32_t i;
+	int32_t k;
+	uint32_t c;
+	uint32_t v;
+	uint8_t *src;
+
+	for (i = 0; i < 16; i++) {
+		if (recipe->ways[i] == 0) {
+			continue;
+		}
+		if (recipe->ways[i] == 3) {
+			row[i] = recipe->fixed[i] | 0x8000;
+			continue;
+		}
+		src = recipe->ways[i] == 1 ? rgb : rgb + 3;
+		v = 0x8000;
+		for (k = 0; k < 3; k++) {
+			c = (src[k] * recipe->levels[i] + (255 - src[k]) * recipe->whites[i]) >> 10;
+			v |= (c > 31 ? 31 : c) << (5 * k);
+		}
+		row[i] = v;
+	}
+}
+
 int32_t lookTamerLoad(void *component)
 {
 	uint16_t *head = (uint16_t *)TAMER_MODEL_BUFFER;
-	uint8_t *rgb;
-	void *texture;
+	uint8_t *shirt = TAMER_COLD_BUFFER; /* a shirt's first sector: nothing is there while a tamer loads */
+	uint16_t table[LOOK_SHIRT_OBJECTS * 6];
+	uint8_t *texture;
+	uint8_t *pixels;
+	uint8_t *from;
+	uint8_t *rect;
+	uint16_t *row;
+	uint32_t *object;
+	uint32_t *entry;
+	int32_t shirtNo;
+	int32_t shirtSector;
+	int32_t shirtSectors;
 	int32_t sector;
-	int32_t sectors;
+	int32_t words;
+	int32_t tim;
 	int32_t cold;
+	int32_t base;
+	int32_t i;
+	int32_t k;
 	char path[32];
 
 	TAMER_COLD_SECTOR = 0;
@@ -1107,7 +1162,8 @@ int32_t lookTamerLoad(void *component)
 		return 0;
 	}
 	readFileSectors(TAMER_LOOK_FILE, head, 0, 1);
-	if (MOD_TAMER_LOOK == 0) {
+	shirtNo = MOD_TAMER_SHIRT < head[0x68] ? MOD_TAMER_SHIRT : 0;
+	if (MOD_TAMER_LOOK == 0 && shirtNo == 0) {
 		/* the original tamer with another face: the disc's model, and his texture with that face; these textures
 		 * follow the looks' own */
 		if (MOD_TAMER_FACE == 0 || MOD_TAMER_FACE >= head[7]) {
@@ -1123,12 +1179,21 @@ int32_t lookTamerLoad(void *component)
 		readFile(path, TAMER_MODEL_BUFFER);
 		return 1;
 	}
-	sector = head[8 + 2 * (MOD_TAMER_LOOK - 1)];
-	sectors = head[9 + 2 * (MOD_TAMER_LOOK - 1)];
-	if (MOD_TAMER_LOOK > head[2] || head[6] == 0 || (sectors << 11) > TAMER_MMD_MAX - TAMER_COLD_MAX) {
+	if (MOD_TAMER_LOOK == 0) { /* the original tamer in another shirt: his model without torso and arms */
+		sector = head[0x6A];
+		words = head[0x6B];
+		tim = MOD_TAMER_FACE == 0 || MOD_TAMER_FACE >= head[7] ? head[0x6C] : head[3] + 9 * (head[7] - 1 + MOD_TAMER_FACE);
+	} else {
+		sector = head[8 + 2 * (MOD_TAMER_LOOK - 1)];
+		words = head[9 + 2 * (MOD_TAMER_LOOK - 1)];
+		tim = head[3] + (MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE * 9 : 0); /* one texture per face */
+	}
+	shirtSector = head[0x80 + 2 * shirtNo];
+	shirtSectors = head[0x81 + 2 * shirtNo];
+	if (MOD_TAMER_LOOK > head[2] || head[6] == 0 || head[0x68] == 0 || head[0x69] == 0 ||
+	    words * 4 + (shirtSectors << 11) > TAMER_MMD_MAX) {
 		return 0;
 	}
-	rgb = (uint8_t *)head + 0x80 + 3 * (MOD_TAMER_HAIR % head[6]);
 	cold = head[4];
 	if (MOD_COLD_CACHE_TYPE >= 0) {
 		readFileSectors(TAMER_LOOK_FILE, TAMER_COLD_CACHE, cold, head[5]);
@@ -1136,11 +1201,42 @@ int32_t lookTamerLoad(void *component)
 	}
 	modSmoothMapReset();
 	texture = malloc3(0x4800);
-	readFileSectors(TAMER_LOOK_FILE, texture, head[3] + (MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE * 9 : 0), 9); /* one texture per face */
-	lookHairPalette((uint16_t *)((uint8_t *)texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW), rgb, (uint8_t *)head + LOOK_LEVELS);
+	readFileSectors(TAMER_LOOK_FILE, texture, tim, 9);
+	if (MOD_TAMER_LOOK != 0) {
+		lookHairPalette((uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW),
+		                (uint8_t *)head + 0x80 + 3 * (MOD_TAMER_HAIR % head[6]), (uint8_t *)head + LOOK_LEVELS);
+	}
+	/* the shirt: its drawing over the texture, its colour in the cloth's palette row */
+	readFileSectors(TAMER_LOOK_FILE, shirt, shirtSector, 1);
+	for (i = 0; i < LOOK_SHIRT_OBJECTS * 6; i++) {
+		table[i] = ((uint16_t *)(shirt + LOOK_SHIRT_TABLE))[i];
+	}
+	pixels = texture + 8 + *(uint32_t *)(texture + 8) + 12;
+	from = shirt + LOOK_SHIRT_PIXELS;
+	for (i = 0; i < ((uint16_t *)shirt)[1]; i++) {
+		rect = shirt + LOOK_SHIRT_RECTS + 4 * i; /* first byte of a row, first row, bytes, rows */
+		for (k = 0; k < rect[3]; k++, from += rect[2]) {
+			memcpy(pixels + (rect[1] + k) * 128 + rect[0], from, rect[2]);
+		}
+	}
+	memcpy(&lookShirtRecipe, shirt + LOOK_SHIRT_RECIPE, sizeof(lookShirtRecipe));
+	row = (uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_SHIRT_ROW);
+	lookShirtPalette(row, &lookShirtRecipe, (uint8_t *)head + 0x180 + 6 * (MOD_TAMER_CLOTH % head[0x69]));
+	memcpy(lookShirtRow, row, sizeof(lookShirtRow));
 	uploadModelTexture(texture, component);
 	free3(texture);
-	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER, sector, sectors);
+	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER, sector, (words * 4 + 0x7FF) >> 11);
+	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER + words * 4, shirtSector + 1, shirtSectors);
+	/* the shirt's objects take their places in the model's table, before its offsets become addresses */
+	object = (uint32_t *)(TAMER_MODEL_BUFFER + *(uint32_t *)TAMER_MODEL_BUFFER + 12);
+	base = TAMER_MODEL_BUFFER + words * 4 - (uint8_t *)object;
+	for (i = 0; i < LOOK_SHIRT_OBJECTS; i++) {
+		entry = object + 7 * lookShirtObjects[i];
+		for (k = 0; k < 6; k += 2) {
+			entry[k] = base + table[i * 6 + k];
+			entry[k + 1] = table[i * 6 + k + 1];
+		}
+	}
 	TAMER_COLD_SECTOR = cold;
 	return 1;
 }
