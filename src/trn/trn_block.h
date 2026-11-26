@@ -88,7 +88,7 @@ void TB(renderCareHUD)(int32_t instanceId)
 }
 
 /* The skip row puts every lower box beside the care HUD. Keep their right edge
-   at screen x=230, six pixels before the left icon column. */
+   at screen x=230, clear of the HUD's left edge (x=255). */
 static int32_t TB_box2X(void)
 {
 	return -118;

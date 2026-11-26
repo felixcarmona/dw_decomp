@@ -2396,22 +2396,23 @@ static void renderCareHUD(void)
 			/* Energy remaining; condition thresholds still use raw fatigue. */
 			value = max - PARTNER_PARA.tiredness;
 		}
-		x = STATUS_UI_OFFSET_X + 28;
+		/* 56 pixels wide (a 30-pixel slot), right edge where the original bars end */
+		x = STATUS_UI_OFFSET_X + 20;
 		y = 49 + i * 12;
 		if (value < 0)
 			value = 0;
 		if (value > max)
 			value = max;
-		pixels = ((uint32_t)value * 22 + (uint32_t)max / 2) / (uint32_t)max;
+		pixels = ((uint32_t)value * 30 + (uint32_t)max / 2) / (uint32_t)max;
 		if (value && !pixels)
 			pixels = 1;
 		clut = getClut(272, 500 + icon);
 		/* Native disliked-habitat phase: five worse-face ticks, five normal. */
 		if (i == 0 && MAP_TILE_DATA.partnerAreaResponse == 2 && !((PLAYTIME_FRAMES / 5) & 1))
 			clut = getClut(272, 511) - icon;
-		renderRectPolyFT4(x, y, 48, 8, 144, 236, 31, getClut(272, 508), 15, 0);
+		renderRectPolyFT4(x, y, 56, 8, 144, 236, 31, getClut(272, 508), 15, 0);
 		if (pixels)
-			renderRectPolyFT4(x + 18, y + 3, pixels, 2, 196, 236, 31, getClut(272, 507), 14, 0);
+			renderRectPolyFT4(x + 18, y + 3, pixels, 2, 200, 236, 31, getClut(272, 507), 14, 0);
 		/* The cap left of the slot's bevel is 15 pixels (frame columns 0..14): the 11-pixel icon is centred in it. */
 		renderRectPolyFT4(x + 2, y - 2, 11, 11, 144 + icon * 11, 224, 31, clut, 13, 0);
 	}
