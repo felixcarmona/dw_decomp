@@ -875,6 +875,19 @@ int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1
 	{                                                                                                      \
 		-1, { -1, -1, -1, -1 }, 0, 0, -1, 0, { { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 }, { -1, 0, 0 } } \
 	}
+ModEvoItem MOD_EVO_ITEMS[MOD_EVO_ITEM_MAX] = { { -1, -1, -1 }, { -1, -1, -1 }, { -1, -1, -1 }, { -1, -1, -1 } };
+
+ModEvoItem *getModEvoItem(int32_t item)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_EVO_ITEM_MAX; i++) {
+		if (MOD_EVO_ITEMS[i].item == item && MOD_EVO_ITEMS[i].target >= 0)
+			return &MOD_EVO_ITEMS[i];
+	}
+	return NULL;
+}
+
 ModEvoRule MOD_EVO_RULES[MOD_EVO_RULES_MAX] = { MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE,
 						MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE, MOD_EVO_NO_RULE,
 						MOD_EVO_NO_RULE, MOD_EVO_NO_RULE };

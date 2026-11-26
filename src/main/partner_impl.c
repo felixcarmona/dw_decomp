@@ -1556,11 +1556,12 @@ int32_t partnerWillRefuseItem(void)
 
 	if (((item >= 0x47) && (item < 0x73)) ||
 	    ((item >= 0x7D) && (item < 0x80))) {
-		if (item == 0x7E) {
-			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != 3)
-				return 1;
-		} else if ((item == 0x7D) || (item == 0x7F)) {
-			if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != 4)
+		if (item >= 0x7D) {
+			/* MOD (evolution rules as data): the level the partner must have is MOD_EVO_ITEMS'; an item without a row does nothing */
+			ModEvoItem *modItem = getModEvoItem(item);
+
+			if (modItem == NULL ||
+			    DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level != modItem->level)
 				return 1;
 		} else if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level ==
 			    DIGI_PARA(ITEM_EVOLUTION_TARGET(item)).level) ||
