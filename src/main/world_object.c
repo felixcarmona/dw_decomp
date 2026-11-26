@@ -5,19 +5,26 @@
 
 extern PACKET GS_WORK_BASES[2][0x14000];
 extern int32_t ACTIVE_FRAMEBUFFER;
+extern int32_t IS_INVENTORY_INITIALIZED;
+extern int8_t GAME_STATE;
 
 /* MOD (packet budget): see dw/world_object.h */
 int32_t modPacketFits(int32_t bytes)
 {
 	uint8_t *cursor;
 	uint8_t *base;
+	int32_t reserve;
 
 	cursor = (uint8_t *)GsGetWorkBase();
 	base = (uint8_t *)GS_WORK_BASES[ACTIVE_FRAMEBUFFER & 1];
 	if (cursor < base || cursor > base + 0x14000) {
 		return 1;
 	}
-	return (base + 0x14000 - MOD_PACKET_RESERVE) - cursor >= bytes;
+	reserve = MOD_PACKET_RESERVE;
+	if (GAME_STATE == 1 && IS_INVENTORY_INITIALIZED == 1) {
+		reserve += MOD_PACKET_ITEM_MENU;
+	}
+	return (base + 0x14000 - reserve) - cursor >= bytes;
 }
 
 

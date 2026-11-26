@@ -50,6 +50,10 @@ void renderObjects(void);
  * the object order. A cursor outside this frame's area (a loop drawing
  * elsewhere) always fits. */
 #define MOD_PACKET_RESERVE	0x2000
+/* The battle item menu (Triangle) draws its windows, 18 item rows and cursor with unchecked renderers, about 4.7 KB
+ * for the list and 0.8 KB for the option box, in the object slots before the HUD. While it is open the
+ * scene leaves that room too, or a frame already at the limit overflows the packet area. */
+#define MOD_PACKET_ITEM_MENU	0x1c00
 int32_t modPacketFits(int32_t bytes);
 
 #endif
