@@ -2493,14 +2493,18 @@ draw:
 #if !VERSION_IS(US)
 	renderString(0, bx + 0x38, by + 5, 0x24, 0xc, x, y, 6 - boxId, 1);
 #else
-	if (flag != 0) {
-		drawString(label1.s, x, y);
-		color = 0x38;
-	} else {
-		drawString(label2.s, x, y);
-		color = 0x3c;
+	/* MOD (keeper titles): a title wider than its 56-60 pixel slot (Guardado, Im Besitz, In deposito...) takes the room it
+	 * needs, up to 96 pixels, and stays centred over the box */
+	{
+		char *title = flag != 0 ? label1.s : label2.s;
+		int32_t base = flag != 0 ? 0x38 : 0x3c;
+		int32_t mode = fitStringMode(title, 0x60);
+		int32_t w = measureStringMode(title, mode) + 2;
+
+		color = w > base ? (w > 0x60 ? 0x60 : w) : base;
+		drawStringMode(title, x, y, mode);
+		renderString(0, bx + 0x2d + base / 2 - color / 2, by + 7, color, 0xc, x, y, 6 - boxId, 1);
 	}
-	renderString(0, bx + 0x2d, by + 7, color, 0xc, x, y, 6 - boxId, 1);
 #endif
 	if (MAIN_D_80134F90 == boxId - 1) {
 		rect.attribute = 0x40000000;
