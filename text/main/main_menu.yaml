@@ -461,3 +461,15 @@ MOD_OPTIONS:
     MOD_OPT_STR_TRANSLATED:
       ja: "TRANSLATED"
       en_us: "TRANSLATED"
+    MOD_OPT_STR_CHINESE_RAM_0:
+      ja: "中国語には8MBの"
+      en_us: "Chinese needs 8 MB"
+    MOD_OPT_STR_CHINESE_RAM_1:
+      ja: "RAMが必要です。"
+      en_us: "of RAM. Enable 8 MB"
+    MOD_OPT_STR_CHINESE_RAM_2:
+      ja: "エミュレーターの設定で"
+      en_us: "in your emulator's"
+    MOD_OPT_STR_CHINESE_RAM_3:
+      ja: "RAMを8MBにしてください。"
+      en_us: "settings."
