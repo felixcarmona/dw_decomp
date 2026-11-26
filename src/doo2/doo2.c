@@ -15,6 +15,9 @@
 #include <dw/ui.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/font.h>
+#include <dw/line.h>
+#include <text/doo2/doo2.h>
 
 typedef struct {
 	int16_t centerX;
@@ -340,6 +343,27 @@ static void eggPlace(int32_t i, int32_t n, int16_t *x, int16_t *y)
 	*y = (n == 4) ? -30 : (i < 4) ? -51 : -13;
 }
 
+/* MOD (random egg): the hint line under the panel, text rows 0x84.. of the text texture (free during the scene) */
+#define EGG_HINT_Y 0x84
+extern void renderString(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
+
+/* a pad glyph of 9x9 at screen (x, y), centre-relative: square pink, cross blue, circle red, as the menus draw them */
+static void eggGlyph(int32_t x, int32_t y, int32_t button)
+{
+	if (button == 0x80) {
+		drawLine3P(0xc080ff, x, y, x + 8, y, x + 8, y + 8, 1, 0);
+		drawLine3P(0xc080ff, x + 8, y + 8, x, y + 8, x, y, 1, 0);
+	} else if (button == 0x20) {
+		drawLine3P(0x8080ff, x + 3, y, x + 6, y, x + 8, y + 3, 1, 0);
+		drawLine3P(0x8080ff, x + 8, y + 3, x + 8, y + 5, x + 6, y + 8, 1, 0);
+		drawLine3P(0x8080ff, x + 6, y + 8, x + 3, y + 8, x, y + 5, 1, 0);
+		drawLine3P(0x8080ff, x, y + 5, x, y + 3, x + 3, y, 1, 0);
+	} else {
+		drawLine2P(0xffb080, x, y, x + 8, y + 8, 1, 0);
+		drawLine2P(0xffb080, x + 8, y, x, y + 8, 1, 0);
+	}
+}
+
 void DOO2_renderEggIcons(void)
 {
 	DooaSequence *panel = &DOOA_REINCARNATION_SEQ;
@@ -371,6 +395,12 @@ void DOO2_renderEggIcons(void)
 
 	eggPlace(panel->eggSlot, n, &DOO2_EGG_CURSOR_SPRITE.x, &DOO2_EGG_CURSOR_SPRITE.y);
 	GsSortSprite(&DOO2_EGG_CURSOR_SPRITE, ACTIVE_ORDERING_TABLE, pri);
+
+	/* MOD (random egg): "[] Random egg   (x) Choose" under the panel */
+	eggGlyph(-80, 22, 0x80);
+	renderString(0, -68, 20, 80, 12, 0, EGG_HINT_Y, 1, 1);
+	eggGlyph(18, 22, CONFIRM_BUTTON);
+	renderString(0, 30, 20, 50, 12, 128, EGG_HINT_Y, 1, 1);
 }
 
 void DOO2_saveModelClut(u_long pixels)
@@ -757,6 +787,9 @@ void DOO2_openEggBox(void)
 	createAnimatedUIBox(boxId, 0, 2, (eggCount() == 8) ? &panelRect : &MAIN_D_80134B90, &startPos,
 	                    (TickFunction)DOO2_tickEggBox,
 	                    (RenderFunction)DOO2_renderEggIcons);
+	/* MOD (random egg): the two hint texts, drawn once into the text texture */
+	drawStringMode(EGG_STR_RANDOM, 0, EGG_HINT_Y, FIT_VANILLA);
+	drawStringMode(EGG_STR_CHOOSE, 128, EGG_HINT_Y, FIT_VANILLA);
 	stopSound();
 	playSound(8, 4);
 }
@@ -792,7 +825,12 @@ int32_t DOO2_tickEggInput(void)
 		seq->eggSlot ^= 4;
 		playSound(0, 2);
 	}
-	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & CONFIRM_BUTTON) {
+	/* MOD (random egg): Square picks one of the eggs at random and takes it, for players who do not mind which */
+	if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & 0x80) {
+		seq->eggSlot = rand() % n;
+		removeAnimatedUIBox(boxId, &boxRect);
+		playSound(0, 3);
+	} else if ((POLLED_INPUT & ~POLLED_INPUT_PREVIOUS) & CONFIRM_BUTTON) {
 		removeAnimatedUIBox(boxId, &boxRect);
 		playSound(0, 3);
 	}

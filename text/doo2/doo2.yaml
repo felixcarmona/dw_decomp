@@ -1,0 +1,11 @@
+# MOD (random egg): the hint lines under the egg panel (keys doo2.EGG_STR_RANDOM, doo2.EGG_STR_CHOOSE).
+# `storage: define`: a literal where the C uses it.
+EGG_HINT:
+  storage: define
+  strings:
+    EGG_STR_RANDOM:
+      ja: NULL
+      en_us: Random egg
+    EGG_STR_CHOOSE:
+      ja: NULL
+      en_us: Choose
