@@ -1049,6 +1049,9 @@ SECTIONS
              * helper here; bitmap navigation stays resident to retain 27 sectors. */
             BUILD_DIR/src/main/game_menu.c.o(.text.renderCardsView .text.modCardTop .data.CARD_SPRITE_CLUT);
             . = ALIGN(., 4);
+            /* MOD (tamer looks): the Player view's buttons, drawn with MENU in memory */
+            BUILD_DIR/src/main/game_menu.c.o(.text.playerKey*);
+            . = ALIGN(., 4);
 
 		}
 	}
