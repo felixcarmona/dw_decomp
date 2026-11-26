@@ -467,7 +467,13 @@ void partnerTickFeedItem(void)
 		if (7 < TAMER_ENTITY.entity.anim.animFrame) {
 			isClose = partnerWillRefuseItem();
 			if (isClose == 0) {
-				startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 8);
+				if (TAMER_ITEM.worldItem.type == 0x20) {
+					/* MOD (potty): a Portable Potty is used, not eaten: the toilet clip plays and the item leaves the hand */
+					removeObject(0xfa7, 0);
+					startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 10);
+				} else {
+					startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 8);
+				}
 				PARTNER_SUB_STATE = 5;
 			}
 			else {
