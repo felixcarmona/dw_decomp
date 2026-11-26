@@ -579,7 +579,8 @@ void createPostBattleStatsBox(void)
 		DrawSync(0);
 	}
 
-	POST_BATTLE_STATS_TIMER = 100;
+	/* MOD (faster results): half the original pause before the gains count */
+	POST_BATTLE_STATS_TIMER = 50;
 
 	setRECT(&finalPos, -88, -78, 176, 96);
 
