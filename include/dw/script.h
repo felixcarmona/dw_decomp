@@ -337,6 +337,9 @@ void returnFromScriptFile(void);
 void getEntityScreenPos(Entity *entity, int32_t flag, DVECTOR *outPos);
 void readFileSection(char *filename, void *dest, uint32_t offset,
 		     uint32_t size);
+/* Saved engine flags, excluded from the story allocation pool. */
+#define MOJYA_DAILY_FIRST 789
+#define MOJYA_DAILY_COUNT 9
 void dailyPStatTrigger(void);
 void showMapheadSelection(int32_t idx, uint8_t owner, uint16_t x, int32_t *outSel, uint16_t section);
 int32_t setCardAmount(int32_t cardId, int32_t value);
