@@ -16,18 +16,42 @@ static inline int32_t modHardScale(int32_t value, int32_t slot, int32_t cap)
     return result > cap ? cap : result;
 }
 
-/* A late-game enemy (battleFormulas.normal): one whose maximum HP, after modHardEnemy's step, is what the step gives an
- * enemy of fromHp. An unscaled enemy stays under fromHp (HARD's 110% included), so the scaled HP tells them apart. */
-static inline int32_t modLateEnemy(int32_t maxHP)
+/* How far into the late game an enemy of this original maximum HP is, in thousandths (battleFormulas.normal): 0 below
+ * fromHp, 1000 from fullHp on, a straight line between them. Without a fullHp above fromHp it is a single step. */
+static inline int32_t modLatePermille(int32_t hp)
 {
-    return BM(NORMAL_FROM_HP) > 0 && maxHP >= BM(NORMAL_FROM_HP) * modBtSpan(MOD_BT_NORMAL_HP) / 100;
+    int32_t from = BM(NORMAL_FROM_HP), span = BM(NORMAL_FULL_HP) - from;
+    if (from <= 0 || hp < from) return 0;
+    if (span <= 0 || hp - from >= span) return 1000;
+    return (hp - from) * 1000 / span;
+}
+
+/* A percent of the late-game step for an enemy that far into it: 100 at 0, `full` at 1000. */
+static inline int32_t modLatePercent(int32_t full, int32_t permille)
+{
+    return 100 + (full - 100) * permille / 1000;
+}
+
+/* NORMAL's floor for an attacker, from its maximum HP after modHardEnemy's step (the fight keeps no other trace of
+ * it): nothing up to fromHp, all of it from what the step gives an enemy of fullHp, a straight line between them.
+ * An enemy the step left alone stays at or under fromHp (HARD's own HP factor lifts it a little past it, where the
+ * line is still about zero). */
+static inline int32_t modLateFloor(int32_t maxHP)
+{
+    int32_t from = BM(NORMAL_FROM_HP), full = BM(NORMAL_FULL_HP), top;
+    if (from <= 0) return 0;
+    if (full < from) full = from;
+    top = full * modBtSpan(MOD_BT_NORMAL_HP) / 100;
+    if (maxHP >= top) return BM(NORMAL_FLOOR);
+    if (full == from || maxHP <= from) return 0;
+    return BM(NORMAL_FLOOR) * (maxHP - from) / (top - from);
 }
 
 /* The least an enemy hit does, in percent of the same hit against Defense zero: HARD's floor for every enemy, NORMAL's
  * for the late-game ones (HARD keeps the larger). EASY has none. */
 static inline int32_t modFloorPercent(int32_t attackerMaxHP)
 {
-    int32_t late = modLateEnemy(attackerMaxHP) ? BM(NORMAL_FLOOR) : 0;
+    int32_t late = modLateFloor(attackerMaxHP);
     int32_t hard = BM(HARD_FLOOR);
     if (MOD_OPT_DIFFICULTY == MOD_DIFF_EASY) return 0;
     if (MOD_OPT_DIFFICULTY == MOD_DIFF_HARD) return hard > late ? hard : late;
@@ -52,16 +76,20 @@ static inline int32_t modHardBlockedFloor(int32_t damage, int32_t zeroDamage, in
  * field stats remain in INITIAL_COMBAT_STATS for rewards and flee restoration. */
 static inline void modHardEnemy(Stats *stats)
 {
-    int32_t oldHP = stats->base.hp;
+    int32_t oldHP = stats->base.hp, late;
     if (MOD_OPT_DIFFICULTY == MOD_DIFF_EASY) return;
-    if (BM(NORMAL_FROM_HP) > 0 && oldHP >= BM(NORMAL_FROM_HP)) {
-        /* NORMAL and HARD: the late-game enemies are tougher (tools/balance.py battleFormulas normal.*); the early game is untouched */
-        stats->base.hp = oldHP * modBtSpan(MOD_BT_NORMAL_HP) / 100;
-        if (stats->base.hp > HPMP_CAP) stats->base.hp = HPMP_CAP;
-        stats->current.currentHP = (int32_t)stats->current.currentHP * stats->base.hp / oldHP;
-        stats->base.off = stats->base.off * modBtSpan(MOD_BT_NORMAL_OFF) / 100;
-        if (stats->base.off > STAT_CAP) stats->base.off = STAT_CAP;
-        oldHP = stats->base.hp;
+    late = modLatePermille(oldHP);
+    if (late > 0) {
+        /* NORMAL and HARD: the late-game enemies are tougher, the more the later they are (tools/balance.py
+         * battleFormulas normal.*); the early game is untouched */
+        /* in 32 bits until capped: the stats are 16-bit fields */
+        int32_t hp = oldHP * modLatePercent(modBtSpan(MOD_BT_NORMAL_HP), late) / 100;
+        int32_t off = stats->base.off * modLatePercent(modBtSpan(MOD_BT_NORMAL_OFF), late) / 100;
+        if (hp > HPMP_CAP) hp = HPMP_CAP;
+        stats->base.hp = hp;
+        stats->current.currentHP = (int32_t)stats->current.currentHP * hp / oldHP;
+        stats->base.off = off > STAT_CAP ? STAT_CAP : off;
+        oldHP = hp;
     }
     if (MOD_OPT_DIFFICULTY != MOD_DIFF_HARD) return;
     stats->base.hp = modHardScale(stats->base.hp, MOD_BT_HARD_HP, HPMP_CAP);

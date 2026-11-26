@@ -186,6 +186,7 @@ enum {
 	MOD_BT_NORMAL_HP,	/* NORMAL: its maximum HP, in percent */
 	MOD_BT_NORMAL_OFF,	/* NORMAL: its Offense, in percent */
 	MOD_BT_NORMAL_FLOOR,	/* NORMAL: the least an enemy hit does, in percent of the same hit against Defense zero (0: none) */
+	MOD_BT_NORMAL_FULL_HP,	/* NORMAL: the maximum HP from which the three numbers above apply in full; between FROM_HP and this they grow in a straight line (0 or not above FROM_HP: in full from FROM_HP on) */
 	MOD_BT_STRENGTH_STRONGER,	/* the field skull: the partner's strength is at most this percent of a wild Digimon's, it is stronger */
 	MOD_BT_SIZE
 };
