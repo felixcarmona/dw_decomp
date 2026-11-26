@@ -3292,14 +3292,15 @@ void renderDigimonMovesView(void)
 		renderRectPolyFT4(0x75, 4, 4, 4, 0x78, 0x8c, 5, 0x7b06, 5, 0);
 		renderSeparatorLines(&MOVES_TECHSET_LINES[3], 3, 5);
 		if (EQUIPPED_MOVES[3] != 0xff) {
+			Move *finisher = modSpeciesMove(PARTNER_ENTITY.digimonEntity.entity.type, EQUIPPED_MOVES[3]); /* MOD (unique finishers): the species' own */
 			renderString(3, TECH_TITLE_CROPS[1].x, -0xf, TECH_TITLE_CROPS[1].w, 0xc, TECH_TITLE_CROPS[1].u, 0x48, 5, 1);
 			renderString(0, -0x7c, 1, FINISHER_NAME_WIDTH, 0xc, 0, 0x3c, 5, 1);
-			renderNumber(0, 0x10, 0, 3, modSpeciesMove(PARTNER_ENTITY.digimonEntity.entity.type, EQUIPPED_MOVES[3])->power, 5);
+			renderNumber(0, 0x10, 0, 3, finisher->power, 5);
 			renderString(0, 0x65, 1, 0xc, 0xc,
-			             (MOVE_DATA[EQUIPPED_MOVES[3]].range - 1) * 0xc + 0x48, 0x6c, 5, 1);
-			if (MOVE_DATA[EQUIPPED_MOVES[3]].status != 0) {
+			             (finisher->range - 1) * 0xc + 0x48, 0x6c, 5, 1);
+			if (finisher->status != 0) {
 				renderRectPolyFT4(0x7d, 0, 0xc, 0xc,
-				                  (MOVE_DATA[EQUIPPED_MOVES[3]].status - 1) * 0xc, 0x8c, 5,
+				                  (finisher->status - 1) * 0xc, 0x8c, 5,
 				                  0x7a06, 5, 0);
 			}
 		}
@@ -6084,6 +6085,7 @@ void renderDigiviceMedals(void)
 int32_t drawDigimonMovesText(void)
 {
 	RECT rect;
+	char *name;
 
 	rect = MOVES_VIEW_TEXT_AREA;
 	switch (MENU_SUB_STATE) {
@@ -6135,8 +6137,8 @@ int32_t drawDigimonMovesText(void)
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[3] != 0xff) {
 			EQUIPPED_MOVES[3] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[3]);
-			drawStringMode(MOVE_NAMES[EQUIPPED_MOVES[3]], 0, 0x3c,
-		              fitStringMode(MOVE_NAMES[EQUIPPED_MOVES[3]], FINISHER_NAME_WIDTH));
+			name = modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, EQUIPPED_MOVES[3]);
+			drawStringMode(name, 0, 0x3c, fitStringMode(name, FINISHER_NAME_WIDTH));
 		} else {
 			EQUIPPED_MOVES[3] = 0xff;
 		}

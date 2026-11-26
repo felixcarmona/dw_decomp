@@ -180,6 +180,8 @@ void STD_startWalkingAnimation2(Entity *entity, Stats *stats, uint16_t flags);
 int16_t STD_getAttackTech(AttackObject *attack);
 int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim);
 void STD_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t move);
+/* MOD (unique finishers): the species whose technique STD_applyMoveStatus applies (-1: the shared numbers) */
+static int16_t STD_STATUS_CASTER = -1;
 int16_t STD_getFighterSlot(int16_t entityId);
 int32_t STD_addBlockedAttack(FighterData *fighter, FighterData *other);
 void STD_buffStats(DigimonEntity *digimon, int32_t slot, int32_t value, int16_t *stat, int32_t color, int32_t flag);
@@ -3832,6 +3834,7 @@ void STD_combatSetup(void)
 	moveCount = 0;
 	STD_initializeEFEEngine((char *)GENERAL_BUFFER_PTR);
 
+	modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, 0); /* MOD (unique finishers): the name read before the battle ticks */
 	for (i = 0; i <= ENEMY_COUNT; ++i) {
 		entity = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
 		entity->stats.current.unk1 = -1;
@@ -4997,7 +5000,7 @@ void STD_tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 
 	distance = STD_getDistanceSquared(&entity->entity, &other->entity);
 	total = DIGI_PARA(entity->entity.type).radius + DIGI_PARA(other->entity.type).radius;
-	total = *(uint32_t *)&MOVE_DATA[move].distance + total * total;
+	total = *(uint32_t *)&modSpeciesMove(entity->entity.type, move)->distance + total * total;
 
 	if (distance > total + total * 3 / 10) {
 		STD_setWalking(&entity->entity, &entity->stats, data->flags);
@@ -5038,8 +5041,8 @@ uint32_t STD_getMoveWithHighestDistance(DigimonEntity *digimon)
 		anim = digimon->stats.base.moves[i];
 		if (anim != 0xff) {
 			tech = entityGetTechFromAnim(&digimon->entity, anim);
-			if (best < MOVE_DATA[tech].distance) {
-				best = MOVE_DATA[tech].distance;
+			if (best < modSpeciesMove(digimon->entity.type, tech)->distance) {
+				best = modSpeciesMove(digimon->entity.type, tech)->distance;
 			}
 		}
 	}
@@ -5633,8 +5636,8 @@ void STD_tickAttackHits(void)
 			FINISHING_ENTITY = NULL;
 		}
 		if (randomLimit(100) < chance) {
-			if (STD_CAMERA_STATE == 6 && MOVE_DATA[tech].range == 1 && STD_CAMERA_STATE == 3) {
-				if (MOVE_DATA[entityGetTechFromAnim(STD_FOCUSED_ENTITY, STD_FOCUSED_ENTITY->anim.animId)].range == 3) {
+			if (STD_CAMERA_STATE == 6 && modSpeciesMove(attacker->type, tech)->range == 1 && STD_CAMERA_STATE == 3) {
+				if (modSpeciesMove(STD_FOCUSED_ENTITY->type, entityGetTechFromAnim(STD_FOCUSED_ENTITY, STD_FOCUSED_ENTITY->anim.animId))->range == 3) {
 					goto skipViewpoint;
 				}
 			}
@@ -5651,13 +5654,15 @@ skipViewpoint:
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			STD_handleHitReaction(entity, fighter, &attack, i);
 			addEntityText(entity, i, 0, dmg, 0);
-			fighter->invulnerableTimer = MOVE_DATA[tech].iframes;
+			fighter->invulnerableTimer = modSpeciesMove(attacker->type, tech)->iframes;
 			entity->anim.animFlag &= 0xfe;
+			STD_STATUS_CASTER = attacker->type;
 			STD_applyMoveStatus((DigimonEntity *)entity, fighter, tech);
+			STD_STATUS_CASTER = -1;
 			continue;
 		}
 		handled = 0;
-		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
+		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (modSpeciesMove(attacker->type, tech)->range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
 				if (((DigimonEntity *)entity)->stats.current.currentMP < BM(BLOCK_MIN_MP)) {
@@ -5686,7 +5691,7 @@ skipViewpoint:
 		if ((fighter->flags & FIGHTER_FLAG_BLOCKING) && (fighter->invulnerableTimer > 0)) {
 			goto blocked;
 		}
-		if (MOVE_DATA[tech].range == 1) {
+		if (modSpeciesMove(attacker->type, tech)->range == 1) {
 			dmg = STD_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
 			blockPercent = randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN);
 			dmg = modHardBlockedFloor(dmg * blockPercent / 100, STD_HARD_ZERO_DAMAGE, blockPercent);
@@ -5806,12 +5811,12 @@ int16_t STD_applyPartnerStatsToFighter(DigimonEntity *attacker, DigimonEntity *d
 		return 0;
 	}
 
-	x = BMD(BMD(MOVE_DATA[move].accuracy, HIT_ACC_DIV) * (defender->stats.base.speed - BMD(attacker->stats.base.speed, HIT_SPEED_DIV)), HIT_SPEED_NORM);
+	x = BMD(BMD(modSpeciesMove(attacker->entity.type, move)->accuracy, HIT_ACC_DIV) * (defender->stats.base.speed - BMD(attacker->stats.base.speed, HIT_SPEED_DIV)), HIT_SPEED_NORM);
 	if ((defender->entity.anim.animId == 0x21) || (defender->entity.anim.animId == 0x22)) {
 		x = x * BM(HIT_MOVING_PCT) / 100;
 	}
 
-	result = (int16_t)(MOVE_DATA[move].accuracy - x);
+	result = (int16_t)(modSpeciesMove(attacker->entity.type, move)->accuracy - x);
 	if (result < 0) {
 		result = 0;
 	}
@@ -5948,13 +5953,13 @@ void STD_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t m
 		return;
 	}
 
-	if (MOVE_DATA[move].statusChance == 0) {
+	if (modSpeciesMove(STD_STATUS_CASTER, move)->statusChance == 0) {
 		return;
 	}
 
-	chance = MOVE_DATA[move].statusChance;
+	chance = modSpeciesMove(STD_STATUS_CASTER, move)->statusChance;
 	if (randomLimit(100) < chance) {
-		switch (MOVE_DATA[move].status) {
+		switch (modSpeciesMove(STD_STATUS_CASTER, move)->status) {
 		case 1:
 			if (!(fighter->flags & FIGHTER_FLAG_POISONED)) {
 				fighter->flags |= FIGHTER_FLAG_POISONED;
@@ -6047,7 +6052,7 @@ void STD_startHitAnimation(Entity *entity, AttackObject *attack, uint8_t animId)
 
 	tech = STD_getAttackTech(attack);
 	startAnimation(entity, animId);
-	createParticleFX(modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->special, 1, &attack->position, entity, MOVE_DATA[tech].iframes + 0x10);
+	createParticleFX(modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->special, 1, &attack->position, entity, modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->iframes + 0x10);
 }
 
 void STD_tickFrames(int16_t count)
@@ -6239,11 +6244,11 @@ int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 		return 0;
 	}
 
-	if ((MOVE_DATA[tech].range == 4) && (fighter->buffsRemaining == 0)) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining == 0)) {
 		return 0;
 	}
 
-	if ((fighter->targetId == 0xff) && ((MOVE_DATA[tech].unk3 & 1) == 1)) {
+	if ((fighter->targetId == 0xff) && ((modSpeciesMove(digimon->entity.type, tech)->unk3 & 1) == 1)) {
 		return 0;
 	}
 
@@ -6375,12 +6380,12 @@ void STD_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 		}
 		if (j != (ENEMY_COUNT + 1)) {
 			if (NPC_ENTITIES[STD_getNpcEntityIndex(&digimon->entity)].unk1 == 0) {
-				if (MOVE_DATA[tech].range == 3) {
+				if (modSpeciesMove(digimon->entity.type, tech)->range == 3) {
 					weights[i] += BM(AI_ENEMY_GROUP_WEIGHT);
 				}
 			}
 		}
-		if (MOVE_DATA[tech].range == 4) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer;
 		}
 	}
@@ -6493,12 +6498,12 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 			continue;
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-		if (MOVE_DATA[tech].range == 4) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
 		weights[i] += STD_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
-		if (MOVE_DATA[tech].range != 3) {
+		if (modSpeciesMove(digimon->entity.type, tech)->range != 3) {
 			continue;
 		}
 		count = STD_countLivingEnemies();
@@ -6522,7 +6527,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 						values[i] = -1;
 					} else {
 						tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-						values[i] = MOVE_DATA[tech].distance;
+						values[i] = modSpeciesMove(digimon->entity.type, tech)->distance;
 					}
 				}
 				STD_sortScoresDescending(values, keys, groups, 3);
@@ -6573,7 +6578,7 @@ void STD_setupQueuedMove(DigimonEntity *digimon, FighterData *fighter, int16_t a
 	stats = &digimon->stats;
 	fighter->queuedAnim = stats->base.moves[moveIndex];
 	tech = entityGetTechFromAnim(&digimon->entity, fighter->queuedAnim);
-	fighter->moveRange = MOVE_DATA[tech].range;
+	fighter->moveRange = modSpeciesMove(digimon->entity.type, tech)->range;
 	STD_applyChargeRequirement(digimon, fighter, tech);
 	fighter->flags |= FIGHTER_FLAG_TRANSFORMING;
 }
@@ -6644,7 +6649,7 @@ void STD_startQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 			entityLookAtLocation(&digimon->entity, &target->entity.posData->location);
 		}
 	}
-	if ((MOVE_DATA[tech].unk3 & 2) != 0) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->unk3 & 2) != 0) {
 		if (&digimon->entity == ENTITY_TABLE[1]) {
 			FLEE_DISABLED[1] = BM(FLEE_LOCK);
 		} else {
@@ -6669,7 +6674,7 @@ int32_t STD_selectMoveTarget(Entity *entity, FighterData *fighter)
 	FighterData *f;
 
 	tech = entityGetTechFromAnim(entity, fighter->queuedAnim);
-	if ((MOVE_DATA[tech].unk3 & 2) != 0) {
+	if ((modSpeciesMove(entity->type, tech)->unk3 & 2) != 0) {
 		if (entity == ENTITY_TABLE[1]) {
 			if (FLEE_DISABLED[1] > 0) {
 				return 1;
@@ -6689,7 +6694,7 @@ int32_t STD_selectMoveTarget(Entity *entity, FighterData *fighter)
 				continue;
 			}
 			otherTech = entityGetTechFromAnim(e, e->anim.animId);
-			if ((MOVE_DATA[otherTech].unk3 & 2) == 0) {
+			if ((modSpeciesMove(e->type, otherTech)->unk3 & 2) == 0) {
 				continue;
 			}
 			return 1;
@@ -6713,7 +6718,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	if (fighter->moveRange != 4) {
 		BATTLE_TARGETED_DIGIMON = target;
 		if (target == NULL) {
-			if (MOVE_DATA[tech].unk3 & 1) {
+			if (modSpeciesMove(digimon->entity.type, tech)->unk3 & 1) {
 				if (digimon != (DigimonEntity *)ENTITY_TABLE[1]) {
 					BATTLE_TARGETED_DIGIMON = (DigimonEntity *)ENTITY_TABLE[1];
 					fighter->targetId = 0;
@@ -6777,7 +6782,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		fighter->activeEffectSlot = fighter->effectSlot[i];
 	}
 
-	if ((MOVE_DATA[tech].range == 4) && (fighter->buffsRemaining != 0)) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining != 0)) {
 		fighter->buffsRemaining--;
 	}
 
@@ -6787,7 +6792,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	}
 
 	if (STD_CAMERA_STATE == 3) {
-		if (MOVE_DATA[entityGetTechFromAnim(STD_FOCUSED_ENTITY, STD_FOCUSED_ENTITY->anim.animId)].range == 3) {
+		if (modSpeciesMove(STD_FOCUSED_ENTITY->type, entityGetTechFromAnim(STD_FOCUSED_ENTITY, STD_FOCUSED_ENTITY->anim.animId))->range == 3) {
 			return;
 		}
 	}
@@ -6801,13 +6806,13 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		}
 	}
 
-	if ((MOVE_DATA[tech].range == 1) || (MOVE_DATA[tech].range == 4)) {
+	if ((modSpeciesMove(digimon->entity.type, tech)->range == 1) || (modSpeciesMove(digimon->entity.type, tech)->range == 4)) {
 		n = 2;
 	} else {
 		n = 5;
 	}
 
-	STD_selectRandomCamera((DigimonEntity *)digimon, randomLimit(n), MOVE_DATA[tech].range);
+	STD_selectRandomCamera((DigimonEntity *)digimon, randomLimit(n), modSpeciesMove(digimon->entity.type, tech)->range);
 }
 
 void STD_removeMoveEffect(DigimonEntity *digimon, FighterData *fighter)
@@ -7477,7 +7482,7 @@ void STD_renderMoveName(uint8_t i)
 	if ((cmd >= 8) && (cmd < 0xc)) {
 		tech = entityGetTechFromAnim(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]],
 		                             PARTNER_ENTITY.digimonEntity.stats.base.moves[cmd - 8]);
-		drawString(MOVE_NAMES[tech], 0, (i * 12) + 0xd8);
+		drawString(modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, tech), 0, (i * 12) + 0xd8);
 	} else {
 		drawString(STD_COMMAND_NAMES[cmd - 1], 0, (i * 12) + 0xd8);
 	}

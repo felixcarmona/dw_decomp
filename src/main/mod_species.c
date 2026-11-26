@@ -78,10 +78,40 @@ static SpeciesMoveBalance SPECIES_MOVE_BALANCE[SPECIES_BALANCE_SWAP_MAX];
 static int32_t SPECIES_MOVE_BALANCES;
 static Move SPECIES_MOVE_COPY;
 
+/* the partner's finisher name in the current language: key (type + 1) | MOD_LANG << 12 */
+static int32_t SPECIES_FINISHER_NAME_KEY;
+static char SPECIES_FINISHER_NAME[28];
+extern char *MOVE_NAMES[];
+
+SpeciesRecord *modFinisherRecord(int32_t type, int32_t move, int32_t flag)
+{
+	SpeciesRecord *rec = getSpeciesRecord(type);
+
+	return (rec != NULL && rec->finisherTech == move && (rec->finisherFlags & flag)) ? rec : NULL;
+}
+
+char *modMoveName(int32_t type, int32_t move)
+{
+	SpeciesRecord *rec = getSpeciesRecord(type);
+	int32_t key = (type + 1) | MOD_LANG << 12;
+
+	/* any move reads the name (battle load primes it with 0), only the finisher's shows it */
+	if (rec == NULL || rec->finisherName == 0) return MOVE_NAMES[move];
+	if (SPECIES_FINISHER_NAME_KEY != key) {
+		SPECIES_FINISHER_NAME_KEY = key;
+		readSpeciesSector(rec->finisherNameSector + MOD_LANG * rec->finisherNameStride);
+		memcpy(SPECIES_FINISHER_NAME, (uint8_t *)SPECIES_SECTOR + rec->finisherNameOffset, sizeof(SPECIES_FINISHER_NAME));
+	}
+	return rec->finisherTech == move ? SPECIES_FINISHER_NAME : MOVE_NAMES[move];
+}
+
 Move *modSpeciesMove(int32_t type, int32_t move)
 {
 	int32_t i;
 	SpeciesMoveBalance *b;
+	SpeciesRecord *rec = modFinisherRecord(type, move, SPECIES_FINISHER_PRESENT);
+
+	if (rec != NULL) return &rec->finisherMove;
 	for (i = 0; i < SPECIES_MOVE_BALANCES; i++) {
 		b = &SPECIES_MOVE_BALANCE[i];
 		if (b->type != type || b->move != move) continue;

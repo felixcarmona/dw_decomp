@@ -25,6 +25,7 @@
 #include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/species.h>
 #include <text/btl/battle_hud.h>
 
 extern GsRVIEW2 GS_VIEWPOINT;
@@ -278,7 +279,7 @@ void BTL_drawHoveredCommandName(void)
 	cmd = COMBAT_DATA_PTR->player.availableCommands[0][COMBAT_DATA_PTR->player.hoveredCommand[0]];
 	if ((cmd >= 8) && (cmd < 0xc)) {
 		tech = entityGetTechFromAnim(ENTITY_TABLE[1], PARTNER_ENTITY.digimonEntity.stats.base.moves[cmd - 8]);
-		drawString(MOVE_NAMES[tech], 0, 0xd8);
+		drawString(modMoveName(PARTNER_ENTITY.digimonEntity.entity.type, tech), 0, 0xd8);
 	} else {
 		drawString(BTL_COMMAND_NAMES[cmd - 1], 0, 0xd8);
 	}
