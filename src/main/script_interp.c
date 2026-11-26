@@ -1077,8 +1077,8 @@ void scriptInstruction28to3F(op)
 	case SCRIPT_OP_ADD_MONEY:
 		skipOneReadInteger(&intArg);
 		MONEY += intArg;
-		if (MONEY >= 0xf4240) {
-			MONEY = 0xf423f;
+		if (MONEY > econCap(MOD_ECON_MONEY_CAP, 0x7fffffff)) { /* MOD (economy as data) */
+			MONEY = econCap(MOD_ECON_MONEY_CAP, 0x7fffffff);
 		}
 		break;
 	case SCRIPT_OP_REDUCE_MONEY:
@@ -1117,15 +1117,15 @@ void scriptInstruction28to3F(op)
 	case SCRIPT_OP_SET_MERIT:
 		skipOneReadOneUShort(&value);
 		MERIT = value;
-		if (MERIT >= 0x2710) {
-			MERIT = 0x270f;
+		if (MERIT > econCap(MOD_ECON_MERIT_CAP, 32767)) {
+			MERIT = econCap(MOD_ECON_MERIT_CAP, 32767);
 		}
 		break;
 	case SCRIPT_OP_ADD_MERIT:
 		skipOneReadOneUShort(&value);
 		MERIT += value;
-		if (MERIT >= 0x2710) {
-			MERIT = 0x270f;
+		if (MERIT > econCap(MOD_ECON_MERIT_CAP, 32767)) {
+			MERIT = econCap(MOD_ECON_MERIT_CAP, 32767);
 		}
 		break;
 	case SCRIPT_OP_REDUCE_MERIT:
@@ -1708,7 +1708,7 @@ void scriptInstruction64to7E(op)
 		case 0x0d:
 			byteArg1 = readPStat(0xfe);
 			if (byteArg1 != 0xff) {
-				removeItem(byteArg1, 0x63);
+				removeItem(byteArg1, econCap(MOD_ECON_STACK_CAP, 255));
 			}
 			break;
 		case 0x0f:
