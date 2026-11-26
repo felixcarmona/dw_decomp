@@ -2105,7 +2105,9 @@ void tickSicknessMechanics(void)
 
 void tickDeathCondition(void)
 {
-	if ((HAS_IMMORTAL_HOUR == 1) && (IMMORTAL_HOUR == HOUR)) {
+	/* A lifetime below zero is only written by the rite of rebirth (script 212, section 74): it ends the
+	 * immortal hour, which saves loaded in Jijimon's house start with. Every other path clamps at 0. */
+	if ((HAS_IMMORTAL_HOUR == 1) && (IMMORTAL_HOUR == HOUR) && (PARTNER_PARA.remainingLifetime >= 0)) {
 		return;
 	}
 
