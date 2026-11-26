@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <string.h>
 
 #include <libcd.h>
@@ -2611,6 +2612,8 @@ void scriptLoadModel(int32_t modelId)
 {
 	int32_t i;
 
+	modelId = npcSpeciesType(modelId, 0);
+
 	for (i = 0; i < 8; i++) {
 		if (LOADED_DIGIMON_MODELS[i] == -1) {
 			LOADED_DIGIMON_MODELS[i] = modelId;
@@ -2704,7 +2707,8 @@ void scriptUnloadModel(int16_t modelId)
 	int32_t i;
 
 	for (i = 0; i < 8; i++) {
-		if (LOADED_DIGIMON_MODELS[i] == modelId) {
+		if (npcSpeciesType(LOADED_DIGIMON_MODELS[i], 1) == npcSpeciesType(modelId, 1)) {
+			modelId = LOADED_DIGIMON_MODELS[i];
 			LOADED_DIGIMON_MODELS[i] = -1;
 			unloadDigimonModel(modelId);
 			return;
