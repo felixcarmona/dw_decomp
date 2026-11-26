@@ -419,6 +419,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_ITALIAN:
       ja: "ITALIANO"
       en_us: "ITALIANO"
+    MOD_OPT_STR_CATALAN:
+      ja: "CATALA"
+      en_us: "CATALA"
     MOD_OPT_STR_JAPANESE:
       ja: "NIHONGO"
       en_us: "NIHONGO"
