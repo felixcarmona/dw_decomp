@@ -33,11 +33,12 @@ void callScriptSection(int32_t, int32_t, int32_t);
 void updateMapLightState(void);
 extern int32_t IS_SCRIPT_PAUSED;
 
-// clang-format off
-uint16_t TOURNAMENT_MEDAL_IDS[6] = {
-	0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x000c,
+/* MOD (medals as data): rows start unused (medal -1); tools/balance.py build writes them from content/tables/medals.json */
+#define MOD_NO_MEDAL { -1, 0, 0, 0, 0, 0, 0 }
+ModMedal MOD_MEDALS[MOD_MEDAL_MAX] = {
+	MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL,
+	MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL,
 };
-// clang-format on
 
 void updateTournamentRegistration(void)
 {
@@ -165,78 +166,19 @@ uint8_t *getCupDataJumpTableEntry(uint8_t *scriptPtr, uint8_t id)
 	return scriptPtr;
 }
 
+/* MOD (medals as data): the first MOD_MEDALS row of the script routine whose condition holds and whose medal is not owned
+ * (the row index, -1 for none); was a chain of loops that stopped at the first condition that held, owned or not */
 int32_t checkTournamentMedalConditions(void)
 {
-	int32_t result;
-	uint16_t i;
+	int32_t i;
 
-	for (i = 0; i < 6; i++) {
-		if (isTriggerSet(TRIGGER_D_RANK_CUP_WON + i) == 0) {
-			goto loop2;
+	for (i = 0; i < MOD_MEDAL_MAX; i++) {
+		if (MOD_MEDALS[i].medal >= 0 && (MOD_MEDALS[i].flags & MOD_MEDAL_SCRIPT) != 0 &&
+		    hasMedal(MOD_MEDALS[i].medal) == 0 && modMedalHolds(&MOD_MEDALS[i])) {
+			return i;
 		}
 	}
-
-	result = 0;
-	goto check_medal;
-
-loop2:
-	for (i = 0; i < 5; i++) {
-		if (isTriggerSet(TRIGGER_VERSION_1_CUP_WON + i) == 0) {
-			goto loop3;
-		}
-	}
-
-	result = 1;
-	goto check_medal;
-
-loop3:
-	for (i = 0; i < 7; i++) {
-		if (isTriggerSet(TRIGGER_FIRE_CUP_WON + i) == 0) {
-			goto loop4;
-		}
-	}
-
-	result = 2;
-	goto check_medal;
-
-loop4:
-	for (i = 0; i < 4; i++) {
-		if (isTriggerSet(TRIGGER_DINO_CUP_WON + i) == 0) {
-			goto level_check;
-		}
-	}
-
-	result = 3;
-	goto check_medal;
-
-level_check:
-	if (TOURNAMENT_WINS >= 100) {
-		result = 4;
-		goto check_medal;
-	}
-
-	for (i = 0; i < NUM_CARDS; i++) {
-		if (getCardAmount(i) == 0) {
-			goto ret_neg1;
-		}
-	}
-
-	if (isTriggerSet(TRIGGER_BEATEN_GAME_ONCE) == 0) {
-		goto ret_neg1;
-	}
-
-	result = 5;
-	goto check_medal;
-
-ret_neg1:
 	return -1;
-
-check_medal:
-	if (hasMedal(TOURNAMENT_MEDAL_IDS[result]) != 0) {
-		return -1;
-	}
-
-	return result;
 }
 
 void scriptCheckTournamentMedal(void)
@@ -251,8 +193,8 @@ void scriptCheckTournamentMedal(void)
 			return;
 		}
 
-		unlockMedal(TOURNAMENT_MEDAL_IDS[result]);
-		showMapHeadTextbox(result, 0xff, 0, 0x4db);
+		unlockMedal(MOD_MEDALS[result].medal);
+		showMapHeadTextbox(MOD_MEDALS[result].text, 0xff, 0, 0x4db);
 		SCRIPT_STATE_2 = 1;
 		SCRIPT_NEXT_STATE_2 = 0;
 		SCRIPT_TEXTBOX_MODE = 1;
