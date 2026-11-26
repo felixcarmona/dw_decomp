@@ -268,6 +268,8 @@ void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h,
 {
 	POLY_FT4 *prim;
 
+    if (MOD_LANG == MOD_LANG_ZH) { if (h == 11) h = 12; shadow = 0; }
+
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	initStringFT4(prim);
 	setRGB0(prim, TEXT_COLORS[color].r, TEXT_COLORS[color].g,

@@ -53,6 +53,9 @@
 #include <string.h>
 #include <dw/file_table.h>
 #include <dw/file.h>
+#include <dw/chinese.h>
+#include <dw/species.h>
+#include <libapi.h>
 
 #include "common.h"
 
@@ -363,11 +366,12 @@ int32_t modFileOnDisc(char *name)
  * itself when the disc has no such copy. A row is the name's FNV-1a hash and the copies' places among the new files
  * (tools/gen_lang_files.py, which refuses a hash two names of the disc share): the names are FILE_OFFSET_TABLE's.
  */
-typedef struct {
-	uint32_t hash;
+typedef struct __attribute__((packed)) {
+	uint32_t hash : 24;
 	uint16_t copy;
 	uint16_t original; /* Spanish, English signs: a place after FILE_TABLE_NEW_FIRST, 0xFFFF none */
 } LangFileRow;
+_Static_assert(sizeof(LangFileRow) == 7, "language routes use seven bytes");
 
 static LangFileRow LANG_FILE_TABLE[] = {
 #include <lang_files.h>
@@ -379,7 +383,7 @@ static char MOD_LANG_NAME[FILE_NAME_MAX + 1]; /* the copy's name, ended (an entr
 
 char *modLangFile(char *name)
 {
-	uint32_t i;
+	LangFileRow *row;
 	uint32_t hash;
 	int32_t tfs;
 	int32_t copy;
@@ -387,15 +391,15 @@ char *modLangFile(char *name)
 	uint32_t key;
 
 	hash = fileNameHash(name);
-	for (i = 0; i < sizeof(LANG_FILE_TABLE) / sizeof(LangFileRow) - 1; i++) {
-		if (LANG_FILE_TABLE[i].hash != hash) {
+	for (row = LANG_FILE_TABLE; row->hash; row++) {
+		if (row->hash != hash) {
 			continue;
 		}
 		tfs = strlen(name) > 4 && (!strcmp(name + strlen(name) - 4, ".TFS") || !strcmp(name + strlen(name) - 4, ".MAP")); /* a background or its sprites */
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
-		copy = !MOD_OPT_STORY && LANG_FILE_TABLE[i].original != 0xFFFF ? LANG_FILE_TABLE[i].original : LANG_FILE_TABLE[i].copy;
+		copy = !MOD_OPT_STORY && row->original != 0xFFFF ? row->original : row->copy;
 		if (copy == 0xFFFF || (!tfs && MOD_LANG == MOD_LANG_EN)) {
 			return name;
 		}
@@ -433,18 +437,26 @@ int32_t modStoryChoice(void)
 }
 
 /* MOD (language): the patch that turns the executable's strings into each language */
-static char *LANG_PATCH_FILE[MOD_LANGS] = { "LANGEN.BIN", "LANGES.BIN", "LANGPT.BIN", "LANGFR.BIN", "LANGDE.BIN", "LANGIT.BIN", "LANGJA.BIN", "LANGCA.BIN" };
+static char LANG_PATCH_FILE[] = "LANGEN.BIN";
+static char *langPatchFile(int32_t lang)
+{
+    static const char codes[] = "ENESPTFRDEITJACAZH";
+    LANG_PATCH_FILE[4] = codes[lang * 2];
+    LANG_PATCH_FILE[5] = codes[lang * 2 + 1];
+    return LANG_PATCH_FILE;
+}
+
+uint32_t MOD_LANGUAGE_AVAILABLE;
 int32_t modLanguageAt(int32_t index)
 {
-    static uint32_t available;
     int32_t lang;
-    if (available == 0) {
+    if (MOD_LANGUAGE_AVAILABLE == 0) {
         for (lang = 0; lang < MOD_LANGS; lang++) {
-            if (lang == MOD_LANG || modFileOnDisc(LANG_PATCH_FILE[lang])) available |= 1u << lang;
+            if (lang == MOD_LANG || modFileOnDisc(langPatchFile(lang))) MOD_LANGUAGE_AVAILABLE |= 1u << lang;
         }
     }
     for (lang = 0; lang < MOD_LANGS; lang++) {
-        if ((available & (1u << lang)) && index-- == 0) return lang;
+        if ((MOD_LANGUAGE_AVAILABLE & (1u << lang)) && index-- == 0) return lang;
     }
     return -1;
 }
@@ -471,14 +483,25 @@ void modSetLanguage(int32_t lang)
 	uint32_t len;
 
 	lang = lang >= 0 && lang < MOD_LANGS ? lang : MOD_LANG_EN;
-	if (lang == MOD_LANG || !modFileOnDisc(LANG_PATCH_FILE[lang])) { /* a disc in one language: no choice */
+	if (lang == MOD_LANG || !modFileOnDisc(langPatchFile(lang))) { /* a disc in one language: no choice */
 		return;
 	}
 	while (isFileReadQueueBusy()) {
 		tickFileReadQueue(0);
 	}
 	DrawSync(0);
-	readFile(LANG_PATCH_FILE[lang], GENERAL_BUFFER); /* free at the title: the next loads put their own files there */
+    if (lang == MOD_LANG_ZH) {
+        if (!modProbeRam()) return;
+        readFileSectors(langPatchFile(lang), (void *)ZH_BASE, 0, ZH_PREFIX_SIZE / 2048);
+        run = (uint32_t *)ZH_BASE;
+        if (run[0] != ZH_MAGIC || run[1] != 1 || run[2] != ZH_PREFIX_SIZE) return;
+        count = 0x811C9DC5;
+        for (len = 32; len < ZH_PREFIX_SIZE; len++) count = (count ^ ((uint8_t *)run)[len]) * 0x01000193;
+        if (count != run[7]) return;
+        FlushCache();
+        if (!zhStart()) return;
+    } else {
+	readFile(langPatchFile(lang), GENERAL_BUFFER); /* free at the title: the next loads put their own files there */
 	run = (uint32_t *)GENERAL_BUFFER;
 	if (run[0] != 0x504C5744) { /* "DWLP" */
 		return;
@@ -490,7 +513,10 @@ void modSetLanguage(int32_t lang)
 		memcpy((void *)run[0], &run[2], len);
 		run += 2 + (len + 3) / 4;
 	}
+	}
+    if (MOD_LANG == MOD_LANG_ZH && lang != MOD_LANG_ZH) MOD_FONT = zhPreviousFont();
 	MOD_LANG = lang;
+    if (lang == MOD_LANG_ZH) MOD_FONT = MOD_FONT_NEW;
 	/*
 	 * the title's and the card menus' own strings (NEW GAME, the slots, Yes / No...) are MENU_REL's, read in the
 	 * language it had then: read it again, in the new language's copy (modLangFile), or the menus stay in the old one
