@@ -634,9 +634,9 @@ void startTournament(void)
 			*p++ = pool[randomLimit(count)];
 		}
 	} else {
-		id = PARTNER_ENTITY.digimonEntity.entity.type;
 		for (i = 0; i < count; i++) {
-			if (id == pool[i]) {
+			/* MOD: the whole type, not its low byte */
+			if (PARTNER_ENTITY.digimonEntity.entity.type == pool[i]) {
 				pool[i] = 0xff;
 				count--;
 				break;

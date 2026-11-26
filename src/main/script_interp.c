@@ -13,6 +13,7 @@
 #include <dw/main.h>
 #include <dw/map_object.h>
 #include <dw/math.h>
+#include <dw/model.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/pstat.h>
@@ -46,14 +47,11 @@ void setFoodTimer(int32_t type);
 void setActiveAnim(int32_t state);
 int32_t hasMove(int32_t moveId);
 void learnMove(int32_t moveId);
-void unloadDigimonModel(int32_t digimonType);
-void loadNPCModel(int32_t modelId);
 int32_t scriptCompareSignedValue(int32_t op, int32_t lhs, int32_t rhs);
 void updateBGM(void);
 void forceUpdateBGM(void);
 void pollNextScriptTwoUShort(uint16_t *out1, uint16_t *out2);
 void skipHours(int32_t hours);
-void scriptSetDigimon(int32_t a0, int32_t a1, int32_t a2);
 void scriptUnloadEntity(int32_t a0);
 void resetEntityOrigin(int32_t a0);
 void setMapObjectsFlag(int32_t start, int32_t count, int32_t flag);

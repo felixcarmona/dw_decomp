@@ -47,6 +47,10 @@ void setEntityRotation(/* int32_t entityId, int16_t x, int16_t y, int16_t z */);
 void setupEntityMatrix(int32_t entityId);
 ModelComponent *thunkLoadMMD(int32_t digiType, int32_t modelType);
 void thunkUnloadModel(int32_t digiType, int32_t modelType);
+/* MOD: overworld.c; one prototype each, the type as DigimonId (ids.md step 3) */
+void loadNPCModel(DigimonId digimonId);
+void unloadDigimonModel(DigimonId digimonType);
+int32_t scriptSetDigimon(DigimonId type, uint8_t slot, uint8_t autotalk);
 void unloadModel(int32_t digiType, int32_t modelType);
 
 extern ModelComponent UNKNOWN_MODEL[16];
