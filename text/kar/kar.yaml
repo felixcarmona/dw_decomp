@@ -4,6 +4,106 @@ MENU:
       ja: NULL
       en_us: Start GameExplain Game
       en_eu: NULL
+    KAR_STR_ROUND:
+      ja: "Round %d"
+      en_us: "Round %d"
+      en_eu: "Round %d"
+    KAR_STR_LOBBY_TITLE:
+      ja: "Curling"
+      en_us: "Curling"
+      en_eu: "Curling"
+    KAR_STR_MODE_SINGLES:
+      ja: "Singles"
+      en_us: "Singles"
+      en_eu: "Singles"
+    KAR_STR_MODE_DOUBLES:
+      ja: "Doubles"
+      en_us: "Doubles"
+      en_eu: "Doubles"
+    KAR_STR_MODE_CROWD:
+      ja: "Free-for-all"
+      en_us: "Free-for-all"
+      en_eu: "Free-for-all"
+    KAR_STR_HINT_SINGLES:
+      ja: "You against one rival."
+      en_us: "You against one rival."
+      en_eu: "You against one rival."
+    KAR_STR_HINT_DOUBLES:
+      ja: "Two against two, with a friend."
+      en_us: "Two against two, with a friend."
+      en_eu: "Two against two, with a friend."
+    KAR_STR_HINT_CROWD:
+      ja: "Three or four teams at once."
+      en_us: "Three or four teams at once."
+      en_eu: "Three or four teams at once."
+    KAR_STR_QUICK:
+      ja: "Quick match"
+      en_us: "Quick match"
+      en_eu: "Quick match"
+    KAR_STR_CUP_1:
+      ja: "Rookie Cup"
+      en_us: "Rookie Cup"
+      en_eu: "Rookie Cup"
+    KAR_STR_CUP_2:
+      ja: "Amateur Cup"
+      en_us: "Amateur Cup"
+      en_eu: "Amateur Cup"
+    KAR_STR_CUP_3:
+      ja: "Expert Cup"
+      en_us: "Expert Cup"
+      en_eu: "Expert Cup"
+    KAR_STR_CUP_4:
+      ja: "Elite Cup"
+      en_us: "Elite Cup"
+      en_eu: "Elite Cup"
+    KAR_STR_CUP_5:
+      ja: "Legend Cup"
+      en_us: "Legend Cup"
+      en_eu: "Legend Cup"
+    KAR_STR_HINT_QUICK:
+      ja: "Random rivals. Entry: any fish."
+      en_us: "Random rivals. Entry: any fish."
+      en_eu: "Random rivals. Entry: any fish."
+    KAR_STR_HINT_FEW:
+      ja: "Too few players in the city."
+      en_us: "Too few players in the city."
+      en_eu: "Too few players in the city."
+    KAR_STR_HINT_ENTRY:
+      ja: "Entry: 1 %s."
+      en_us: "Entry: 1 %s."
+      en_eu: "Entry: 1 %s."
+    KAR_STR_HINT_EARLIER:
+      ja: "Win the cups above it first."
+      en_us: "Win the cups above it first."
+      en_eu: "Win the cups above it first."
+    KAR_STR_HINT_PLAYERS:
+      ja: "Its players are not in town."
+      en_us: "Its players are not in town."
+      en_eu: "Its players are not in town."
+    KAR_STR_HINT_NO_FISH:
+      ja: "You have no %s."
+      en_us: "You have no %s."
+      en_eu: "You have no %s."
+    KAR_STR_HINT_NO_ANY_FISH:
+      ja: "You have no fish."
+      en_us: "You have no fish."
+      en_eu: "You have no fish."
+    KAR_STR_HINT_DRAW:
+      ja: "Next match: when you like."
+      en_us: "Next match: when you like."
+      en_eu: "Next match: when you like."
+    KAR_STR_DRAW_ROUND_1:
+      ja: "Quarter-finals"
+      en_us: "Quarter-finals"
+      en_eu: "Quarter-finals"
+    KAR_STR_DRAW_ROUND_2:
+      ja: "Semi-finals"
+      en_us: "Semi-finals"
+      en_eu: "Semi-finals"
+    KAR_STR_DRAW_ROUND_3:
+      ja: "Final"
+      en_us: "Final"
+      en_eu: "Final"
     KAR_STR_START_GAME:
       ja: ゲームをはじめる
       en_us: NULL
