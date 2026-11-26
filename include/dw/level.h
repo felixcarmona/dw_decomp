@@ -264,6 +264,48 @@ void careClamp(int16_t *value, int32_t minSlot, int32_t maxSlot);
 #define MOD_CARE_OVERRIDE_MAX	192
 extern int16_t MOD_CARE_SPECIES[MOD_CARE_OVERRIDE_MAX][3];
 
+/*
+ * MOD (evolution formulas as data): the numbers of what happens when a partner evolves and of the score that picks the species it evolves into,
+ * MOD_EVO_FORMULA[]: every slot -1 = the rule does not exist; tools/balance.py build writes them from content/tables/evolution-rules.json
+ * (evolutionFormula). evoAmt: a number (a rule left out is 0); evoFlag: a switch (a rule left out is off).
+ */
+#define MOD_EVO_FORMULA_SIZE	31
+#define MOD_EVF_STAT_GAIN_DIV	0
+#define MOD_EVF_STAT_AVG_DIV	1
+#define MOD_EVF_LIFE_ULTIMATE	2
+#define MOD_EVF_LIFE_MEGA	3
+#define MOD_EVF_RESET_WEIGHT	4
+#define MOD_EVF_RESET_MISTAKES	5
+#define MOD_EVF_RESET_BATTLES	6
+#define MOD_EVF_SCALE_BELOW_LEVEL	7
+#define MOD_EVF_SCALE_SPECIES0	8
+#define MOD_EVF_SCALE_SPECIES1	9
+#define MOD_EVF_SCALE_SPECIES2	10
+#define MOD_EVF_SCALE_SPECIES3	11
+#define MOD_EVF_SCALE_RESTORE	12
+#define MOD_EVF_SCALE_PCT_DIV	13
+#define MOD_EVF_SCALE_RESTORE_DIV	14
+#define MOD_EVF_LEARN_BASE0	15
+#define MOD_EVF_LEARN_BASE1	16
+#define MOD_EVF_LEARN_BASE2	17
+#define MOD_EVF_LEARN_BASE3	18
+#define MOD_EVF_LEARN_BASE4	19
+#define MOD_EVF_LEARN_BASE5	20
+#define MOD_EVF_LEARN_BASE6	21
+#define MOD_EVF_LEARN_WINDOW	22
+#define MOD_EVF_SCORE_WEIGHT_TOL	23
+#define MOD_EVF_SCORE_POINT_CARE	24
+#define MOD_EVF_SCORE_POINT_WEIGHT	25
+#define MOD_EVF_SCORE_POINT_STATS	26
+#define MOD_EVF_SCORE_POINT_BONUS	27
+#define MOD_EVF_SCORE_HPMP_DIV	28
+#define MOD_EVF_SCORE_RAISED_BONUS	29
+#define MOD_EVF_SCORE_PASS	30
+extern int16_t MOD_EVO_FORMULA[MOD_EVO_FORMULA_SIZE];
+int32_t evoAmt(int32_t slot);
+int32_t evoFlag(int32_t slot);
+int32_t evoPassPoints(void);
+
 /* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
 #define MOD_EVO_ITEM_MAX	4
 typedef struct {

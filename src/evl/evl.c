@@ -1302,6 +1302,22 @@ void EVL_initEvoSequence(void)
 	addObject(0x80a, instance, EVL_tickEvoSequence, (RenderFunction)EVL_renderEvoSequence);
 }
 
+/* MOD (evolution formulas as data): the stat a partner has after evolving: past the target's value it grows by a part of it, below it meets it halfway */
+static int16_t EVL_blendStat(int32_t stat, int32_t gain)
+{
+	if (stat >= gain) {
+		return stat + (evoAmt(MOD_EVF_STAT_GAIN_DIV) > 0 ? gain / evoAmt(MOD_EVF_STAT_GAIN_DIV) : 0);
+	}
+	return evoAmt(MOD_EVF_STAT_AVG_DIV) > 0 ? (gain + stat) / evoAmt(MOD_EVF_STAT_AVG_DIV) : stat;
+}
+
+/* the species whose evolution scales the base stats by a percent instead of blending them */
+static int32_t EVL_scalesStats(int32_t id)
+{
+	return id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES0] || id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES1] ||
+	       id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES2] || id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES3];
+}
+
 void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t digimonId)
 {
 	int32_t oldType;
@@ -1318,7 +1334,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	int16_t rz;
 	int16_t level;
 	int16_t oldLevel;
-	uint8_t moveBase;
+	int32_t moveBase;
 	uint8_t best;
 	uint8_t special;
 	EvoStatsGains *gains;
@@ -1327,47 +1343,18 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	newId = gains->targetDigimon;
 	oldLevel = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
 	level = DIGI_PARA(digimonId).level;
-	if (digimonId == 0x0b || digimonId == 0x27 || digimonId == 0x35 || digimonId == 6 ||
-	    PARTNER_ENTITY.digimonEntity.entity.type == 0x27L || level < 3) {
+	if (EVL_scalesStats(digimonId) || PARTNER_ENTITY.digimonEntity.entity.type == MOD_EVO_FORMULA[MOD_EVF_SCALE_RESTORE] ||
+	    level < MOD_EVO_FORMULA[MOD_EVF_SCALE_BELOW_LEVEL]) {
 		EVL_scaleBaseStats(stats, (int8_t)gains->brains, digimonId);
 		newId = gains->targetDigimon;
 	} else {
 		if (HAS_USED_EVOITEM == 0) {
-			if (stats->base.hp >= gains->hp) {
-				stats->base.hp += (int16_t)(gains->hp / 10);
-			} else {
-				stats->base.hp = (gains->hp + stats->base.hp) / 2;
-			}
-
-			if (stats->base.mp >= gains->mp) {
-				stats->base.mp += (int16_t)(gains->mp / 10);
-			} else {
-				stats->base.mp = (gains->mp + stats->base.mp) / 2;
-			}
-
-			if (stats->base.off >= gains->offense) {
-				stats->base.off += (int16_t)(gains->offense / 10);
-			} else {
-				stats->base.off = (gains->offense + stats->base.off) / 2;
-			}
-
-			if (stats->base.def >= gains->defense) {
-				stats->base.def += (int16_t)(gains->defense / 10);
-			} else {
-				stats->base.def = (gains->defense + stats->base.def) / 2;
-			}
-
-			if (stats->base.speed >= gains->speed) {
-				stats->base.speed += (int16_t)(gains->speed / 10);
-			} else {
-				stats->base.speed = (gains->speed + stats->base.speed) / 2;
-			}
-
-			if (stats->base.brain >= gains->brains) {
-				stats->base.brain += (int16_t)(gains->brains / 10);
-			} else {
-				stats->base.brain = (gains->brains + stats->base.brain) / 2;
-			}
+			stats->base.hp = EVL_blendStat(stats->base.hp, gains->hp);
+			stats->base.mp = EVL_blendStat(stats->base.mp, gains->mp);
+			stats->base.off = EVL_blendStat(stats->base.off, gains->offense);
+			stats->base.def = EVL_blendStat(stats->base.def, gains->defense);
+			stats->base.speed = EVL_blendStat(stats->base.speed, gains->speed);
+			stats->base.brain = EVL_blendStat(stats->base.brain, gains->brains);
 
 			EVL_clampBaseStats();
 			if (IS_SCRIPT_PAUSED == 1) {
@@ -1385,37 +1372,30 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 		}
 		newId = gains->targetDigimon;
 	}
-	para->weight = RAISE_ROW(newId).defaultWeight;
-	para->careMistakes = 0;
-	para->battles = 0;
+	if (evoFlag(MOD_EVF_RESET_WEIGHT)) {
+		para->weight = RAISE_ROW(newId).defaultWeight;
+	}
+	if (evoFlag(MOD_EVF_RESET_MISTAKES)) {
+		para->careMistakes = 0;
+	}
+	if (evoFlag(MOD_EVF_RESET_BATTLES)) {
+		para->battles = 0;
+	}
 	level = DIGI_PARA(newId).level;
 	/* MOD (partners-npc-a): only on reaching Ultimate, not Etemon -> MetalEtemon */
 	if (level == 5 && oldLevel != 5 && HAS_USED_EVOITEM == 0) {
-		para->remainingLifetime += 96;
+		para->remainingLifetime += evoAmt(MOD_EVF_LIFE_ULTIMATE);
 	}
 	if (level == LEVEL_MEGA && HAS_USED_EVOITEM == 0) { /* MOD (mega) */
-		para->remainingLifetime += MEGA_LIFETIME_BONUS;
+		para->remainingLifetime += evoAmt(MOD_EVF_LIFE_MEGA);
 	}
+	/* MOD (evolution formulas as data): the first technique slot an element teaches, and the window of slots it picks from */
 	special = DIGI_PARA(newId).special[0];
-	if (special == 0) {
-		moveBase = 0;
-	} else if (special == 1) {
-		moveBase = 40;
-	} else if (special == 2) {
-		moveBase = 8;
-	} else if (special == 3) {
-		moveBase = 32;
-	} else if (special == 4) {
-		moveBase = 16;
-	} else if (special == 5) {
-		moveBase = 24;
-	} else if (special == 6) {
-		moveBase = 49;
-	}
+	moveBase = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special] : -1;
 	movePtr = DIGI_PARA(newId).moves;
 	count = 0;
 	for (i = 0; i < 16; movePtr++, i++) {
-		if (moveBase <= *movePtr && *movePtr <= moveBase + 8) {
+		if (moveBase >= 0 && moveBase <= *movePtr && *movePtr <= moveBase + evoAmt(MOD_EVF_LEARN_WINDOW)) {
 			candidates[count] = *movePtr;
 			count++;
 		}
@@ -1482,8 +1462,18 @@ static int16_t EVL_capValue(int32_t value, int32_t cap)
 	return value;
 }
 
+/* what a partner that was turned into a Sukamon gets back: its backed-up stat plus half of what it gained meanwhile */
+static int32_t EVL_restoreStat(int32_t backup, int32_t stat)
+{
+	int32_t div = evoAmt(MOD_EVF_SCALE_RESTORE_DIV);
+
+	return div > 0 ? backup + ((stat - (backup / div)) / div) : stat;
+}
+
 void EVL_scaleBaseStats(Stats *stats, int16_t pct, int16_t unused)
 {
+	int32_t div;
+
 	/* MOD (caps): every product is clamped in 32 bits before it is stored
 	 * (×2.5 of 30000 does not fit an int16_t); EVL_clampBaseStats below
 	 * clamped the stored values, so nothing changes below the old limits */
@@ -1491,20 +1481,21 @@ void EVL_scaleBaseStats(Stats *stats, int16_t pct, int16_t unused)
 		return;
 	}
 
-	if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27) {
-		stats->base.hp = EVL_capValue(stats->base.hp * pct / 10, HPMP_CAP);
-		stats->base.mp = EVL_capValue(stats->base.mp * pct / 10, HPMP_CAP);
-		stats->base.off = EVL_capValue(stats->base.off * pct / 10, STAT_CAP);
-		stats->base.def = EVL_capValue(stats->base.def * pct / 10, STAT_CAP);
-		stats->base.speed = EVL_capValue(stats->base.speed * pct / 10, STAT_CAP);
-		stats->base.brain = EVL_capValue(stats->base.brain * pct / 10, STAT_CAP);
+	if (PARTNER_ENTITY.digimonEntity.entity.type != MOD_EVO_FORMULA[MOD_EVF_SCALE_RESTORE]) {
+		div = evoAmt(MOD_EVF_SCALE_PCT_DIV) > 0 ? evoAmt(MOD_EVF_SCALE_PCT_DIV) : 0;
+		stats->base.hp = div ? EVL_capValue(stats->base.hp * pct / div, HPMP_CAP) : stats->base.hp;
+		stats->base.mp = div ? EVL_capValue(stats->base.mp * pct / div, HPMP_CAP) : stats->base.mp;
+		stats->base.off = div ? EVL_capValue(stats->base.off * pct / div, STAT_CAP) : stats->base.off;
+		stats->base.def = div ? EVL_capValue(stats->base.def * pct / div, STAT_CAP) : stats->base.def;
+		stats->base.speed = div ? EVL_capValue(stats->base.speed * pct / div, STAT_CAP) : stats->base.speed;
+		stats->base.brain = div ? EVL_capValue(stats->base.brain * pct / div, STAT_CAP) : stats->base.brain;
 	} else {
-		stats->base.hp = EVL_capValue(PARTNER_PARA.sukaBackupHP + ((stats->base.hp - (PARTNER_PARA.sukaBackupHP / 2)) / 2), HPMP_CAP);
-		stats->base.mp = EVL_capValue(PARTNER_PARA.sukaBackupMP + ((stats->base.mp - (PARTNER_PARA.sukaBackupMP / 2)) / 2), HPMP_CAP);
-		stats->base.off = EVL_capValue(PARTNER_PARA.sukaBackupOff + ((stats->base.off - (PARTNER_PARA.sukaBackupOff / 2)) / 2), STAT_CAP);
-		stats->base.def = EVL_capValue(PARTNER_PARA.sukaBackupDef + ((stats->base.def - (PARTNER_PARA.sukaBackupDef / 2)) / 2), STAT_CAP);
-		stats->base.speed = EVL_capValue(PARTNER_PARA.sukaBackupSpeed + ((stats->base.speed - (PARTNER_PARA.sukaBackupSpeed / 2)) / 2), STAT_CAP);
-		stats->base.brain = EVL_capValue(PARTNER_PARA.sukaBackupBrain + ((stats->base.brain - (PARTNER_PARA.sukaBackupBrain / 2)) / 2), STAT_CAP);
+		stats->base.hp = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupHP, stats->base.hp), HPMP_CAP);
+		stats->base.mp = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupMP, stats->base.mp), HPMP_CAP);
+		stats->base.off = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupOff, stats->base.off), STAT_CAP);
+		stats->base.def = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupDef, stats->base.def), STAT_CAP);
+		stats->base.speed = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupSpeed, stats->base.speed), STAT_CAP);
+		stats->base.brain = EVL_capValue(EVL_restoreStat(PARTNER_PARA.sukaBackupBrain, stats->base.brain), STAT_CAP);
 		PARTNER_PARA.virusBar = 0;
 	}
 
