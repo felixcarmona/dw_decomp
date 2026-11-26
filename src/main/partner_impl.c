@@ -1209,7 +1209,7 @@ void tickUnhappinessMechanics(void)
 
 	if (PARTNER_PARA.condition & 0x10) {
 		if (careEvery(MOD_CARE_SULK_RECOVER_PERIOD)) {
-			PARTNER_PARA.happiness++;
+			PARTNER_PARA.happiness += careAmt(MOD_CARE_SULK_RECOVER_GAIN);
 		}
 
 		if (careEvery(MOD_CARE_SULK_STAT_PERIOD)) {
@@ -1555,9 +1555,9 @@ void tickTirednessMechanics(void)
 		}
 	}
 	if (careHas(MOD_CARE_TIRED_SUB) && PARTNER_PARA.subTiredness >= careGet(MOD_CARE_TIRED_SUB)) {
-		PARTNER_PARA.tiredness += 1;
-		if (PARTNER_PARA.tiredness >= 0x64) {
-			PARTNER_PARA.tiredness = 0x64;
+		PARTNER_PARA.tiredness += careAmt(MOD_CARE_TIRED_SUB_GAIN);
+		if (careHas(MOD_CARE_LIM_TIRED_MAX) && PARTNER_PARA.tiredness >= careGet(MOD_CARE_LIM_TIRED_MAX)) {
+			PARTNER_PARA.tiredness = careGet(MOD_CARE_LIM_TIRED_MAX);
 		}
 		PARTNER_PARA.subTiredness = 0;
 	}
@@ -1846,8 +1846,11 @@ void tickPoopDetection(void)
 	int16_t posZ;
 	int32_t i;
 
-	if ((PARTNER_ENTITY.digimonEntity.entity.type != 0xb) &&
-	    (PARTNER_ENTITY.digimonEntity.entity.type != 0x27)) {
+	if (!careHas(MOD_CARE_EAT_SPECIES0) && !careHas(MOD_CARE_EAT_SPECIES1)) {
+		return;
+	}
+	if ((PARTNER_ENTITY.digimonEntity.entity.type != careGet(MOD_CARE_EAT_SPECIES0)) &&
+	    (PARTNER_ENTITY.digimonEntity.entity.type != careGet(MOD_CARE_EAT_SPECIES1))) {
 		return;
 	}
 
@@ -1857,10 +1860,10 @@ void tickPoopDetection(void)
 			continue;
 		}
 
-		if (WORLD_POOP[i].size < 11) {
-			radius = 200;
+		if (WORLD_POOP[i].size < careAmt(MOD_CARE_EAT_FAR_FROM)) {
+			radius = careAmt(MOD_CARE_EAT_REACH_NEAR);
 		} else {
-			radius = 300;
+			radius = careAmt(MOD_CARE_EAT_REACH_FAR);
 		}
 
 		tileX = ((WORLD_POOP[i].x - 50) * 100) + 50;
@@ -2100,9 +2103,10 @@ void skipHours(int16_t hours)
 	}
 	updateTimeOfDay();
 
-	if ((HOUR + (hours % 4) == 0) && (PARTNER_PARA.happiness < 80))
+	if ((HOUR + (hours % 4) == 0) && careHas(MOD_CARE_LIFE_BELOW) && careGet(MOD_CARE_LIFE_PER_POINTS) > 0 &&
+	    (PARTNER_PARA.happiness < careGet(MOD_CARE_LIFE_BELOW)))
 		PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime -
-			((PARTNER_PARA.happiness - 80) / -50 + 1);
+			((PARTNER_PARA.happiness - careGet(MOD_CARE_LIFE_BELOW)) / -careGet(MOD_CARE_LIFE_PER_POINTS) + 1);
 	if (PARTNER_PARA.remainingLifetime < 0)
 		PARTNER_PARA.remainingLifetime = 0;
 
@@ -2149,9 +2153,10 @@ void skipHours(int32_t hours)
 	}
 	updateTimeOfDay();
 
-	if ((HOUR + (rawHours % 4) == 0) && (PARTNER_PARA.happiness < 80))
+	if ((HOUR + (rawHours % 4) == 0) && careHas(MOD_CARE_LIFE_BELOW) && careGet(MOD_CARE_LIFE_PER_POINTS) > 0 &&
+	    (PARTNER_PARA.happiness < careGet(MOD_CARE_LIFE_BELOW)))
 		PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime -
-			((PARTNER_PARA.happiness - 80) / -50 + 1);
+			((PARTNER_PARA.happiness - careGet(MOD_CARE_LIFE_BELOW)) / -careGet(MOD_CARE_LIFE_PER_POINTS) + 1);
 	if (PARTNER_PARA.remainingLifetime < 0)
 		PARTNER_PARA.remainingLifetime = 0;
 

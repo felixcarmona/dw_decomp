@@ -114,7 +114,7 @@ void modTamerLevelEvent(int32_t slot, int32_t amount);
  * A period or a threshold left out (-1) switches its rule off; an amount left out counts as 0. Periods are logic frames: 20 = one game minute,
  * 1200 = one game hour. The direction of each amount (a loss, a gain) is its name and stays in the code.
  */
-#define MOD_CARE_SIZE		143
+#define MOD_CARE_SIZE		150
 #define MOD_CARE_SLEEP_TIRED_PERIOD	0
 #define MOD_CARE_SLEEP_TIRED_PERCENT	1
 #define MOD_CARE_SLEEP_SLEEPY_AT	2
@@ -258,6 +258,13 @@ void modTamerLevelEvent(int32_t slot, int32_t amount);
 #define MOD_CARE_FOOD_SICK_DIE	140
 #define MOD_CARE_MEDICINE_INJURY_DIE	141
 #define MOD_CARE_MEDICINE_SICK_DIE	142
+#define MOD_CARE_SULK_RECOVER_GAIN	143 /* happiness a sulking partner regains every recover period */
+#define MOD_CARE_TIRED_SUB_GAIN	144 /* tiredness one full sub-tiredness counter makes (capped by the tiredness limit) */
+#define MOD_CARE_EAT_REACH_NEAR	145 /* how close (world units) the tamer must be to a small poop for the partner to go and eat it */
+#define MOD_CARE_EAT_REACH_FAR	146 /* the same for a poop of farFrom or more */
+#define MOD_CARE_EAT_FAR_FROM	147
+#define MOD_CARE_EAT_SPECIES0	148 /* the species that eat poop (-1 = none) */
+#define MOD_CARE_EAT_SPECIES1	149
 extern int16_t MOD_CARE[MOD_CARE_SIZE];
 /*
  * MOD (item effects as data): what an item does when it is used, MOD_ITEM_FX[row][field]: field 0 the item id (-1 = the row is unused), then the fields below
