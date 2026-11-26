@@ -4,6 +4,12 @@
 #include <dw/ids.h>
 #include <dw/types.h>
 
+/* A resource is a care need strictly below 30%; zero maxima have no need. */
+static inline int32_t modResourceNeed(int32_t current, int32_t maximum)
+{
+	return maximum > 0 && current * 10 < maximum * 3;
+}
+
 typedef struct {
 	int8_t hungerTimes[8];
 	uint8_t energyCap;
