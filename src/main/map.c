@@ -4097,7 +4097,7 @@ void lateTickMap(int32_t arg0)
 	tickCameraFollowPlayer();
 
 	skipTimeOfDay = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
-	if ((skipTimeOfDay == 0) && ((CURRENT_FRAME % 1200) == 0)) {
+	if ((skipTimeOfDay == 0) && (clockCrossed(1200))) {
 		/* MOD (rules as data): the hours come from MOD_DAYTIME (-1: no transition) */
 		if (HOUR == MOD_DAYTIME[MOD_DT_DUSK]) {
 			initializeDaytimeTransition(0);
