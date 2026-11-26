@@ -378,8 +378,7 @@ void renderGameClock(int32_t instanceId)
 			  6, 6, 203, 216,
 			  GetTPage(0, 0, 896, 448), GetClut(256, 497), 9, 0);
 
-	if (MOD_OPT_CLOCK) /* MOD (options): DIGITAL CLOCK */
-		renderDigitalClock(CLOCK_OFFSET_X + 13, -46);
+	renderDigitalClock(CLOCK_OFFSET_X + 13, -46);
 
 	renderStatusBars(IS_GAMETIME_RUNNING);
 }

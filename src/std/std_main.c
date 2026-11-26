@@ -96,7 +96,6 @@ extern int32_t FLEE_DISABLED[2];
 extern int32_t P2_AOE_TIMER;
 extern char *MOVE_NAMES[];
 extern int16_t STD_MATCH_RESULT;
-extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int16_t INITIAL_COMBAT_STATS[][6];
 extern DigimonEntity *BATTLE_TARGETED_DIGIMON;
 extern DigimonEntity *BATTLE_ATTACKING_DIGIMON;
@@ -4055,7 +4054,6 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 		f->mpDamageBuffer = 0;
 		f->flags = 0;
 		f->moveRange = 0;
-		COMBAT_DATA_PTR->player.unk1[i].unk25 = 0xff;
 		f->flatTimer = 0;
 		f->invulnerableTimer = 0;
 		f->cooldown = 0;
@@ -4632,8 +4630,6 @@ void STD_tickAttackState(Entity *entity, DigimonEntity *target, int32_t id)
 						}
 					}
 				}
-			}
-			if (i) {
 			}
 			entity->anim.animFlag |= 1;
 		}
@@ -5650,7 +5646,6 @@ skipViewpoint:
 			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			STD_handleHitReaction(entity, fighter, &attack, i);
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 			fighter->invulnerableTimer = MOVE_DATA[tech].iframes;
 			entity->anim.animFlag &= 0xfe;
@@ -5695,7 +5690,6 @@ skipViewpoint:
 			}
 			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
 		STD_addFinisherProgress(fighter, fighter->finisherGoal * BM(BLOCK_GAIN_DEF) / 100);
@@ -6853,9 +6847,6 @@ void STD_applyMoveResult(void)
 				dmg = MOD_DIFF_DAMAGE(NULL, entity, ENTITY_TABLE[1], dmg); /* MOD (difficulty) */
 				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
-				if (i != 0) {
-					COMBAT_DATA_PTR->player.unk1[i].unk25 = 0;
-				}
 				addEntityText(entity, i, 0xc, dmg, 0);
 			}
 		}

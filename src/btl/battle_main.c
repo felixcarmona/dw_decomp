@@ -45,7 +45,6 @@ extern PACKET GS_WORK_BASES[2][0x14000];
 extern DR_OFFSET DR_OFFSETS[2];
 extern DigimonEntity *BATTLE_TARGETED_DIGIMON;
 extern DigimonEntity *BATTLE_ATTACKING_DIGIMON;
-extern uint8_t BATTLE_TOGGLE_LIFEBAR;
 extern int8_t PARTNER_WAYPOINT_COUNT;
 extern int8_t PARTNER_WAYPOINT_CURRENT;
 extern int8_t PARTNER_WAYPOINT_X[];
@@ -978,8 +977,6 @@ void BTL_tickAttackState(Entity *entity, DigimonEntity *target, int32_t id)
 						}
 					}
 				}
-			}
-			if (i) {
 			}
 			entity->anim.animFlag |= 1;
 		}
@@ -2199,7 +2196,6 @@ void BTL_tickAttackHits(void)
 			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 			fighter->flags |= FIGHTER_FLAG_KNOCKED_BACK;
 			BTL_handleHitReaction(entity, fighter, &attack, i);
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 			fighter->invulnerableTimer = MOVE_DATA[tech].iframes;
 			entity->anim.animFlag &= 0xfe;
@@ -2244,7 +2240,6 @@ void BTL_tickAttackHits(void)
 			}
 			/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 			fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
-			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
 		BTL_addFinisherProgress(fighter, fighter->finisherGoal * BM(BLOCK_GAIN_DEF) / 100);
@@ -2286,98 +2281,16 @@ void BTL_buffStats(digimon, slot, value, stat, color, flag)
 
 #include <dw/enemy_bars.h>
 
-static void renderOriginalEnemyHPBars(void)
-{
-	long i;
-	int32_t w;
-	DVECTOR pos;
-	PlayerDataSub *spr;
-	CombatData *combat;
-	FighterData *fighter;
-	Entity *entity;
-	Stats *stats;
-	int32_t color;
-	GsSPRITE *sprite;
-	int16_t x;
-	int16_t y;
-
-	color = 0xab40a;
-	combat = COMBAT_DATA_PTR;
-	GsSetLsMatrix(&GsWSMATRIX);
-	for (i = 1; i <= ENEMY_COUNT; i++) {
-		fighter = &combat->fighter[i];
-		entity = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
-		spr = &COMBAT_DATA_PTR->player.unk1[i];
-		if (BATTLE_TOGGLE_LIFEBAR == 0) {
-			if (spr->unk25 >= 0x15) {
-				continue;
-			}
-		} else {
-			if ((spr->unk25 >= 0x15) && (fighter->flags & FIGHTER_FLAG_DEAD)) {
-				continue;
-			}
-		}
-		stats = &((DigimonEntity *)entity)->stats;
-		if (stats->current.currentHP == 0) {
-			fighter->hpDamageBuffer = 0;
-		}
-		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && (fighter->hpDamageBuffer == 0)) {
-			spr->unk25++;
-		}
-		getEntityScreenPos(entity, 1, &pos);
-		if (pos.vy < -0x4a) {
-			y = -0x64;
-		} else {
-			y = pos.vy - 0x1a;
-		}
-		if (pos.vx >= 0x42) {
-			x = 0x55;
-		} else {
-			x = pos.vx + 0x14;
-		}
-		drawLine3P(color, x, y, x + 0x36, y, x + 0x36, y + 6, 7, 0);
-		drawLine3P(color, x, y + 1, x, y + 6, x + 0x35, y + 6, 7, 0);
-		drawLine2P(color, x, y + 6, pos.vx, pos.vy, 7, 0);
-		sprite = (GsSPRITE *)spr;
-		sprite->x = x + 2;
-		sprite->y = y + 2;
-		damageTick(fighter, stats);
-		w = stats->current.currentHP * 50 / stats->base.hp;
-		if (w != sprite->w) {
-			sprite->w = w;
-			if (sprite->w >= 0xf) {
-				sprite->r = ((0x32 - sprite->w) * 127 / 35) + 0x80;
-				sprite->g = 0xff;
-			} else if ((sprite->w >= 5) && (sprite->w < 0xf)) {
-				sprite->r = 0xff;
-				sprite->g = 0xff - ((0xf - sprite->w) * 127 / 10);
-			} else {
-				sprite->r = 0xff;
-				sprite->g = 0x80;
-			}
-			sprite->b = 0x80;
-		}
-		GsSortFastSprite(sprite, ACTIVE_ORDERING_TABLE, 7);
-		drawEntityText(0, 4, x + 0x21, y - 9, stats->current.currentHP, 7);
-	}
-}
-
 void BTL_renderEnemyHPBars(void)
 {
 	int32_t i;
-	if (!MOD_OPT_ENEMY_BARS) {
-		renderOriginalEnemyHPBars();
-		return;
-	}
 	for (i = 1; i <= ENEMY_COUNT; i++) {
 		FighterData *fighter = &COMBAT_DATA_PTR->fighter[i];
 		DigimonEntity *d = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
-		PlayerDataSub *spr = &COMBAT_DATA_PTR->player.unk1[i];
-		if (!(fighter->flags & FIGHTER_FLAG_KNOCKED_BACK) && !fighter->hpDamageBuffer && spr->unk25 < 21) spr->unk25++;
 		/* HP animation remains gameplay state, even while the HUD is hidden. */
 		if (d->stats.current.currentHP <= 0) fighter->hpDamageBuffer = 0;
 		if (fighter->hpDamageBuffer) damageTick(fighter, &d->stats);
-		if (BATTLE_TOGGLE_LIFEBAR || spr->unk25 < 21) renderEnemyHeadHP(d, fighter, 1);
+		renderEnemyHeadHP(d, fighter, 1);
 	}
 }
 
@@ -2914,9 +2827,6 @@ void BTL_tickStatusEffects(void)
 				dmg = MOD_DIFF_DAMAGE(NULL, entity, ENTITY_TABLE[1], dmg); /* MOD (difficulty) */
 				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
-				if (i != 0) {
-					COMBAT_DATA_PTR->player.unk1[i].unk25 = 0;
-				}
 				addEntityText(entity, i, 0xc, dmg, 0);
 			}
 		}

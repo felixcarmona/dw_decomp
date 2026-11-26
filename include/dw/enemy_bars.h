@@ -6,7 +6,6 @@
 #include <dw/params.h>
 #include <dw/mod_options.h>
 
-extern uint8_t BATTLE_TOGGLE_LIFEBAR; /* one = always visible; saved with the options */
 int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
 
 static const uint8_t ENEMY_HP_DIGITS[10][5] = {
