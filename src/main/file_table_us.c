@@ -836,6 +836,12 @@ FileEntry FILE_OFFSET_TABLE[] = { /* MOD: was [819]; + DIGI.DAT (species), + par
 	{ 0x00000000, 0x00000001, "MUGP.MMD" }, /* MOD (machinedramon) */
 	{ 0x00000000, 0x00000001, "JIJP.MMD" }, /* MOD (jijimon) */
 	{ 0x00000000, 0x00000001, "ANLP.MMD" }, /* MOD (analogman) */
+	/*
+	 * MOD (new files): the disc's files with new names (NEW_FILES of the Makefile, written by the project's
+	 * tools/build-full.sh from the content: a new screen's .MAP and .TFS, models...). Looked up after every
+	 * entry above, so the original names resolve as before; build-disc.py --relayout writes their sectors.
+	 */
+#include <file_table_new.h>
 	{ 0x00000000, 0x00000000, "NULL" },
 };
 // clang-format on
