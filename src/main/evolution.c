@@ -6,6 +6,7 @@
 #include <dw/species.h>
 #include <dw/garbage.h>
 #include <dw/ids.h>
+#include <dw/level.h>
 #include <dw/math.h>
 #include <dw/model.h>
 #include <dw/params.h>
@@ -976,11 +977,17 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
     targetPtr++;
   }
 
-  if (currentBestDigimon == -1 && PARTNER_PARA.evoTimer >= 96)
-    currentBestDigimon = 11;
+  /* MOD (evolution rules as data): the default target (Numemon) and its wait, from content/tables/evolution-rules.json */
+  if (currentBestDigimon == -1 && MOD_EVO_TIMING[MOD_EVO_FALLBACK_HOURS] >= 0 &&
+      MOD_EVO_TIMING[MOD_EVO_FALLBACK_TARGET] >= 0 &&
+      PARTNER_PARA.evoTimer >= MOD_EVO_TIMING[MOD_EVO_FALLBACK_HOURS])
+    currentBestDigimon = MOD_EVO_TIMING[MOD_EVO_FALLBACK_TARGET];
 
   return currentBestDigimon;
 }
+
+/* MOD (evolution rules as data): -1 = does not exist; tools/balance.py build writes the values */
+int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
   DigimonId *targetPtr; /* MOD: was int8_t */

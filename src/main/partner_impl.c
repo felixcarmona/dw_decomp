@@ -2170,6 +2170,7 @@ void tickConditions(void)
 	int16_t evoTimer;
 	uint8_t level;
 	int16_t tamerState;
+	int32_t due;
 
 	if (GAME_STATE != 0 || PARTNER_STATE != 1 || !IS_GAMETIME_RUNNING ||
 	    CURRENT_FRAME == LAST_HANDLED_FRAME || FADE_PROTECTION == 1)
@@ -2210,13 +2211,16 @@ void tickConditions(void)
 	tamerState = tamerGetState();
 	if (CURRENT_FRAME != LAST_HANDLED_FRAME && PARTNER_STATE == 1 &&
 	    tamerState == 0) {
-		if (level == 1 && evoTimer >= 6)
+		/* MOD (evolution rules as data): the hours of each level come from MOD_EVO_TIMING (-1 = never) */
+		due = level >= 1 && level <= LEVEL_ULTIMATE && MOD_EVO_TIMING[level] >= 0 &&
+		      evoTimer >= MOD_EVO_TIMING[level];
+		if (due && level == 1)
 			EVOLUTION_TARGET = getFreshEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (level == 2 && evoTimer >= 24)
+		else if (due && level == 2)
 			EVOLUTION_TARGET = getInTrainingEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-		else if (level == 3 && evoTimer >= 72)
+		else if (due && level == 3)
 			EVOLUTION_TARGET = getRookieEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
 		/*
@@ -2224,7 +2228,7 @@ void tickConditions(void)
 		 * row: getEvolutionPath (species) gives it, and every type past
 		 * the table, an empty one, so no type guard is needed here.
 		 */
-		else if (level == 4 && evoTimer >= 144)
+		else if (due && level == 4)
 			EVOLUTION_TARGET = getChampionEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
 		/*
@@ -2235,15 +2239,16 @@ void tickConditions(void)
 		 *     MetalEtemon) after 96 h, like a Champion;
 		 *   - mega: an Ultimate looks for a Mega the way a Champion looks
 		 *     for an Ultimate (best requirement score, then best average
-		 *     stat), after MEGA_EVOLUTION_HOURS (120 h).
+		 *     stat), after MOD_EVO_TIMING[MOD_EVO_MEGA] hours.
 		 */
-		else if (level == LEVEL_ULTIMATE && evoTimer >= 48) {
+		else if (due && level == LEVEL_ULTIMATE) {
 			EVOLUTION_TARGET = getModUltimateEvolutionTarget(
 				PARTNER_ENTITY.digimonEntity.entity.type);
-			if (EVOLUTION_TARGET == -1 && evoTimer >= 96) {
+			if (EVOLUTION_TARGET == -1 && MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN] >= 0 &&
+			    evoTimer >= MOD_EVO_TIMING[MOD_EVO_ULTIMATE_AGAIN]) {
 				EVOLUTION_TARGET = getChampionEvolutionTarget(
 					PARTNER_ENTITY.digimonEntity.entity.type);
-				if (EVOLUTION_TARGET != -1 && evoTimer < MEGA_EVOLUTION_HOURS &&
+				if (EVOLUTION_TARGET != -1 && evoTimer < MOD_EVO_TIMING[MOD_EVO_MEGA] &&
 				    DIGI_PARA(EVOLUTION_TARGET).level == LEVEL_MEGA)
 					EVOLUTION_TARGET = -1;
 			}
