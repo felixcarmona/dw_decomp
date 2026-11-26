@@ -13,7 +13,7 @@
  * from the disc's own frames: the cross is painted over with the button's face and a ring drawn where it was, in the
  * red of the PlayStation's ○ (its own CLUT, modButtonClut).
  *
- * DIGITAL CLOCK. The hour as HH:MM on a plate under the clock (patch 0166, renderDigitalClock in clock.c), on or off.
+ * DIGITAL CLOCK. The hour as HH:MM in the game's outlined digits under the clock (patch 0166, renderDigitalClock in clock.c), on or off.
  *
  * NEW STATUS BARS. The field's happiness and discipline bars as patches 0162-0164 draw them (one fill, red below the
  * midpoint, green from it, on a grey track), or off, as the original drew them (renderStatusBars, partner_impl.c).
