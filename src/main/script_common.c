@@ -23,6 +23,7 @@
 #include <dw/params.h>
 #include <dw/pstat.h>
 #include <dw/script.h>
+#include <dw/trigger.h>
 #include <dw/sound.h>
 #include <dw/species.h>
 #include <dw/ui.h>
@@ -1427,6 +1428,60 @@ uint8_t getRecycleId(uint8_t value)
 
 int16_t MOD_DAILY[MOD_DAILY_SIZE] = { -1, -1, -1, -1, -1, -1, -1 };
 
+/* MOD (resident challenges): mod_rules.h */
+int16_t MOD_CHALLENGE[MOD_CHALLENGE_SIZE] = { [0 ... MOD_CHALLENGE_SIZE - 1] = -1 };
+
+/* one challenger a day from each open pool, picked on their own: a recruited row, not yesterday's (prev is its row + 1),
+ * not yet sent out this cycle (the bag), of the highest level the stage rule allows (a row's level is in its high bits:
+ * MOD_CHALLENGE_LEVEL, 0 = any), each such row as likely as the others; when none can go the pool's bits are emptied
+ * and the rows are scanned once more */
+static void modChallengeDaily(void)
+{
+	int32_t pool, again, i, n, best, top, prev, var, type, level, pick;
+	uint16_t *bag, *w, bit;
+	int16_t *t;
+
+	t = MOD_CHALLENGE;
+	bag = &SCRIPT_STATE_PTR->wregs[t[MOD_CHALLENGE_BAG]];
+	top = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
+	for (pool = 0; pool < 2; pool++) {
+		var = t[MOD_CHALLENGE_VAR + 2 * pool];
+		prev = readPStat(var) & ~MOD_CHALLENGE_BEATEN;
+		writePStat(var, 0);
+		unsetTrigger(t[MOD_CHALLENGE_TRIED + 2 * pool]);
+		if (!isTriggerSet(TRIGGER_BEATEN_GAME_ONCE)) continue;
+		n = 0;
+		for (again = 0; again < 2 && !n; again++) {
+			best = 0;
+			for (i = 0; i < MOD_CHALLENGE_MAX; i++) {
+				type = t[MOD_CHALLENGE_ROWS + i];
+				if (type <= 0) continue;
+				level = type >> MOD_CHALLENGE_LEVEL;
+				type &= MOD_CHALLENGE_SPECIES;
+				if ((type >= MOD_CHALLENGE_NEW_FIRST) != pool) continue;
+				if (!isDigimonRecruited(type)) {
+					if (!pool) continue;
+					n = 0; /* the new pool opens once every one of its rows is recruited */
+					again = 2;
+					break;
+				}
+				w = &bag[i >> 4];
+				bit = 1 << (i & 15);
+				if (again) *w &= ~bit;
+				if (i + 1 == prev || (*w & bit) || level > top || level < best) continue;
+				if (level > best) {
+					best = level;
+					n = 0;
+				}
+				if (randomLimit(++n) == 0) pick = i;
+			}
+		}
+		if (!n) continue;
+		bag[pick >> 4] |= 1 << (pick & 15);
+		writePStat(var, pick + 1);
+	}
+}
+
 void dailyPStatTrigger(void)
 {
 	ScriptState *st;
@@ -1482,6 +1537,7 @@ void dailyPStatTrigger(void)
 			writePStat(MOD_DAILY[MOD_DAILY_CLEAR_PSTAT], v);
 		}
 	}
+	modChallengeDaily();
 }
 
 int32_t isPartnerBaby(void)

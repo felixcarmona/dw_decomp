@@ -66,6 +66,37 @@ int32_t econPercent(int32_t slot);
 #define MOD_DAILY_CLEAR_MASK	6 /* ... with this mask */
 extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 
+/* resident challenges (postgame): MOD_CHALLENGE[] (main) and BTL_CHALLENGE_FIGHT[] (the battle overlay), every slot
+ * -1 = off, written by tools/balance.py from content/tables/resident-challenges.json. The rows are two pools: the
+ * original game's residents (species below MOD_CHALLENGE_NEW_FIRST) and Horizon's new ones. At midnight, once the game
+ * is beaten, each open pool sends out one recruited resident of its rows: its saved pstat (MOD_CHALLENGE_VAR + 2 * pool)
+ * becomes row + 1 (0 = nobody; the story adds MOD_CHALLENGE_BEATEN when the challenger is beaten) and its tried flag is
+ * cleared; the story does the rest. The original pool is always open; the new one only once every one of its rows is
+ * recruited. The pick is a shuffle bag: saved wide registers from MOD_CHALLENGE_BAG on hold one bit per row already sent
+ * out this cycle (16 rows a register, low bit first). Only rows whose level is at most the partner's can go, the
+ * highest such level first (a row's level is 0 with the stage rule "any": no order); when every one of a pool that can
+ * go has gone, that pool's bits are emptied and a new cycle starts. Never the pool's resident of the day before.
+ * A battle started while the scratch pstat BTL_CHALLENGE_ARMED is 1 (2) is the challenge of the first (second) pool
+ * (BTL_battleMain, battle_main.c): every foe of the row's species gets, for each stat, the larger of its own (the
+ * story's site NPC's) and the partner's times (100 + percent) / 100, at most 9999. */
+#define MOD_CHALLENGE_BAG	0 /* the first saved wide register (w0-w14) of the bag: rows sent out this cycle, one bit each */
+#define MOD_CHALLENGE_VAR	1 /* saved pstat: the original pool's challenger today, row + 1; then its tried flag (fought today); */
+#define MOD_CHALLENGE_TRIED	2 /* then the same two of the new pool (MOD_CHALLENGE_VAR + 2 * pool) */
+#define MOD_CHALLENGE_ROWS	5 /* the first row: its species, its level above MOD_CHALLENGE_LEVEL */
+#define MOD_CHALLENGE_LEVEL	12 /* a row's level (0 with the stage rule "any") is its value >> 12 */
+#define MOD_CHALLENGE_SPECIES	0xfff /* ... and its species the low 12 bits */
+#define MOD_CHALLENGE_MAX	72
+#define MOD_CHALLENGE_NEW_FIRST	112 /* Horizon's own species: the new pool */
+#define MOD_CHALLENGE_BEATEN	0x80 /* added to the challenger var by the story when it is beaten: it goes home, the wilds come back */
+#define MOD_CHALLENGE_SIZE	(MOD_CHALLENGE_ROWS + MOD_CHALLENGE_MAX)
+extern int16_t MOD_CHALLENGE[MOD_CHALLENGE_SIZE];
+#define BTL_CHALLENGE_PERCENT	0 /* the partner's stats' bonus */
+#define BTL_CHALLENGE_NO_ITEMS	1 /* 1: the bag is empty in a challenge */
+#define BTL_CHALLENGE_NO_LATE	2 /* 1: no NORMAL late-game step (battleFormulas normal) in a challenge */
+#define BTL_CHALLENGE_ARMED	3 /* scratch pstat: 1 or 2 = the next battle is that pool's challenge (cleared by the battle) */
+#define BTL_CHALLENGE_SIZE	4
+extern uint8_t MOD_CHALLENGE_NO_BAG; /* the bag is empty in this battle */
+
 /* a new game and a new partner: MOD_NEWGAME[], every slot -1 = the rule does not exist (modNewGame answers 0), written by tools/balance.py
  * from content/tables/new-game.json */
 #define MOD_NEWGAME_SIZE	78

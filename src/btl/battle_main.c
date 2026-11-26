@@ -1850,6 +1850,55 @@ void modBattleLoadFinish(void); /* MOD (quick battle start), btl.c */
 void BTL_tickQuickStartText(void); /* MOD (quick battle start), battle_setup.c */
 void BTL_endQuickStartText(void);
 
+/* MOD (resident challenges): the fight's rules (mod_rules.h), in the battle overlay so the resident heap pays nothing;
+ * the section keeps this small array out of .sdata, which the linker places in the main executable */
+int16_t BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_SIZE] __attribute__((section(".data.BTL_CHALLENGE_FIGHT"))) = { -1, -1, -1, -1 };
+
+/* MOD (resident challenges, mod_rules.h): a battle the script armed as a challenge. Every foe of the row's species
+ * takes, for each stat, the larger of its own (the story gives the challenger its species sheet's) and the partner's
+ * times (100 + percent) / 100, at most 9999; the bag empties if the rule says so; with the no-late-step rule NORMAL's
+ * fromHp is 0 for this battle (no late-game HP and attack step, no late-game damage floor, on every difficulty; HARD
+ * keeps its own factors and floor). Its value is returned, for BTL_battleMain to put back, else 0x10000. Before
+ * BTL_initializeCombat, so the battle's initial stats, rewards and stat gains see them. */
+static int32_t modChallengeBattle(void)
+{
+	int32_t i, k, type, late;
+	int16_t *own, *partner;
+
+	MOD_CHALLENGE_NO_BAG = 0;
+	if (BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_ARMED] < 0) return 0x10000;
+	k = readPStat(BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_ARMED]); /* 1 or 2: the first or the second pool's challenger */
+	if (k != 1 && k != 2) return 0x10000;
+	writePStat(BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_ARMED], 0);
+	if (MOD_CHALLENGE[MOD_CHALLENGE_VAR + 2 * (k - 1)] < 0) return 0x10000;
+	k = readPStat(MOD_CHALLENGE[MOD_CHALLENGE_VAR + 2 * (k - 1)]);
+	if (k < 1 || k > MOD_CHALLENGE_MAX) return 0x10000;
+	type = MOD_CHALLENGE[MOD_CHALLENGE_ROWS + k - 1] & MOD_CHALLENGE_SPECIES;
+	MOD_CHALLENGE_NO_BAG = BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_NO_ITEMS] > 0;
+	late = 0x10000;
+	if (BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_NO_LATE] > 0) {
+		late = MOD_BATTLE[MOD_BT_NORMAL_FROM_HP];
+		MOD_BATTLE[MOD_BT_NORMAL_FROM_HP] = 0;
+	}
+	partner = (int16_t *)&PARTNER_ENTITY.digimonEntity.stats.base;
+	for (i = 1; i <= ENEMY_COUNT; i++) {
+		DigimonEntity *e = (DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+
+		if (e->entity.type != type) continue;
+		own = (int16_t *)&e->stats.base;
+		/* off, def, speed, brain, then (after the 8 bytes of moves) hp and mp: the int16 slots 0-3 and 8-9 of BaseStats */
+		for (k = 0; k < 10; k++) {
+			if (k == 4) k = 8;
+			int32_t v = partner[k] * (100 + BTL_CHALLENGE_FIGHT[BTL_CHALLENGE_PERCENT]) / 100;
+			if (v < own[k]) v = own[k];
+			own[k] = v > 9999 ? 9999 : v;
+		}
+		e->stats.current.currentHP = e->stats.base.hp;
+		e->stats.current.currentMP = e->stats.base.mp;
+	}
+	return late;
+}
+
 int32_t BTL_battleMain(void)
 {
 	COMBAT_AREA_X = 0xa0 - DRAWING_OFFSET_X;
@@ -1859,11 +1908,13 @@ int32_t BTL_battleMain(void)
 	int32_t fighterIndex;
 	int16_t enemies[4];
 	int16_t remaining;
+	int32_t lateHP;
 
 	timeLimit = readPStat(PSTAT_BATTLE_TIME_LIMIT) * 20;
 	timedOut = 0;
 	writePStat(PSTAT_BATTLE_TIME_LIMIT, 0);
 	writePStat(PSTAT_BATTLE_TIMED_OUT, 0);
+	lateHP = modChallengeBattle(); /* MOD (resident challenges) */
 	BTL_initializeCombat();
 	BTL_handleBattleIntro();
 	for (;;) {
@@ -1905,6 +1956,8 @@ int32_t BTL_battleMain(void)
 	modBattleLoadFinish(); /* MOD (quick battle start), btl.c: what is still loading lands before the clean-up */
 	removePauseBox();
 	BTL_deinitializeCombat();
+	MOD_CHALLENGE_NO_BAG = 0; /* MOD (resident challenges): won, lost or fled, every other battle has its bag and step */
+	if (lateHP != 0x10000) MOD_BATTLE[MOD_BT_NORMAL_FROM_HP] = lateHP;
 	if (timedOut) { /* the time ran out: a battle survived, neither lost nor fled */
 		COMBAT_DATA_PTR->player.currentCommand[0] = 0;
 		return 1;

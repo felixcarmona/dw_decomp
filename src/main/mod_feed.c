@@ -4,6 +4,7 @@
  * feeding/refusal flow; opening the list never consumes it. Field Confirm belongs to map interaction.
  * The Square badge keeps the condition ring's original position, scale and animation.
  */
+#include <dw/mod_rules.h>
 #include <libgs.h>
 
 #include <dw/clock.h>
@@ -559,6 +560,7 @@ int32_t modFeedTick(void)
 ItemId MOD_BAG_TYPES[30];
 uint8_t MOD_BAG_AMOUNTS[30];
 uint8_t MOD_BAG_HELD;
+uint8_t MOD_CHALLENGE_NO_BAG; /* MOD (resident challenges): set by BTL_battleMain for a challenge (battle_main.c) */
 
 static int32_t isBattleItem(ItemId type)
 {
@@ -575,14 +577,14 @@ void modBagFilterForBattle(void)
 	if (MOD_BAG_HELD != 0) {
 		return;
 	}
-	MOD_BAG_HELD = 1;
+	MOD_BAG_HELD = MOD_CHALLENGE_NO_BAG ? 2 : 1; /* MOD (resident challenges): 2 = nothing shown */
 	n = 0;
 	for (i = 0; i < INVENTORY.size; i++) {
 		MOD_BAG_TYPES[i] = INVENTORY.types.array[i];
 		MOD_BAG_AMOUNTS[i] = INVENTORY.amounts.array[i];
 	}
 	for (i = 0; i < INVENTORY.size; i++) {
-		if (isBattleItem(MOD_BAG_TYPES[i])) {
+		if (MOD_BAG_HELD == 1 && isBattleItem(MOD_BAG_TYPES[i])) {
 			INVENTORY.types.array[n] = MOD_BAG_TYPES[i];
 			INVENTORY.amounts.array[n] = MOD_BAG_AMOUNTS[i];
 			INVENTORY.names.array[n] = n;
@@ -604,15 +606,17 @@ void modBagRestoreAfterBattle(void)
 	int32_t i;
 	int32_t n;
 	ItemId held;
+	int32_t shown;
 
 	if (MOD_BAG_HELD == 0) {
 		return;
 	}
+	shown = MOD_BAG_HELD == 1; /* 2: nothing was shown, the bag comes back as it was */
 	MOD_BAG_HELD = 0;
 	held = INVENTORY.types.array[INVENTORY_POINTER];
 	n = 0;
 	for (i = 0; i < INVENTORY.size; i++) {
-		if (isBattleItem(MOD_BAG_TYPES[i])) {
+		if (shown && isBattleItem(MOD_BAG_TYPES[i])) {
 			while ((n < INVENTORY.size) && (INVENTORY.types.array[n] == ITEM_NONE)) {
 				n++;
 			}
