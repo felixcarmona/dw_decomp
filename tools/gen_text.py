@@ -220,9 +220,12 @@ def __generate(release, blocks, source):
         literal = __padded(text, other, where)
         if as_macro:
             # MOD (language): still a literal (the C may initialise an array with it), with one NUL more than the longer
-            # text, so the compiler never merges it with an equal literal (both languages keep the same layout)
+            # text, so the compiler never merges it with an equal literal (both languages keep the same layout).
+            # Two macros that read the same in this language and not in another would still merge here and not
+            # there: the padding bank's 'apart' gives such a key more NULs, the same number in every language.
             if __PAD_ON:
-                literal = __c_string(text, where, max(__c_bytes(text, where), __c_bytes(other or '', where)) + 1)
+                literal = __c_string(text, where, max(__c_bytes(text, where), __c_bytes(other or '', where)) + 1 +
+                                     __PAD.get('apart', {}).get(key, 0))
             header.append('#define {} {}'.format(symbol, literal))
             return []
         pair = __pair(literal, other, key or where)
