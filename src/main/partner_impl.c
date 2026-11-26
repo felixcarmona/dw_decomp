@@ -2367,7 +2367,7 @@ static void renderCareHUD(void)
 		{1,1,1,1,39,39,39},
 		{72,72,86,86,65,79,93}
 	};
-	int32_t i, value, max, red, icon, x, y, pixels, active, warn, period, dim;
+	int32_t i, value, max, red, icon, x, y, pixels, active, warn, period, dim, clut;
 	for (i = 0; i < 5; i++) {
 		max = 100;
 		icon = i + 2;
@@ -2434,14 +2434,19 @@ static void renderCareHUD(void)
 		pixels = ((uint32_t)value * 18 + (uint32_t)max / 2) / (uint32_t)max;
 		if (value && !pixels)
 			pixels = 1;
-		/* 20 play ticks per phase: one second normal, one second dim. */
-		dim = !active && warn && PLAYTIME_FRAMES % 40 >= 20 ? 8 : 0;
+		uint32_t phase = PLAYTIME_FRAMES / 5;
+		/* One shared quotient preserves the 5-tick face and 20-tick warning phases. */
+		dim = ((!active) & warn & (phase >> 2)) << 3;
+		clut = getClut(272, 500 + icon + active * 4);
+		/* Native disliked-habitat phase: five worse-face ticks, five normal. */
+		if (i == 0 && MAP_TILE_DATA.partnerAreaResponse == 2 && !(phase & 1))
+			clut = getClut(272, 511) - icon;
 		/* Warning dimming affects the outlined bar, never the icon. */
-		renderRectPolyFT4(x, y, dim ? 13 : 34, 13, uv[0][icon], uv[1][icon], 31, GetClut(272, 500 + icon + active * 4), 14, 0);
+		renderRectPolyFT4(x, y, dim ? 13 : 34, 13, uv[0][icon], uv[1][icon], 31, clut, 14, 0);
 		if (dim)
-			renderRectPolyFT4(x + 14, y + 5, 20, 4, uv[0][icon] + 14, uv[1][icon] + 5, 31, GetClut(272, 500 + icon), 14, dim);
+			renderRectPolyFT4(x + 14, y + 5, 20, 4, uv[0][icon] + 14, uv[1][icon] + 5, 31, clut, 14, dim);
 		if (pixels)
-			renderRectPolyFT4(x + 15, y + 6, pixels, 2, i < 2 ? 144 : 164, i < 2 ? 251 + red * 2 : 251, 31, GetClut(272, 507), 13, dim);
+			renderRectPolyFT4(x + 15, y + 6, pixels, 2, i < 2 ? 144 : 164, i < 2 ? 251 + red * 2 : 251, 31, getClut(272, 507), 13, dim);
 	}
 }
 
