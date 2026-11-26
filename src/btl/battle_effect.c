@@ -1289,22 +1289,28 @@ void BTL_tickEFEEngine(void)
  * (sounds, CLUT uploads, particle emitters, flashes, clouds, entity particles,
  * attack objects and hit tests, turning the source entity, the "finished"
  * mark). On the extra passes the area is copied aside before the slot's
- * scripts and put back after them (into the free part of the EFE heap, above
- * the last loaded effect), those opcodes do nothing and the random numbers
- * come from a private generator (modRenderRand), so after the passes the
- * battle is exactly as one render per tick left it. */
+ * scripts and put back after them (into the top of the free part of the EFE
+ * heap, below the overlay), those opcodes do nothing and the random numbers
+ * come from modRenderRand / modRenderCustomRandom (the first pass's numbers
+ * again), so after the passes the battle is exactly as one render per tick
+ * left it. */
 static int32_t BTL_modEfeSave(int32_t data, uint32_t **buf)
 {
 	int32_t size = ((EfeFileHeader *)(data - 0x34))->tmdStart & ~3;
-	uint32_t *b = (uint32_t *)(((int32_t)EFE_HEAP_POINTER + 3) & ~3);
+	uint32_t *b;
 	uint32_t *s = (uint32_t *)data;
-	uint32_t *d = b;
+	uint32_t *d;
 	int32_t k;
 
-	/* the heap is free up to the battle overlay (BTL_REL at 0x80052ae0) */
-	if (size <= 0 || (uint32_t)b + size > 0x80052ae0u) {
+	/* the heap is free up to the battle overlay (BTL_REL at 0x80052ae0);
+	 * the copy goes at its top, clear of the 0x5000 bytes above the heap
+	 * pointer where an effect file being loaded is read and set up */
+	b = (uint32_t *)((0x80052ae0u - (uint32_t)size) & ~3u);
+	if (size <= 0 || size > 0x10000 ||
+	    (uint32_t)b < (uint32_t)EFE_HEAP_POINTER + 0x5000) {
 		return 0; /* no room: not expected (MOD_FPS_EFE_NO_ROOM counts it) */
 	}
+	d = b;
 	for (k = size >> 2; k > 0; k--) {
 		*d++ = *s++;
 	}
