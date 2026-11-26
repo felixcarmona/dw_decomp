@@ -12,6 +12,7 @@
 #include <dw/item.h>
 #include <dw/main.h>
 #include <dw/math.h>
+#include <dw/mod_present.h>
 #include <dw/params.h>
 #include <dw/script.h>
 #include <dw/sound.h>
@@ -128,22 +129,16 @@ int32_t isScreenConcave(void)
 
 void loadBattleDataTick(void)
 {
+	/* MOD (fps): rendered by the shared tick / present helper (main.c) */
+	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
 	tickObjects();
-	renderObjects();
-	AddPrim(ACTIVE_ORDERING_TABLE->org + 0x20,
-		&DR_OFFSETS[ACTIVE_FRAMEBUFFER]);
-	DrawSync(0);
-	VSync(3);
+	modPresent(MOD_PRESENT_BATTLE, NULL);
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
-	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-	GsSwapDispBuff();
-	GsSortClear(0, 0, 0, ACTIVE_ORDERING_TABLE);
-	GsDrawOt(ACTIVE_ORDERING_TABLE);
 }
 
 void handleBattleIdle(entity, stats, flags)
@@ -590,6 +585,12 @@ void renderFleeBubble(int32_t instanceId)
 	GsSortSprite(&sprite, ACTIVE_ORDERING_TABLE, 8);
 	FLEE_BUBBLE_DATA[instanceId - 2].frame++;
 	if ((LOAD_EFE_STATE == 0) || (FLEE_BUBBLE_DATA[instanceId - 2].frame == 0xc8)) {
-		removeFleeBubble(instanceId);
+		/* MOD (fps): the other render passes of this tick still draw it
+		 * (frame is rolled back for them, main.c) */
+		if (MOD_RENDER_MULTIPASS) {
+			removeObjectAfterRender(0x196, instanceId);
+		} else {
+			removeFleeBubble(instanceId);
+		}
 	}
 }

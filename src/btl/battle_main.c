@@ -9,6 +9,7 @@
 #include <dw/ids.h>
 #include <dw/item.h>
 #include <dw/math.h>
+#include <dw/mod_present.h>
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/script.h>
@@ -2592,23 +2593,86 @@ void BTL_removeMoveEffect(DigimonEntity *digimon, FighterData *fighter)
 	fighter->activeEffectSlot = -1;
 }
 
+/* MOD (fps): battle state that render callbacks advance, rolled back around
+ * the extra render passes of a tick (dw/mod_present.h): every pass starts from
+ * the values the first pass started from, and the first pass's results are
+ * put back afterwards, so the battle sees exactly what one render per tick
+ * would have left and every pass draws the same picture.
+ * - COMBAT_DATA and the fighters' stats: the HP bars drain hpDamageBuffer
+ *   into currentHP (damageTick) and apply mpDamageBuffer; the enemy bars move
+ *   their sprites and count their display timer (player.unk1);
+ * - the "BATTLE" start text pieces, its colour timer and BTL_BATTLE_TEXT_FINISHED
+ *   (the intro waits on it);
+ * - the finisher gauge pulse/full counters and BTL_FINISHER_READY;
+ * - the command shout's frame. */
+extern uint8_t BTL_BATTLE_START_TEXT_TIMER[4];
+extern int32_t BTL_BATTLE_TEXT_FINISHED;
+extern uint8_t BTL_FINISHER_FULL_FRAMES;
+extern uint8_t BTL_FINISHER_PULSE_FRAME;
+extern uint8_t BTL_FINISHER_BRIGHTNESS;
+extern uint8_t BTL_FINISHER_SEGMENTS;
+extern uint8_t BTL_FINISHER_READY;
+extern int8_t BTL_START_TEXT_ACTIVE;
+extern BtlCommandShout BTL_COMMAND_SHOUT;
+
+#define BTL_MOD_ROLLBACK_MAX 16
+#define BTL_MOD_ROLLBACK_WORDS 1400
+static ModRollbackVar BTL_MOD_ROLLBACK_VARS[BTL_MOD_ROLLBACK_MAX];
+static uint32_t BTL_MOD_ROLLBACK_PRE[BTL_MOD_ROLLBACK_WORDS];
+static uint32_t BTL_MOD_ROLLBACK_POST[BTL_MOD_ROLLBACK_WORDS];
+static ModRollbackSet BTL_MOD_ROLLBACK = {
+	BTL_MOD_ROLLBACK_VARS, 0, BTL_MOD_ROLLBACK_PRE, BTL_MOD_ROLLBACK_POST
+};
+
+static void BTL_modRollbackAdd(void *ptr, int32_t size)
+{
+	ModRollbackVar *v = &BTL_MOD_ROLLBACK_VARS[BTL_MOD_ROLLBACK.count++];
+
+	v->ptr = ptr;
+	v->size = size;
+}
+
+static ModRollbackSet *BTL_modRollbackSet(void)
+{
+	int32_t i;
+	Entity *e;
+
+	BTL_MOD_ROLLBACK.count = 0;
+	BTL_modRollbackAdd(COMBAT_DATA_PTR, sizeof(CombatData));
+	BTL_modRollbackAdd(&PARTNER_ENTITY.digimonEntity.stats, sizeof(Stats));
+	for (i = 1; i <= ENEMY_COUNT && i < 4; i++) {
+		e = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
+		if (e != NULL && e != &PARTNER_ENTITY.digimonEntity.entity) {
+			BTL_modRollbackAdd(&((DigimonEntity *)e)->stats, sizeof(Stats));
+		}
+	}
+	if (BTL_START_TEXT_ACTIVE) {
+		BTL_modRollbackAdd(BTL_BATTLE_START_TEXT_PIECES, sizeof(BTL_BATTLE_START_TEXT_PIECES));
+	}
+	BTL_modRollbackAdd(BTL_BATTLE_START_TEXT_TIMER, sizeof(BTL_BATTLE_START_TEXT_TIMER));
+	BTL_modRollbackAdd(&BTL_BATTLE_TEXT_FINISHED, sizeof(BTL_BATTLE_TEXT_FINISHED));
+	BTL_modRollbackAdd(&BTL_FINISHER_FULL_FRAMES, 1);
+	BTL_modRollbackAdd(&BTL_FINISHER_PULSE_FRAME, 1);
+	BTL_modRollbackAdd(&BTL_FINISHER_BRIGHTNESS, 1);
+	BTL_modRollbackAdd(&BTL_FINISHER_SEGMENTS, 1);
+	BTL_modRollbackAdd(&BTL_FINISHER_READY, 1);
+	BTL_modRollbackAdd(&BTL_COMMAND_SHOUT, sizeof(BTL_COMMAND_SHOUT));
+	return &BTL_MOD_ROLLBACK;
+}
+
 void BTL_battleTickFrame(void)
 {
+	/* MOD (fps): rendered by the shared tick / present helper (main.c);
+	 * the tick started with the AI in BTL_battleMain */
+	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);
 	GsClearOt(0, 0, ACTIVE_ORDERING_TABLE);
 	tickObjects();
-	renderObjects();
-	AddPrim(ACTIVE_ORDERING_TABLE->org + 0x20, &DR_OFFSETS[ACTIVE_FRAMEBUFFER]);
-	DrawSync(0);
-	VSync(3);
+	modPresent(MOD_PRESENT_BATTLE, BTL_modRollbackSet());
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
-	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
-	GsSwapDispBuff();
-	GsSortClear(0, 0, 0, ACTIVE_ORDERING_TABLE);
-	GsDrawOt(ACTIVE_ORDERING_TABLE);
 }
 
 void BTL_addFinisherProgress(FighterData *fighter, int16_t amount)

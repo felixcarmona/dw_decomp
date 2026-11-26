@@ -4064,6 +4064,8 @@ extern int8_t MENU_SUB_STATE;
 extern SVECTOR MEDAL_ROTATION;
 extern int16_t MONOCHROMON_BUBBLE_TIMER;
 extern uint8_t TEXTBOX_OPEN_TIMER;
+extern int16_t STATS_GAINS[6];   /* renderPostBattleStatsBox counts them down */
+extern uint8_t FLEE_BUBBLE_DATA[8 * 12]; /* renderFleeBubble: frame++ */
 
 static ModRollbackVar MOD_ROLLBACK_VARS[] = {
 	{ &MENU_STATE, sizeof(MENU_STATE) },
@@ -4072,9 +4074,13 @@ static ModRollbackVar MOD_ROLLBACK_VARS[] = {
 	{ &MONOCHROMON_BUBBLE_TIMER, sizeof(MONOCHROMON_BUBBLE_TIMER) },
 	{ &TEXTBOX_OPEN_TIMER, sizeof(TEXTBOX_OPEN_TIMER) },
 	{ UI_BOX_DATA, sizeof(UIBoxData) * 6 },
+	{ STATS_GAINS, sizeof(int16_t) * 6 },
+	{ INITIAL_COMBAT_STATS, sizeof(StatsGains) },
+	{ FLEE_BUBBLE_DATA, sizeof(FLEE_BUBBLE_DATA) },
 };
 #define MOD_NUM_ROLLBACK_VARS (sizeof(MOD_ROLLBACK_VARS) / sizeof(MOD_ROLLBACK_VARS[0]))
-#define MOD_ROLLBACK_SIZE (1 + 1 + sizeof(SVECTOR) + 2 + 1 + sizeof(UIBoxData) * 6)
+#define MOD_ROLLBACK_SIZE (1 + 1 + sizeof(SVECTOR) + 2 + 1 + sizeof(UIBoxData) * 6 + \
+			   12 + sizeof(StatsGains) + 96)
 static uint8_t modRollbackPre[MOD_ROLLBACK_SIZE];
 static uint8_t modRollbackPost[MOD_ROLLBACK_SIZE];
 
