@@ -26,7 +26,7 @@ typedef struct {
 	uint8_t dropItem;
 	uint8_t dropChance;
 	uint8_t moves[16];
-	uint8_t padding;
+	uint8_t boostedTech; /* MOD (boosted techniques): the species' boosted technique + 1, 0 none; padding in the original */
 } DigimonPara;
 
 typedef struct {

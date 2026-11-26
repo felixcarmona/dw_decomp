@@ -232,6 +232,22 @@ int32_t getSpeciesTechEffect(int32_t type, int32_t move)
 	return tech + 0x100;
 }
 
+int32_t modBoost(int32_t type, int32_t move, int32_t cost)
+{
+	Move *mv = modSpeciesMove(type, move);
+	int32_t boosted = DIGI_PARA(type).boostedTech == move + 1;
+	int32_t value;
+
+	if (cost) {
+		value = mv->mpCost;
+		if (boosted) value -= (value + 2) / 4; /* a quarter less, rounded; 1 stays 1 */
+	} else {
+		value = mv->power;
+		if (boosted) value += value / 8 + 30;
+	}
+	return value;
+}
+
 int32_t isRecordOriginal(int32_t type)
 {
 	if ((uint32_t)type >= NUM_ORIGINAL_DIGIMON) {

@@ -117,6 +117,15 @@ typedef struct {
 #define SPECIES_HEADER_EVOLUTION_OFF 0x3c
 #define SPECIES_EVOLUTION_SWAP_MAX 20
 Move *modSpeciesMove(int32_t type, int32_t move);
+/* MOD (boosted techniques, docs/mods/boosted-techniques.md): what `move` does in the hands of a partner of species
+ * `type`: its power, or its stored MP cost with `cost`, raised and lowered when it is the species' boosted technique
+ * (DigimonPara.boostedTech). Only the partner (and both VS fighters) ask; the speed buffer, the enemies and the
+ * finishers keep reading modSpeciesMove. */
+int32_t modBoost(int32_t type, int32_t move, int32_t cost);
+#define modBoostPower(type, mv) modBoost(type, mv, 0)
+#define modBoostCost(type, mv) modBoost(type, mv, 1)
+#define MOD_BOOST_POWER(e, mv) ((Entity *)(e) == ENTITY_TABLE[1] ? modBoostPower((e)->entity.type, mv) : modSpeciesMove((e)->entity.type, mv)->power)
+#define MOD_BOOST_COST(e, mv) ((Entity *)(e) == ENTITY_TABLE[1] ? modBoostCost((e)->entity.type, mv) : modSpeciesMove((e)->entity.type, mv)->mpCost)
 void modApplySpeciesLevels(void);
 /* Native evolution items follow current stages, retaining the legacy Mega item exception. */
 int32_t modNativeItemTargetLevel(int32_t type);

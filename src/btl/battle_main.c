@@ -2076,7 +2076,7 @@ int32_t BTL_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	} else {
 		diff = off - def;
 		roll = randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN);
-        dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtDefensePower(modSpeciesMove(attacker->entity.type, move)->power, off, defender->stats.base.def, move == 0x2d), DMG_DIV) * roll / 100;
+        dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtDefensePower(MOD_BOOST_POWER(attacker, move), off, defender->stats.base.def, move == 0x2d), DMG_DIV) * roll / 100;
         if ((Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1] && (floorPercent = modFloorPercent(attacker->stats.base.hp)) > 0) {
             floorDamage = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, off), DMG_DIV) * roll / 100;
             if (floorDamage > DAMAGE_CAP) floorDamage = DAMAGE_CAP;
@@ -2382,7 +2382,7 @@ int32_t BTL_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 		return 0;
 	}
 
-	mp = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT); /* MOD (battle as data) */
+	mp = MOD_BOOST_COST(digimon, tech) * BM(MP_MULT); /* MOD (battle as data, boosted techniques) */
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		mp -= mp * BMBRAIN(PARTNER_ENTITY.digimonEntity.stats.base.brain) / 100;
 		if (PARTNER_PARA.condition & 0x60) {
@@ -2557,7 +2557,7 @@ void BTL_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	BTL_removeMoveEffect(digimon, fighter);
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		if (!((tech >= 0x3a) && (tech < 0x71))) {
-			cost = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
+			cost = modBoostCost(digimon->entity.type, tech) * BM(MP_MULT); /* MOD (boosted techniques) */
 			if (PARTNER_PARA.condition & 0x60) {
 				cost += cost * BM(MP_COND_PCT) / 100;
 			}
@@ -3536,7 +3536,7 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 				values[i] = -1;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = modSpeciesMove(digimon->entity.type, tech)->power;
+				values[i] = MOD_BOOST_POWER(digimon, tech);
 			}
 		}
 		BTL_sortScoresDescending(values, keys, groups, 3);
@@ -3564,7 +3564,7 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 				values[i] = 10000;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
+				values[i] = MOD_BOOST_COST(digimon, tech) * BM(MP_MULT);
 			}
 		}
 		BTL_sortScoresAscending(values, keys, groups, 3);

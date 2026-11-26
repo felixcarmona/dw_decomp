@@ -3882,6 +3882,48 @@ void renderDigimonStatsView(void)
 	}
 }
 
+/* MOD (boosted techniques): the species' boosted technique shows its raised power in red with an up arrow
+ * and its lowered MP cost in blue with a down arrow */
+/* mode 0: red, up; 1: blue, down; 2: the black edge of the up arrow, one pixel wider all round (added after it, so
+ * drawn under it) */
+static void renderBoostArrow(int32_t x, int32_t y, int32_t mode, int32_t otz)
+{
+	int32_t k, w;
+	int32_t edge = mode >> 1;
+	int32_t step = 1;
+	int32_t r = 0, g = 0, b = 0;
+
+	if (mode == 0) {
+		r = 0xff; g = 0x60; b = 0x50;
+	}
+	if (mode == 1) {
+		r = 0x60; g = 0xb0; b = 0xff;
+		y += 6;
+		step = -1;
+	}
+	for (k = 0; k < 7; k++) {
+		w = k < 4 ? k : 1; /* the head, then the shaft */
+		renderBox(x + 3 - w - edge, y - edge, (w + edge) * 2 + 1, edge * 2 + 1, r, g, b, 0, otz);
+		y += step;
+	}
+}
+
+static void renderBoostedNumbers(int32_t moveId, int32_t x, int32_t y, int32_t list)
+{
+	int32_t type = PARTNER_ENTITY.digimonEntity.entity.type;
+	int32_t boosted = DIGI_PARA(type).boostedTech == moveId + 1;
+	int32_t otz = list ? 5 : 3;
+	int32_t i, value;
+
+	for (i = 0; i < 2; i++) { /* the power, then the MP cost: beside it in the list, under it in the panel */
+		value = modBoost(type, moveId, i);
+		if (i) value *= 3;
+		renderNumber(boosted ? 6 - i * 4 : 0, x, y, 3, value, otz);
+		if (boosted) renderBoostArrow(x + 0x19, y + 2, i, otz); /* 3 px after the digits, centred on their 10 rows */
+		if (list) x += 0x29; else y += 0x11;
+	}
+}
+
 void renderDigimonMovesView(void)
 {
 	Move *mv;
@@ -3906,8 +3948,7 @@ void renderDigimonMovesView(void)
 			if (EQUIPPED_MOVES[j] != 0xff) {
 				mv = &MOVE_DATA[EQUIPPED_MOVES[j]];
 				renderString(0, -0x7c, j * 0xf - 0x42, 0x78, 0xc, 0, j * 0xc + 0x18, 5, 1);
-				renderNumber(0, 0x10, j * 0xf - 0x43, 3, mv->power, 5);
-				renderNumber(0, 0x39, j * 0xf - 0x43, 3, mv->mpCost * 3, 5);
+				renderBoostedNumbers(EQUIPPED_MOVES[j], 0x10, j * 0xf - 0x43, 1);
 				if (mv->range != 0) {
 #if !VERSION_IS(US)
 					renderString(0, 0x65, j * 0xf - 0x42, 0xc, 0xc,
@@ -4255,8 +4296,7 @@ void renderDigimonMovesSelected(int16_t panel)
 		drawStringMode(MOVE_NAMES[moveId], 0, 0x84,
 		              fitStringMode(MOVE_NAMES[moveId], MOVE_NAME_WIDTH));
 		renderString(0, (panel * 0x9d) - 0x8a, 9, 0x78, 0xc, 0, 0x84, 3, 1);
-		renderNumber(0, (panel * 0xcb) - 0x64, 0x1b, 3, move->power, 3);
-		renderNumber(0, (panel * 0xcb) - 0x64, 0x2c, 3, move->mpCost * 3, 3);
+		renderBoostedNumbers(moveId, (panel * 0xcb) - 0x64, 0x1b, 0);
 		renderString(0, (panel * 0xcb) - 0x64, 0x3e, 0x24, 0xc, (move->range - 1) * 0x24, 0x78, 3, 1);
 #if !VERSION_IS(US)
 		status = move->status;
@@ -4322,6 +4362,18 @@ void renderDigimonMoveBox(void)
 		}
 	}
 
+	/* MOD (boosted techniques): an up arrow on the corner of the boosted technique's cell (the two techniques that
+	 * exist twice share a cell) */
+	i = DIGI_PARA(ENTITY_TABLE[1]->type).boostedTech - 1;
+	if (i >= 0) {
+		if (i == 0x30) i = 0x2c;
+		if (i == 0x39) i = 0x37;
+		if (i > 0x30) i--;
+		x = (i & 7) * 0x12 - 0x24;
+		y = "\0\2\4\5\3\1\6"[i >> 3] * 0xf - 9;
+		renderBoostArrow(x, y, 0, 3);
+		renderBoostArrow(x, y, 2, 3);
+	}
 	for (i = 0; i < 0x10; i++) {
 		moves[i] = DIGI_PARA(ENTITY_TABLE[1]->type).moves[i];
 	}

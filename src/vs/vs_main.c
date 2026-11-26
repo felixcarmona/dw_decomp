@@ -372,7 +372,7 @@ int32_t VS_rollAttackOutcome(DigimonEntity *attacker, DigimonEntity *defender, i
 		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	} else {
 		diff = atk - def;
-		dmg = BMD((eff[2] + (eff[0] + eff[1])) * modBtDefensePower(modSpeciesMove(attacker->entity.type, move)->power, atk, defender->stats.base.def, move == 0x2d), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
+		dmg = BMD((eff[2] + (eff[0] + eff[1])) * modBtDefensePower(modBoostPower(attacker->entity.type, move), atk, defender->stats.base.def, move == 0x2d), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 
 	if (dmg <= BM(DMG_MIN) - 1) {
@@ -716,7 +716,7 @@ int32_t VS_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t sl
 		return 0;
 	}
 
-	mp = (int16_t)(modSpeciesMove(digimon->entity.type, tech)->mpCost * 3);
+	mp = (int16_t)(modBoostCost(digimon->entity.type, tech) * 3); /* MOD (boosted techniques) */
 	if (digimon->stats.base.brain >= 700) {
 		if (digimon->stats.base.brain == 999) {
 			mp -= (int16_t)(mp / 5);
@@ -920,7 +920,7 @@ void VS_playMoveEffect(DigimonEntity *digimon, DigimonEntity *target, FighterDat
 	}
 
 	if (!((tech >= 0x3a) && (tech < 0x71))) {
-		cost = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
+		cost = modBoostCost(digimon->entity.type, tech) * BM(MP_MULT);
 		brain = digimon->stats.base.brain;
 		if (brain >= 0x2bc) {
 			if (brain == 0x3e7) {
@@ -1626,7 +1626,7 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 				values[i] = -1;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = modSpeciesMove(digimon->entity.type, tech)->power;
+				values[i] = modBoostPower(digimon->entity.type, tech);
 			}
 		}
 		VS_sortScoresDescending(values, keys, groups, 3);
@@ -1654,7 +1654,7 @@ void VS_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t 
 				values[i] = 10000;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
+				values[i] = modBoostCost(digimon->entity.type, tech) * BM(MP_MULT);
 			}
 		}
 		VS_sortScoresAscending(values, keys, groups, 3);

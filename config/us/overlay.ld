@@ -313,6 +313,7 @@ SECTIONS
                 .text.drawOptionsText* .text.renderOptionsMenu* .text.modSetOption*
                 .text.modOptionValue* .text.modOptionText* .text.modOptionCount*
                 .text.modOptionV* .text.modOptionW* .rodata.MOD_OPT_TEXT
+                .text.modOptionLanguageName*
                 .rodata.drawOptionsText* .rodata.renderOptionsMenu* .rodata.modSetOption*
                 .rodata.modOptionValue* .rodata.modOptionText* .rodata.modOptionCount*
                 .rodata.modDrawLanguagePicker* .rodata.modTickLanguagePicker*
@@ -330,6 +331,9 @@ SECTIONS
                 .rodata.renderInitialMenu* .rodata.renderSelectNewGameCard* .rodata.renderConfirmVSSlot*
                 .rodata.renderConfirmNoCard*
             );
+            . = ALIGN(., 4);
+            /* MOD (boosted techniques, room in the executable): the new game's tamer look, which only the title's code calls */
+            BUILD_DIR/src/main/mod_species.c.o(.text.modTamerRelook);
             . = ALIGN(., 4);
             /* Detection display only runs while the title owns EVL and MENU. */
             BUILD_DIR/src/main/main_menu.c.o(
