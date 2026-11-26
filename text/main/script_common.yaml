@@ -379,6 +379,15 @@ TOURNAMENT_NAMES:
     STR_TOURNAMENT_NAME_JUNGLE_TROOPERS_CUP:
       ja: ジャングルトルーパーズカップ
       en_us: Jungle Troopers Cup
+    STR_TOURNAMENT_NAME_DARK_CUP:
+      ja: やみカップ
+      en_us: Dark Cup
+    STR_TOURNAMENT_NAME_HOLY_CUP:
+      ja: ひかりカップ
+      en_us: Holy Cup
+    STR_TOURNAMENT_NAME_AQUA_CUP:
+      ja: みずカップ
+      en_us: Aqua Cup
 
 TOURNAMENT_GRADES:
   strings:
