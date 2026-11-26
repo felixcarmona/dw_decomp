@@ -10,8 +10,26 @@ typedef struct {
     int32_t t[3];
 } SmoothPose;
 
+#ifdef __mips__
+extern long SquareRoot0(long a);
+#endif
+
+/* Floor of the square root. Callers pass at most three int16 squares (3 * 2^30). */
 static uint32_t smoothSqrt(uint32_t n)
 {
+#ifdef __mips__
+    /* libgte's table root, one Newton step and a last unit (a host sweep of
+     * that range found it exact, at most one correction step): many times
+     * quicker than the bit loop on the R3000. */
+    uint32_t r, h;
+    if (!n) return 0;
+    h = n >> 30 ? 1 : 0; /* SquareRoot0 takes a signed long */
+    r = (uint32_t)SquareRoot0((long)(n >> (2 * h))) << h;
+    r = (r + n / r) >> 1;
+    while (r * r > n) r--;
+    while ((r + 1) * (r + 1) <= n) r++;
+    return r;
+#else
     uint32_t r = 0, bit = 1u << 30;
     while (bit > n) bit >>= 2;
     while (bit) {
@@ -20,6 +38,7 @@ static uint32_t smoothSqrt(uint32_t n)
         bit >>= 2;
     }
     return r;
+#endif
 }
 
 static int32_t smoothWeight(int32_t elapsed)
