@@ -30,12 +30,12 @@
 /*
  * MOD (font): font b's ring: a 16-pixel cell (4 VRAM halfwords, 8 bytes a row) of 11 rows, 34 slots, and drawGlyph waits
  * for the GPU when the ring wraps (a slot is rewritten only once it has been read). The original font (NEW FONT off)
- * uses the same buffer: 30 of its slots of 72 bytes, waiting too when its ring wraps, and after them the strip its
+ * uses the same buffer: 28 of its slots of 72 bytes, waiting too when its ring wraps, and after them the strip its
  * long names are composed in (FIT_STRIP). 1 400 bytes less than the original's 3 600 and a strip of its own.
  */
 #define PIXEL_RENDER_SLOTS	34
 #define PIXEL_RENDER_SLOT_SIZE	88
-#define CELL_RENDER_SLOTS	30
+#define CELL_RENDER_SLOTS	28
 #define GLYPH_AREA_SIZE		(PIXEL_RENDER_SLOTS * PIXEL_RENDER_SLOT_SIZE)
 #else
 #define GLYPH_AREA_SIZE		(NUM_RENDER_SLOTS * RENDER_SLOT_SIZE)
@@ -2216,7 +2216,12 @@ int32_t textFitCode(char *str, int32_t maxW)
 /* MOD (item names): the strip covers 144 pixels, not the text area's 256: the widest line it composes is a name drawn
  * tight within a field of at most 136 (MetalGreymonVaccine: 131, at most 136 with x & 3); 616 bytes of bss back for
  * the item lists' code */
+#if FONT_SWITCH
+/* MOD (language): the title fits 176 pixels. Two fewer ring slots make room in the same buffer. */
+#define FIT_STRIP_W	176
+#else
 #define FIT_STRIP_W	144
+#endif
 #if FONT_SWITCH
 /* MOD (font): after the original font's ring (CELL_RENDER_SLOTS), which uses it only with NEW FONT off */
 #define FIT_STRIP (GLYPH_DRAWING_AREAS + CELL_RENDER_SLOTS * RENDER_SLOT_SIZE)
