@@ -29,7 +29,9 @@ int32_t modFrameRateLevel(void);
 #define MOD_FPS_POLICY_CPU 4
 extern int8_t MOD_FPS_POLICY;
 extern int8_t MOD_CAD_LEVEL;  /* 2 = 60, 1 = steady 30, 0 = 20 (the current level of the ladder) */
-extern int8_t MOD_CAD_KEEP60; /* frames per 32 ticks to stay at 60 */
+extern int8_t MOD_CAD_UP;     /* lines each pass must leave spare before the ladder climbs */
+extern int8_t MOD_CAD_RESET;  /* tools: forget every screen's facts at the next tick */
+extern int16_t MOD_CAD_CLIMB; /* ticks in a row that must fit the higher cadence before a climb */
 extern int8_t MOD_CAD_KEEP30; /* late or skipped frames per 32 ticks tolerated at steady 30 */
 extern int32_t MOD_CAD_SWITCHES;
 extern int32_t MOD_CAD_LAST;
