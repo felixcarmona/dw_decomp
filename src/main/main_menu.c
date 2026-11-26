@@ -468,6 +468,7 @@ static int32_t isSaveCopyValid(int32_t copy);
 static void prepareSaveFile(int32_t fromRam);
 static void modTitleOptions(void); /* MOD (options) */
 static void modCardOptions(void);
+void modNoticeProbe(void);
 static int32_t modHeaderSaveNumber(const uint8_t *header);
 static int32_t writeSaveFile(void);
 static long saveFileStart(int32_t write);
@@ -4946,6 +4947,93 @@ void modBootOptions(void)
 	MOD_BOOT_LANGUAGE = modLanguageCount() > 1;
 	MOD_BOOT_LANGUAGE_CURSOR = 0;
 	modCardOptions();
+	modNoticeProbe();
+}
+
+/*
+ * MOD (emulator notice): the title screen lists the settings the game plays best with when it could not find one of them, each on its own
+ * row from its own check; with both there, nothing shows. RAM: modProbeRam. CPU: the reads of the hblank
+ * counter that fit in MOD_CPU_LINES lines. The counter follows the screen whatever the emulated CPU does, so the count grows with
+ * an overclock: DuckStation 3801 at 100 %, 7389 at 200 %, 9303 at 250 %, 10977 at 300 %. MOD_CPU_SPINS_FAST sits between 200 and 250.
+ */
+#define MOD_CPU_LINES		16
+#define MOD_CPU_SPINS_FAST	8500
+#define MOD_NOTICE_NO_RAM	1
+#define MOD_NOTICE_SLOW_CPU	2
+#define MOD_NOTICE_LEFT		-132 /* the panel, over the top of the logo */
+#define MOD_NOTICE_TOP		12
+#define MOD_NOTICE_WIDTH	264
+#define MOD_NOTICE_HEIGHT	72
+#define MOD_NOTICE_STRS		6
+#define MOD_NOTICE_V(i)		(((i) + ((i) == 5)) * 0xC) /* row 5 of the text area is the version's */
+void modPlateRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z);
+void renderString(int32_t color, int16_t x, int16_t y, int16_t width, int16_t height, int16_t u, int16_t v, int32_t depth, int32_t shadow);
+
+int32_t MOD_CPU_SPINS;
+static int32_t MOD_NOTICE;
+static uint8_t MOD_NOTICE_W[MOD_NOTICE_STRS];
+static char *MOD_NOTICE_TEXT[MOD_NOTICE_STRS] = {
+	MOD_NOTICE_STR_HEAD1, MOD_NOTICE_STR_HEAD2, MOD_NOTICE_STR_RAM, MOD_NOTICE_STR_CPU, MOD_NOTICE_STR_MISSING, MOD_NOTICE_STR_READY,
+};
+
+void modNoticeProbe(void)
+{
+	volatile uint16_t *lines = (volatile uint16_t *)0x1F801110;
+	uint16_t start = *lines;
+	int32_t spins = 0;
+
+	do {
+		spins++;
+	} while ((uint16_t)(*lines - start) < MOD_CPU_LINES);
+	MOD_CPU_SPINS = spins;
+	MOD_NOTICE = (modProbeRam() ? 0 : MOD_NOTICE_NO_RAM) | (MOD_CPU_SPINS < MOD_CPU_SPINS_FAST ? MOD_NOTICE_SLOW_CPU : 0);
+}
+
+void modNoticeDraw(void)
+{
+	RECT rect;
+	int32_t i;
+	int32_t mode;
+	char *str;
+
+	if (MOD_NOTICE == 0) {
+		return;
+	}
+	setRECT(&rect, 0, 0, 0x100, MOD_NOTICE_V(MOD_NOTICE_STRS));
+	clearTextSubArea(&rect);
+	for (i = 0; i < MOD_NOTICE_STRS; i++) {
+		str = MOD_NOTICE_TEXT[i];
+		mode = fitStringMode(str, 0xFE);
+		drawStringMode(str, 0, MOD_NOTICE_V(i), mode);
+		DrawSync(0);
+		mode = measureStringMode(str, mode) + 1; /* and the shadow */
+		MOD_NOTICE_W[i] = mode < 0xFF ? mode : 0xFF; /* a u of 8 bits */
+	}
+}
+
+static void modNoticeString(int32_t color, int32_t x, int32_t y, int32_t i)
+{
+	renderString(color, x, y - 0x78, MOD_NOTICE_W[i], 0xC, 0, MOD_NOTICE_V(i), 0, 1);
+}
+
+void modNoticeRender(void)
+{
+	int32_t i;
+	int32_t missing;
+
+	if (MOD_NOTICE == 0) {
+		return;
+	}
+	modPlateRect(MOD_NOTICE_LEFT, MOD_NOTICE_TOP - 0x78, MOD_NOTICE_WIDTH, MOD_NOTICE_HEIGHT, 0x46, 0xBE, 0xEB, 2);
+	modPlateRect(MOD_NOTICE_LEFT + 1, MOD_NOTICE_TOP - 0x77, MOD_NOTICE_WIDTH - 2, MOD_NOTICE_HEIGHT - 2, 8, 10, 0x38, 1);
+	modNoticeString(4, -MOD_NOTICE_W[0] / 2, MOD_NOTICE_TOP + 8, 0);
+	modNoticeString(4, -MOD_NOTICE_W[1] / 2, MOD_NOTICE_TOP + 20, 1);
+	for (i = 0; i < 2; i++) {
+		missing = (MOD_NOTICE >> i) & 1;
+		modNoticeString(0, MOD_NOTICE_LEFT + 12, MOD_NOTICE_TOP + 38 + i * 14, 2 + i);
+		modNoticeString(missing ? 6 : 7, MOD_NOTICE_LEFT + MOD_NOTICE_WIDTH - 12 - MOD_NOTICE_W[5 - missing], MOD_NOTICE_TOP + 38 + i * 14,
+				5 - missing);
+	}
 }
 
 static void prepareSaveFile(int32_t fromRam)

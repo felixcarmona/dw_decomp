@@ -154,6 +154,8 @@ void runLandingScreen(void);
 void runMainMenu(void);
 void loadMenuOverlay(void);
 void modBootOptions(void); /* MOD (options) */
+void modNoticeDraw(void); /* MOD (emulator notice, main_menu.c) */
+void modNoticeRender(void);
 void newGameScene(void);
 void initializeLoadedMap(void);
 void recalculatePPandArena(void);
@@ -3700,6 +3702,7 @@ void runLandingScreen(void)
 	SECRET_CODE = -1;
 #endif
 	addObject(0xfa3, 0, NULL, (RenderFunction)renderPressStartToContinue);
+	modNoticeDraw(); /* MOD (emulator notice) */
 	modVersionDraw(); /* MOD (version) */
 	FADE_OUT_CURRENT = 0;
 	fadeFromBlack(0x28);
@@ -5757,6 +5760,7 @@ void renderPressStartToContinue(void)
 	AddPrim(ot + 30, prim++);
 	GsSetWorkBase((PACKET *)prim);
 	modVersionRender(); /* MOD (version) */
+	modNoticeRender(); /* MOD (emulator notice) */
 }
 
 /*

@@ -273,6 +273,8 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 #define COLD_ANIM_FLAG		0x80000000
 #define COLD_ANIM_MAX		0x2000
 uint8_t *loadColdAnimation(void *entity, uint32_t entry); /* an Entity * */
+int32_t modProbeRam(void);
+void refreshColdCache(void);	/* with 8 MB of RAM the partner's cold part stays in memory (mod_species.c) */
 int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t *sectors);
 /* the evolution paths of a type (EVOLUTION_PATHS covers types 1..62, new
  * species have their own rows; any other type has none) */

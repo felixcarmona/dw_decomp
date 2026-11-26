@@ -740,6 +740,50 @@ int32_t getSpeciesPartnersByLevel(int32_t lo, int32_t hi, uint16_t *out, int32_t
  */
 uint8_t COLD_ANIM_BUFFER[COLD_ANIM_MAX];
 
+/*
+ * MOD (cold animations with 8 MB of RAM): a console has 2 MB, mirrored through the 8 MB window, so a word and the same word 2 MB
+ * up are one. With real RAM there, the partner's cold part stays above 2 MB and its animations start without the disc; a clip
+ * past COLD_CACHE_SECTORS still reads the disc, as everything does with 2 MB (MOD_COLD_CACHE_TYPE -1).
+ */
+#define COLD_CACHE		((uint8_t *)0x80200000)
+#define COLD_CACHE_SECTORS	16
+#define COLD_CACHE_MIN_TYPE	180
+#define RAM_PROBE_VALUE		0x5AA5C33Cu
+
+static uint32_t RAM_PROBE;
+int32_t MOD_COLD_CACHE_TYPE = -1;	/* the species in the cache, 0 none yet, -1 no RAM above 2 MB */
+
+int32_t modProbeRam(void)
+{
+	volatile uint32_t *low = &RAM_PROBE;
+	volatile uint32_t *high = (volatile uint32_t *)((uint8_t *)&RAM_PROBE + 0x200000);
+
+	*low = RAM_PROBE_VALUE;
+	*high = ~RAM_PROBE_VALUE;
+	if (*low != RAM_PROBE_VALUE || *high != ~RAM_PROBE_VALUE) {
+		return 0;
+	}
+	MOD_COLD_CACHE_TYPE = 0;
+	return 1;
+}
+
+/* From the partner's normal field tick: once for each species, while nothing else is reading */
+void refreshColdCache(void)
+{
+	int32_t type = PARTNER_ENTITY.digimonEntity.entity.type;
+	char *file;
+	int32_t sector;
+	int32_t size;
+
+	if (MOD_COLD_CACHE_TYPE < 0 || MOD_COLD_CACHE_TYPE == type || type < COLD_CACHE_MIN_TYPE || isFileReadQueueBusy()) {
+		return;
+	}
+	MOD_COLD_CACHE_TYPE = type;
+	if (getDigimonModelRef(type, &file, &sector, &size) && file != NULL) {
+		readFileSectors(file, COLD_CACHE, sector + ((size + 0x7FF) >> 11), COLD_CACHE_SECTORS);
+	}
+}
+
 uint8_t *loadColdAnimation(void *ent, uint32_t entry)
 {
 	Entity *entity = ent;
@@ -754,11 +798,14 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry)
 	if (entity != (Entity *)&PARTNER_ENTITY.digimonEntity.entity) {
 		return NULL;
 	}
+	offset = (entry & 0xFFFF) * 4;
+	length = ((entry >> 16) & 0x7FFF) * 4;
+	if (entity->type == MOD_COLD_CACHE_TYPE && offset + length <= COLD_CACHE_SECTORS << 11) {
+		return COLD_CACHE + offset;
+	}
 	if (!getDigimonModelRef(entity->type, &file, &sector, &size) || file == NULL) {
 		return NULL;
 	}
-	offset = (entry & 0xFFFF) * 4;
-	length = ((entry >> 16) & 0x7FFF) * 4;
 	count = ((offset & 0x7FF) + length + 0x7FF) >> 11;
 	if (length == 0 || (count << 11) > COLD_ANIM_MAX) {
 		return NULL;
