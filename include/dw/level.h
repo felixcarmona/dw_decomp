@@ -108,6 +108,70 @@ extern int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE];
 extern int16_t MOD_TAMER_LEVEL[MOD_TAMER_LEVEL_SIZE];
 void modTamerLevelEvent(int32_t slot, int32_t amount);
 
+/*
+ * MOD (care rules as data): the numbers of the partner's daily care (sleep, sulking, tiredness, hunger, poop, sickness, lifetime).
+ * MOD_CARE[]: every slot -1 = the rule does not exist; tools/balance.py build writes them from content/tables/care-rules.json.
+ * A period or a threshold left out (-1) switches its rule off; an amount left out counts as 0. Periods are logic frames: 20 = one game minute,
+ * 1200 = one game hour. The direction of each amount (a loss, a gain) is its name and stays in the code.
+ */
+#define MOD_CARE_SIZE		55
+#define MOD_CARE_SLEEP_TIRED_PERIOD	0
+#define MOD_CARE_SLEEP_TIRED_PERCENT	1
+#define MOD_CARE_SLEEP_SLEEPY_AT	2
+#define MOD_CARE_SLEEP_SLEEPY_PERIOD	3
+#define MOD_CARE_SLEEP_FRESH_PERIOD	4
+#define MOD_CARE_SLEEP_FRESH_HAPPY	5
+#define MOD_CARE_SLEEP_FRESH_DISC	6
+#define MOD_CARE_SLEEP_TRAIN_PERIOD	7
+#define MOD_CARE_SLEEP_TRAIN_HAPPY	8
+#define MOD_CARE_SLEEP_TRAIN_DISC	9
+#define MOD_CARE_SLEEP_LATER_PERIOD	10
+#define MOD_CARE_SLEEP_LATER_HAPPY	11
+#define MOD_CARE_SLEEP_LATER_DISC	12
+#define MOD_CARE_SLEEP_MISSED_PERIOD	13
+#define MOD_CARE_SULK_PERIOD	14
+#define MOD_CARE_SULK_RECOVER_PERIOD	15
+#define MOD_CARE_SULK_STAT_PERIOD	16
+#define MOD_CARE_SULK_STAT_PERCENT	17
+#define MOD_CARE_AREA_PERIOD	18
+#define MOD_CARE_AREA_GOOD_HAPPY	19
+#define MOD_CARE_AREA_GOOD_TIRED	20
+#define MOD_CARE_AREA_BAD_HAPPY	21
+#define MOD_CARE_AREA_BAD_TIRED	22
+#define MOD_CARE_TIRED_SUB	23
+#define MOD_CARE_TIRED_HUNGER_AT	24
+#define MOD_CARE_TIRED_EXHAUSTED_AT	25
+#define MOD_CARE_TIRED_EXHAUSTED_PERIOD	26
+#define MOD_CARE_TIRED_EXHAUSTED_HAPPY	27
+#define MOD_CARE_HUNGER_FOOD_PERIOD	28
+#define MOD_CARE_HUNGER_STARVE_PERIOD	29
+#define MOD_CARE_HUNGER_STARVE_TIMER	30
+#define MOD_CARE_HUNGER_WEIGHT_PERIOD	31
+#define MOD_CARE_HUNGER_EMPTY_PERIOD	32
+#define MOD_CARE_HUNGER_TIRED_AFTER	33
+#define MOD_CARE_HUNGER_TIRED_PERIOD	34
+#define MOD_CARE_HUNGER_TIRED_LOSS	35
+#define MOD_CARE_HUNGER_ENERGY_PERIOD	36
+#define MOD_CARE_POOP_PERIOD	37
+#define MOD_CARE_POOP_HOLD_OFFSET	38
+#define MOD_CARE_POOP_HOLD_SCALE	39
+#define MOD_CARE_SICK_PERIOD	40
+#define MOD_CARE_SICK_MIN_COUNTER	41
+#define MOD_CARE_SICK_FREE_TRIES	42
+#define MOD_CARE_SICK_PER_TRY	43
+#define MOD_CARE_SICK_REST_TIRED	44
+#define MOD_CARE_SICK_ONSET_HAPPY	45
+#define MOD_CARE_SICK_AREA_AFTER	46
+#define MOD_CARE_SICK_TICK_HAPPY	47
+#define MOD_CARE_SICK_TICK_DISC	48
+#define MOD_CARE_SICK_TICK_TIRED	49
+#define MOD_CARE_SICK_INJURY_AFTER	50
+#define MOD_CARE_SICK_LIFE_AFTER	51
+#define MOD_CARE_LIFE_PERIOD	52
+#define MOD_CARE_LIFE_BELOW	53
+#define MOD_CARE_LIFE_PER_POINTS	54
+extern int16_t MOD_CARE[MOD_CARE_SIZE];
+
 /* items past the original evolution items (0x47-0x72) that force an evolution: {item, target, level the partner must have}, -1 = unused */
 #define MOD_EVO_ITEM_MAX	4
 typedef struct {
