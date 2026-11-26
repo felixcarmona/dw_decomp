@@ -164,6 +164,12 @@ void setFileReadCallback2(FileRequestCallback callback, void *param)
 	FILE_QUEUE_CALLBACK_PARAM = param;
 }
 
+/* MOD (species): 1 while asynchronous reads are queued or running */
+int32_t isFileReadQueueBusy(void)
+{
+	return FILE_READ_QUEUE_HEAD != NULL;
+}
+
 int32_t addFileReadRequestPath(char *path, uint8_t *buffer,
 			       uint8_t *isRunning,
 			       FileRequestCallback callback,

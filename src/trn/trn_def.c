@@ -72,7 +72,7 @@ int16_t arg;
 		MAIN_D_8013536C = 0x47;
 		MAIN_D_8013536E = 0xd;
 		addObject(0xfae, 0, (TickFunction)TRN_tickDefenseTraining, NULL);
-		if (DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level < 3) {
+		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeDefenseCounter++;
 		}
 		TRAINING_COMPLETE = 0;

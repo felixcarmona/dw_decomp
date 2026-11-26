@@ -217,10 +217,10 @@ int32_t addHealingParticleEffect(Entity *entity, int32_t hasParticle2) {
     particle->frameId = 0;
     mat = &entity->posData->posMatrix.workm;
     particle->off.vx = mat->t[0];
-    particle->off.vy = -DIGIMON_DATA[entity->type].height - 70;
+    particle->off.vy = -DIGI_PARA(entity->type).height - 70;
     particle->off.pad = -particle->off.vy / 10;
     particle->off.vz = mat->t[2];
-    particle->radius = (DIGIMON_DATA[entity->type].radius * 12) / 10;
+    particle->radius = (DIGI_PARA(entity->type).radius * 12) / 10;
     particle->hasParticle2 = hasParticle2;
 
     // using the same for-loops didn't match

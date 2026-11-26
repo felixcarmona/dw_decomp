@@ -52,7 +52,7 @@ static void *trn_reward_functions[] = {
 };
 
 // clang-format off
-int8_t TRN_TRAINING_ANIM_IDS[67][2] = {
+int8_t TRN_TRAINING_ANIM_IDS[NUM_DIGIMON][2] = { /* MOD: was [67] (types 0..66) */
 	{ 0x0, 0x0 }, { 0x2e, 0xa }, { 0x2e, 0xa }, { 0x33, 0xc },
 	{ 0x2e, 0x14 }, { 0x35, 0x14 }, { 0x2e, 0xa }, { 0x2e, 0xa },
 	{ 0x2e, 0xa }, { 0x35, 0xd }, { 0x2e, 0xa }, { 0x2e, 0x14 },
@@ -671,11 +671,11 @@ int16_t TRN_calculateTrainingMultiplier(int32_t type, int16_t mode, int16_t flag
 	}
 
 	den = 10;
-	if ((DIGIMON_DATA[type].level == 1) || (DIGIMON_DATA[type].level == 2)) {
+	if ((DIGI_PARA(type).level == 1) || (DIGI_PARA(type).level == 2)) {
 		num = num * 9;
-	} else if (DIGIMON_DATA[type].level == 3) {
+	} else if (DIGI_PARA(type).level == 3) {
 		num = num * 10;
-	} else if (DIGIMON_DATA[type].level == 4) {
+	} else if (DIGI_PARA(type).level == 4) {
 		num = num * 11;
 	} else {
 		num = num * 12;
@@ -823,7 +823,7 @@ int32_t TRN_tryLearnMove(int32_t type)
 	int8_t best;
 
 	for (n = 0; n < 3; n++) {
-		special[n] = DIGIMON_DATA[type].special[n];
+		special[n] = DIGI_PARA(type).special[n];
 	}
 
 	moveId[0] = moveId[1] = moveId[2] = -1;
@@ -837,7 +837,7 @@ int32_t TRN_tryLearnMove(int32_t type)
 				continue;
 			}
 			for (j = 0; j < 16; j++) {
-				if (TRN_D_8008F14C[k + special[i] * 8] == DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].moves[j]) {
+				if (TRN_D_8008F14C[k + special[i] * 8] == DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).moves[j]) {
 					moveId[i] = TRN_D_8008F14C[k + special[i] * 8];
 					weight[i] = TRN_D_8008F184[k][i];
 				}

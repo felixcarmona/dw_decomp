@@ -67,7 +67,7 @@ int8_t direction;
 	int16_t radius;
 
 	position = &entity->posData->location;
-	radius = DIGIMON_DATA[entity->type].radius;
+	radius = DIGI_PARA(entity->type).radius;
 
 	pos = position->vx - radius / 2;
 	tile = pos / 100 + 0x32;
@@ -113,7 +113,7 @@ int8_t direction;
 	int16_t pos;
 
 	position = &entity->posData->location;
-	radius = DIGIMON_DATA[entity->type].radius;
+	radius = DIGI_PARA(entity->type).radius;
 	if (direction == 0) {
 		edgePos = position->vx - radius;
 	} else {

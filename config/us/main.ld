@@ -108,6 +108,9 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.text.*);
         . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.text.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.text.*);
@@ -331,6 +334,9 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.rodata.*);
         . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.rodata.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.rodata.*);
@@ -487,6 +493,9 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.data.*);
         . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.data.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.data.*);
@@ -610,6 +619,9 @@ SECTIONS
         BUILD_DIR/src/main/utils2.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.sdata.*);
+        . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/efe_table.c.o(.sdata.*);
         . = ALIGN(., 4);
@@ -744,6 +756,9 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.sbss.*);
         . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.sbss.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/world_object.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/entity_text.c.o(.sbss.*);
@@ -866,6 +881,9 @@ SECTIONS
         BUILD_DIR/src/main/partner_impl.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.bss.*);
+        . = ALIGN(., 4);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/mod_species.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/game_menu.c.o(.bss.*);
         . = ALIGN(., 4);

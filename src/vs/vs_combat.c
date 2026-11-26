@@ -461,7 +461,7 @@ void VS_setupDemoCombat(void)
 
 		for (j = 0; j < 4; ++j) {
 			if (entity->stats.base.moves[j] != 0xff) {
-				effect = DIGIMON_DATA[entity->entity.type].moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
+				effect = DIGI_PARA(entity->entity.type).moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
 				moves[moveCount++] = effect;
 			}
 		}
@@ -792,7 +792,7 @@ void VS__combatSetup(void)
 
 		for (j = 0; j < 4; ++j) {
 			if (entity->stats.base.moves[j] != 0xff) {
-				effect = DIGIMON_DATA[entity->entity.type].moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
+				effect = DIGI_PARA(entity->entity.type).moves[entity->stats.base.moves[j] - 0x2e] + 0x100;
 				moves[moveCount++] = effect;
 			}
 		}
@@ -1042,7 +1042,7 @@ void VS__tickDigimonAI(fighterId)
 					                   COMBAT_DATA_PTR->player.currentCommand[fighterId] - 8);
 				}
 				VS_applyChargeRequirement(entity, data,
-				                          DIGIMON_DATA[entity->entity.type].moves[data->queuedAnim - 0x2e]);
+				                          DIGI_PARA(entity->entity.type).moves[data->queuedAnim - 0x2e]);
 				return;
 			}
 			break;
@@ -1052,7 +1052,7 @@ void VS__tickDigimonAI(fighterId)
 				VS_setupQueuedMove(entity, data, fighterId, 3);
 			}
 			VS_applyChargeRequirement(entity, data,
-			                          DIGIMON_DATA[entity->entity.type].moves[data->queuedAnim - 0x2e]);
+			                          DIGI_PARA(entity->entity.type).moves[data->queuedAnim - 0x2e]);
 			return;
 		}
 
@@ -1562,7 +1562,7 @@ void VS__tickDigimonAttacking(Entity *entity, DigimonEntity *target,
 			for (i = 0; i <= ENEMY_COUNT; ++i) {
 				if (i != fighterId) {
 					other = ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[i]];
-					if (DIGIMON_DATA[other->type].moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
+					if (DIGI_PARA(other->type).moves[(uint32_t)(other->anim.animId - 0x2e)] == 0x2d) {
 						if (fighterId == COMBAT_DATA_PTR->fighter[i].targetId) {
 							return;
 						}
@@ -1794,7 +1794,7 @@ void VS__tickDigimonOther(DigimonEntity *entity, DigimonEntity *other,
 	case 2:
 	case 3:
 		VS__tickDigimonAttackRanged(entity, other, data,
-		                            DIGIMON_DATA[entity->entity.type].moves[data->queuedAnim - 0x2e]);
+		                            DIGI_PARA(entity->entity.type).moves[data->queuedAnim - 0x2e]);
 		break;
 	case 4:
 		handleBattleIdle(entity, &entity->stats, data->flags);
@@ -1865,7 +1865,7 @@ int32_t VS__tickDigimonAttackClose(DigimonEntity *entity, DigimonEntity *other,
 	savedRotation = *rotation;
 	if (other != NULL) {
 		distance = VS_getDistanceSquared(&entity->entity, &other->entity);
-		radius = DIGIMON_DATA[entity->entity.type].radius + DIGIMON_DATA[other->entity.type].radius;
+		radius = DIGI_PARA(entity->entity.type).radius + DIGI_PARA(other->entity.type).radius;
 		radius = radius * radius;
 		if (distance <= radius) {
 			handleBattleIdle(entity, &entity->stats, data->flags);
@@ -1954,7 +1954,7 @@ void VS__tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 	}
 
 	distance = VS_getDistanceSquared(&entity->entity, &other->entity);
-	total = DIGIMON_DATA[entity->entity.type].radius + DIGIMON_DATA[other->entity.type].radius;
+	total = DIGI_PARA(entity->entity.type).radius + DIGI_PARA(other->entity.type).radius;
 	total = *(uint32_t *)&MOVE_DATA[move].distance + total * total;
 
 	if (distance > total + total * 3 / 10) {
@@ -2257,8 +2257,8 @@ int32_t VS__getBaseDistance(Entity *a, Entity *b)
 {
 	int32_t range;
 
-	range = (DIGIMON_DATA[a->type].radius +
-	         DIGIMON_DATA[b->type].radius + 200);
+	range = (DIGI_PARA(a->type).radius +
+	         DIGI_PARA(b->type).radius + 200);
 
 	return range * range;
 }
@@ -2560,7 +2560,7 @@ void VS__renderPlayerMarker(id)
 	gte_stszotz(&otz);
 	sxy[0] -= (int16_t)(160 - DRAWING_OFFSET_X);
 	sxy[1] -= (int16_t)(120 - DRAWING_OFFSET_Y);
-	offset = VIEWPORT_DISTANCE * (DIGIMON_DATA[entity->type].radius / 2) / (otz * 4);
+	offset = VIEWPORT_DISTANCE * (DIGI_PARA(entity->type).radius / 2) / (otz * 4);
 	sxy[0] += (int16_t)offset;
 
 	prim = (POLY_FT4 *)GsGetWorkBase();

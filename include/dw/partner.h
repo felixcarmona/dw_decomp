@@ -29,7 +29,7 @@ typedef struct {
 	int8_t size;
 } PoopPile;
 
-extern RaiseData RAISE_DATA[NUM_PARTNER_DIGIMON];
+extern RaiseData RAISE_DATA[NUM_DIGIMON];
 extern PoopPile WORLD_POOP[];
 
 void partnerTick(int32_t instanceId);

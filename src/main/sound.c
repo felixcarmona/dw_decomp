@@ -7,6 +7,7 @@
 #include <dw/main.h>
 #include <dw/params.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/types.h>
 
 #define VAB_MAX_PROGRAMS	128
@@ -54,7 +55,7 @@ unsigned long VHB_SOUNDBUFFER_START[NUM_SOUND_BUFFERS] = {
 	0x0,
 };
 
-uint8_t DIGIMON_VLALL_SOUND_ID[NUM_PARTNER_DIGIMON] = {
+uint8_t DIGIMON_VLALL_SOUND_ID[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	0x00,	/* main character */
 	0x00,	/* Botamon */
 	0x00,	/* Koromon */
@@ -123,7 +124,7 @@ uint8_t DIGIMON_VLALL_SOUND_ID[NUM_PARTNER_DIGIMON] = {
 	0x0c,	/* MetalEtemon */
 };
 
-uint8_t DIGIMON_VBALL_SOUND_ID[NUM_DIGIMON] = {
+uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON] = {
 	0x00,	/* main character */
 	0x01,	/* Botamon */
 	0x02,	/* Koromon */
@@ -681,7 +682,7 @@ int32_t loadPartnerSounds(int32_t type)
 {
 	int32_t soundId;
 
-	if ((type > 0) && (type < NUM_PARTNER_DIGIMON)) {
+	if ((type > 0) && (type < NUM_DIGIMON)) { /* MOD: was NUM_PARTNER_DIGIMON */
 		soundId = DIGIMON_VLALL_SOUND_ID[type];
 	} else {
 		soundId = 15;
@@ -703,7 +704,7 @@ int32_t loadDigimonSounds(int32_t vabId, int32_t type)
 		return 0;
 	}
 
-	soundId = DIGIMON_VBALL_SOUND_ID[type];
+	soundId = getDigimonVballId(type); /* MOD (species) */
 	if (readVHBFileSectors(vabId, "VBALL", GENERAL_BUFFER, soundId * 7, 7) == -1) {
 		return 0;
 	}

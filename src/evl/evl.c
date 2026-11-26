@@ -21,6 +21,7 @@
 #include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/sound_async.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
@@ -385,9 +386,9 @@ void EVL_tickEvoSequence(int32_t instanceId)
 			tmp = EVL_D_80063EFC[data->timer - 0x70L];
 			if (tmp >= 0) {
 shards:
-				if (data->unk_0x8 < DIGIMON_DATA[partner->digimonEntity.entity.type].boneCount - 1) {
+				if (data->unk_0x8 < DIGI_PARA(partner->digimonEntity.entity.type).boneCount - 1) {
 					bone = EVL_D_80067994[data->unk_0x8++];
-					obj = DIGIMON_SKELETONS[partner->digimonEntity.entity.type][bone].objIndex;
+					obj = getDigimonSkeleton(partner->digimonEntity.entity.type)[bone].objIndex; /* MOD (species) */
 					if (obj == -1) {
 						goto shards;
 					}
@@ -415,23 +416,23 @@ shards:
 			}
 		}
 		if ((int32_t)*(uint8_t **)&data->timer < 0xcc) {
-			tmp = DIGIMON_DATA[partner->digimonEntity.entity.type].radius;
-			size = DIGIMON_DATA[partner->digimonEntity.entity.type].height;
-			height = DIGIMON_DATA[partner->digimonEntity.entity.type].height;
+			tmp = DIGI_PARA(partner->digimonEntity.entity.type).radius;
+			size = DIGI_PARA(partner->digimonEntity.entity.type).height;
+			height = DIGI_PARA(partner->digimonEntity.entity.type).height;
 		} else if (((int32_t)*(uint8_t **)&data->timer >= 0xcc) && ((int32_t)*(uint8_t **)&data->timer < 0x108)) {
 			scale = &partner->digimonEntity.entity.posData->scale;
-			rRatio = (DIGIMON_DATA[data->digimonId].radius << 12) / DIGIMON_DATA[partner->digimonEntity.entity.type].radius;
-			hRatio = (DIGIMON_DATA[data->digimonId].height << 12) / DIGIMON_DATA[partner->digimonEntity.entity.type].height;
+			rRatio = (DIGI_PARA(data->digimonId).radius << 12) / DIGI_PARA(partner->digimonEntity.entity.type).radius;
+			hRatio = (DIGI_PARA(data->digimonId).height << 12) / DIGI_PARA(partner->digimonEntity.entity.type).height;
 			scale->vx = lerp(0x1000, rRatio, 0xcc, 0x108, data->timer);
 			scale->vy = lerp(0x1000, hRatio, 0xcc, 0x108, data->timer);
 			scale->vz = scale->vx;
-			tmp = lerp(DIGIMON_DATA[partner->digimonEntity.entity.type].radius, DIGIMON_DATA[data->digimonId].radius, 0xcc, 0x108, data->timer);
-			size = lerp(DIGIMON_DATA[partner->digimonEntity.entity.type].height, DIGIMON_DATA[data->digimonId].height, 0xcc, 0x108, data->timer);
-			height = lerp(DIGIMON_DATA[partner->digimonEntity.entity.type].height, DIGIMON_DATA[data->digimonId].height, 0xcc, 0x108, data->timer);
+			tmp = lerp(DIGI_PARA(partner->digimonEntity.entity.type).radius, DIGI_PARA(data->digimonId).radius, 0xcc, 0x108, data->timer);
+			size = lerp(DIGI_PARA(partner->digimonEntity.entity.type).height, DIGI_PARA(data->digimonId).height, 0xcc, 0x108, data->timer);
+			height = lerp(DIGI_PARA(partner->digimonEntity.entity.type).height, DIGI_PARA(data->digimonId).height, 0xcc, 0x108, data->timer);
 		} else if ((int32_t)*(uint8_t **)&data->timer >= 0x108) {
-			tmp = DIGIMON_DATA[data->digimonId].radius;
-			size = DIGIMON_DATA[data->digimonId].height;
-			height = DIGIMON_DATA[data->digimonId].height;
+			tmp = DIGI_PARA(data->digimonId).radius;
+			size = DIGI_PARA(data->digimonId).height;
+			height = DIGI_PARA(data->digimonId).height;
 		}
 		if (data->timer >= 0xa5) {
 			if (data->timer >= 0xc3) {
@@ -683,13 +684,13 @@ void EVL_updateEvoCamera(Entity *entity, int32_t unused, int32_t frame)
 		MAIN_D_801351F8 = 0x638;
 		rot = MAIN_D_801349F8;
 		rot.vy = MAIN_D_801351F8 + entity->posData->rotation.vy;
-		if (DIGIMON_DATA[entity->type].height < DIGIMON_DATA[entity->type].radius) {
-			size = DIGIMON_DATA[entity->type].radius;
+		if (DIGI_PARA(entity->type).height < DIGI_PARA(entity->type).radius) {
+			size = DIGI_PARA(entity->type).radius;
 		} else {
-			size = DIGIMON_DATA[entity->type].height;
+			size = DIGI_PARA(entity->type).height;
 		}
 		size = (size * 5) + 0x4b0;
-		EVL_calculateCameraVectors(&viewRef, &viewPos, entity, &rot, size, DIGIMON_DATA[entity->type].height);
+		EVL_calculateCameraVectors(&viewRef, &viewPos, entity, &rot, size, DIGI_PARA(entity->type).height);
 		if (frame <= mid) {
 			GS_VIEWPOINT.vrx = lerp(EVL_D_800688E8.vrx, viewRef.vx, start, mid, frame);
 			GS_VIEWPOINT.vry = lerp(EVL_D_800688E8.vry, viewRef.vy, start, mid, frame);
@@ -701,7 +702,7 @@ void EVL_updateEvoCamera(Entity *entity, int32_t unused, int32_t frame)
 			GS_VIEWPOINT.vpx = lerp(EVL_D_800688E8.vpx, viewPos.vx, mid, end, frame);
 			GS_VIEWPOINT.vpy = lerp(EVL_D_800688E8.vpy, viewPos.vy, mid, end, frame);
 			GS_VIEWPOINT.vpz = lerp(EVL_D_800688E8.vpz, viewPos.vz, mid, end, frame);
-			t = lerp(0, 0x14, 0, 0xc8, DIGIMON_DATA[entity->type].height);
+			t = lerp(0, 0x14, 0, 0xc8, DIGI_PARA(entity->type).height);
 			DRAWING_OFFSET_Y = lerp(0x78, t + 0x78, mid, end, frame);
 			VIEWPORT_DISTANCE = lerp(MAIN_D_801351EC, 0x3e8, mid, end, frame);
 		}
@@ -714,13 +715,13 @@ void EVL_updateEvoCamera(Entity *entity, int32_t unused, int32_t frame)
 		MAIN_D_801351F8 += 0x16;
 		rot = MAIN_D_80134A00;
 		rot.vy = MAIN_D_801351F8 + entity->posData->rotation.vy;
-		if (DIGIMON_DATA[entity->type].height < DIGIMON_DATA[entity->type].radius) {
-			size = DIGIMON_DATA[entity->type].radius;
+		if (DIGI_PARA(entity->type).height < DIGI_PARA(entity->type).radius) {
+			size = DIGI_PARA(entity->type).radius;
 		} else {
-			size = DIGIMON_DATA[entity->type].height;
+			size = DIGI_PARA(entity->type).height;
 		}
 		size = (size * 5) + 0x4b0;
-		EVL_calculateCameraVectors(&viewRef, &viewPos, entity, &rot, size, DIGIMON_DATA[entity->type].height);
+		EVL_calculateCameraVectors(&viewRef, &viewPos, entity, &rot, size, DIGI_PARA(entity->type).height);
 		GS_VIEWPOINT.vrx = viewRef.vx;
 		GS_VIEWPOINT.vry = viewRef.vy;
 		GS_VIEWPOINT.vrz = viewRef.vz;
@@ -1262,16 +1263,16 @@ void EVL_initEvoSequence(void)
 		EVL_D_80067994[i] = -1;
 	}
 
-	EVL_D_80067994[DIGIMON_DATA[partner->digimonEntity.entity.type].boneCount - 1L] = -2;
+	EVL_D_80067994[DIGI_PARA(partner->digimonEntity.entity.type).boneCount - 1L] = -2;
 
-	for (i = 1; i < DIGIMON_DATA[partner->digimonEntity.entity.type].boneCount; i++) {
+	for (i = 1; i < DIGI_PARA(partner->digimonEntity.entity.type).boneCount; i++) {
 		order[i] = rand() & 0xfff;
 	}
 
-	for (i = 1; i < DIGIMON_DATA[partner->digimonEntity.entity.type].boneCount; i++) {
+	for (i = 1; i < DIGI_PARA(partner->digimonEntity.entity.type).boneCount; i++) {
 		best = 1;
 		bestVal = order[1];
-		for (j = 2; j < DIGIMON_DATA[partner->digimonEntity.entity.type].boneCount; j++) {
+		for (j = 2; j < DIGI_PARA(partner->digimonEntity.entity.type).boneCount; j++) {
 			if (bestVal > order[j]) {
 				best = j;
 				bestVal = order[j];
@@ -1307,8 +1308,8 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 
 	gains = &EVOLUTION_STATS_GAINS[digimonId];
 	newId = gains->targetDigimon;
-	oldLevel = DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level;
-	level = DIGIMON_DATA[digimonId].level;
+	oldLevel = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
+	level = DIGI_PARA(digimonId).level;
 	if (digimonId == 0x0b || digimonId == 0x27 || digimonId == 0x35 || digimonId == 6 ||
 	    PARTNER_ENTITY.digimonEntity.entity.type == 0x27L || level < 3) {
 		EVL_scaleBaseStats(stats, (int8_t)gains->brains, digimonId);
@@ -1353,10 +1354,10 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 
 			EVL_clampBaseStats();
 			if (IS_SCRIPT_PAUSED == 1) {
-				if (DIGIMON_DATA[newId].level == 4) {
+				if (DIGI_PARA(newId).level == 4) {
 					addTamerLevel(20, 1);
 				}
-				if (DIGIMON_DATA[newId].level == 5) {
+				if (DIGI_PARA(newId).level == 5) {
 					addTamerLevel(100, 1);
 				}
 			}
@@ -1366,11 +1367,11 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	para->weight = RAISE_DATA[newId].defaultWeight;
 	para->careMistakes = 0;
 	para->battles = 0;
-	level = DIGIMON_DATA[newId].level;
+	level = DIGI_PARA(newId).level;
 	if (level == 5 && HAS_USED_EVOITEM == 0) {
 		para->remainingLifetime += 96;
 	}
-	special = DIGIMON_DATA[newId].special[0];
+	special = DIGI_PARA(newId).special[0];
 	if (special == 0) {
 		moveBase = 0;
 	} else if (special == 1) {
@@ -1386,7 +1387,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	} else if (special == 6) {
 		moveBase = 49;
 	}
-	movePtr = DIGIMON_DATA[newId].moves;
+	movePtr = DIGI_PARA(newId).moves;
 	count = 0;
 	for (i = 0; i < 16; movePtr++, i++) {
 		if (moveBase <= *movePtr && *movePtr <= moveBase + 8) {
@@ -1402,7 +1403,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 		}
 	}
 	learnMove(best);
-	for (movePtr = DIGIMON_DATA[newId].moves, i = 0; i < 16; i++) {
+	for (movePtr = DIGI_PARA(newId).moves, i = 0; i < 16; i++) {
 		if (*movePtr++ == best) {
 			break;
 		}
@@ -1410,17 +1411,17 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = i + 0x2e;
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[1] = 0xff;
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[2] = 0xff;
-	if (DIGIMON_DATA[newId].level < 3) {
+	if (DIGI_PARA(newId).level < 3) {
 		PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x2e;
 	}
 	for (i = 15; i >= 0; i--) {
-		if (DIGIMON_DATA[newId].moves[i] == 0xff) {
+		if (DIGI_PARA(newId).moves[i] == 0xff) {
 			continue;
 		}
-		if (DIGIMON_DATA[newId].moves[i] < 0x3a) {
+		if (DIGI_PARA(newId).moves[i] < 0x3a) {
 			continue;
 		}
-		if (DIGIMON_DATA[newId].moves[i] >= 0x71) {
+		if (DIGI_PARA(newId).moves[i] >= 0x71) {
 			continue;
 		}
 		PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = i + 0x2e;
@@ -1429,7 +1430,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	if (i < 0) {
 		PARTNER_ENTITY.digimonEntity.stats.base.moves[3] = 0xff;
 	}
-	level = DIGIMON_DATA[PARTNER_ENTITY.digimonEntity.entity.type].level;
+	level = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
 	x = entity->posData->location.vx;
 	y = entity->posData->location.vy;
 	z = entity->posData->location.vz;
@@ -1442,7 +1443,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	thunkUnloadModel(oldType, 3);
 	initializeEvolvedPartner(newId, x, y, z, rx, ry, rz);
 	setDigimonRaised((uint16_t)newId);
-	if (oldLevel != DIGIMON_DATA[newId].level) {
+	if (oldLevel != DIGI_PARA(newId).level) {
 		para->evoTimer = 0;
 	}
 }

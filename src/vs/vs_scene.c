@@ -1495,8 +1495,8 @@ int32_t VS_getFirstSpecialMove(int32_t index)
 	int32_t i;
 
 	for (i = 15; i >= 0; i--) {
-		if (DIGIMON_DATA[index].moves[i] != 0xff) {
-			if (DIGIMON_DATA[index].moves[i] >= 0x3a) {
+		if (DIGI_PARA(index).moves[i] != 0xff) {
+			if (DIGI_PARA(index).moves[i] >= 0x3a) {
 				return i + 0x2e;
 			}
 		}

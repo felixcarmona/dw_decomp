@@ -3,6 +3,7 @@
 
 #include <dw/entity.h>
 #include <dw/evl.h>
+#include <dw/species.h>
 #include <dw/garbage.h>
 #include <dw/ids.h>
 #include <dw/math.h>
@@ -27,7 +28,7 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
 int8_t getNumMasteredMoves(void);
 
 // clang-format off
-EvoRequirements EVOLUTION_REQS[NUM_EVOLVING_DIGIMON] = {
+EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON (by target type) */
 	{
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x00,
@@ -345,7 +346,7 @@ EvoRequirements EVOLUTION_REQS[NUM_EVOLVING_DIGIMON] = {
 	},
 };
 
-EvoStatsGains EVOLUTION_STATS_GAINS[NUM_PARTNER_DIGIMON] = {
+EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0000 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0001 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0002 },
@@ -698,7 +699,7 @@ int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
 
   currentBest = -1;
   bestScore = 0;
-  targetPtr = EVOLUTION_PATHS[currentDigimon - 1].to;
+  targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
 
   for (i = 0; i < 6; i++) {
     if (*targetPtr == -1) {
@@ -731,7 +732,7 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
   int8_t isMaxCM;
   int8_t isMaxBattles;
 
-  targetPtr = EVOLUTION_PATHS[currentDigimon - 1].to;
+  targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
   currentBestDigimon = -1;
   bestScore = statTotal = statCount = 0U;
 
@@ -796,7 +797,7 @@ int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
   int8_t isMaxCM;
   int8_t isMaxBattles;
 
-  targetPtr = EVOLUTION_PATHS[currentDigimon - 1].to;
+  targetPtr = getEvolutionPath(currentDigimon)->to; /* MOD (species) */
   currentBestDigimon = -1;
   bestScore = statTotal = statCount = 0U;
 
@@ -869,7 +870,7 @@ int32_t handleSpecialEvolutions(mode, entity)
     return -1;
 
   type = entity->type;
-  level = DIGIMON_DATA[type].level;
+  level = DIGI_PARA(type).level;
   def = PARTNER_ENTITY.digimonEntity.stats.base.def;
   discipline = PARTNER_PARA.discipline;
   happiness = PARTNER_PARA.happiness;
@@ -960,7 +961,7 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
       partner->weight <= reqs->weight + 5)
     reqPoints += 1;
 
-  if (DIGIMON_DATA[target].level == 3U) {
+  if (DIGI_PARA(target).level == 3U) {
     statsArray[0] = statsArray2[0] = partnerEntity->hp / 10;
     statsArray[1] = statsArray2[1] = partnerEntity->mp / 10;
     statsArray[2] = statsArray2[2] = partnerEntity->off;

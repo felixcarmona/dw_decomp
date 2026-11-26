@@ -37,8 +37,8 @@ void renderDropShadow(Entity *entity)
 	if (getTileTrigger(&entity->posData->location) == -1) {
 		return;
 	}
-	radiusX = DIGIMON_DATA[entity->type].radius;
-	radiusZ = DIGIMON_DATA[entity->type].radius;
+	radiusX = DIGI_PARA(entity->type).radius;
+	radiusZ = DIGI_PARA(entity->type).radius;
 	x = entity->posData->location.vx;
 	y = entity->posData->location.vy;
 	z = entity->posData->location.vz;
@@ -69,11 +69,11 @@ void renderDropShadow(Entity *entity)
 	prim++;
 	GsSetWorkBase((PACKET *)prim);
 	c.vx = entity->posData->location.vx;
-	c.vy = -(DIGIMON_DATA[entity->type].height >> 1);
+	c.vy = -(DIGI_PARA(entity->type).height >> 1);
 	c.vz = entity->posData->location.vz;
 	box.center = &c;
-	box.extent.vx = DIGIMON_DATA[entity->type].radius;
-	box.extent.vy = DIGIMON_DATA[entity->type].height >> 1;
-	box.extent.vz = DIGIMON_DATA[entity->type].radius;
+	box.extent.vx = DIGI_PARA(entity->type).radius;
+	box.extent.vy = DIGI_PARA(entity->type).height >> 1;
+	box.extent.vz = DIGI_PARA(entity->type).radius;
 	renderAABB(&box);
 }

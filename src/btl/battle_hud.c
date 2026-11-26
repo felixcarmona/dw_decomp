@@ -287,7 +287,7 @@ void BTL_initializeFinisherChargeup(void)
 	GsSetLsMatrix(&GsWSMATRIX);
 	loc = &ENTITY_TABLE[1]->posData->location;
 	v.vx = loc->vx;
-	v.vy = -DIGIMON_DATA[ENTITY_TABLE[1]->type].height - 0x64;
+	v.vy = -DIGI_PARA(ENTITY_TABLE[1]->type).height - 0x64;
 	v.vz = loc->vz;
 	gte_ldv0(&v);
 	gte_rtps();
@@ -525,7 +525,7 @@ void BTL_appendItemDroppedText(Entity *e)
 	strcat(BTL_END_BOX_TEXTBUFFER, DIGIMON_NAME(e->type));
 	strcat(BTL_END_BOX_TEXTBUFFER, BTL_STR_DROPPED);
 	strcat(BTL_END_BOX_TEXTBUFFER,
-	       ITEM_NAME(DIGIMON_DATA[e->type].dropItem));
+	       ITEM_NAME(DIGI_PARA(e->type).dropItem));
 	strcat(BTL_END_BOX_TEXTBUFFER, BTL_STR_WHITE_WAIT);
 	BATTLE_END_BOX_LINE_COUNT += 2;
 }

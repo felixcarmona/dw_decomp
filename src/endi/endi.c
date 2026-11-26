@@ -162,14 +162,14 @@ static void ENDI_updateEnding(int32_t objectId)
 	switch (state->phase) {
 	case 0:
 		ENDI_fadeClut(ENDI_CLUT_BUFFER, entity, ENDI_FADE_CLUT_BUFFER, 0, 60, state->frame);
-		ENDI_spawnParticle(entity, state->frame % (DIGIMON_DATA[entity->type].boneCount - 1) + 1);
+		ENDI_spawnParticle(entity, state->frame % (DIGI_PARA(entity->type).boneCount - 1) + 1);
 
 		if (state->frame >= 60) {
 			state->phase = 1;
 		}
 		break;
 	case 1:
-		ENDI_spawnParticle(entity, state->frame % (DIGIMON_DATA[entity->type].boneCount - 1) + 1);
+		ENDI_spawnParticle(entity, state->frame % (DIGI_PARA(entity->type).boneCount - 1) + 1);
 
 		peakFrame = 78;
 		if (state->frame <= peakFrame) {

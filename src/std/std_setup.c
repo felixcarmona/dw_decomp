@@ -280,7 +280,7 @@ void STD_initializeOpponent(int16_t type, int16_t slot, uint8_t tier)
 	scriptLoadModel(type);
 	ENTITY_TABLE[slot + 2] = (Entity *)&NPC_ENTITIES[slot];
 	initializeDigimonObject(type, slot + 2, STD_tickNPCTournament);
-	switch (DIGIMON_DATA[ENTITY_TABLE[slot + 2]->type].level) {
+	switch (DIGI_PARA(ENTITY_TABLE[slot + 2]->type).level) {
 	case 3:
 		div = 1;
 		mul = 1;
@@ -373,8 +373,8 @@ void STD_initializeOpponent(int16_t type, int16_t slot, uint8_t tier)
 	}
 	stats->base.moves[3] = 0xff;
 	for (i = 0; i < 0x10; i++) {
-		if (DIGIMON_DATA[ENTITY_TABLE[slot + 2]->type].moves[i] >= 0x3a &&
-		    DIGIMON_DATA[ENTITY_TABLE[slot + 2]->type].moves[i] < 0x71) {
+		if (DIGI_PARA(ENTITY_TABLE[slot + 2]->type).moves[i] >= 0x3a &&
+		    DIGI_PARA(ENTITY_TABLE[slot + 2]->type).moves[i] < 0x71) {
 			stats->base.moves[3] = i + 0x2e;
 			return;
 		}
