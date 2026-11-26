@@ -16,5 +16,9 @@ void drawGlyph(uint16_t codepoint, uint16_t x, uint16_t y);
 int32_t drawGlyph(/* uint16_t codepoint, uint16_t x, uint16_t y */);
 #endif
 void drawString(/* char *str, uint16_t x, uint16_t y */);
+#if VERSION_IS(US)
+/* MOD (long names): the x where the last drawString ended (its width when drawn at x 0) */
+extern int16_t MOD_STRING_END_X;
+#endif
 
 #endif
