@@ -1,9 +1,9 @@
 /*
  * MOD (quality of life): what the speed-ups share (docs/mods/quality-of-life.md).
  *
- * Plates. A battle shows the pad's R2 button and fast-forward arrows in the bottom right corner (patches 0184, 0192),
- * an evolution a START SKIP plate there (0185, 0192), in the digital clock's style: 3x5 letters on a dark plate with a
- * light blue edge. modPlate draws one; its letters are the ones these plates need.
+ * Plates. A battle shows the pad's R2 button and fast-forward arrows in the bottom right corner (patches 0184, 0196, 0197),
+ * an evolution a line "Press START to skip the animation" at the bottom (0185, 0196), on a plate in the digital clock's
+ * style: dark, with a light blue edge. modPlate draws a plate of 3x5 letters; its letters are the ones these need.
  *
  * Training block. After each session of a block (src/trn/trn_block.h), modTrainStopReason says whether the block
  * stops: the partner is hungry, needs the toilet, is sleepy, tired, hurt or sick, is due to digivolve or at the end of
@@ -16,9 +16,9 @@
 
 #include <dw/types.h>
 #include <dw/entity.h>
-#include <dw/lang.h>
+#include <dw/evl.h>
+#include <dw/font.h>
 #include <dw/level.h>
-#include <dw/mod_options.h>
 #include <dw/mod_qol.h>
 #include <dw/mod_present.h>
 #include <dw/params.h>
@@ -26,15 +26,20 @@
 #include <dw/sound.h>
 #include <dw/world_object.h>
 
+#include <text/main/mod_qol.h>
+
 #include "common.h"
 
 extern GsOT *ACTIVE_ORDERING_TABLE;
+void renderString(int32_t color, int32_t x, int32_t y, int32_t w, int32_t h, int32_t u, int32_t v, int32_t layer,
+                  int32_t shadow);
 extern uint32_t POLLED_INPUT;
 extern uint32_t POLLED_INPUT_PREVIOUS;
+extern uint8_t PAUSE_STATE;
 
 /* each row of a letter is 3 bits, bit 2 the left column */
-static const char MOD_PLATE_CHARS[] = "R2x15STAKIPOM>";
-static const uint8_t MOD_PLATE_GLYPHS[14][5] = {
+static const char MOD_PLATE_CHARS[] = "R2x15STA>";
+static const uint8_t MOD_PLATE_GLYPHS[9][5] = {
 	{ 6, 5, 6, 5, 5 }, /* R */
 	{ 7, 1, 7, 4, 7 }, /* 2 */
 	{ 0, 0, 5, 2, 5 }, /* x */
@@ -43,16 +48,9 @@ static const uint8_t MOD_PLATE_GLYPHS[14][5] = {
 	{ 7, 4, 7, 1, 7 }, /* S */
 	{ 7, 2, 2, 2, 2 }, /* T */
 	{ 2, 5, 7, 5, 5 }, /* A */
-	{ 5, 5, 6, 5, 5 }, /* K */
-	{ 7, 2, 2, 2, 7 }, /* I */
-	{ 6, 5, 6, 4, 4 }, /* P */
-	{ 7, 5, 5, 5, 7 }, /* O */
-	{ 5, 7, 7, 5, 5 }, /* M */
 	{ 4, 6, 7, 6, 4 }, /* > (fast forward) */
 };
 
-/* the skip hint's words after START, by MOD_LANG */
-static const char *const MOD_SKIP_TEXT[MOD_LANGS] = { "START SKIP", "START OMITIR" };
 
 static void modPlateRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, int32_t g, int32_t b, int32_t z)
 {
@@ -118,12 +116,48 @@ void modPlate(int32_t x, int32_t y, const char *text, int32_t hi, int32_t r, int
 	modPlateText(x + 3, y + 2, text, hi, r, g, b);
 }
 
-/* the evolution's skip hint, its right edge where the battle's plate ends: START white, the word light blue */
+/* the evolution's skip hint: a line of the game's font (in the language shown), drawn once into a row of the text area
+   when the scene begins, then shown each frame on a dark plate at the bottom of the screen, its shadow on */
+#define MOD_SKIP_ROW 0xD8
+static int16_t MOD_SKIP_W;
+static int16_t modSkipState;
+
+void modSkipHintDraw(void)
+{
+	RECT area;
+	char *text = QOL_STR_SKIP_EVOLUTION;
+
+	setRECT(&area, 0, MOD_SKIP_ROW, 256, 12);
+	clearTextSubArea(&area);
+	setTextColor(1);
+	MOD_SKIP_W = drawStringMode(text, 0, MOD_SKIP_ROW, fitStringMode(text, 240));
+}
+
+/* each tick of the scene: armed (3, the hint drawn and shown) once START is up and no pause is open, so the START
+   that closes a pause (the lab menu evolves under it, and the scene runs under the pause) is not a skip; a pause
+   disarms it (its box reuses the text area); START while armed asks for the skip (2) */
+void modEvoSkipInput(void)
+{
+	if (MOD_EVO_SKIP == 3 && PAUSE_STATE != 0) {
+		MOD_EVO_SKIP = 1;
+	} else if (MOD_EVO_SKIP == 1 && PAUSE_STATE == 0 && !(POLLED_INPUT & 0x800)) {
+		MOD_EVO_SKIP = 3;
+		modSkipHintDraw();
+	} else if (MOD_EVO_SKIP == 3 && (POLLED_INPUT & 0x800)) {
+		MOD_EVO_SKIP = 2;
+	} else if (MOD_EVO_SKIP == 3 && (EVO_SEQUENCE_DATA.state != modSkipState || (EVO_SEQUENCE_DATA.timer & 15) == 0)) {
+		modSkipHintDraw(); /* the scene's own loads reach the text area (the new form's textures): drawn again */
+	}
+	modSkipState = EVO_SEQUENCE_DATA.state;
+}
+
 void modSkipPlate(void)
 {
-	const char *text = MOD_SKIP_TEXT[MOD_LANG == MOD_LANG_ES];
+	int32_t x = -MOD_SKIP_W / 2;
 
-	modPlate(0x80 + 23 - modPlateWidth(text), 0x60, text, 5, 0x62, 0xB4, 0xF6);
+	modPlateRect(x - 6, 0x58, MOD_SKIP_W + 12, 18, 0x62, 0xB4, 0xF6, 6);
+	modPlateRect(x - 5, 0x59, MOD_SKIP_W + 10, 16, 0x18, 0x18, 0x18, 5);
+	renderString(0, x, 0x5B, MOD_SKIP_W, 12, 0, MOD_SKIP_ROW, 4, 1);
 }
 
 /* the battle speed of the three battle overlays (BTL field battles, STD arena and tournaments, VS): R2 switches x1 /
@@ -151,7 +185,7 @@ void modSpeedInput(void)
 static void modSpeedPlate(int32_t instanceId)
 {
 	int32_t x = 0x7E;
-	int32_t y = 0x66;
+	int32_t y = 0x60; /* the item menu's bottom box ends just above 0x66 */
 
 	(void)instanceId;
 	modPlateRect(x + 2, y, 9, 9, 0xB0, 0xB0, 0xB8, 6);
