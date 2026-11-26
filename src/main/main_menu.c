@@ -4807,6 +4807,35 @@ static void modCardOptions(void)
 	}
 }
 
+/*
+ * MOD (options): at boot, before the title (main.c), the newest save's options (modCardOptions), so the title screen
+ * and its menu are in the save's language and font, not only once OPTIONS opens: which card slots hold a card, asked
+ * at once (MemCardExist, waited for; the menu's own poll, updateMemoryCardState, finds one slot per answer)
+ */
+void modBootOptions(void)
+{
+	MemCardSyncWord cmd;
+	MemCardSyncWord result;
+	int32_t c;
+	int32_t bit;
+
+	for (c = 0; c < 2; c++) {
+		bit = c ? 0x10 : 1;
+		MemCardSync(0, &cmd, &result); /* the poll's request in flight, if any */
+		MemCardExist(c ? 0x10 : 0);
+		MemCardSync(0, &cmd, &result);
+		if (result == 0 || result == 3) {
+			CONNECTED_CARDS |= bit;
+			if (result == 3) {
+				NEW_CARDS |= bit;
+			}
+		} else {
+			CONNECTED_CARDS &= ~bit;
+		}
+	}
+	modCardOptions();
+}
+
 static void prepareSaveFile(int32_t fromRam)
 {
 	SavegamePayload *savegame;

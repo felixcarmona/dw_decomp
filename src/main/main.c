@@ -149,6 +149,7 @@ void playMovie(int32_t movieId, int32_t shouldPlay);
 void loadStackedTIMFile(char *path);
 void runLandingScreen(void);
 void runMainMenu(void);
+void modBootOptions(void); /* MOD (options) */
 void newGameScene(void);
 void initializeLoadedMap(void);
 void recalculatePPandArena(void);
@@ -3470,6 +3471,9 @@ int32_t main(void)
 	initializeStatusObjects();
 	initializeSpecies(); /* MOD (species): DIGI.DAT */
 	loadTIMFile(MAIN_D_8012CE64, GENERAL_BUFFER_PTR);
+#if VERSION_IS(US)
+	modBootOptions(); /* MOD (options): the newest save's options before the title (main_menu.c) */
+#endif
 
 	for (;;) {
 		loadTIMFile(MAIN_D_8012CE78, GENERAL_BUFFER_PTR);
