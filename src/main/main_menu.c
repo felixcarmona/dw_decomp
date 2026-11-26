@@ -13,6 +13,7 @@ extern int MOD_CHEATS_CARD_MODE, MOD_CHEATS_CARD_DONE;
 #include <dw/mod_options.h>
 #include <dw/mod_version.h>
 #include <dw/mod_rules.h>
+#include <dw/pstat.h>
 #include <dw/save_tags.h>
 #include <dw/input.h>
 #include <dw/item.h>
@@ -4276,6 +4277,45 @@ int32_t tickSelectSlotInput(MenuCursor *cursor, int32_t which)
 
 /* MOD (new game as data): written by tools/balance.py from content/tables/new-game.json; -1 = the rule does not exist */
 int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE] = { [0 ... MOD_NEWGAME_SIZE - 1] = -1 };
+
+/* MOD (starter quiz): p254 is a list index, never a truncated species id. */
+int32_t modNewGameStarter(void)
+{
+	uint32_t index = readPStat(PSTAT_254);
+	return MOD_QUIZ_STARTERS[index < 35 ? index : 0];
+}
+
+/* MOD (starter quiz): all seven answers contribute. A tie goes to the latest
+ * supporting answer, then the earlier axis if both were supported together. */
+uint8_t modQuizResult(const uint8_t *answers)
+{
+	uint8_t score[11] = { 0 };
+	uint8_t last[11] = { 0 };
+	int32_t q, j, axis, weight, lo, hi, best, cell = 0;
+
+	for (q = 0; q < 7; q++) {
+		for (j = 0; j < 3; j++) {
+			weight = MOD_QUIZ_WEIGHTS[q * 9 + answers[q] * 3 + j];
+			axis = weight >> 4;
+			weight &= 15;
+			if (weight != 0) {
+				score[axis] += weight;
+				last[axis] = q + 1;
+			}
+		}
+	}
+	for (lo = 0; lo < 11; lo = hi) {
+		hi = lo == 0 ? 5 : lo + 3;
+		best = lo;
+		for (j = lo + 1; j < hi; j++) {
+			if (score[j] > score[best] || (score[j] == score[best] && last[j] > last[best])) {
+				best = j;
+			}
+		}
+		cell = cell * (hi - lo) + best - lo;
+	}
+	return (MOD_OPT_NEW_DIGIMON ? MOD_QUIZ_CELLS : MOD_QUIZ_VANILLA_CELLS)[cell];
+}
 
 int32_t modNewGame(int32_t slot)
 {
