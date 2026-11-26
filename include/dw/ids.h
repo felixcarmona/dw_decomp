@@ -22,6 +22,9 @@ typedef uint16_t CardId;
 /* id meaning "none" in the u8 layouts (inventory slots, item ids, ...) */
 #define LEGACY_ID_NONE 0xFF
 
+/* no item in an ItemId carrier (inventory slot, chest, item on the ground) */
+#define ITEM_NONE (-1)
+
 /* Digimon types */
 #define NUM_DIGIMON		180	/* DIGIMON_DATA, models, skeletons, voices */
 #define NUM_PARTNER_DIGIMON	66	/* RAISE_DATA, cards; partners are 1..65 */

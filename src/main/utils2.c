@@ -45,8 +45,8 @@ void loadStackedTIMFile(char *path);
 void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h,
 		  uint8_t u, uint8_t v, long layer, int32_t shadow);
 void pauseFrame(void);
-void renderItemSprite(uint8_t type, int16_t x, int16_t y, int32_t layer);
-void setItemTexture(POLY_FT4 *p, uint8_t id);
+void renderItemSprite(ItemId type, int16_t x, int16_t y, int32_t layer);
+void setItemTexture(POLY_FT4 *p, ItemId id);
 uint8_t entityGetTechFromAnim(Entity *e, uint8_t anim);
 void entityLookAtTile(Entity *entity, int8_t tileX, int8_t tileY);
 void setEntityTextDigit(POLY_FT4* poly, int32_t x, int32_t y);
@@ -260,7 +260,7 @@ void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h,
 	GsSetWorkBase((PACKET *)prim);
 }
 
-void renderItemSprite(uint8_t type, int16_t x, int16_t y, int32_t layer)
+void renderItemSprite(ItemId type, int16_t x, int16_t y, int32_t layer) /* MOD: was u8 */
 {
 	POLY_FT4 *prim;
 	int16_t width;
@@ -279,7 +279,7 @@ void renderItemSprite(uint8_t type, int16_t x, int16_t y, int32_t layer)
 	GsSetWorkBase((PACKET *)prim);
 }
 
-void setItemTexture(POLY_FT4 *prim, uint8_t type)
+void setItemTexture(POLY_FT4 *prim, ItemId type) /* MOD: was u8; the icon grid still has 128 cells */
 {
 	uint8_t u;
 	uint8_t v;

@@ -51,7 +51,7 @@ int8_t TAMER_SUB_STATE;
 uint8_t PICKED_UP_DROP_ID;
 int8_t TAKE_CHEST_STATE;
 int8_t TAKE_ITEM_FRAME_COUNTER;
-uint8_t TAKE_CHEST_ITEM;
+ItemId TAKE_CHEST_ITEM; /* MOD: was u8 */
 int8_t INTERACTED_CHEST;
 int16_t MOVE_TO_DELTA_X;
 int16_t MOVE_TO_DELTA_Z;
@@ -122,11 +122,11 @@ typedef struct {
 	SVECTOR rotation;
 	SVECTOR trayRotation;
 	uint16_t trigger;
-	uint8_t item;
+	ItemId item; /* MOD: was u8 (ids.md step 3); ITEM_NONE = no chest */
 	uint8_t isTaken;
 	uint8_t tileX;
 	uint8_t tileY;
-	uint16_t padding;
+	uint8_t padding;
 } Chest;
 
 extern Chest CHEST_ARRAY[8];
@@ -593,7 +593,7 @@ void checkItemPickup(void)
 	item = DROPPED_ITEMS;
 	PICKED_UP_DROP_ID = 0xff;
 	for (i = 0; i < 11; ++i) {
-		if (item->worldItem.type == 0xff) {
+		if (item->worldItem.type == ITEM_NONE) {
 			++item;
 			continue;
 		}
@@ -1256,7 +1256,7 @@ uint8_t checkChestCollision(void)
 	getModelTile(&TAMER_ENTITY.entity.posData->location, &tileX, &tileY);
 
 	for (i = 0; i < 8; ++i) {
-		if ((CHEST_ARRAY[i].item != 0xff) &&
+		if ((CHEST_ARRAY[i].item != ITEM_NONE) &&
 		    (CHEST_ARRAY[i].tileX - 1) <= tileX &&
 		    (tileX <= CHEST_ARRAY[i].tileX + 1) &&
 		    (CHEST_ARRAY[i].tileY - 1) <= tileY &&

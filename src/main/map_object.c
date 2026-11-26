@@ -228,7 +228,7 @@ void clearChests(void)
 	int32_t i;
 
 	for (i = 0; i < NUM_CHESTS; ++i) {
-		CHEST_ARRAY[i].item = 0xff;
+		CHEST_ARRAY[i].item = ITEM_NONE;
 		CHEST_ARRAY[i].isTaken = 0;
 	}
 }
@@ -418,7 +418,7 @@ void renderChest(int32_t instanceId)
 	}
 
 	for (chestIdx = 0; chestIdx < NUM_CHESTS; chestIdx++) {
-		if (CHEST_ARRAY[chestIdx].item == 0xff) {
+		if (CHEST_ARRAY[chestIdx].item == ITEM_NONE) {
 			continue;
 		}
 
@@ -780,7 +780,7 @@ void renderTrainingPoop(int32_t instanceId)
 }
 
 void spawnChest(int16_t posX, int16_t posY, int16_t posZ, int16_t rotation,
-		uint8_t item, uint16_t trigger)
+		ItemId item, uint16_t trigger) /* MOD: item was u8 */
 {
 	int32_t idx;
 	int16_t tileX;
@@ -788,7 +788,7 @@ void spawnChest(int16_t posX, int16_t posY, int16_t posZ, int16_t rotation,
 	VECTOR pos;
 
 	for (idx = 0; idx < NUM_CHESTS; ++idx) {
-		if (CHEST_ARRAY[idx].item != 0xff) {
+		if (CHEST_ARRAY[idx].item != ITEM_NONE) {
 			continue;
 		}
 
@@ -851,7 +851,7 @@ void emptyChests(void)
 	int32_t i;
 
 	for (i = 0; i < NUM_CHESTS; ++i) {
-		CHEST_ARRAY[i].item = 0xff;
+		CHEST_ARRAY[i].item = ITEM_NONE;
 	}
 }
 
