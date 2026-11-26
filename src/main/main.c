@@ -4891,6 +4891,8 @@ static int32_t modTickL0;
 static int32_t modLastEndV = -1000;
 static int32_t modLastEndLines;
 
+static ModRollbackSet *modLoopRollback; /* the last loop's set (MOD_PRESENT_PAUSE) */
+
 static int32_t modTickRefreshes(void)
 {
 	return MOD_FPS_TEST_TICK > 0 ? MOD_FPS_TEST_TICK : 3;
@@ -4943,6 +4945,11 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	int32_t period = modTickRefreshes(); /* refreshes per tick: 3 */
 	int32_t force = MOD_FPS_TEST_TICK > 0;
 
+	if (flags & MOD_PRESENT_PAUSE) {
+		extra = modLoopRollback;
+	} else {
+		modLoopRollback = extra;
+	}
 	tickV = modTickV;
 	l0 = modTickL0;
 	n = MOD_FPS_RENDERS_PER_TICK;
