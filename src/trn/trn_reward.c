@@ -6,6 +6,7 @@
 #include <dw/entity.h>
 #include <dw/font.h>
 #include <dw/math.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -612,129 +613,64 @@ int32_t c;
 	}
 }
 
+/*
+ * MOD (rules as data): the tables below are written by tools/balance.py build from content/tables/training.json; -1 = does not exist.
+ * The gain is num * level * bonuses / (10 * 10 * bonuses), in tenths.
+ */
+int16_t MOD_TRAIN_NUM[MOD_TRAIN_MODES][MOD_TRAIN_TYPES] = {
+	{ -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 },
+	{ -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 },
+};
+int16_t MOD_TRAIN_LEVEL[MOD_TRAIN_LEVELS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+ModTrainBonus MOD_TRAIN_BONUS[MOD_TRAIN_BONUS_MAX] = {
+	{ -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 },
+};
+
 int16_t TRN_calculateTrainingMultiplier(int32_t type, int16_t mode, int16_t flag)
 {
 	uint32_t num;
 	uint32_t den;
 	uint8_t tt;
+	int32_t lv;
+	int32_t i;
+	ModTrainBonus *bonus;
+	int16_t counter;
 	int16_t result;
 
-	num = 0;
-	den = 0;
+	if (mode < 0 || mode >= MOD_TRAIN_MODES) {
+		return 0;
+	}
 	tt = RAISE_ROW(type).trainingType;
-	switch (mode) {
-	case 0:
-		if ((tt == 0) || (tt == 1)) {
-			num = 10;
-		} else if (tt == 2) {
-			num = 9;
-		} else if (tt == 3) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
-	case 1:
-		if ((tt == 0) || (tt == 3)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 9;
-		} else if (tt == 2) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
-	case 2:
-		if ((tt == 0) || (tt == 2)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 11;
-		} else if (tt == 3) {
-			num = 9;
-		} else {
-			num = 8;
-		}
-		break;
-	case 3:
-		if ((tt == 0) || (tt == 1)) {
-			num = 10;
-		} else if (tt == 2) {
-			num = 9;
-		} else if (tt == 3) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
-	case 4:
-		if ((tt == 0) || (tt == 2)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 11;
-		} else if (tt == 3) {
-			num = 9;
-		} else {
-			num = 8;
-		}
-		break;
-	case 5:
-		if ((tt == 0) || (tt == 3)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 9;
-		} else if (tt == 2) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
+	if (tt >= MOD_TRAIN_TYPES) {
+		tt = MOD_TRAIN_TYPES - 1;
 	}
-
-	den = 10;
-	if ((DIGI_PARA(type).level == 1) || (DIGI_PARA(type).level == 2)) {
-		num = num * 9;
-	} else if (DIGI_PARA(type).level == 3) {
-		num = num * 10;
-	} else if (DIGI_PARA(type).level == 4) {
-		num = num * 11;
-	} else if (DIGI_PARA(type).level == 6) { /* MOD (mega): x1.3 */
-		num = num * 13;
-	} else {
-		num = num * 12;
+	lv = DIGI_PARA(type).level;
+	if (lv >= MOD_TRAIN_LEVELS) {
+		lv = MOD_TRAIN_LEVELS - 1;
 	}
-
-	den = den * 10;
-	if (flag == 0) {
-		if ((mode == 0) || (mode == 3) || (mode == 4)) {
-			if (isTriggerSet(0xdb) == 1) {
-				num = num * 6;
-				den = den * 5;
-			}
-		}
-		if ((mode == 2) || (mode == 1) || (mode == 5)) {
-			if (isTriggerSet(0xfb) == 1) {
-				num = num * 6;
-				den = den * 5;
-			}
-		}
-		if ((mode == 0) || (mode == 1) || (mode == 2)) {
-			if ((&PARTNER_PARA.upgradeHPcounter)[mode] >= 10) {
-				num = num * 6;
-				den = den * 5;
-			}
-		}
-		if ((mode == 3) || (mode == 4) || (mode == 5)) {
-			if ((&PARTNER_PARA.upgradeDefenseCounter)[mode - 3] >= 10) {
-				num = num * 6;
-				den = den * 5;
-			}
-		}
+	if (MOD_TRAIN_NUM[mode][tt] < 0 || MOD_TRAIN_LEVEL[lv] < 0) {
+		return 0;
 	}
-
-	if (getItemCount(0x21) > 0) {
-		num = num * 11;
-		den = den * 10;
+	num = MOD_TRAIN_NUM[mode][tt] * MOD_TRAIN_LEVEL[lv];
+	den = 100;
+	for (i = 0; i < MOD_TRAIN_BONUS_MAX; i++) {
+		bonus = &MOD_TRAIN_BONUS[i];
+		if (bonus->kind < 0 || bonus->den <= 0 || (bonus->modes & (1 << mode)) == 0) {
+			continue;
+		}
+		if (bonus->kind == 0 && flag == 0 && isTriggerSet(bonus->arg) == 1) {
+			num = num * bonus->num;
+			den = den * bonus->den;
+		} else if (bonus->kind == 1 && flag == 0) {
+			counter = mode < 3 ? (&PARTNER_PARA.upgradeHPcounter)[mode] : (&PARTNER_PARA.upgradeDefenseCounter)[mode - 3];
+			if (counter >= bonus->arg) {
+				num = num * bonus->num;
+				den = den * bonus->den;
+			}
+		} else if (bonus->kind == 2 && getItemCount(bonus->arg) > 0) {
+			num = num * bonus->num;
+			den = den * bonus->den;
+		}
 	}
 
 	result = (num * 10) / den;
