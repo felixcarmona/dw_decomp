@@ -30,7 +30,7 @@ enum {
 #define CUP_TAGS_PER_SECTOR	512
 #define CUP_TAG_FIELDS(tag)	((tag) & 0x3ff)
 #define CUP_TAG_ATTRIBUTE(tag)	((tag) >> 10 & 3)
-#define CUP_TAG_SPECIALTY(tag)	((tag) >> 12 & 7)
+#define CUP_TAG_SPECIALTY(tag)	((tag) >> 19 & 15)
 #define CUP_TAG_LEVEL(tag)	((tag) >> 15 & 7)
 #define CUP_TAG_RIVAL		(1 << 18) /* a species of DIGI.DAT the arena can draw: raised by players, Rookie or higher */
 

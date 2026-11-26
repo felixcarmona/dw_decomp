@@ -1196,9 +1196,9 @@ RGB8 STD_INTRO_NAME_COLORS[10] = {
 	{ 0x1e, 0x80, 0x80 },
 	{ 0xc8, 0xc8, 0x00 },
 	{ 0x32, 0xb4, 0xc8 },
-	{ 0x00, 0x00, 0x00 },
-	{ 0x00, 0x00, 0x00 },
-	{ 0x00, 0x00, 0x00 },
+	{ 0xa0, 0x48, 0xe0 },
+	{ 0xf0, 0xe4, 0xa8 },
+	{ 0x38, 0x68, 0xff },
 };
 
 CameraPreset STD_CAMERA_PRESETS[9] = {
@@ -1485,6 +1485,11 @@ void STD_addIntroText(entity, id)
 		break;
 	case 6:
 		STD_INTRO_DATA_COLOR = 5;
+		break;
+	case 7:
+	case 8:
+	case 9:
+		STD_INTRO_DATA_COLOR = DIGI_PARA(entity->type).special[0];
 		break;
 	default:
 		STD_INTRO_DATA_COLOR = 0;
