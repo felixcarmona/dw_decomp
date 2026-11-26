@@ -804,7 +804,7 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 
 void TRN_renderNewOrdersBox(void)
 {
-	renderString(0, TB_box2X() + 10, 28 + TB_box2Dy, MOD_OPT_BARS ? 168 : 240, 48, 0, 120, 4, 0);
+	renderString(0, TB_box2X() + 10, 28 + TB_box2Dy, 168, 48, 0, 120, 4, 0);
 }
 
 int32_t TRN_tryLearnMove(int32_t type)

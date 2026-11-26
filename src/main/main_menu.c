@@ -287,17 +287,17 @@ static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back fro
 #define MOD_OPT_CHEATS_BIT 1 /* byte 12: CHEATS, and the Cheats menu's Select shortcuts in the bit above it */
 #define MOD_OPT_SHORTCUTS_BIT 2
 static int32_t MOD_SAVE_NUMBER; /* MOD (options): the highest save number seen in a save header (modTitleOptions) */
-#define MOD_OPT_ROW_STORY	5 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
-#define MOD_OPT_ROW_DIFF	6 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
-#define MOD_OPT_ROW_QUICK	7 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
-#define MOD_OPT_ROW_FPS	8
+#define MOD_OPT_ROW_STORY	4 /* MOD (story): EXTENDED STORY, under NEW DIGIMON */
+#define MOD_OPT_ROW_DIFF	5 /* MOD (difficulty): DIFFICULTY, under EXTENDED STORY */
+#define MOD_OPT_ROW_QUICK	6 /* MOD (quick battle start): QUICK BATTLE START, under DIFFICULTY */
+#define MOD_OPT_ROW_FPS	7
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	14 /* MOD (options): and FONT, in a build with both fonts */
-#define MOD_OPT_ROW_FONT	9
-#define MOD_OPT_ROW_LANG	10
-#else
-#define MOD_OPT_ROWS	13
+#define MOD_OPT_ROWS	13 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROW_FONT	8
 #define MOD_OPT_ROW_LANG	9
+#else
+#define MOD_OPT_ROWS	12
+#define MOD_OPT_ROW_LANG	8
 #endif
 #define MOD_OPT_ROW_SIGNS	(MOD_OPT_ROW_LANG + 1) /* MOD (language): LANGUAGE and MAP SIGNS, the last two rows */
 static void renderOptionsMenu(void);
@@ -4732,7 +4732,7 @@ static void modOptionBytes(uint8_t *d)
 	d[0] = MOD_OPT_BUTTONS;
 	d[1] = MOD_OPT_CLOCK;
 	d[2] = modFrameRate();
-	d[3] = MOD_OPT_BARS;
+	d[3] = 1; /* Reserved care-HUD byte: always enabled, including for older readers. */
 #if FONT_SWITCH
 	d[4] = MOD_FONT == MOD_FONT_NEW ? 1 : MOD_FONT == MOD_FONT_CLASSIC ? 2 : 0; /* FONT */
 #else
@@ -4768,9 +4768,7 @@ static void modApplyOptions(const uint8_t *d, int32_t len)
 	if (len >= 3 && (d[2] == 20 || d[2] == 30 || d[2] == 60)) {
 		modSetFrameRate(d[2]);
 	}
-	if (len >= 4) {
-		MOD_OPT_BARS = d[3] != 0;
-	}
+	/* Byte 3 is reserved; older saves may contain either value. */
 #if FONT_SWITCH
 	if (len >= 5) {
 		modSetFont(d[4] == 0 ? MOD_FONT_ORIGINAL : d[4] == 2 ? MOD_FONT_CLASSIC : MOD_FONT_NEW);
@@ -6018,7 +6016,6 @@ void renderInitialMenu(void)
 static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
 	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
-	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_STORY, MOD_OPT_STR_OFF, MOD_OPT_STR_ON }, /* MOD (story) */
@@ -6097,10 +6094,8 @@ static int32_t modOptionValue(int32_t row)
 	case 1:
 		return MOD_OPT_CLOCK != 0;
 	case 2:
-		return MOD_OPT_BARS != 0;
-	case 3:
 		return MOD_OPT_EVO_GUIDE != 0;
-	case 4:
+	case 3:
 		return MOD_OPT_NEW_DIGIMON != 0;
 	case MOD_OPT_ROW_STORY: /* MOD (story) */
 		return MOD_OPT_STORY != 0;
@@ -6149,12 +6144,9 @@ static void modSetOption(int32_t row, int32_t value)
 		MOD_OPT_CLOCK = value;
 		break;
 	case 2:
-		MOD_OPT_BARS = value;
-		break;
-	case 3:
 		MOD_OPT_EVO_GUIDE = value;
 		break;
-	case 4:
+	case 3:
 		MOD_OPT_NEW_DIGIMON = value;
 		modApplySpeciesLevels(); /* MOD (canon levels) */
 		break;
