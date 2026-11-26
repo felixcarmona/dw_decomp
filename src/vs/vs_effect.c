@@ -43,6 +43,9 @@ extern int32_t UNKNOWN_MODEL_TAKEN[16];
 
 int32_t doSomethingWithSomePoints(int16_t *rect, DVECTOR *line);
 void downloadSomeImage();
+extern u_long *SOME_IMAGE_DATA;
+/* MOD (heap): the palette rows the effects dim, kept here instead of in the executable */
+static u_long VS_IMAGE_COPY[896];
 void modifySomeImage(long dim);
 int32_t addFileReadRequest(char *path, uint8_t *buffer, uint8_t *isRunning, void *callback, void *callbackParam, CdlLOC *loc, int32_t size);
 CdlLOC *getEFEDATEntry(int32_t id);
@@ -1733,6 +1736,7 @@ void VS_loadMoveEFE(moves, effectIds, isLoaded)
 // clang-format on
 {
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
+	SOME_IMAGE_DATA = VS_IMAGE_COPY;
 	downloadSomeImage();
 #endif
 	EFE_LOAD_REQUEST.state = -1;

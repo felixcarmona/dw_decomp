@@ -299,7 +299,8 @@ EfeParticleField FX_PARTICLE_DATA[50];
 EntityParticleFX ENTITY_PARTICLE_FX_DATA[20];
 CloudFXEntry CLOUD_FX_DATA[60];
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-u_long SOME_IMAGE_DATA[896];
+/* MOD (heap): the copy lives in the overlay that dims it (STD, VS); each sets this before downloadSomeImage */
+u_long *SOME_IMAGE_DATA;
 #endif
 int16_t EFE_LOADED_MOVE_DATA[17];
 int32_t EFE_SCRIPT_MEM1_DATA[32];
@@ -318,7 +319,7 @@ static void *efe_bss_order[] = {
 	EFE_SCRIPT_MEM1_DATA,
 	EFE_LOADED_MOVE_DATA,
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
-	SOME_IMAGE_DATA,
+	&SOME_IMAGE_DATA,
 #endif
 	CLOUD_FX_DATA,
 	ENTITY_PARTICLE_FX_DATA,

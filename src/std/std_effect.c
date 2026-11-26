@@ -83,6 +83,9 @@ void STD_renderProjectedSprite(void);
 void STD_renderParallelLines(SVECTOR *a, SVECTOR *b, int16_t n, SVECTOR *from, SVECTOR *to, int32_t *col);
 void STD_renderStunEffect(int32_t idx);
 void downloadSomeImage();
+extern u_long *SOME_IMAGE_DATA;
+/* MOD (heap): the palette rows the effects dim, kept here instead of in the executable */
+static u_long STD_IMAGE_COPY[896];
 void modifySomeImage(long dim);
 void STD_addPodiumRenderer(void);
 void STD_removePodiumRenderer(void);
@@ -2082,6 +2085,7 @@ void STD_loadMoveEFE(moves, effectIds, isLoaded)
 // clang-format on
 {
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
+	SOME_IMAGE_DATA = STD_IMAGE_COPY;
 	downloadSomeImage();
 #endif
 	EFE_LOAD_REQUEST.state = -1;
