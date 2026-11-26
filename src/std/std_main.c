@@ -7,6 +7,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_battle.h>
 #include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/aabb.h>
@@ -3611,11 +3612,11 @@ void STD_tickPartnerAI(void)
 
 	if (NO_AI_FLAG == 0) {
 		if (stats->current.currentHP > fighter->hpDamageBuffer) {
-			if (stats->base.brain < 0x12d) {
-				if ((BATTLE_FRAME_COUNT % (((stats->base.brain / 2) + 1) * 20)) == 0) {
-					if ((0x46 - PARTNER_PARA.discipline) > randomLimit(100)) {
+			if (stats->base.brain < BM(SEN_BRAIN)) {
+				if ((BATTLE_FRAME_COUNT % ((BMD(stats->base.brain, SEN_INT_DIV) + 1) * BMS(SEN_INT_MULT))) == 0) {
+					if ((BM(SEN_PARTNER) - PARTNER_PARA.discipline) > randomLimit(100)) {
 						*flagsPtr |= FIGHTER_FLAG_SENILE;
-						fighter->senileTimer = 100;
+						fighter->senileTimer = BM(SEN_FRAMES);
 					}
 				}
 			}
@@ -3764,7 +3765,7 @@ void STD_tickPartnerAI(void)
 	switch (COMBAT_DATA_PTR->player.currentCommand[0]) {
 	case 2:
 		if (STD_hasAffordableMoves(moveFlags, 0) == 0) {
-			fighter->cooldown = 0x50;
+			fighter->cooldown = BM(CD_IDLE);
 			fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 			return;
 		}
@@ -3773,7 +3774,7 @@ void STD_tickPartnerAI(void)
 		break;
 	case 4:
 		if (STD_hasAffordableMoves(moveFlags, 0) == 0) {
-			fighter->cooldown = 0x50;
+			fighter->cooldown = BM(CD_IDLE);
 			fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 			return;
 		}
@@ -4051,21 +4052,21 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 		f->finisherProgress = 0;
 		f->statusFxId = -1;
 		f->activeEffectSlot = -1;
-		f->speedBuffer = 0x64;
+		f->speedBuffer = BM(SPEED_START);
 		f->unk15 = 0;
 		f->hasCollidedWhileDistanceCmd = 0;
-		if (stats->base.brain < 0x190) {
-			f->buffsRemaining = (stats->base.brain / 100) + 1;
-		} else if (stats->base.brain < 0x258) {
-			f->buffsRemaining = 4;
+		if (stats->base.brain < BM(BUFFUSE_T1)) { /* MOD (battle as data) */
+			f->buffsRemaining = BMD(stats->base.brain, BUFFUSE_DIV) + 1;
+		} else if (stats->base.brain < BM(BUFFUSE_T2)) {
+			f->buffsRemaining = BM(BUFFUSE_N1);
 		} else {
-			f->buffsRemaining = 5;
+			f->buffsRemaining = BM(BUFFUSE_N2);
 		}
 		/* MOD (caps): brains and speed past the old 999 limit do not
 		 * make buffs win every draw or the finisher goal reach 0:
 		 * the goal keeps falling, ten times slower (1101 at 9999) */
-		f->buffPrioTimer = (CAPS_OLD_STAT(stats->base.brain) / 10) + 5;
-		f->finisherGoal = 0xbb8 - CAPS_OLD_STAT(stats->base.speed) -
+		f->buffPrioTimer = BMD(CAPS_OLD_STAT(stats->base.brain), PRIO_DIV) + BM(PRIO_BASE);
+		f->finisherGoal = BM(FIN_GOAL) - CAPS_OLD_STAT(stats->base.speed) -
 		                  (stats->base.speed - CAPS_OLD_STAT(stats->base.speed)) / 10;
 		for (j = 0; j < 0x96; j++) {
 			f->table1[j] = -1;
@@ -4144,10 +4145,10 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 
 	if ((PARTNER_PARA.condition & 0x60) != 0) {
 		stats = &PARTNER_ENTITY.digimonEntity.stats;
-		stats->base.off -= (int16_t)(stats->base.off / 5);
-		stats->base.def -= (int16_t)(stats->base.def / 5);
-		stats->base.speed -= (int16_t)(stats->base.speed / 5);
-		stats->base.brain -= (int16_t)(stats->base.brain / 5);
+		stats->base.off -= (int16_t)(stats->base.off * BM(COND_STAT_PCT) / 100);
+		stats->base.def -= (int16_t)(stats->base.def * BM(COND_STAT_PCT) / 100);
+		stats->base.speed -= (int16_t)(stats->base.speed * BM(COND_STAT_PCT) / 100);
+		stats->base.brain -= (int16_t)(stats->base.brain * BM(COND_STAT_PCT) / 100);
 	}
 
 	STD_addFighterStatusBars(0);
@@ -4187,11 +4188,11 @@ void STD_tickEnemyAI(void)
 		stats->base.movesPrio[3] = 0;
 		if (NO_AI_FLAG == 0) {
 			if (stats->current.currentHP > fighter->hpDamageBuffer) {
-				if (stats->base.brain < 0x12d) {
-					if ((BATTLE_FRAME_COUNT % (((stats->base.brain / 2) + 1) * 20)) == 0) {
-						if (((0x12c - stats->base.brain) / 4) > randomLimit(100)) {
+				if (stats->base.brain < BM(SEN_BRAIN)) {
+					if ((BATTLE_FRAME_COUNT % ((BMD(stats->base.brain, SEN_INT_DIV) + 1) * BMS(SEN_INT_MULT))) == 0) {
+						if (BMD(BM(SEN_ENEMY) - stats->base.brain, SEN_ENEMY_DIV) > randomLimit(100)) {
 							*flagsPtr |= FIGHTER_FLAG_SENILE;
-							fighter->senileTimer = 100;
+							fighter->senileTimer = BM(SEN_FRAMES);
 						}
 					}
 				}
@@ -4709,7 +4710,7 @@ void STD_tickConfusedState(DigimonEntity *digimon, DigimonEntity *target, Fighte
 		if (fighter->flags & FIGHTER_FLAG_ATTACKING) {
 			return;
 		}
-		if (randomLimit(100) >= 5) {
+		if (randomLimit(100) >= BM(IDLE_STOP_PCT)) {
 			return;
 		}
 		handleBattleIdle(digimon, &digimon->stats, fighter->flags);
@@ -5211,8 +5212,8 @@ void STD_tickFighterAction(int32_t index)
 		}
 		fighter->flags &= ~FIGHTER_FLAG_10;
 		fighter->flags |= FIGHTER_FLAG_ON_COOLDOWN;
-		fighter->cooldown = 0x28;
-		STD_addFinisherProgress(fighter, fighter->finisherGoal * 2 / 50);
+		fighter->cooldown = BM(CD_ATTACK);
+		STD_addFinisherProgress(fighter, fighter->finisherGoal * BM(FIN_ATTACK_PCT) / 100);
 	}
 
 	if (fighter->invulnerableTimer <= 0) {
@@ -5295,12 +5296,12 @@ int32_t STD_getContactRangeSquared(int32_t *a, int32_t *b)
 
 void STD_increaseSpeedBuffer(FighterData *fighter, Stats *stats)
 {
-	if (fighter->speedBuffer < 0x64) {
+	if (fighter->speedBuffer < BM(SPEED_MAX)) { /* MOD (battle as data) */
 		if ((BATTLE_FRAME_COUNT % 2) == 0) {
-			fighter->speedBuffer += (stats->base.speed / 100) + 1;
+			fighter->speedBuffer += BMD(stats->base.speed, SPEED_DIV) + BM(SPEED_PLUS);
 		}
-		if (fighter->speedBuffer >= 0x65) {
-			fighter->speedBuffer = 0x64;
+		if (fighter->speedBuffer > BM(SPEED_MAX)) {
+			fighter->speedBuffer = BM(SPEED_MAX);
 		}
 	}
 }
@@ -5336,7 +5337,7 @@ void STD_startWalkingAnimation(Entity *entity, Stats *stats, uint16_t flags)
 	walking = 1;
 
 	if (!(flags & 1)) {
-		if (stats->current.currentHP > (stats->base.hp / 5)) {
+		if (stats->current.currentHP > BMD(stats->base.hp, LOWHP_DIV)) {
 			walking = 0;
 		}
 	}
@@ -5534,7 +5535,7 @@ void STD_startWalkingAnimation2(Entity *entity, Stats *stats, uint16_t flags)
 	walking = 1;
 
 	if (!(flags & 1)) {
-		if (stats->current.currentHP > (stats->base.hp / 5)) {
+		if (stats->current.currentHP > BMD(stats->base.hp, LOWHP_DIV)) {
 			walking = 0;
 		}
 	}
@@ -5648,7 +5649,7 @@ void STD_tickAttackHits(void)
 skipViewpoint:
 			dmg = STD_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
 			if (i == 0) {
-				if ((dmg * 100 / PARTNER_ENTITY.digimonEntity.stats.base.hp) >= 0x14) {
+				if ((dmg * 100 / PARTNER_ENTITY.digimonEntity.stats.base.hp) >= BM(BIGHIT_PCT)) {
 					COMBAT_DATA_PTR->player.unk2++;
 				}
 			}
@@ -5667,7 +5668,7 @@ skipViewpoint:
 		if (!(fighter->flags & FIGHTER_FLAG_BLOCKING) && (MOVE_DATA[tech].range == 1) && (DIGI_PARA(entity->type).moves[(uint32_t)(entity->anim.animId - 0x2e)] != 0x2d)) {
 			moves = ((DigimonEntity *)entity)->stats.base.moves;
 			for (j = 0; j < 4; j++) {
-				if (((DigimonEntity *)entity)->stats.current.currentMP < 0xa5) {
+				if (((DigimonEntity *)entity)->stats.current.currentMP < BM(BLOCK_MIN_MP)) {
 					break;
 				}
 				if ((moves[j] != 0xff) && (DIGI_PARA(entity->type).moves[moves[j] - 0x2e] == 0x2d)) {
@@ -5695,7 +5696,7 @@ skipViewpoint:
 		}
 		if (MOVE_DATA[tech].range == 1) {
 			dmg = STD_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
-			dmg = dmg * (randomLimit(0x15) + 0xa) / 100;
+			dmg = dmg * (randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN)) / 100;
 			if (dmg <= 0) {
 				dmg = 1;
 			}
@@ -5704,10 +5705,10 @@ skipViewpoint:
 			sub->unk25 = 0;
 			addEntityText(entity, i, 0, dmg, 0);
 		}
-		STD_addFinisherProgress(fighter, fighter->finisherGoal * 3 / 50);
+		STD_addFinisherProgress(fighter, fighter->finisherGoal * BM(BLOCK_GAIN_DEF) / 100);
 		for (j = 0; ENEMY_COUNT >= j; j++) {
 			if (attacker == ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[j]]) {
-				STD_addFinisherProgress(&COMBAT_DATA_PTR->fighter[j], COMBAT_DATA_PTR->fighter[j].finisherGoal * 4 / 50);
+				STD_addFinisherProgress(&COMBAT_DATA_PTR->fighter[j], COMBAT_DATA_PTR->fighter[j].finisherGoal * BM(BLOCK_GAIN_ATK) / 100);
 				break;
 			}
 		}
@@ -5722,7 +5723,7 @@ skipViewpoint:
 		startAnimation(entity, 0x25);
 		entity->anim.animFlag &= 0xfe;
 blocked:
-		fighter->invulnerableTimer = 3;
+		fighter->invulnerableTimer = BM(BLOCK_INVULN);
 		((DigimonEntity *)entity)->stats.current.isHit = 0;
 	}
 }
@@ -5751,33 +5752,26 @@ int16_t STD_getAttackTech(AttackObject *attack)
 int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 {
 	Stats *stats;
+	int32_t row;
 
 	stats = &digimon->stats;
-	switch (anim) {
-	case 0x29:
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.off * 3 / 10), &stats->base.off, 0xb, 3);
-		break;
-	case 0x2a:
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.off / 10), &stats->base.off, 0xb, 3);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * 5 / 100), &stats->base.def, 0xb, 4);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed / 10), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x22:
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.def / 5), &stats->base.def, 0xb, 4);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed / 10), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x15:
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.off * 7 / 100), &stats->base.off, 0xb, 3);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * 8 / 100), &stats->base.def, 0xb, 4);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed * 7 / 100), &stats->base.speed, 0xb, 5);
-		break;
-	case 0x1e:
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.off / 4), &stats->base.off, 0xb, 3);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * 3 / 20), &stats->base.def, 0xb, 4);
-		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed * 3 / 20), &stats->base.speed, 0xb, 5);
-		break;
-	default:
+	/* MOD (battle as data): the buff moves and what they add, in percent of the stat (the rows of MOD_BATTLE) */
+	for (row = 0; row < 5; row++) {
+		if (BMV(BUFF_MOVE0 + row) == anim) {
+			break;
+		}
+	}
+	if (row == 5) {
 		return 0;
+	}
+	if (BM(BUFF_OFF0 + row) > 0) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.off * BM(BUFF_OFF0 + row) / 100), &stats->base.off, 0xb, 3);
+	}
+	if (BM(BUFF_DEF0 + row) > 0) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * BM(BUFF_DEF0 + row) / 100), &stats->base.def, 0xb, 4);
+	}
+	if (BM(BUFF_SPD0 + row) > 0) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed * BM(BUFF_SPD0 + row) / 100), &stats->base.speed, 0xb, 5);
 	}
 
 	return 1;
@@ -5820,9 +5814,9 @@ int16_t STD_applyPartnerStatsToFighter(DigimonEntity *attacker, DigimonEntity *d
 		return 0;
 	}
 
-	x = (MOVE_DATA[move].accuracy / 2) * (defender->stats.base.speed - (attacker->stats.base.speed / 10)) / 999;
+	x = BMD(BMD(MOVE_DATA[move].accuracy, HIT_ACC_DIV) * (defender->stats.base.speed - BMD(attacker->stats.base.speed, HIT_SPEED_DIV)), HIT_SPEED_NORM);
 	if ((defender->entity.anim.animId == 0x21) || (defender->entity.anim.animId == 0x22)) {
-		x = x * 6 / 5;
+		x = x * BM(HIT_MOVING_PCT) / 100;
 	}
 
 	result = (int16_t)(MOVE_DATA[move].accuracy - x);
@@ -5850,38 +5844,38 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
 			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
-			mult[i] = 10;
+			mult[i] = BM(NEUTRAL_MULT);
 		}
 	}
 	off = attacker->stats.base.off;
 	def = defender->stats.base.def;
 	if (move == 0x2d) {
-		def = def * 3 / 10;
+		def = def * BM(GUARD_PCT) / 100; /* MOD (battle as data) */
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
-		dmg = (off + MOVE_DATA[move].power) * (mult[0] + mult[1] + mult[2]) / 30;
+		dmg = BMD((off + MOVE_DATA[move].power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
 	} else {
 		diff = off - def;
-		if (diff >= 0x1f5) {
-			diff = 0x1f4;
+		if (diff > BM(DIFF_CLAMP)) {
+			diff = BM(DIFF_CLAMP);
 		}
-		if (diff < -0x1f4) {
-			diff = -0x1f4;
+		if (diff < -BM(DIFF_CLAMP)) {
+			diff = -BM(DIFF_CLAMP);
 		}
-		dmg = (mult[0] + mult[1] + mult[2]) * (MOVE_DATA[move].power + diff * MOVE_DATA[move].power / 500) / 30 * (randomLimit(0x15) + 0x5a) / 100;
+		dmg = BMD((mult[0] + mult[1] + mult[2]) * (MOVE_DATA[move].power + BMD(diff * MOVE_DATA[move].power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
 		if ((Entity *)attacker == ENTITY_TABLE[1]) {
-			if (COMBAT_DATA_PTR->player.finisherChargeup[0] >= 0x29) {
-				dmg = dmg * COMBAT_DATA_PTR->player.finisherChargeup[0] / 40;
+			if (COMBAT_DATA_PTR->player.finisherChargeup[0] >= BM(CHARGE_FROM)) {
+				dmg = BMD(dmg * COMBAT_DATA_PTR->player.finisherChargeup[0], CHARGE_DIV);
 			}
 		} else {
-			dmg = dmg * (randomLimit(0x65) + 0x64) / 100;
+			dmg = dmg * (randomLimit(BMS(ENEMY_FIN_SPAN)) + BM(ENEMY_FIN_MIN)) / 100;
 		}
-		dmg = dmg * (randomLimit(0x15) + 0x5a) / 100;
+		dmg = dmg * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
-	if (dmg <= 0) {
-		dmg = 1;
+	if (dmg <= BM(DMG_MIN) - 1) {
+		dmg = BM(DMG_MIN);
 	}
 	if (dmg > DAMAGE_CAP) { /* MOD (caps): was 9999 */
 		dmg = DAMAGE_CAP;
@@ -5963,14 +5957,14 @@ void STD_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t m
 		case 1:
 			if (!(fighter->flags & FIGHTER_FLAG_POISONED)) {
 				fighter->flags |= FIGHTER_FLAG_POISONED;
-				fighter->poisonTimer = 100;
+				fighter->poisonTimer = BM(POISON_FRAMES);
 				STD_addPoisonStatusVisual(digimon, fighter);
 			}
 			break;
 		case 2:
 			if (!(fighter->flags & FIGHTER_FLAG_CONFUSED)) {
 				fighter->flags |= FIGHTER_FLAG_CONFUSED;
-				fighter->confusionTimer = randomLimit(0x65) + 200;
+				fighter->confusionTimer = randomLimit(BMS(CONF_SPAN)) + BM(CONF_BASE);
 				STD_addConfusionStatusVisual(digimon, fighter);
 				STD_resetFighterAction(fighter);
 			}
@@ -5978,7 +5972,7 @@ void STD_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t m
 		case 3:
 			if (!(fighter->flags & FIGHTER_FLAG_STUNNED)) {
 				fighter->flags |= FIGHTER_FLAG_STUNNED;
-				fighter->stunTimer = randomLimit(0x29) + 200;
+				fighter->stunTimer = randomLimit(BMS(STUN_SPAN)) + BM(STUN_BASE);
 				STD_addStunStatusVisual(digimon, fighter);
 				STD_resetFighterAction(fighter);
 			}
@@ -6246,21 +6240,11 @@ int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 		return 0;
 	}
 
-	mp = MOVE_DATA[tech].mpCost * 3;
+	mp = MOVE_DATA[tech].mpCost * BM(MP_MULT); /* MOD (battle as data) */
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
-		if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 700) {
-			if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 999) { /* MOD (caps): was == */
-				mp -= mp / 5;
-			} else if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 900) {
-				mp -= mp * 15 / 100;
-			} else if (PARTNER_ENTITY.digimonEntity.stats.base.brain >= 800) {
-				mp -= mp / 10;
-			} else {
-				mp -= mp / 20;
-			}
-		}
+		mp -= mp * BMBRAIN(PARTNER_ENTITY.digimonEntity.stats.base.brain) / 100;
 		if (PARTNER_PARA.condition & 0x60) {
-			mp += mp / 2;
+			mp += mp * BM(MP_COND_PCT) / 100;
 		}
 	}
 
@@ -6316,7 +6300,7 @@ void STD_selectConfusedMove(DigimonEntity *digimon, FighterData *fighter, long i
 {
 	TargetChoice choice;
 
-	if (randomLimit(10) < 7) {
+	if (randomLimit(10) < BM(CONF_NOTARGET)) {
 		fighter->targetId = 0xff;
 	} else {
 		STD_getRemainingEnemies(&digimon->entity, choice.enemies, &choice.count);
@@ -6409,7 +6393,7 @@ void STD_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 	if (digimon->stats.base.moves[i] != 0xff) {
 		STD_setupQueuedMove(digimon, fighter, index, (uint8_t)i);
 	} else {
-		fighter->cooldown = 0x50;
+		fighter->cooldown = BM(CD_IDLE);
 		fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 	}
 }
@@ -6475,7 +6459,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 				values[i] = 10000;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = MOVE_DATA[tech].mpCost * 3;
+				values[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 			}
 		}
 		STD_sortScoresAscending(values, keys, groups, 3);
@@ -6564,7 +6548,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 	if (digimon->stats.base.moves[i] != 0xff) {
 		STD_setupQueuedMove(digimon, fighter, index, i);
 	} else {
-		fighter->cooldown = 0x50;
+		fighter->cooldown = BM(CD_IDLE);
 		fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 	}
 }
@@ -6651,7 +6635,7 @@ void STD_startQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterD
 	}
 	if ((MOVE_DATA[tech].unk3 & 2) != 0) {
 		if (&digimon->entity == ENTITY_TABLE[1]) {
-			FLEE_DISABLED[1] = 0x6e;
+			FLEE_DISABLED[1] = BM(FLEE_LOCK);
 		} else {
 			P2_AOE_TIMER = 0x6e;
 		}
@@ -6735,7 +6719,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	STD_removeMoveEffect(digimon, fighter);
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		if (!((tech >= 0x3a) && (tech < 0x71))) {
-			cost = MOVE_DATA[tech].mpCost * 3;
+			cost = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 			if (PARTNER_PARA.condition & 0x60) {
 				cost += cost / 2;
 			}
@@ -6787,8 +6771,8 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	}
 
 	fighter->speedBuffer -= MOVE_DATA[tech].power;
-	if (fighter->speedBuffer < -0x9b) {
-		fighter->speedBuffer = -0x9b;
+	if (fighter->speedBuffer < -BM(SPEED_FLOOR)) {
+		fighter->speedBuffer = -BM(SPEED_FLOOR);
 	}
 
 	if (STD_CAMERA_STATE == 3) {
@@ -6870,8 +6854,8 @@ void STD_applyMoveResult(void)
 				fighter->poisonTimer--;
 			}
 			if (fighter->poisonTimer == 0) {
-				fighter->poisonTimer = 100;
-				dmg = stats->base.hp * (randomLimit(3) + 1) / 100;
+				fighter->poisonTimer = BM(POISON_FRAMES);
+				dmg = stats->base.hp * (randomLimit(BMS(POISON_SPAN)) + BM(POISON_MIN)) / 100;
 				/* MOD (caps): summed in 32 bits, up to DAMAGE_CAP (was 9999) */
 				fighter->hpDamageBuffer = CAPS_ADD_DAMAGE(fighter->hpDamageBuffer, dmg);
 				if (i != 0) {
@@ -6948,7 +6932,7 @@ void STD_applyMoveResult(void)
 				break;
 			case 0:
 				fighter->flags |= FIGHTER_FLAG_FLATTENED;
-				fighter->flatTimer = randomLimit(0x51) + 0xe0;
+				fighter->flatTimer = randomLimit(BMS(FLAT_SPAN)) + BM(FLAT_BASE);
 				stats->current.isHit = 0;
 				fighter->flags &= ~FIGHTER_FLAG_TRANSFORMING;
 				break;
@@ -7150,7 +7134,7 @@ int32_t STD_getUsableMoves(int16_t *out, int16_t index)
 
 void STD_setFighterCooldown(DigimonEntity *digimon, FighterData *fighter)
 {
-	fighter->cooldown = 0x50;
+	fighter->cooldown = BM(CD_IDLE);
 	fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 }
 
@@ -7248,7 +7232,7 @@ int16_t STD_getCheapestMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = MOVE_DATA[tech].mpCost * 3;
+			score[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
 		} else {
 			score[i] = 1000;
 		}

@@ -5,6 +5,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_battle.h>
 #include <dw/attack_object.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -2170,7 +2171,7 @@ void VS__tickDigimonAttackingLogic(int32_t fighterId)
 		fighter->flags |= FIGHTER_FLAG_ON_COOLDOWN;
 		fighter->cooldown = 40;
 
-		VS_addFinisherProgress(fighter, fighter->finisherGoal * 2 / 50);
+		VS_addFinisherProgress(fighter, fighter->finisherGoal * BM(FIN_ATTACK_PCT) / 100);
 	}
 
 	if (fighter->invulnerableTimer <= 0) {
