@@ -5802,7 +5802,7 @@ void renderInitialMenu(void)
  * does not fit with the labels and the values in two columns (the widest label beside the widest value, "TRANSLATED":
  * 342 pixels), each row's value ends at the box's right edge instead, so only a row's own label and values count.
  */
-#define MOD_OPT_VALUES	3	/* the most values a row has */
+#define MOD_OPT_VALUES	MOD_LANGS	/* the most values a row has */
 #define MOD_OPT_VALUE_Y	(MOD_OPT_ROWS * 0xC)	/* the values' rows in the text area: under the labels, two values a row */
 #define MOD_OPT_VALUE_U	0x80	/* the second value of a row (the area's 256 rows hold 12 labels and 12 values no other way) */
 #define MOD_OPT_GAP	8	/* pixels between the labels' column and the values', and between two values */
@@ -5829,7 +5829,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 static int16_t MOD_OPT_V[MOD_OPT_ROWS][MOD_OPT_VALUES];
 /* the pixels of each label and value as the font draws them (drawOptionsText) */
 static uint8_t MOD_OPT_W[MOD_OPT_ROWS][1 + MOD_OPT_VALUES];
-static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE };
+static char *MOD_LANGUAGE_NAMES[MOD_LANGS] = { MOD_OPT_STR_ENGLISH, MOD_OPT_STR_SPANISH, MOD_OPT_STR_PORTUGUESE, MOD_OPT_STR_FRENCH, MOD_OPT_STR_GERMAN, MOD_OPT_STR_ITALIAN, MOD_OPT_STR_JAPANESE };
 
 /* the box's layout in the font that draws it (drawOptionsText measures it): the labels' column on the screen, its
  * width, a value's, how many values a row shows (all, or 1 with the original font, 0 for 1 at the right edge: above)
@@ -5955,6 +5955,12 @@ static void drawOptionsText(void)
 	y = MOD_OPT_VALUE_Y << 1; /* the value's place times two, its half in the low bit */
 	for (r = 0; r < MOD_OPT_ROWS; r++) {
 		for (k = 0; k <= modOptionCount(r); k++) {
+			if (r == MOD_OPT_ROW_LANG && k > 0) {
+				MOD_OPT_V[r][k - 1] = (y >> 1) + ((y & 1) << 8);
+				if (k - 1 == modOptionValue(r)) drawString(MOD_OPT_TEXT[r][k], (y & 1) * MOD_OPT_VALUE_U, y >> 1);
+				if (k == modOptionCount(r)) y += (y & 1) ? 0xC * 2 - 1 : 1;
+				goto drawn;
+			}
 			if (k > 0) { /* MOD (language): a value an earlier row has is drawn once */
 				for (r2 = 0; r2 <= r; r2++) {
 					for (k2 = 1; k2 <= modOptionCount(r2) && (r2 < r || k2 < k); k2++) {

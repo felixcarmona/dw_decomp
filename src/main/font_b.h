@@ -85,9 +85,10 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 };
 // clang-format on
 
-#define NUM_EXTRA_GLYPHS 71
+#define NUM_EXTRA_GLYPHS 1445
+#define NUM_LATIN_GLYPHS 71
 
-static const GlyphData EXTRA_GLYPH_DATA[NUM_EXTRA_GLYPHS] = {
+static const GlyphData EXTRA_GLYPH_DATA[NUM_LATIN_GLYPHS] = {
 	{ { 0xefff, 0xdfff, 0xffff, 0x8fff, 0xf7ff, 0x87ff, 0x77ff, 0x77ff, 0x87ff, 0xffff, 0xffff, }, 6 | 8 << 8 }, /* F040 á */
 	{ { 0xefff, 0xdfff, 0xffff, 0x8fff, 0x77ff, 0x07ff, 0x7fff, 0x7fff, 0x8fff, 0xffff, 0xffff, }, 6 | 8 << 8 }, /* F041 é */
 	{ { 0xefff, 0xdfff, 0xffff, 0x8fff, 0x77ff, 0x77ff, 0x77ff, 0x77ff, 0x8fff, 0xffff, 0xffff, }, 6 | 8 << 8 }, /* F042 ó */
