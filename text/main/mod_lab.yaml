@@ -5,8 +5,8 @@ MOD_LAB:
   storage: define
   strings:
     LAB_STR_TITLE:
-      ja: "LABORATORY"
-      en_us: "LABORATORY"
+      ja: "Cheats"
+      en_us: "Cheats"
     LAB_STR_ADD_BITS:
       ja: "Add 10000 bits"
       en_us: "Add 10000 bits"
