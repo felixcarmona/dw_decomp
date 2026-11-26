@@ -1,6 +1,7 @@
 #include <dw/mod_hard.h>
 
 static int32_t STD_HARD_ZERO_DAMAGE __attribute__((section(".bss.hard_zero")));
+static int32_t STD_FLOOR_PCT __attribute__((section(".bss.hard_zero")));
 
 #include <dw/species.h>
 #include <stdlib.h>
@@ -5694,7 +5695,7 @@ skipViewpoint:
 		if (modSpeciesMove(attacker->type, tech)->range == 1) {
 			dmg = STD_calculateDamage((DigimonEntity *)attacker, (DigimonEntity *)entity, tech);
 			blockPercent = randomLimit(BMS(BLOCK_DMG_SPAN)) + BM(BLOCK_DMG_MIN);
-			dmg = modHardBlockedFloor(dmg * blockPercent / 100, STD_HARD_ZERO_DAMAGE, blockPercent);
+			dmg = modHardBlockedFloor(dmg * blockPercent / 100, STD_HARD_ZERO_DAMAGE, blockPercent, STD_FLOOR_PCT);
 			if (dmg <= 0) {
 				dmg = 1;
 			}
@@ -5835,11 +5836,12 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 	long i;
 	int32_t dmg;
 	int32_t power;
-	int32_t roll, floorDamage = 0;
+	int32_t roll, floorDamage = 0, floorPercent;
 	int16_t off;
 	int16_t def;
 
 	STD_HARD_ZERO_DAMAGE = 0;
+	STD_FLOOR_PCT = 0;
 	for (i = 0; i < 3; i++) {
 		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
 			mult[i] = TYPE_FACTORS[modSpeciesMove(attacker->entity.type, move)->special][DIGI_PARA(defender->entity.type).special[i]];
@@ -5860,11 +5862,12 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		diff = off - def;
 		roll = randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN);
         dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtDefensePower(modSpeciesMove(attacker->entity.type, move)->power, off, defender->stats.base.def, move == 0x2d), DMG_DIV) * roll / 100;
-        if (modFloorPercent() > 0 && (Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1]) {
+        if ((Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1] && (floorPercent = modFloorPercent(attacker->stats.base.hp)) > 0) {
             floorDamage = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, off), DMG_DIV) * roll / 100;
             if (floorDamage > DAMAGE_CAP) floorDamage = DAMAGE_CAP;
             STD_HARD_ZERO_DAMAGE = floorDamage;
-            floorDamage = modHardMinimum(floorDamage);
+            STD_FLOOR_PCT = floorPercent;
+            floorDamage = modHardMinimum(floorDamage, floorPercent);
             if (dmg < floorDamage) dmg = floorDamage;
         }
 	}

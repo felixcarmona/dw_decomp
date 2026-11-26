@@ -85,7 +85,7 @@ GlyphData GLYPH_DATA[NUM_GLYPHS] = {
 };
 // clang-format on
 
-#define NUM_EXTRA_GLYPHS 1445
+#define NUM_EXTRA_GLYPHS 1457
 #define NUM_LATIN_GLYPHS 71
 
 static const GlyphData EXTRA_GLYPH_DATA[NUM_LATIN_GLYPHS] = {
