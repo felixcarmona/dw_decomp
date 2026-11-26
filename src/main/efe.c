@@ -1286,120 +1286,159 @@ void renderParticleFlash(ParticleFlashData *params)
 }
 
 /*
- * MOD (cherrymon): every technique effect starts by looking up the attacker's
- * type in a table of the technique's EFE chunk (checkTechCompatibility: bone
- * and offset the effect leaves from) and is dropped when the type is not
- * there. Cherrymon is in none of them, so it borrows Piximon's row (the other
- * Earth Ultimate: it has a row for the eight Earth techniques and Bit Bomb)
- * moved onto its own body:
- *   - bone 0 (a point in front of the Digimon, in the entity's frame):
- *     1.6 times farther, Cherrymon being 550 high and Piximon 330;
- *   - bone 11 (Piximon's spear hand: Green Trap, the thrown Bit Bomb):
- *     the palm of Cherrymon's front hand, also bone 11, which its throwing
- *     animations swing;
- *   - anything else (Piximon's head: the powders, Bug, Insect Plague):
- *     Cherrymon's mouth, in front of trunk bone 2.
- * Returns NULL for other types (the effect is dropped as before). The result
- * lives in a small ring because the effect keeps the pointer while it runs.
+ * MOD (integration of cherrymon, partners-npc-a/b/c): every technique effect
+ * starts by looking up the attacker's type in a table of the technique's EFE
+ * chunk (checkTechCompatibility: bone and offset the effect leaves from) and
+ * is dropped when the type is not there. The partners made from NPCs are in
+ * none (or only some) of those tables, so each borrows a donor's row, moved
+ * onto its own body. One table, MOD_TECH_DONORS, holds every borrower; for a
+ * type, its entries are tried in order and the first that gives an origin
+ * wins:
+ *   1. the donor's row is looked up in the technique's table; without one the
+ *      entry is skipped (unless MOD_DONOR_ALWAYS: then the fallback is used);
+ *   2. the donor's offset is scaled by num/den, its bone kept;
+ *   3. bone 0 (a point in front of the Digimon, in the entity's frame): the
+ *      scaled point;
+ *   4. an explicit origin whose `from` matches (bone MOD_ORIGIN_ANY_BONE for
+ *      any bone, x MOD_ORIGIN_ANY_OFFSET for any offset of that bone) gives
+ *      its `to` (a bone of the partner and a point in it);
+ *   5. a bone map (donor bone -> partner bone, partners-npc-c) keeps the
+ *      scaled offset on the mapped bone;
+ *   6. MOD_DONOR_SAME_RIG (the donor has the same bones): the scaled offset
+ *      on the same bone;
+ *   7. MOD_DONOR_FALLBACK: the entry's fallback point;
+ *   8. otherwise the next entry is tried.
+ * Returns NULL when no entry gives an origin (the effect is dropped, as
+ * before). The result lives in a small ring because the effect keeps the
+ * pointer while it runs.
  */
-EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
-{
-	static EfeBoneOffset ring[8];
-	static int32_t next;
-	EfeTechBoneOffset *entry;
-	EfeBoneOffset *out;
+#define MOD_ORIGIN_ANY_BONE   -2
+#define MOD_ORIGIN_ANY_OFFSET 0x7fff
+#define MOD_DONOR_SAME_RIG    1
+#define MOD_DONOR_FALLBACK    2
+#define MOD_DONOR_ALWAYS      4
 
-	/* MOD (partners-npc-a): King of Sukamon, Icemon, Meteormon (below) */
-	out = getModDonorTechBoneOffset(type, table);
-	if (out != NULL) {
-		return out;
-	}
-	if (type != DIGIMON_CHERRYMON) {
-		return NULL;
-	}
-	for (entry = table; entry->type >= 0 && entry->type != DIGIMON_PIXIMON;
-	     entry = (EfeTechBoneOffset *)((int32_t)entry + 0xa)) {
-	}
-	out = &ring[next];
-	next = (next + 1) & 7;
-	if (entry->type == DIGIMON_PIXIMON && entry->offset.boneId == 0) {
-		out->boneId = 0;
-		out->positionX = entry->offset.positionX * 8 / 5;
-		out->positionY = entry->offset.positionY * 8 / 5;
-		out->positionZ = entry->offset.positionZ * 8 / 5;
-	} else if (entry->type == DIGIMON_PIXIMON && entry->offset.boneId == 11) {
-		out->boneId = 11;
-		out->positionX = 25;
-		out->positionY = 55;
-		out->positionZ = 0;
-	} else {
-		out->boneId = 2;
-		out->positionX = 0;
-		out->positionY = 0;
-		out->positionZ = -110;
-	}
-	return out;
-}
-
-/*
- * MOD (partners-npc-a): technique origins for King of Sukamon, Icemon and
- * Meteormon, the same idea as Cherrymon's above but table driven. For a type
- * without its own row in a technique's table, the first donor (in the order
- * of MOD_TECH_DONORS) that has a row lends it:
- *   - bone 0 rows (a point in front of the Digimon, in the entity's frame)
- *     are scaled by `scale` / 100;
- *   - other bones go through `map` (donor bone -> own bone and offset; a
- *     `from` of -2 matches any bone); when nothing matches and `sameRig` is
- *     set (the donor's skeleton has the same bones), the bone is kept and its
- *     offset scaled.
- * Returns NULL when no donor has a row (the effect is dropped, as before).
- */
 typedef struct {
-	int8_t from;
-	int8_t to;
-	int16_t x, y, z;
-} ModTechBoneMap;
+	EfeBoneOffset from; /* donor bone and offset, as in the EFE table */
+	EfeBoneOffset to;   /* the partner's bone and offset */
+} ModTechOrigin;
 
 typedef struct {
 	int16_t type;
 	int16_t donor;
-	int16_t scale;
-	int16_t sameRig;
-	ModTechBoneMap map[2];
+	int16_t num;
+	int16_t den;
+	int16_t flags;
+	int16_t originCount;
+	ModTechOrigin *origins;
+	EfeBoneOffset fallback;
+	int8_t *bones; /* partner bone for each donor bone (boneCount entries) */
+	int32_t boneCount;
 } ModTechDonor;
 
-static ModTechDonor MOD_TECH_DONORS[] = {
-	/* King of Sukamon is Sukamon (same skeleton) built 2.76 times larger,
-	 * shrunk to 0.62 by its partner model: 1.71 times Sukamon */
-	{ DIGIMON_KING_SUKAMON, DIGIMON_SUKAMON, 171, 1, { { -1 }, { -1 } } },
-	/* Icemon has its own rows for Megaton Punch, Giga Freeze and Ice Needle.
-	 * Tremar and Buster Dive: Gotsumon's (the same model, 280 high);
-	 * Ice Statue, Winter Blast, Muscle Charge: Agumon's (the same bones,
-	 * 250 high; SnowAgumon uses Agumon's rows); Subzero Ice Punch:
-	 * Frigimon's point in front of it (380 high), other Frigimon bones
-	 * to Icemon's head. */
-	{ DIGIMON_ICEMON, DIGIMON_GOTSUMON, 110, 1, { { -1 }, { -1 } } },
-	{ DIGIMON_ICEMON, 3, 124, 1, { { -1 }, { -1 } } },
-	{ DIGIMON_ICEMON, DIGIMON_FRIGIMON, 82, 0, { { -2, 4, 60, 35, 0 }, { -1 } } },
-	/* Meteormon has its own rows for Magma Bomb, Meltdown, Megaton Punch and
-	 * Tremar (in its unscaled model units, like these). Buster Dive:
-	 * Gotsumon's; Spit Fire, Heat Laser, Red Inferno, Prominence Beam,
-	 * Fireball: Meramon's (the same bones, its animations are Meramon's) */
-	{ DIGIMON_METEORMON, DIGIMON_GOTSUMON, 100, 1, { { -1 }, { -1 } } },
-	{ DIGIMON_METEORMON, DIGIMON_MERAMON, 100, 1, { { -1 }, { -1 } } },
+#define MOD_COUNT(a) ((int16_t)(sizeof(a) / sizeof((a)[0])))
+
+/*
+ * MOD (cherrymon): Cherrymon borrows Piximon's row (the other Earth Ultimate:
+ * it has a row for the eight Earth techniques and Bit Bomb):
+ *   - bone 0: 1.6 times farther, Cherrymon being 550 high and Piximon 330;
+ *   - bone 11 (Piximon's spear hand: Green Trap, the thrown Bit Bomb): the
+ *     palm of Cherrymon's front hand, also bone 11, which its throwing
+ *     animations swing;
+ *   - anything else (Piximon's head: the powders, Bug, Insect Plague), and a
+ *     table without Piximon: Cherrymon's mouth, in front of trunk bone 2.
+ */
+static ModTechOrigin MOD_TECH_ORIGINS_CHERRYMON[] = {
+	{ { 11, MOD_ORIGIN_ANY_OFFSET, 0, 0 }, { 11, 25, 55, 0 } },
 };
+
+/*
+ * MOD (partners-npc-a): Icemon's Subzero Ice Punch: Frigimon's point in front
+ * of it (bone 0, scaled), any other Frigimon bone to Icemon's head.
+ */
+static ModTechOrigin MOD_TECH_ORIGINS_ICEMON_FRIGIMON[] = {
+	{ { MOD_ORIGIN_ANY_BONE, MOD_ORIGIN_ANY_OFFSET, 0, 0 }, { 4, 60, 35, 0 } },
+};
+
+/* MOD (partners-npc-b): WaruMonzaemon <- Monzaemon (tech-origins.py warumonzaemon; 410/330 high) */
+static ModTechOrigin MOD_TECH_ORIGINS_WARUMONZAEMON[] = {
+	{ { 4, 200, 0, 0 }, { 3, 0, -248, -21 } },    /* Electric Cloud: above the head */
+	{ { 2, 100, 200, 0 }, { 2, -67, -124, -239 } }, /* Megalo Spark: before the chest */
+	{ { 6, 94, 0, 0 }, { 6, 7, 113, 28 } },       /* Confused Storm: the claw arm */
+	{ { 2, 50, 150, 0 }, { 2, -50, -62, -179 } },   /* Lovely Attack: before the chest */
+};
+
+/*
+ * MOD (partners-npc-b): ShogunGekomon <- Whamon (440/400 high): Whamon's head
+ * points become ShogunGekomon's mouth (head bone 4, in front of the jaw), its
+ * body point (Aurora Freeze) its hips, and Blasting Spout leaves from the bell
+ * of a trumpet (bone 7). The model's head and trumpets carry no rest rotation,
+ * so these offsets are in model axes (0.55 times the NPC's mesh).
+ */
+static ModTechOrigin MOD_TECH_ORIGINS_SHOGUNGEKOMON[] = {
+	{ { 2, 60, 0, 10 }, { 4, 0, -20, -190 } },    /* Giga Freeze, Water Blit */
+	{ { 2, -70, 0, 210 }, { 4, 0, -20, -190 } },  /* Ice Needle */
+	{ { 1, 0, 0, 0 }, { 1, 0, 0, 0 } },           /* Aurora Freeze */
+	{ { 2, -102, 0, 155 }, { 7, 90, -270, 30 } }, /* Blasting Spout: a trumpet */
+};
+
+/* MOD_TECH_DONORS_NPC_C (partners-npc-c) is spliced in below when merged */
+
+static ModTechDonor MOD_TECH_DONORS[] = {
+	/* MOD (cherrymon) */
+	{ DIGIMON_CHERRYMON, DIGIMON_PIXIMON, 8, 5, MOD_DONOR_FALLBACK | MOD_DONOR_ALWAYS,
+	  MOD_COUNT(MOD_TECH_ORIGINS_CHERRYMON), MOD_TECH_ORIGINS_CHERRYMON, { 2, 0, 0, -110 }, NULL, 0 },
+	/* MOD (partners-npc-a): King of Sukamon is Sukamon (same skeleton) built
+	 * 2.76 times larger, shrunk to 0.62 by its partner model: 1.71 times Sukamon */
+	{ DIGIMON_KING_SUKAMON, DIGIMON_SUKAMON, 171, 100, MOD_DONOR_SAME_RIG, 0, NULL, { 0 }, NULL, 0 },
+	/* MOD (partners-npc-a): Icemon has its own rows for Megaton Punch, Giga
+	 * Freeze and Ice Needle. Tremar and Buster Dive: Gotsumon's (the same
+	 * model, 280 high); Ice Statue, Winter Blast, Muscle Charge: Agumon's
+	 * (the same bones, 250 high; SnowAgumon uses Agumon's rows); Subzero Ice
+	 * Punch: Frigimon's (380 high). */
+	{ DIGIMON_ICEMON, DIGIMON_GOTSUMON, 110, 100, MOD_DONOR_SAME_RIG, 0, NULL, { 0 }, NULL, 0 },
+	{ DIGIMON_ICEMON, 3, 124, 100, MOD_DONOR_SAME_RIG, 0, NULL, { 0 }, NULL, 0 },
+	{ DIGIMON_ICEMON, DIGIMON_FRIGIMON, 82, 100, 0, MOD_COUNT(MOD_TECH_ORIGINS_ICEMON_FRIGIMON),
+	  MOD_TECH_ORIGINS_ICEMON_FRIGIMON, { 0 }, NULL, 0 },
+	/* MOD (partners-npc-a): Meteormon has its own rows for Magma Bomb,
+	 * Meltdown, Megaton Punch and Tremar (in its unscaled model units, like
+	 * these). Buster Dive: Gotsumon's; Spit Fire, Heat Laser, Red Inferno,
+	 * Prominence Beam, Fireball: Meramon's (the same bones, its animations
+	 * are Meramon's) */
+	{ DIGIMON_METEORMON, DIGIMON_GOTSUMON, 100, 100, MOD_DONOR_SAME_RIG, 0, NULL, { 0 }, NULL, 0 },
+	{ DIGIMON_METEORMON, DIGIMON_MERAMON, 100, 100, MOD_DONOR_SAME_RIG, 0, NULL, { 0 }, NULL, 0 },
+	/* MOD (partners-npc-b): a donor row with no explicit origin starts from the fallback */
+	{ DIGIMON_SHOGUNGEKOMON, DIGIMON_WHAMON, 440, 400, MOD_DONOR_FALLBACK,
+	  MOD_COUNT(MOD_TECH_ORIGINS_SHOGUNGEKOMON), MOD_TECH_ORIGINS_SHOGUNGEKOMON, { 4, 0, -20, -190 }, NULL, 0 },
+	/* MOD (partners-npc-b): Myotismon <- Devimon: Sonic Jab and Death Claw leave from bone 0 (430/400 high) */
+	{ DIGIMON_MYOTISMON, DIGIMON_DEVIMON, 430, 400, MOD_DONOR_FALLBACK, 0, NULL, { 3, 0, 0, -60 }, NULL, 0 },
+	{ DIGIMON_WARUMONZAEMON, DIGIMON_MONZAEMON, 410, 330, MOD_DONOR_FALLBACK,
+	  MOD_COUNT(MOD_TECH_ORIGINS_WARUMONZAEMON), MOD_TECH_ORIGINS_WARUMONZAEMON, { 2, 0, -62, -179 }, NULL, 0 },
+};
+
+static int32_t modOriginMatches(EfeBoneOffset *from, EfeBoneOffset *row)
+{
+	if (from->boneId != MOD_ORIGIN_ANY_BONE && from->boneId != row->boneId) {
+		return 0;
+	}
+	if (from->positionX == MOD_ORIGIN_ANY_OFFSET) {
+		return 1;
+	}
+	return from->positionX == row->positionX && from->positionY == row->positionY &&
+	       from->positionZ == row->positionZ;
+}
 
 EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 {
 	static EfeBoneOffset ring[8];
 	static int32_t next;
 	EfeTechBoneOffset *entry;
+	EfeBoneOffset *row;
 	EfeBoneOffset *out;
 	ModTechDonor *d;
-	ModTechBoneMap *m;
-	int32_t i, k;
+	int32_t i, k, bone;
 
-	for (i = 0; i < (int32_t)(sizeof(MOD_TECH_DONORS) / sizeof(MOD_TECH_DONORS[0])); i++) {
+	for (i = 0; i < MOD_COUNT(MOD_TECH_DONORS); i++) {
 		d = &MOD_TECH_DONORS[i];
 		if (d->type != type) {
 			continue;
@@ -1407,32 +1446,53 @@ EfeBoneOffset *getModDonorTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
 		for (entry = table; entry->type >= 0 && entry->type != d->donor;
 		     entry = (EfeTechBoneOffset *)((int32_t)entry + 0xa)) {
 		}
+		out = &ring[next];
 		if (entry->type != d->donor) {
+			if (d->flags & MOD_DONOR_ALWAYS) {
+				*out = d->fallback;
+				next = (next + 1) & 7;
+				return out;
+			}
 			continue;
 		}
-		out = &ring[next];
-		next = (next + 1) & 7;
-		out->boneId = entry->offset.boneId;
-		out->positionX = entry->offset.positionX * d->scale / 100;
-		out->positionY = entry->offset.positionY * d->scale / 100;
-		out->positionZ = entry->offset.positionZ * d->scale / 100;
-		if (entry->offset.boneId == 0) {
+		row = &entry->offset;
+		out->boneId = row->boneId;
+		out->positionX = row->positionX * d->num / d->den;
+		out->positionY = row->positionY * d->num / d->den;
+		out->positionZ = row->positionZ * d->num / d->den;
+		if (row->boneId == 0) {
+			next = (next + 1) & 7;
 			return out;
 		}
-		for (k = 0; k < 2; k++) {
-			m = &d->map[k];
-			if (m->from == entry->offset.boneId || m->from == -2) {
-				out->boneId = m->to;
-				out->positionX = m->x;
-				out->positionY = m->y;
-				out->positionZ = m->z;
+		for (k = 0; k < d->originCount; k++) {
+			if (modOriginMatches(&d->origins[k].from, row)) {
+				*out = d->origins[k].to;
+				next = (next + 1) & 7;
 				return out;
 			}
 		}
-		if (d->sameRig) {
+		if (d->bones != NULL) {
+			bone = row->boneId;
+			out->boneId = (bone >= 0 && bone < d->boneCount) ? d->bones[bone] : 0;
+			next = (next + 1) & 7;
 			return out;
 		}
-		/* a donor bone with no counterpart: try the next donor */
+		if (d->flags & MOD_DONOR_SAME_RIG) {
+			next = (next + 1) & 7;
+			return out;
+		}
+		if (d->flags & MOD_DONOR_FALLBACK) {
+			*out = d->fallback;
+			next = (next + 1) & 7;
+			return out;
+		}
+		/* a donor bone with no counterpart: try the next entry */
 	}
 	return NULL;
+}
+
+/* MOD (cherrymon): the hook checkTechCompatibility (BTL, STD, VS) calls */
+EfeBoneOffset *getModTechBoneOffset(int32_t type, EfeTechBoneOffset *table)
+{
+	return getModDonorTechBoneOffset(type, table);
 }

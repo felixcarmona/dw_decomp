@@ -82,9 +82,36 @@ typedef uint16_t CardId;
 #define DIGIMON_PANJYAMON		63
 #define DIGIMON_GIGADRAMON		64
 #define DIGIMON_METALETEMON		65
+/*
+ * MOD (partners-npc-b): WaruMonzaemon (70) is a partner too, reached from
+ * Numemon. Its rows are at index 70 of the same tables; its "raised" flag is
+ * trigger 0x200 + 70 = 582, free (scripts.md, "Free triggers").
+ */
+#define DIGIMON_NUMEMON			11
+#define DIGIMON_MONZAEMON		14
+#define DIGIMON_WARUMONZAEMON		70
+/*
+ * MOD (partners-npc-b): Myotismon (66), reached from Devimon. Its trigger
+ * 0x200 + 66 = 578 is used by script 221 ("X came to the city", 575-626),
+ * so its raised flag is trigger 649 instead (641-649 are free).
+ */
+#define DIGIMON_DEVIMON			6
+#define DIGIMON_MYOTISMON		66
+#define TRIGGER_RAISED_MYOTISMON	649
+/*
+ * MOD (partners-npc-b): ShogunGekomon (119), reached from Whamon; raised
+ * flag trigger 0x200 + 119 = 631, free.
+ */
+#define DIGIMON_WHAMON			24
+#define DIGIMON_SHOGUNGEKOMON		119
 #define HAS_RAISED_FLAG(type)                                                 \
 	((uint32_t)(type) < NUM_EVOLVING_DIGIMON || (type) == DIGIMON_CHERRYMON || \
-	 (type) == DIGIMON_MASTER_TYRANNOMON || (type) == DIGIMON_KING_SUKAMON)
+	 (type) == DIGIMON_MASTER_TYRANNOMON || (type) == DIGIMON_KING_SUKAMON ||  \
+	 (type) == DIGIMON_WARUMONZAEMON || (type) == DIGIMON_MYOTISMON ||         \
+	 (type) == DIGIMON_SHOGUNGEKOMON)
+/* the trigger of a type's raised flag (only for HAS_RAISED_FLAG types) */
+#define RAISED_TRIGGER(type) \
+	((type) == DIGIMON_MYOTISMON ? TRIGGER_RAISED_MYOTISMON : (type) + TRIGGER_RAISED_BASE)
 
 /* Screens (maps) */
 #define NUM_SCREENS		255	/* MAP_ENTRIES; screen ids are u8 */
