@@ -441,7 +441,8 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
  * the screen shows its name and level for a few seconds. The roster is every partner species in id order: the
  * original partners (1..65), the NPC partners of the lab menu and the partner species of DIGI.DAT; a model too big
  * for the partner buffer is skipped. The partner is reloaded as Continue loads it (loadMMD, its sounds), keeps its
- * stats and care, and gets the species' first three techniques and its finisher as battle moves.
+ * stats and care, gets the species' first three techniques and its finisher as battle moves, and the species is
+ * marked raised (setDigimonRaised), as if it had been reached by evolution.
  * Hooked from tamerTickWalkingState() (tamer.c).
  */
 #define PAD_L2		0x1
@@ -451,6 +452,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 #define ROSTER_TEXT_Y		MOD_LAB_TEXT_Y	/* the lab menu's first text row: free while the game runs */
 
 void learnMove(int32_t move);
+void setDigimonRaised(int32_t digimonId);
 int32_t isFileReadQueueBusy(void);
 
 extern Entity *ENTITY_TABLE[];
@@ -589,6 +591,7 @@ static void modRosterSwitch(int32_t type)
 	PARTNER_ENTITY.digimonEntity.entity.isOnMap = 1;
 	PARTNER_ENTITY.digimonEntity.entity.isOnScreen = 1;
 	modRosterSetMoves(type);
+	setDigimonRaised(type); /* raised, as an evolution marks it (the chart, the raised count) */
 }
 
 /* returns 1 when it switched the partner (the tamer's tick ends there) */
