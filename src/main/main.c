@@ -3513,6 +3513,10 @@ int32_t main(void)
 	cheats_loaded:
 		switch (MAIN_STATE) {
 		case 0:
+			/* The title prepared a new payload. Restore its care before the
+			 * opening; initializePartner does not reset age on USA builds. */
+			PARTNER_PARA = SAVED_STATE.partnerPara;
+
 			newGameScene();
 			finalizeMusic();
 			playMovie(1, 1);
