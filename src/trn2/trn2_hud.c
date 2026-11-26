@@ -1,6 +1,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_rules.h>
 #include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/clock.h>
@@ -136,116 +137,68 @@ MapTrainingSpots TRN2_TRAINING_SPOTS[8] = {
 };
 // clang-format on
 
+/*
+ * MOD (training as data): the gain multiplier of the second gym set is the first one's rule over this overlay's own tables (written by tools/balance.py from
+ * content/tables/training.json "training2"; -1 = does not exist). It was 100 % in the code before and ignored training.json.
+ */
+int16_t MOD_TRAIN2_NUM[MOD_TRAIN_MODES][MOD_TRAIN_TYPES] = {
+	{ -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 },
+	{ -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 }, { -1, -1, -1, -1, -1 },
+};
+int16_t MOD_TRAIN2_LEVEL[MOD_TRAIN_LEVELS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+ModTrainBonus MOD_TRAIN2_BONUS[MOD_TRAIN_BONUS_MAX] = {
+	{ -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 }, { -1, 0, 0, 0, 1 },
+};
+
 int16_t TRN2_calculateTrainingMultiplier(type, mode)
 	int32_t type;
 	int16_t mode;
 {
 	uint32_t num;
-	uint8_t tt;
 	uint32_t den;
-	int16_t t;
-	int16_t result;
+	uint8_t tt;
+	int32_t lv;
+	int32_t i;
+	ModTrainBonus *bonus;
+	int16_t counter;
 
-	num = 0;
+	if (mode < 0 || mode >= MOD_TRAIN_MODES) {
+		return 0;
+	}
 	tt = RAISE_ROW(type).trainingType;
-	switch (mode) {
-	case 0:
-		if ((tt == 0) || (tt == 1)) {
-			num = 10;
-		} else if (tt == 2) {
-			num = 9;
-		} else if (tt == 3) {
-			num = 11;
-		} else {
-			num = 8;
+	if (tt >= MOD_TRAIN_TYPES) {
+		tt = MOD_TRAIN_TYPES - 1;
+	}
+	lv = DIGI_PARA(type).level;
+	if (lv >= MOD_TRAIN_LEVELS) {
+		lv = MOD_TRAIN_LEVELS - 1;
+	}
+	if (MOD_TRAIN2_NUM[mode][tt] < 0 || MOD_TRAIN2_LEVEL[lv] < 0) {
+		return 0;
+	}
+	num = MOD_TRAIN2_NUM[mode][tt] * MOD_TRAIN2_LEVEL[lv];
+	den = 100;
+	for (i = 0; i < MOD_TRAIN_BONUS_MAX; i++) {
+		bonus = &MOD_TRAIN2_BONUS[i];
+		if (bonus->kind < 0 || bonus->den <= 0 || (bonus->modes & (1 << mode)) == 0) {
+			continue;
 		}
-		break;
-	case 1:
-		if ((tt == 0) || (tt == 3)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 9;
-		} else if (tt == 2) {
-			num = 11;
-		} else {
-			num = 8;
+		if (bonus->kind == 0 && isTriggerSet(bonus->arg) == 1) {
+			num = num * bonus->num;
+			den = den * bonus->den;
+		} else if (bonus->kind == 1) {
+			counter = mode < 3 ? (&PARTNER_PARA.upgradeHPcounter)[mode] : (&PARTNER_PARA.upgradeDefenseCounter)[mode - 3];
+			if (counter >= bonus->arg) {
+				num = num * bonus->num;
+				den = den * bonus->den;
+			}
+		} else if (bonus->kind == 2 && getItemCount(bonus->arg) > 0) {
+			num = num * bonus->num;
+			den = den * bonus->den;
 		}
-		break;
-	case 2:
-		if ((tt == 0) || (tt == 2)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 11;
-		} else if (tt == 3) {
-			num = 9;
-		} else {
-			num = 8;
-		}
-		break;
-	case 3:
-		if ((tt == 0) || (tt == 1)) {
-			num = 10;
-		} else if (tt == 2) {
-			num = 9;
-		} else if (tt == 3) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
-	case 4:
-		if ((tt == 0) || (tt == 2)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 11;
-		} else if (tt == 3) {
-			num = 9;
-		} else {
-			num = 8;
-		}
-		break;
-	case 5:
-		if ((tt == 0) || (tt == 3)) {
-			num = 10;
-		} else if (tt == 1) {
-			num = 9;
-		} else if (tt == 2) {
-			num = 11;
-		} else {
-			num = 8;
-		}
-		break;
 	}
 
-	den = 10;
-	if ((DIGI_PARA(type).level == 1) || (DIGI_PARA(type).level == 2)) {
-		num = num * 9;
-	} else if (DIGI_PARA(type).level == 3) {
-		num = num * 10;
-	} else if (DIGI_PARA(type).level == 4) {
-		num = num * 11;
-	} else if (DIGI_PARA(type).level == 6) { /* MOD (mega): x1.3 */
-		num = num * 13;
-	} else {
-		num = num * 12;
-	}
-
-	den = den * 10;
-	if (getItemCount(0x21) > 0) {
-		num = num * 11;
-		den = den * 10;
-	}
-
-	if (0) {
-		t = 0;
-	}
-#if VERSION_IS(JP_BOMBOM) || VERSION_IS(JP_REV1)
-	(void)t;
-#else
-	result += t / 60;
-#endif
-	result = (num * 10) / den;
-	return result;
+	return (num * 10) / den;
 }
 
 void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happyLoss)
@@ -255,9 +208,9 @@ void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t hap
 	PARTNER_PARA.tiredness += tiredGain;
 	PARTNER_PARA.energyLevel -= energyLoss;
 	PARTNER_PARA.happiness -= happyLoss;
-	if (PARTNER_PARA.tiredness >= 0x46) {
-		PARTNER_PARA.happiness -= 3;
-		PARTNER_PARA.discipline -= 3;
+	if (MOD_TRAIN2_RULES[MOD_TR_TIRED_AT] >= 0 && PARTNER_PARA.tiredness >= MOD_TRAIN2_RULES[MOD_TR_TIRED_AT]) { /* MOD (training as data): the session's rules */
+		PARTNER_PARA.happiness -= MOD_TRAIN2_RULES[MOD_TR_PEN_HAPPY] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PEN_HAPPY] : 0;
+		PARTNER_PARA.discipline -= MOD_TRAIN2_RULES[MOD_TR_PEN_DISC] > 0 ? MOD_TRAIN2_RULES[MOD_TR_PEN_DISC] : 0;
 	}
 
 	CURRENT_FRAME = MAIN_D_801353CE + 0x4b0;
@@ -280,8 +233,8 @@ void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t hap
 	clockHour = HOUR % 12;
 	updateMinuteHand(HOUR, MINUTE);
 	if ((HOUR % 4) == 0) {
-		if (PARTNER_PARA.happiness < 0x50) {
-			PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime - (((PARTNER_PARA.happiness - 0x50) / -50) + 1);
+		if (MOD_TRAIN2_RULES[MOD_TR_LIFE_BELOW] >= 0 && MOD_TRAIN2_RULES[MOD_TR_LIFE_PER] > 0 && PARTNER_PARA.happiness < MOD_TRAIN2_RULES[MOD_TR_LIFE_BELOW]) {
+			PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime - (((PARTNER_PARA.happiness - MOD_TRAIN2_RULES[MOD_TR_LIFE_BELOW]) / -MOD_TRAIN2_RULES[MOD_TR_LIFE_PER]) + 1);
 		}
 	}
 
@@ -291,24 +244,24 @@ void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t hap
 	}
 
 	if (PARTNER_PARA.condition & 4) {
-		PARTNER_PARA.starvationTimer -= 0xc;
+		PARTNER_PARA.starvationTimer -= MOD_TRAIN2_RULES[MOD_TR_STARVE] > 0 ? MOD_TRAIN2_RULES[MOD_TR_STARVE] : 0;
 		if (PARTNER_PARA.starvationTimer <= 0) {
 			if (PARTNER_PARA.energyLevel < RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold) {
 				PARTNER_PARA.careMistakes++;
 			}
 		}
 	} else {
-		PARTNER_PARA.foodLevel -= 0x3d;
+		PARTNER_PARA.foodLevel -= MOD_TRAIN2_RULES[MOD_TR_FOOD] > 0 ? MOD_TRAIN2_RULES[MOD_TR_FOOD] : 0;
 	}
 
 	PARTNER_PARA.energyLevel -= RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if (PARTNER_PARA.condition & 8) {
 		PARTNER_PARA.poopingTimer -= 0x4b0;
 	} else {
-		PARTNER_PARA.poopLevel -= 6;
+		PARTNER_PARA.poopLevel -= MOD_TRAIN2_RULES[MOD_TR_POOP] > 0 ? MOD_TRAIN2_RULES[MOD_TR_POOP] : 0;
 	}
 
-	PARTNER_PARA.remainingLifetime--;
+	PARTNER_PARA.remainingLifetime -= MOD_TRAIN2_RULES[MOD_TR_LIFE_COST] > 0 ? MOD_TRAIN2_RULES[MOD_TR_LIFE_COST] : 0;
 	PARTNER_PARA.evoTimer++;
 	if (PARTNER_PARA.remainingLifetime < 0) {
 		PARTNER_PARA.remainingLifetime = 0;

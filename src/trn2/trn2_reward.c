@@ -1,5 +1,6 @@
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/anim.h>
+#include <dw/mod_rules.h>
 #include <dw/entity.h>
 #include <dw/input.h>
 #include <dw/params.h>
@@ -135,6 +136,20 @@ void TRN2_func_8008AA84(int8_t arg)
 	}
 }
 
+/* MOD (training as data): written by tools/balance.py from content/tables/training-gains.json; -1 = does not exist */
+int16_t MOD_TRAIN2_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH] = { [0 ... MOD_TG_ROWS - 1] = { [0 ... MOD_TG_WIDTH - 1] = -1 } };
+int16_t MOD_TRAIN2_RULES[MOD_TR_SIZE] = { [0 ... MOD_TR_SIZE - 1] = -1 };
+
+static int32_t TRN2_rule(int32_t slot)
+{
+	return MOD_TRAIN2_RULES[slot];
+}
+
+static int32_t TRN2_amt(int32_t slot)
+{
+	return MOD_TRAIN2_RULES[slot] > 0 ? MOD_TRAIN2_RULES[slot] : 0;
+}
+
 void TRN2_awardHpTrainingGains(a, b, c)
 int32_t a;
 int16_t b;
@@ -147,24 +162,16 @@ int32_t c;
 	int16_t tired;
 	int16_t energy;
 	int16_t happy;
+	const int16_t *row;
 
 	x = flag = y = 0;
-	tired = energy = happy = 0;
-	switch (b) {
-	case 1:
-		x = 120;
-		tired = 10;
-		energy = 2;
-		happy = 1;
-		break;
-	case 3:
-		x = 120;
-		y = 2;
-		tired = 10;
-		energy = 2;
-		happy = 2;
-		break;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN2_GAIN, MOD_TG_HP, b);
+	x = TG(row, MOD_TGF_HP);
+	y = TG(row, MOD_TGF_DEF);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN2_calculateTrainingMultiplier(a, 0);
 	if (PARTNER_PARA.trainBoostFlag & 0x10) {
@@ -181,11 +188,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		if (b == 3) {
-			y = 1;
+	if (PARTNER_PARA.tiredness == TRN2_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_HP) > 0) {
+			x = TRN2_amt(MOD_TR_EXH_GAIN);
 		}
-		x = 1;
+		if (TG(row, MOD_TGF_DEF) > 0) {
+			y = TRN2_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -243,15 +252,15 @@ void TRN2_awardMpTrainingGains(int32_t a, int16_t b, int32_t c)
 	int16_t energy;
 	int16_t happy;
 	int16_t v;
+	const int16_t *row;
 
 	x = y = 0;
-	tired = energy = happy = 0;
-	if (b == 8) {
-		x = 150;
-		tired = 7;
-		energy = 1;
-		happy = 4;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN2_GAIN, MOD_TG_MP, b);
+	x = TG(row, MOD_TGF_MP);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN2_calculateTrainingMultiplier(a, 1);
 	if (PARTNER_PARA.trainBoostFlag & 0x20) {
@@ -261,8 +270,10 @@ void TRN2_awardMpTrainingGains(int32_t a, int16_t b, int32_t c)
 	}
 
 	x = (x * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
+	if (PARTNER_PARA.tiredness == TRN2_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_MP) > 0) {
+			x = TRN2_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -289,15 +300,15 @@ void TRN2_awardOffenseTrainingGains(int32_t a, int16_t b, int32_t c)
 	int16_t energy;
 	int16_t happy;
 	int16_t v;
+	const int16_t *row;
 
 	flag = x = y = 0;
-	tired = energy = happy = 0;
-	if (b == 1) {
-		x = 12;
-		tired = 9;
-		energy = 2;
-		happy = 1;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN2_GAIN, MOD_TG_OFF, b);
+	x = TG(row, MOD_TGF_OFF);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN2_calculateTrainingMultiplier(a, 2);
 	if (PARTNER_PARA.trainBoostFlag & 1) {
@@ -307,8 +318,10 @@ void TRN2_awardOffenseTrainingGains(int32_t a, int16_t b, int32_t c)
 	}
 
 	x = (x * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
+	if (PARTNER_PARA.tiredness == TRN2_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_OFF) > 0) {
+			x = TRN2_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -338,15 +351,15 @@ int32_t c;
 	int16_t energy;
 	int16_t happy;
 	int16_t v;
+	const int16_t *row;
 
 	y = x = 0;
-	tired = energy = happy = 0;
-	if (b == 1) {
-		x = 12;
-		tired = 8;
-		energy = 2;
-		happy = 1;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN2_GAIN, MOD_TG_SPD, b);
+	x = TG(row, MOD_TGF_SPD);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN2_calculateTrainingMultiplier(a, 4);
 	if (PARTNER_PARA.trainBoostFlag & 4) {
@@ -356,8 +369,10 @@ int32_t c;
 	}
 
 	x = (x * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
+	if (PARTNER_PARA.tiredness == TRN2_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_SPD) > 0) {
+			x = TRN2_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -391,24 +406,16 @@ int32_t c;
 	int16_t tired;
 	int16_t energy;
 	int16_t happy;
+	const int16_t *row;
 
 	flag = x = y = z = 0;
-	tired = energy = happy = 0;
-	switch (b) {
-	case 1:
-		x = 12;
-		tired = 9;
-		energy = 2;
-		happy = 1;
-		break;
-	case 3:
-		x = 12;
-		y = 2;
-		tired = 9;
-		energy = 2;
-		happy = 2;
-		break;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN2_GAIN, MOD_TG_DEF, b);
+	x = TG(row, MOD_TGF_DEF);
+	y = TG(row, MOD_TGF_SPD);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN2_calculateTrainingMultiplier(a, 3);
 	if (PARTNER_PARA.trainBoostFlag & 2) {
@@ -425,11 +432,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		if (b == 3) {
-			y = 1;
+	if (PARTNER_PARA.tiredness == TRN2_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_DEF) > 0) {
+			x = TRN2_amt(MOD_TR_EXH_GAIN);
 		}
-		x = 1;
+		if (TG(row, MOD_TGF_SPD) > 0) {
+			y = TRN2_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */

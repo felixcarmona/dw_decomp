@@ -96,6 +96,20 @@ int8_t TRN_TRAINING_ANIM_IDS[NUM_ORIGINAL_DIGIMON][2] = { /* MOD: was [67] (type
 
 MESSAGES_TEXT
 
+/* MOD (training as data): written by tools/balance.py from content/tables/training-gains.json; -1 = does not exist */
+int16_t MOD_TRAIN_GAIN[MOD_TG_ROWS][MOD_TG_WIDTH] = { [0 ... MOD_TG_ROWS - 1] = { [0 ... MOD_TG_WIDTH - 1] = -1 } };
+int16_t MOD_TRAIN_RULES[MOD_TR_SIZE] = { [0 ... MOD_TR_SIZE - 1] = -1 };
+
+static int32_t TRN_rule(int32_t slot)
+{
+	return MOD_TRAIN_RULES[slot];
+}
+
+static int32_t TRN_amt(int32_t slot)
+{
+	return MOD_TRAIN_RULES[slot] > 0 ? MOD_TRAIN_RULES[slot] : 0;
+}
+
 uint8_t TRN_D_8008F14C[56] = {
 	0x2, 0x5, 0x0, 0x4, 0x3, 0x1, 0x6, 0x7,
 	0x2b, 0x2c, 0x2a, 0x2e, 0x2d, 0x29, 0x28, 0x2f,
@@ -181,12 +195,15 @@ int32_t c;
 	int16_t tired;
 	int16_t energy;
 	int16_t happy;
+	const int16_t *row;
 
-	x = 80;
-	y = 2;
-	tired = 10;
-	energy = 1;
-	happy = 1;
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_HP, b);
+	x = TG(row, MOD_TGF_HP);
+	y = TG(row, MOD_TGF_OFF);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 	v = TRN_calculateTrainingMultiplier(a, 0, b);
 	if (PARTNER_PARA.trainBoostFlag & 0x10) {
 		x = (x * (v * PARTNER_PARA.trainBoostValue)) / 100;
@@ -202,9 +219,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
-		y = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_HP) > 0) {
+			x = TRN_amt(MOD_TR_EXH_GAIN);
+		}
+		if (TG(row, MOD_TGF_OFF) > 0) {
+			y = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -265,25 +286,17 @@ int32_t c;
 	int16_t energy;
 	int16_t happy;
 	int16_t v;
+	const int16_t *row;
 
 	hp = off = spd = 0;
-	tired = energy = happy = 0;
-	switch (b) {
-	case 0:
-		off = 8;
-		spd = 2;
-		tired = 9;
-		energy = 1;
-		happy = 1;
-		break;
-	case 6:
-		hp = 10;
-		off = 8;
-		tired = 9;
-		energy = 1;
-		happy = 1;
-		break;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_OFF, b);
+	hp = TG(row, MOD_TGF_HP);
+	off = TG(row, MOD_TGF_OFF);
+	spd = TG(row, MOD_TGF_SPD);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN_calculateTrainingMultiplier(a, 2, b);
 	if (PARTNER_PARA.trainBoostFlag & 0x10) {
@@ -307,13 +320,16 @@ int32_t c;
 	hp = (hp * c) / 10;
 	off = (off * c) / 10;
 	spd = (spd * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		if (b == 0) {
-			spd = 1;
-		} else {
-			hp = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_HP) > 0) {
+			hp = TRN_amt(MOD_TR_EXH_GAIN);
 		}
-		off = 1;
+		if (TG(row, MOD_TGF_OFF) > 0) {
+			off = TRN_amt(MOD_TR_EXH_GAIN);
+		}
+		if (TG(row, MOD_TGF_SPD) > 0) {
+			spd = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	TRN_saveBaseStats();
@@ -338,25 +354,16 @@ int32_t c;
 	int16_t energy;
 	int16_t happy;
 	int16_t v;
+	const int16_t *row;
 
 	x = y = 0;
-	tired = energy = happy = 0;
-	switch (b) {
-	case 0:
-		x = 10;
-		y = 8;
-		tired = 8;
-		energy = 1;
-		happy = 1;
-		break;
-	case 6:
-		x = 10;
-		y = 8;
-		tired = 8;
-		energy = 1;
-		happy = 1;
-		break;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_SPD, b);
+	x = TG(row, MOD_TGF_HP);
+	y = TG(row, MOD_TGF_SPD);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN_calculateTrainingMultiplier(a, 4, b);
 	if (PARTNER_PARA.trainBoostFlag & 0x10) {
@@ -373,9 +380,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
-		y = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_HP) > 0) {
+			x = TRN_amt(MOD_TR_EXH_GAIN);
+		}
+		if (TG(row, MOD_TGF_SPD) > 0) {
+			y = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -404,12 +415,15 @@ int32_t c;
 	int16_t tired;
 	int16_t energy;
 	int16_t happy;
+	const int16_t *row;
 
-	x = 8;
-	y = 2;
-	tired = 9;
-	energy = 1;
-	happy = 1;
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_DEF, b);
+	x = TG(row, MOD_TGF_DEF);
+	y = TG(row, MOD_TGF_BRAIN);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 	v = TRN_calculateTrainingMultiplier(a, 3, b);
 	if (PARTNER_PARA.trainBoostFlag & 2) {
 		x = (x * (v * PARTNER_PARA.trainBoostValue)) / 100;
@@ -425,9 +439,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
-		y = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_DEF) > 0) {
+			x = TRN_amt(MOD_TR_EXH_GAIN);
+		}
+		if (TG(row, MOD_TGF_BRAIN) > 0) {
+			y = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	TRN_saveBaseStats();
@@ -452,12 +470,15 @@ int32_t c;
 	int16_t tired;
 	int16_t energy;
 	int16_t happy;
+	const int16_t *row;
 
-	x = 80;
-	y = 2;
-	tired = 7;
-	energy = 1;
-	happy = 1;
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_MP, b);
+	x = TG(row, MOD_TGF_MP);
+	y = TG(row, MOD_TGF_DEF);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 	v = TRN_calculateTrainingMultiplier(a, 1, b);
 	if (PARTNER_PARA.trainBoostFlag & 0x20) {
 		x = (x * (v * PARTNER_PARA.trainBoostValue)) / 100;
@@ -473,9 +494,13 @@ int32_t c;
 
 	x = (x * c) / 10;
 	y = (y * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		x = 1;
-		y = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_MP) > 0) {
+			x = TRN_amt(MOD_TR_EXH_GAIN);
+		}
+		if (TG(row, MOD_TGF_DEF) > 0) {
+			y = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (x > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -493,6 +518,19 @@ int32_t c;
 	TRN_advanceTrainingTime(tired, energy, happy);
 }
 
+/* MOD (training as data): a move can be learned when the brains pass one of the learn marks */
+static int32_t TRN_crossedLearnMark(int32_t base, int32_t total)
+{
+	int32_t i;
+
+	for (i = 0; i < 12; i++) {
+		if (TRN_rule(MOD_TR_LEARN0 + i) >= 0 && base < TRN_rule(MOD_TR_LEARN0 + i) && total >= TRN_rule(MOD_TR_LEARN0 + i)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void TRN_awardBrainsTrainingGains(a, b, c)
 int32_t a;
 int16_t b;
@@ -508,26 +546,18 @@ int32_t c;
 	int16_t v;
 	uint8_t shown;
 	uint8_t y;
+	const int16_t *row;
 
 	MAIN_D_80135388 = 0;
 	mp = brains = 0;
-	tired = energy = happy = 0;
 	base = PARTNER_ENTITY.digimonEntity.stats.base.brain;
-	switch (b) {
-	case 0:
-		mp = 10;
-		brains = 8;
-		tired = 6;
-		energy = 1;
-		happy = 1;
-		break;
-	case 9:
-		brains = 15;
-		tired = 6;
-		energy = 1;
-		happy = 1;
-		break;
-	}
+	/* MOD (training as data): the gym's row for this slot */
+	row = trainGainRow(MOD_TRAIN_GAIN, MOD_TG_BRAIN, b);
+	mp = TG(row, MOD_TGF_MP);
+	brains = TG(row, MOD_TGF_BRAIN);
+	tired = TG(row, MOD_TGF_TIRED);
+	energy = TG(row, MOD_TGF_ENERGY);
+	happy = TG(row, MOD_TGF_HAPPY);
 
 	v = TRN_calculateTrainingMultiplier(a, 1, b);
 	if (PARTNER_PARA.trainBoostFlag & 0x20) {
@@ -544,11 +574,13 @@ int32_t c;
 
 	mp = (mp * c) / 10;
 	brains = (brains * c) / 10;
-	if (PARTNER_PARA.tiredness == 100) {
-		if (b == 0) {
-			mp = 1;
+	if (PARTNER_PARA.tiredness == TRN_rule(MOD_TR_EXH_AT)) {
+		if (TG(row, MOD_TGF_MP) > 0) {
+			mp = TRN_amt(MOD_TR_EXH_GAIN);
 		}
-		brains = 1;
+		if (TG(row, MOD_TGF_BRAIN) > 0) {
+			brains = TRN_amt(MOD_TR_EXH_GAIN);
+		}
 	}
 
 	if (mp > STAT_CAP) { /* MOD (caps): a gain up to the new limit (was 999) */
@@ -571,19 +603,19 @@ int32_t c;
 	total = base + brains;
 	shown = 0;
 	y = 0x84;
-	if ((base < 0x64) && (total >= 0x64)) {
+	if ((base < TRN_rule(MOD_TR_ORDER0)) && (total >= TRN_rule(MOD_TR_ORDER0))) {
 		setTextColor(7);
 		drawString(TRN_D_8008F0D8, 0, 0x78);
 		shown = 1;
 	}
 
-	if ((base < 0xc8) && (total >= 0xc8)) {
+	if ((base < TRN_rule(MOD_TR_ORDER1)) && (total >= TRN_rule(MOD_TR_ORDER1))) {
 		setTextColor(7);
 		drawString(TRN_D_8008F0F0, 0, 0x78);
 		shown = 1;
 	}
 
-	if ((base < 0x12c) && (total >= 0x12c)) {
+	if ((base < TRN_rule(MOD_TR_ORDER2)) && (total >= TRN_rule(MOD_TR_ORDER2))) {
 		setTextColor(7);
 		drawString(TRN_D_8008F100, 0, 0x78);
 		drawString(TRN_D_8008F10C, 0, 0x84);
@@ -591,13 +623,13 @@ int32_t c;
 		y = 0x94;
 	}
 
-	if ((base < 0x190) && (total >= 0x190)) {
+	if ((base < TRN_rule(MOD_TR_ORDER3)) && (total >= TRN_rule(MOD_TR_ORDER3))) {
 		setTextColor(7);
 		drawString(TRN_D_8008F11C, 0, 0x78);
 		shown = 1;
 	}
 
-	if ((base < 0x1f4) && (total >= 0x1f4)) {
+	if ((base < TRN_rule(MOD_TR_ORDER4)) && (total >= TRN_rule(MOD_TR_ORDER4))) {
 		setTextColor(7);
 		drawString(TRN_D_8008F12C, 0, 0x78);
 		shown = 1;
@@ -608,7 +640,7 @@ int32_t c;
 		drawString(TRN_D_8008F140, 0, y);
 		createMenuBox(2, -0x58, 0x12, 0xb0, 0x30, 2, 0, TRN_renderNewOrdersBox);
 		MAIN_D_80135388 = 1;
-	} else if (((base < 0x96) && (total >= 0x96)) || ((base < 0xfa) && (total >= 0xfa)) || ((base < 0x15e) && (total >= 0x15e)) || ((base < 0x1c2) && (total >= 0x1c2)) || ((base < 0x226) && (total >= 0x226)) || ((base < 0x28a) && (total >= 0x28a)) || ((base < 0x2ee) && (total >= 0x2ee)) || ((base < 0x320) && (total >= 0x320)) || ((base < 0x352) && (total >= 0x352)) || ((base < 0x384) && (total >= 0x384)) || ((base < 0x3b6) && (total >= 0x3b6)) || ((base < 999) && (total >= 999))) { /* MOD (caps): reaching 999 (was total == 999) */
+	} else if (TRN_crossedLearnMark(base, total)) { /* MOD (caps): reaching 999 (was total == 999); MOD (training as data): the marks are MOD_TRAIN_RULES' */
 		TRN_tryLearnMove(a);
 	}
 }
@@ -684,9 +716,9 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 	PARTNER_PARA.tiredness += tiredGain;
 	PARTNER_PARA.energyLevel -= energyLoss;
 	PARTNER_PARA.happiness -= happyLoss;
-	if (PARTNER_PARA.tiredness >= 0x46) {
-		PARTNER_PARA.happiness -= 3;
-		PARTNER_PARA.discipline -= 3;
+	if (TRN_rule(MOD_TR_TIRED_AT) >= 0 && PARTNER_PARA.tiredness >= TRN_rule(MOD_TR_TIRED_AT)) { /* MOD (training as data): the session's rules */
+		PARTNER_PARA.happiness -= TRN_amt(MOD_TR_PEN_HAPPY);
+		PARTNER_PARA.discipline -= TRN_amt(MOD_TR_PEN_DISC);
 	}
 
 	CURRENT_FRAME = TRN_CURRENT_FRAME + 0x4b0;
@@ -709,8 +741,8 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 	clockHour = HOUR % 12;
 	updateMinuteHand(HOUR, MINUTE);
 	if ((HOUR % 4) == 0) {
-		if (PARTNER_PARA.happiness < 0x50) {
-			PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime - (((PARTNER_PARA.happiness - 0x50) / -50) + 1);
+		if (TRN_rule(MOD_TR_LIFE_BELOW) >= 0 && TRN_rule(MOD_TR_LIFE_PER) > 0 && PARTNER_PARA.happiness < TRN_rule(MOD_TR_LIFE_BELOW)) {
+			PARTNER_PARA.remainingLifetime = PARTNER_PARA.remainingLifetime - (((PARTNER_PARA.happiness - TRN_rule(MOD_TR_LIFE_BELOW)) / -TRN_rule(MOD_TR_LIFE_PER)) + 1);
 		}
 	}
 
@@ -728,24 +760,24 @@ void TRN_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t happ
 	}
 
 	if (PARTNER_PARA.condition & 4) {
-		PARTNER_PARA.starvationTimer -= 0x78;
+		PARTNER_PARA.starvationTimer -= TRN_amt(MOD_TR_STARVE);
 		if (PARTNER_PARA.starvationTimer <= 0) {
 			if (PARTNER_PARA.energyLevel < RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold) {
 				PARTNER_PARA.careMistakes++;
 			}
 		}
 	} else {
-		PARTNER_PARA.foodLevel -= 0x3c;
+		PARTNER_PARA.foodLevel -= TRN_amt(MOD_TR_FOOD);
 	}
 
 	PARTNER_PARA.energyLevel -= RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if (PARTNER_PARA.condition & 8) {
 		PARTNER_PARA.poopingTimer -= 0x4b0;
 	} else {
-		PARTNER_PARA.poopLevel -= 6;
+		PARTNER_PARA.poopLevel -= TRN_amt(MOD_TR_POOP);
 	}
 
-	PARTNER_PARA.remainingLifetime--;
+	PARTNER_PARA.remainingLifetime -= TRN_amt(MOD_TR_LIFE_COST);
 	PARTNER_PARA.evoTimer++;
 	if (PARTNER_PARA.remainingLifetime < 0) {
 		PARTNER_PARA.remainingLifetime = 0;
