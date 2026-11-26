@@ -1827,6 +1827,8 @@ grace:
 	collisionGrace(NULL, entity, 0x118, 0xc8);
 }
 
+void modBattleLoadFinish(void); /* MOD (quick battle start), btl.c */
+
 int32_t BTL_battleMain(void)
 {
 	COMBAT_AREA_X = 0xa0 - DRAWING_OFFSET_X;
@@ -1859,6 +1861,7 @@ int32_t BTL_battleMain(void)
 		BATTLE_FRAME_COUNT++;
 	}
 
+	modBattleLoadFinish(); /* MOD (quick battle start), btl.c: what is still loading lands before the clean-up */
 	removePauseBox();
 	BTL_deinitializeCombat();
 	if (timedOut) { /* the time ran out: a battle survived, neither lost nor fled */
@@ -2423,9 +2426,15 @@ void BTL_applyChargeRequirement(DigimonEntity *digimon, FighterData *fighter, in
 	}
 }
 
+extern int8_t MOD_BATTLE_LOADING; /* MOD (quick battle start), btl.c */
+
 void BTL_startQueuedMove(DigimonEntity *digimon, DigimonEntity *target, FighterData *fighter)
 {
 	int16_t tech;
+
+	if (MOD_BATTLE_LOADING) {
+		return; /* MOD (quick battle start): the techniques' effects are still loading; asked again next tick */
+	}
 
 	if (NO_AI_FLAG != 0) {
 		if (FINISHING_ENTITY != &digimon->entity) {

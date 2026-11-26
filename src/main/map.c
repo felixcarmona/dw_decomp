@@ -152,6 +152,7 @@ void renderMap(int32_t arg0);
 void lateTickMap(int32_t arg0);
 void modSmoothMapReset(void);
 extern int32_t MOD_INTERP_MAP_GEN; /* MOD (fps), main.c */
+extern int8_t MOD_BTL_PRELOAD_BLOCKED; /* MOD (quick battle start), btl.c */
 /* MOD (fps): see dw/mod_fps.h (not included: this file declares addObject
  * with other parameter types) */
 int32_t addObjectLate(int32_t objectId, int32_t instanceId,
@@ -4248,6 +4249,7 @@ void loadMap(int16_t mapId)
 
 	initializePartnerWaypoint();
 	initializeTamerWaypoints();
+	MOD_BTL_PRELOAD_BLOCKED = 0; /* MOD (quick battle start): the overlays these read block it again */
 	checkFishingMap(CURRENT_SCREEN, 0);
 	checkCurlingMap(CURRENT_SCREEN);
 	checkShopMap(CURRENT_SCREEN);
