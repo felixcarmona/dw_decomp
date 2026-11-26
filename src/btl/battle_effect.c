@@ -2325,12 +2325,19 @@ char *BTL_initializeParticleEmitters(char *base)
 	return base + 0x23c4;
 }
 
+extern int8_t MOD_BATTLE_LOADING; /* btl.c */
+
 void BTL_tickEFEEngine(void)
 {
 	int32_t n;
 	int32_t i;
 	int32_t j;
 	EfeSound *p;
+
+	/* The incremental init script owns the shared EFE interpreter until
+	 * quick-battle loading finishes. Even visiting an inactive slot changes
+	 * its context, so neither ticking nor rendering may interleave it. */
+	if (MOD_BATTLE_LOADING) return;
 
 	setMapLayerEnabled(1);
 
@@ -2435,6 +2442,8 @@ void BTL_renderEFEEngine(void)
 	int32_t target;
 	int32_t hit;
 	int32_t section;
+
+	if (MOD_BATTLE_LOADING) return;
 
 	target = EFE_TARGET_ENTITY_INDEX;
 	hit = EFE_HIT_ENTITY_INDEX;
