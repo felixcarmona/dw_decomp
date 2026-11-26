@@ -373,6 +373,12 @@ TOURNAMENT_NAMES:
     STR_TOURNAMENT_NAME_VIRUS_BUSTERS_CUP:
       ja: ウイルスバスターズカップ
       en_us: Virus Busters Cup
+    STR_TOURNAMENT_NAME_DRAGONS_ROAR_CUP:
+      ja: ドラゴンズロアーカップ
+      en_us: Dragon's Roar Cup
+    STR_TOURNAMENT_NAME_JUNGLE_TROOPERS_CUP:
+      ja: ジャングルトルーパーズカップ
+      en_us: Jungle Troopers Cup
 
 TOURNAMENT_GRADES:
   strings:

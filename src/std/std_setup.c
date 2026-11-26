@@ -150,7 +150,7 @@ static void *std_setup_sbss_order[] = {
 };
 
 // clang-format off
-/* MOD (cup rules): 36 rows, was 24: the cups 23..35 (tools/balance.py writes them from content/tables/tournaments.json) */
+/* MOD (cup rules): 38 rows, was 24: the cups 23..37 (tools/balance.py writes them from content/tables/tournaments.json) */
 int16_t STD_OPPONENT_BASE_STATS[24] = {
 	0x0064, 0x0096, 0x00c8, 0x00fa, 0x012c, 0x0000, 0x00c8, 0x00c8,
 	0x00c8, 0x00c8, 0x00c8, 0x00fa, 0x00fa, 0x00fa, 0x00fa, 0x00fa,
@@ -158,10 +158,10 @@ int16_t STD_OPPONENT_BASE_STATS[24] = {
 };
 /* MOD (cup rules): the same number for the cups after the original's, 23 onwards (content/tables/tournament-rules.json,
  * newCupStats; balance.py writes it here). */
-int16_t STD_NEW_CUP_BASE_STATS[13] = {
-	150, 200, 250, 220, 250, 250, 250, 250, 250, 250, 250, 250, 250,
+int16_t STD_NEW_CUP_BASE_STATS[15] = {
+	150, 200, 250, 220, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250,
 };
-#define STD_NEW_CUPS		13
+#define STD_NEW_CUPS		15
 #define STD_NEW_CUP_SECTORS	17
 static char STD_PATH_NEW_CUPS[] = "\\STDDAT\\GRADE\\NEWCUPS.BIN";
 
