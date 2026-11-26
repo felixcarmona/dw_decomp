@@ -21,12 +21,15 @@
  * The original reserved 64 KB of stack; the deepest use measured in this
  * build is STACK_MEASURED_MAX bytes (a battle with two enemies and their
  * effects, Secret Beach Cave; the cup, menus and map loads stay under
- * 1.7 KB; memory.md "Stack"), so 20 KB keeps a 5x margin and the other
- * 44 KB go to the heap. A canary at the stack limit counts overflows
- * (MOD_STACK_GUARD_HITS, main.c).
+ * 1.7 KB; memory.md "Stack"). MOD (heap): 16 KB, the 4x margin the link
+ * asserts, and the other 48 KB go to the heap (was 20 KB; re-measured
+ * 2026-10-24 on the series tip: a two-enemy battle at x2 with a finisher,
+ * the triangle menu's screens, map changes, a save from bed, the trade
+ * menu all stay above 0x801FEE00, under 4352 bytes). A canary at the stack
+ * limit counts overflows (MOD_STACK_GUARD_HITS, main.c).
  */
 #define STACK_ADDR		0x801FFF00
-#define STACK_SIZE_KB		0x14
+#define STACK_SIZE_KB		0x10
 #define STACK_MEASURED_MAX	0xF78
 /*
  * The heap the game needs in its worst case: the MAPHEAD setup path that
