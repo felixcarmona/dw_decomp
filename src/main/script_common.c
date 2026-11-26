@@ -1,4 +1,5 @@
 #include <dw/ids.h>
+#include <dw/tournament.h> /* MOD (technique medals) */
 #include <string.h>
 
 #include <dw/mod_options.h>
@@ -3160,14 +3161,14 @@ int32_t hasDigimonRaised(digimonId)
 
 void unlockMedal(uint16_t medal)
 {
-	if (medal < 0x13) {
-		setTrigger(medal + 0x16c);
+	if (medal < MOD_MEDAL_COUNT) { /* MOD (technique medals): was medal < 0x13, which left medal 19 out */
+		setTrigger(MEDAL_TRIGGER(medal));
 	}
 }
 
 int32_t hasMedal(uint16_t medal)
 {
-	return isTriggerSet(medal + 0x16c);
+	return isTriggerSet(MEDAL_TRIGGER(medal));
 }
 
 void createMonochromonMoodBubble(void)

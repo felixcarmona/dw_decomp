@@ -764,9 +764,16 @@ int32_t modMedalCount(ModMedal *m, int32_t *need)
 		}
 		break;
 	case MOD_MEDAL_ALL_MOVES:
+	case MOD_MEDAL_EVERY_MOVE: /* MOD (technique medals): the first a techniques, and with EVERY_MOVE those of the new rows */
 		*need = m->a;
 		for (i = 0; i < m->a; i++) {
 			have += hasMove(i) != 0;
+		}
+		if (m->kind == MOD_MEDAL_EVERY_MOVE) {
+			*need += NUM_NEW_MOVES;
+			for (i = 0; i < NUM_NEW_MOVES; i++) {
+				have += hasMove(NEW_MOVE_FIRST + i) != 0;
+			}
 		}
 		break;
 	case MOD_MEDAL_STATS:
