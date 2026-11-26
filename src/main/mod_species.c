@@ -1127,6 +1127,42 @@ void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels)
 	}
 }
 
+/* The skin in another tone: each of its colours times the tone's red, green and blue (of 128). The skin is some tones
+ * of the hands' and neck's palette row, of the face's and of the original sleeves' (a bit per tone), and the tones a
+ * garment's recipe gives it (bare arms and legs). */
+const uint8_t lookSkinTones[TAMER_SKIN_COUNT - 1][3] = { { 132, 137, 151 }, { 120, 112, 105 }, { 106, 93, 84 }, { 86, 70, 63 },
+	                                                 { 59, 48, 46 } };
+const uint16_t lookSkinRows[8] = { 0x43BF, 0, 0, 0, 0x2000, 0, 0x23FE, 0 };
+uint32_t lookSkinColour(uint32_t c)
+{
+	const uint8_t *f;
+	uint32_t out = c & 0x8000;
+	uint32_t v;
+	int32_t k;
+
+	if (MOD_TAMER_SKIN == 0 || MOD_TAMER_SKIN >= TAMER_SKIN_COUNT || (c & 0x7FFF) == 0) {
+		return c;
+	}
+	f = lookSkinTones[MOD_TAMER_SKIN - 1];
+	for (k = 0; k < 15; k += 5) {
+		v = (((c >> k) & 31) * *f++ + 64) >> 7;
+		out |= (v > 31 ? 31 : v) << k;
+	}
+	return out;
+}
+
+void lookSkinTexture(uint8_t *texture)
+{
+	uint16_t *row = (uint16_t *)(texture + LOOK_TIM_PALETTE);
+	int32_t i;
+
+	for (i = 0; i < 128; i++, row++) {
+		if ((lookSkinRows[i >> 4] >> (i & 15)) & 1) {
+			*row = lookSkinColour(*row);
+		}
+	}
+}
+
 /* A garment's palette row for a cloth colour (its shade, the colour, its light and the second colour: LOOK_CLOTH). Per
  * tone the recipe says whether it stays, is a fixed colour, or lies between two of those at a level of 128: from the
  * shade (0) through the colour (128) to the light (255), or from black to the second colour or to the shade. */
@@ -1147,6 +1183,9 @@ void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb)
 			continue;
 		case 3:
 			row[i] = recipe->fixed[i] | 0x8000;
+			continue;
+		case 5: /* bare skin */
+			row[i] = lookSkinColour(recipe->fixed[i] | 0x8000);
 			continue;
 		case 1:
 			a = rgb;
@@ -1244,16 +1283,17 @@ int32_t lookTamerLoad(void *component)
 		worn[0] = head[0x68] + (worn[3] == TAMER_PACK_NONE);
 	}
 	if (MOD_TAMER_LOOK == 0 && k == 0) {
-		/* the original tamer with another face, cap colour or small hands: the disc's model, and his texture with that face; these textures
+		/* the original tamer with another face, cap colour, skin or small hands: the disc's model, and his texture with that face; these textures
 		 * follow the looks' own */
 		k = MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE : 0;
-		if (k == 0 && !MOD_TAMER_HANDS && !MOD_TAMER_HAIR) {
+		if (k == 0 && !MOD_TAMER_STATE[11] && !MOD_TAMER_HAIR) {
 			return 0;
 		}
 		modSmoothMapReset();
 		texture = malloc3(0x4800);
 		readFileSectors(TAMER_LOOK_FILE, texture, k == 0 ? head[0x6C] : head[3] + 9 * (head[7] - 1 + k), 9);
 		LOOK_CAP(texture);
+		lookSkinTexture(texture);
 		uploadModelTexture(texture, component);
 		free3(texture);
 		concatStrings(path, MAIN_D_8011D484, getDigimonModelName(0));
@@ -1338,6 +1378,7 @@ int32_t lookTamerLoad(void *component)
 		}
 		at[g + 1] = at[g] + (*(uint16_t *)first + 3) / 4;
 	}
+	lookSkinTexture(texture);
 	uploadModelTexture(texture, component);
 	free3(texture);
 	readFileSectors(TAMER_LOOK_FILE, TAMER_MODEL_BUFFER, sector, (words * 4 + 0x7FF) >> 11);

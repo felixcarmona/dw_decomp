@@ -346,7 +346,8 @@ SECTIONS
             look_ui_START = .;
             BUILD_DIR/src/main/game_menu.c.o(.text.lookPage* .rodata.lookPage* .bss.lookPageState);
             BUILD_DIR/src/main/mod_species.c.o(.text.lookTamerLoad .text.lookTamerHands .text.lookHairPalette .text.lookShirtPalette
-                .rodata.lookShirtObjects .rodata.lookCapRecipe .bss.lookShirtRecipe .bss.lookShirtRow);
+                .rodata.lookShirtObjects .rodata.lookCapRecipe .text.lookSkinColour .text.lookSkinTexture
+                .rodata.lookSkinTones .rodata.lookSkinRows .bss.lookShirtRecipe .bss.lookShirtRow);
             BUILD_DIR/src/main/model.c.o(.text.lookTamerRelook);
             . = ALIGN(., 4);
 

@@ -356,7 +356,9 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define MOD_TAMER_TROUSERS	MOD_TAMER_STATE[5]
 #define MOD_TAMER_SHOES		MOD_TAMER_STATE[7]
 #define MOD_TAMER_PACK		MOD_TAMER_STATE[9]
-#define MOD_TAMER_HANDS		MOD_TAMER_STATE[11]	/* 1 = small hands */
+#define MOD_TAMER_HANDS		(MOD_TAMER_STATE[11] & 1)	/* 1 = small hands */
+#define MOD_TAMER_SKIN		(MOD_TAMER_STATE[11] >> 1)	/* the same byte's other bits: 0 his own skin, then the tones */
+#define TAMER_SKIN_COUNT	6
 /* The clothes (tools/tamer_looks/shirts.py, legs.py, shoes.py): a shirt is the torso and the arms of any look, a
  * pair of trousers its legs, a pair of shoes its feet. Garment 0 of each kind is the original tamer's; the others
  * are drawn with the tones of one palette row each, written for the chosen cloth colour. */
@@ -371,7 +373,7 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 					 * the second colour, r, g, b each */
 #define LOOK_CLOTH_SIZE		12
 typedef struct LookShirtRecipe { /* how each tone of a garment's palette row gets its colour (lookShirtPalette) */
-	uint8_t ways[16]; /* 0 as the texture has it, 1 the cloth's colour, 2 the second colour, 3 fixed, 4 the cloth's shade */
+	uint8_t ways[16]; /* 0 as the texture has it, 1 the cloth's colour, 2 the second colour, 3 fixed, 4 the cloth's shade, 5 fixed skin */
 	uint8_t levels[16];
 	uint16_t fixed[16];
 } LookShirtRecipe;
