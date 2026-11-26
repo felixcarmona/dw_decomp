@@ -1459,7 +1459,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	movePtr = DIGI_PARA(newId).moves;
 	count = 0;
 	for (i = 0; i < 16; movePtr++, i++) {
-		if (moveBase >= 0 && moveBase <= *movePtr && *movePtr <= moveBase + evoAmt(MOD_EVF_LEARN_WINDOW)) {
+		if (moveBase >= 0 && moveBase <= *movePtr && *movePtr <= moveBase + (special <= 6 ? evoAmt(MOD_EVF_LEARN_WINDOW) : 7)) { /* MOD (new technique rows): a new row is its own eight */
 			candidates[count] = *movePtr;
 			count++;
 		}

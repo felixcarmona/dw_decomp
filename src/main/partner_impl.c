@@ -656,7 +656,7 @@ void modInitializeStarterTechniques(int32_t type)
 	special = para->special[0];
 	base = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special]
 		: special < NUM_ELEMENTS ? NEW_MOVE_FIRST + (special - NEW_ELEMENT_FIRST) * 8 : -1; /* MOD (new technique rows) */
-	window = evoAmt(MOD_EVF_LEARN_WINDOW);
+	window = special <= 6 ? evoAmt(MOD_EVF_LEARN_WINDOW) : 7; /* MOD (new technique rows): a new row is its own eight */
 	best = 0xff;
 	slot = 0;
 	for (i = 0; base >= 0 && i < 16; i++) {
