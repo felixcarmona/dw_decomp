@@ -887,7 +887,11 @@ int32_t TRN_tryLearnMove(int32_t type)
 	if (best > r) {
 		learnMove(move);
 		drawString(MOVE_NAMES[move], 0, 0x78);
+#if VERSION_IS(US)
+		MAIN_D_80135392 = measureStringMode(MOVE_NAMES[move], FIT_VANILLA); /* MOD: its width (TRN_renderMoveLearnedBox) */
+#else
 		MAIN_D_80135392 = strlen(MOVE_NAMES[move]);
+#endif
 		drawString(TRN_D_8008F19C, 0, 0x84);
 		createMenuBox(2, -0x58, 0x12, 0xb0, 0x23, 2, 0, TRN_renderMoveLearnedBox);
 		MAIN_D_80135388 = 1;
@@ -897,9 +901,37 @@ int32_t TRN_tryLearnMove(int32_t type)
 	return 0;
 }
 
+#if VERSION_IS(US)
+/*
+ * MOD: the box shows the technique's name (yellow) and the text after it ("was mastered!") as one line where it fits,
+ * else the text on the next row. The original copied the name (strlen / 2) * 12 pixels wide, then 12 pixels of the
+ * text and 48 more on the next row: the Japanese layout (two-byte characters in 12-pixel cells, "を" then "おぼえた"),
+ * which cut the US line ("Spit F" + "w" / "as m"). Both strings were drawn whole into the text area by
+ * TRN_tryLearnMove; MAIN_D_80135392 holds the name's width.
+ */
+#define LEARNED_TEXT_X	-78
+#define LEARNED_TEXT_W	156 /* to the box's inner edge, as far right as the text starts left of it */
+#define LEARNED_GAP	5   /* from the name's last ink to the text: a blank column and a space */
+
+void TRN_renderMoveLearnedBox(void)
+{
+	int32_t nameW;
+	int32_t textW;
+
+	nameW = MAIN_D_80135392;
+	textW = measureStringMode(TRN_D_8008F19C, FIT_VANILLA);
+	renderString(3, LEARNED_TEXT_X, 24, nameW + 1, 12, 0, 120, 4, 0);
+	if (nameW + LEARNED_GAP + textW <= LEARNED_TEXT_W) {
+		renderString(0, LEARNED_TEXT_X + nameW + LEARNED_GAP, 24, textW + 1, 12, 0, 132, 4, 0);
+	} else {
+		renderString(0, LEARNED_TEXT_X, 36, textW + 1, 12, 0, 132, 4, 0);
+	}
+}
+#else
 void TRN_renderMoveLearnedBox(void)
 {
 	renderString(3, -78, 24, (MAIN_D_80135392 / 2) * 12, 12, 0, 120, 4, 0);
 	renderString(0, ((MAIN_D_80135392 / 2) * 12) - 78, 24, 12, 12, 0, 132, 4, 0);
 	renderString(0, -78, 36, 48, 12, 12, 132, 4, 0);
 }
+#endif
