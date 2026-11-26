@@ -2390,7 +2390,7 @@ void BTL_renderEnemyHPBars(void)
 		/* HP animation remains gameplay state, even while the HUD is hidden. */
 		if (d->stats.current.currentHP <= 0) fighter->hpDamageBuffer = 0;
 		if (fighter->hpDamageBuffer) damageTick(fighter, &d->stats);
-		renderEnemyHeadHP(d, fighter, 1);
+		renderEnemyHeadHP(d, fighter);
 	}
 }
 

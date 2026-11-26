@@ -1,17 +1,16 @@
 #ifndef DW_ENEMY_BARS_H
 #define DW_ENEMY_BARS_H
 
-/* Compiled only into BTL/STD/VS: no resident code or digit table. */
+/* Compiled only into BTL: no resident code. Arena and VS show the opponent's
+ * HP in their own top-right panel, so only wild battles draw the head bar. */
 #include <dw/btl.h>
 #include <dw/params.h>
 #include <dw/mod_options.h>
 
 int32_t worldPosToScreenPos(SVECTOR *pos, DVECTOR *out);
+void drawEntityText(int32_t color, int32_t n, int32_t x, int32_t y, int32_t value, int32_t layer);
 
-static const uint8_t ENEMY_HP_DIGITS[10][5] = {
-	{ 7, 5, 5, 5, 7 }, { 2, 6, 2, 2, 7 }, { 7, 1, 7, 4, 7 }, { 7, 1, 3, 1, 7 }, { 5, 5, 7, 1, 1 },
-	{ 7, 4, 7, 1, 7 }, { 7, 4, 7, 5, 7 }, { 7, 1, 1, 1, 1 }, { 7, 5, 7, 5, 7 }, { 7, 5, 7, 1, 7 },
-};
+#define ENEMY_BAR_W 50 /* the original is 55 */
 
 static void enemyHPRect(int x, int y, int w, int h, int r, int g, int b, int z)
 {
@@ -24,15 +23,16 @@ static void enemyHPRect(int x, int y, int w, int h, int r, int g, int b, int z)
 	GsSetWorkBase((PACKET *)p);
 }
 
-static void renderEnemyHeadHP(DigimonEntity *d, FighterData *fighter, int battleState)
+static void renderEnemyHeadHP(DigimonEntity *d, FighterData *fighter)
 {
 	SVECTOR world;
 	DVECTOR head, feet;
-	int x, y, hp, max, divisor, width, fill, ratio, r, g, row, col, bits, start;
+	GsSPRITE fill;
+	int x, y, hp, max, digits, w, r, g;
 
 	hp = d->stats.current.currentHP;
 	max = d->stats.base.hp;
-	if (GAME_STATE != battleState || NO_AI_FLAG ||
+	if (GAME_STATE != 1 || NO_AI_FLAG ||
 	    hp <= 0 || max <= 0 || (fighter->flags & FIGHTER_FLAG_DEAD)) return;
 
 	/* Feet decide visibility; a tall head can project above the top edge. */
@@ -50,57 +50,62 @@ static void renderEnemyHeadHP(DigimonEntity *d, FighterData *fighter, int battle
 	head.vx -= 160 - DRAWING_OFFSET_X;
 	head.vy -= 120 - DRAWING_OFFSET_Y;
 
-	/* 32x3 track, black frame (34x5); number includes its outline. */
-	for (divisor = 1; hp / divisor >= 10; divisor *= 10) {}
-	/* Reserve the widest HP, so losing a digit never moves the group at an edge.
-	 * Only the current value is drawn: the space stays to its right. */
-	for (width = 41, fill = max > hp ? max : hp; fill >= 10; fill /= 10) width += 4;
-	x = head.vx - 17;
-	y = head.vy - 8; /* three clear pixels between frame and head */
+	/* The original bar's look, shortened: a green outline, the HUD strip inside
+	 * and the big battle digits above its right end. The number is
+	 * right-aligned in a fixed field, so its last digit stays put as the HP
+	 * loses digits. The group spans x..x+ENEMY_BAR_W+13 and y-10..y+6. */
+	x = head.vx - ENEMY_BAR_W / 2;
+	y = head.vy - 10; /* three clear pixels between frame and head */
 	if (x < -159) x = -159;
-	if (x + width > 159) x = 159 - width;
-	if (y < -118) y = -118; /* digit outline extends one pixel above frame */
-	if (y > 114) y = 114;
-	/* Wild: portrait/Auto label at left, partner HP/MP at right.
-	 * Arena/VS: wider HP/MP panels at both corners. Include the digit outline. */
-	if (battleState == 1) {
-		if (y < -50 && x < -96) y = -50;
-		if (y < -74 && x + width > 43) y = -74;
-	} else if (y < -74 && (x < -32 || x + width > 35)) y = -74;
+	if (x > 145 - ENEMY_BAR_W) x = 145 - ENEMY_BAR_W;
+	if (y < -108) y = -108;
+	if (y > 112) y = 112;
+	/* Clear of the portrait/Auto label at left and the partner HP/MP at right. */
+	if (y < -41 && x < -96) y = -41;
+	if (y < -65 && x + ENEMY_BAR_W + 14 > 43) y = -65;
 
-	fill = hp * 32 / max;
-	if (fill < 1) fill = 1;
-	if (fill > 32) fill = 32;
-	ratio = hp * 50 / max;
-	/* Original green -> yellow -> red rule, converted from sprite modulation. */
-	if (ratio >= 15) {
-		r = (50 - (ratio > 50 ? 50 : ratio)) * 254 / 35;
-		g = 254;
+	enemyHPRect(x, y, ENEMY_BAR_W, 1, 10, 180, 10, 7);
+	enemyHPRect(x, y + 6, ENEMY_BAR_W, 1, 10, 180, 10, 7);
+	enemyHPRect(x, y + 1, 1, 5, 10, 180, 10, 7);
+	enemyHPRect(x + ENEMY_BAR_W - 1, y + 1, 1, 5, 10, 180, 10, 7);
+
+	/* Green -> yellow -> orange modulation as BTL_renderEnemyHPBars, on its
+	 * 50-step scale; a living enemy keeps at least one pixel of fill. */
+	w = hp * 50 / max;
+	if (w < 1) w = 1;
+	if (w > 50) w = 50;
+	if (w >= 15) {
+		r = (50 - w) * 127 / 35 + 128;
+		g = 255;
+	} else if (w >= 5) {
+		r = 255;
+		g = 255 - (15 - w) * 127 / 10;
 	} else {
-		r = 254;
-		g = ratio >= 5 ? 254 - (15 - ratio) * 254 / 10 : 0;
+		r = 255;
+		g = 128;
 	}
-	enemyHPRect(x, y, 34, 5, 0, 0, 0, 10);
-	enemyHPRect(x + 1, y + 1, 32, 3, 52, 52, 60, 9);
-	enemyHPRect(x + 1, y + 1, fill, 3, r, g, 0, 8);
-	enemyHPRect(x + 1, y + 1, fill, 1, r > 205 ? 255 : r + 50, g > 205 ? 255 : g + 50, 50, 7);
+	fill.attribute = 0;
+	fill.x = x + 2;
+	fill.y = y + 2;
+	fill.w = hp * (ENEMY_BAR_W - 5) / max;
+	if (fill.w < 1) fill.w = 1;
+	if (fill.w > ENEMY_BAR_W - 5) fill.w = ENEMY_BAR_W - 5;
+	fill.h = 3;
+	fill.tpage = 0x1f;
+	fill.u = 0x58;
+	fill.v = 0xec;
+	fill.cx = 0x110;
+	fill.cy = 0x1f3;
+	fill.r = r;
+	fill.g = g;
+	fill.b = 128;
+	fill.mx = fill.my = 0;
+	fill.scalex = fill.scaley = ONE;
+	fill.rotate = 0;
+	GsSortFastSprite(&fill, ACTIVE_ORDERING_TABLE, 7);
 
-	/* Runs use fewer packets than individual pixels. Draw dilated black runs
-	 * at a deeper OT level so adjacent digits never erase white strokes. */
-	x += 37; /* two blank pixels after frame, then the digit's left outline */
-	for (; divisor; divisor /= 10, x += 4) {
-		int digit = hp / divisor;
-		hp %= divisor;
-		for (row = 0; row < 5; row++) {
-			bits = ENEMY_HP_DIGITS[digit][row];
-			for (col = 0; col < 3; col++) {
-				if (!(bits & (4 >> col))) continue;
-				start = col;
-				while (col + 1 < 3 && (bits & (4 >> (col + 1)))) col++;
-				enemyHPRect(x + start - 1, y + row - 1, col - start + 3, 3, 0, 0, 0, 8);
-				enemyHPRect(x + start, y + row, col - start + 1, 1, 255, 255, 255, 7);
-			}
-		}
-	}
+	/* Four digits as the original (9999); five only past it, extending left. */
+	digits = (max > 9999 || hp > 9999) ? 5 : 4;
+	drawEntityText(0, digits, x + ENEMY_BAR_W - 22 - (digits - 4) * 9, y - 9, hp, 7);
 }
 #endif

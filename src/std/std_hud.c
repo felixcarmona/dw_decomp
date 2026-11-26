@@ -2114,8 +2114,6 @@ void STD_addFighterStatusBars(id)
 	addObject(0x19c, id, NULL, (RenderFunction)STD_renderFighterStatusBars);
 }
 
-#include <dw/enemy_bars.h>
-
 // clang-format off
 void STD_renderFighterStatusBars(id)
 	int16_t id;
@@ -2151,10 +2149,6 @@ void STD_renderFighterStatusBars(id)
 	fighter->mpDamageBuffer = 0;
 	if (*mpPtr < 0) {
 		*mpPtr = 0;
-	}
-
-	if (id == 1) {
-		renderEnemyHeadHP((DigimonEntity *)ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[id]], fighter, 4);
 	}
 
 	for (bar = 0; bar < 2; bar++) {
