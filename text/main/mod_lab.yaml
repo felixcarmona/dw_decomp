@@ -8,8 +8,8 @@ MOD_LAB:
       ja: "LABORATORY"
       en_us: "LABORATORY"
     LAB_STR_ADD_BITS:
-      ja: "+10000 bits"
-      en_us: "+10000 bits"
+      ja: "Add 10000 bits"
+      en_us: "Add 10000 bits"
     LAB_STR_HEAL:
       ja: "Heal partner"
       en_us: "Heal partner"
@@ -95,8 +95,8 @@ MOD_LAB:
       ja: "Satisfy all needs"
       en_us: "Satisfy all needs"
     LAB_STR_PARAMETERS:
-      ja: "Edit parameters"
-      en_us: "Edit parameters"
+      ja: "Edit Digimon"
+      en_us: "Edit Digimon"
     LAB_STR_EVOLVE:
       ja: "Evolve Digimon"
       en_us: "Evolve Digimon"
@@ -107,11 +107,11 @@ MOD_LAB:
       ja: "Confirm action"
       en_us: "Confirm action"
     LAB_STR_NEW_MARK:
-      ja: " + NEW"
-      en_us: " + NEW"
+      ja: " - Added"
+      en_us: " - Added"
     LAB_STR_VALUE:
-      ja: "Value: "
-      en_us: "Value: "
+      ja: "New value: "
+      en_us: "New value: "
     LAB_STR_STEP_ONE:
       ja: "Up/down: +1 / -1"
       en_us: "Up/down: +1 / -1"
@@ -199,3 +199,69 @@ MOD_LAB:
     LAB_STR_PICK_HINT:
       ja: "L1/R1 10  L2/R2 +"
       en_us: "L1/R1 10  L2/R2 +"
+    LAB_STR_CHOOSE_FIELD:
+      ja: "Choose what you want to change."
+      en_us: "Choose what you want to change."
+    LAB_STR_FILTER_ALL:
+      ja: "Show: All  (left/right)"
+      en_us: "Show: All  (left/right)"
+    LAB_STR_FILTER_ORIGINAL:
+      ja: "Show: Originals  (left/right)"
+      en_us: "Show: Originals  (left/right)"
+    LAB_STR_FILTER_NEW:
+      ja: "Show: Added  (left/right)"
+      en_us: "Show: Added  (left/right)"
+    LAB_STR_STAGE:
+      ja: "Stage: "
+      en_us: "Stage: "
+    LAB_STR_ORIGINAL:
+      ja: " - Original"
+      en_us: " - Original"
+    LAB_STR_MAP_NEW:
+      ja: "Added map"
+      en_us: "Added map"
+    LAB_STR_MAP_ORIGINAL:
+      ja: "Original map"
+      en_us: "Original map"
+    LAB_STR_EDIT_HELP:
+      ja: "Choose a value, then save."
+      en_us: "Choose a value, then save."
+    LAB_STR_CURRENT:
+      ja: "Current value: "
+      en_us: "Current value: "
+    LAB_STR_INCREMENT:
+      ja: "Change by: "
+      en_us: "Change by: "
+    LAB_STR_EDIT_STEP:
+      ja: "Up/down: change the amount"
+      en_us: "Up/down: change the amount"
+    LAB_STR_EDIT_AMOUNT:
+      ja: "Left subtracts. Right adds."
+      en_us: "Left subtracts. Right adds."
+    LAB_STR_RANGE:
+      ja: "Allowed: "
+      en_us: "Allowed: "
+    LAB_STR_TO_RANGE:
+      ja: " to "
+      en_us: " to "
+    LAB_STR_ASK_EVOLVE:
+      ja: "Evolve into this Digimon?"
+      en_us: "Evolve into this Digimon?"
+    LAB_STR_ASK_MAP:
+      ja: "Travel to this map?"
+      en_us: "Travel to this map?"
+    LAB_STR_SAVE:
+      ja: "Save"
+      en_us: "Save"
+    LAB_STR_DISCARD:
+      ja: "Discard"
+      en_us: "Discard"
+    LAB_STR_DO_IT:
+      ja: "Confirm"
+      en_us: "Confirm"
+    LAB_STR_CHOOSE:
+      ja: "Choose"
+      en_us: "Choose"
+    LAB_STR_BACK:
+      ja: "Back"
+      en_us: "Back"
