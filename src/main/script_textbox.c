@@ -894,7 +894,12 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			break;
 		case 0x1c:
 			str++;
-			CLEAR_FROM_PEN(x + pos, y, 0x64);
+			/* The keeper shares each row with the inventory at x = 128.
+			 * Clear only the gap to the count column, not 100 pixels
+			 * beyond the name: a left-list redraw must preserve it. */
+			if (pos < 0x64) {
+				CLEAR_FROM_PEN(x + pos, y, 0x64 - pos);
+			}
 			pos = 0x64;
 			break;
 		case 0x18:
