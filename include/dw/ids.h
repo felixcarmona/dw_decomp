@@ -172,6 +172,8 @@ typedef uint16_t CardId;
 #define NUM_CARDS		66	/* CARD_DATA, CARD_SPRITE_CLUT, CARD.ALL */
 
 /* Trigger ranges used as per-id bitsets (scripts.md, "Free triggers") */
+/* SET/UNSET_TRIGGER and IF operands for species 112..1023; saved recruit bits. */
+#define TRIGGER_SPECIES_RECRUITED_BASE 0x8000
 #define TRIGGER_RECRUITED_BASE	200	/* + Digimon type */
 #define TRIGGER_SHOP_STOCK_BASE	0x180	/* + item id */
 #define TRIGGER_RAISED_BASE	0x200	/* + Digimon type */

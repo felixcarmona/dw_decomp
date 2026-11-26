@@ -4000,22 +4000,34 @@ void initializeLoadedMap(void)
 }
 
 #if VERSION_EQUAL_OR_NEWER(US)
+#include "city_residents_extra.h"
 extern const uint8_t CITY_RESIDENTS[14]; /* generated from the owned roster by the balance build */
 
 void recalculateProsperity(void)
 {
 	uint8_t pp;
 	int32_t i;
+	int32_t type;
 
 	pp = 0;
 	/* Original story counts only ids 3..58, including after a Continue changes stories. */
-	for (i = 3; i < (MOD_OPT_STORY ? NUM_RECRUITABLE_DIGIMON : 59); i++) {
-		if ((!MOD_OPT_STORY || (CITY_RESIDENTS[i >> 3] & (1 << (i & 7)))) &&
-		    (DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
-			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
+	for (i = 3; i < (MOD_OPT_STORY ? NUM_RECRUITABLE_DIGIMON + CITY_RESIDENTS_EXTRA_COUNT : 59); i++) {
+		type = i;
+#if CITY_RESIDENTS_EXTRA_COUNT
+		if (i >= NUM_RECRUITABLE_DIGIMON) {
+			type = CITY_RESIDENTS_EXTRA[i - NUM_RECRUITABLE_DIGIMON];
+		}
+#endif
+		if ((!MOD_OPT_STORY ||
+#if CITY_RESIDENTS_EXTRA_COUNT
+		     i >= NUM_RECRUITABLE_DIGIMON ||
+#endif
+		     (CITY_RESIDENTS[i >> 3] & (1 << (i & 7)))) &&
+		    (DIGI_PARA(type).level >= 3) && (isDigimonRecruited(type) != 0)) {
+			if ((type == 0xb) || (type == 0x27) || (type == 0x35)) {
 				pp++;
 			} else {
-				pp += (uint8_t)(DIGI_PARA(i).level - 2);
+				pp += (uint8_t)(DIGI_PARA(type).level - 2);
 			}
 		}
 	}
