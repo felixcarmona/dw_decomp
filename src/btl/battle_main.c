@@ -1837,6 +1837,9 @@ int32_t BTL_battleMain(void)
 	COMBAT_AREA_Y = 0x78 - DRAWING_OFFSET_Y;
 	int32_t timeLimit; /* MOD (timed battle) */
 	int32_t timedOut;
+	int32_t fighterIndex;
+	int16_t enemies[4];
+	int16_t remaining;
 
 	timeLimit = readPStat(PSTAT_BATTLE_TIME_LIMIT) * 20;
 	timedOut = 0;
@@ -1849,10 +1852,25 @@ int32_t BTL_battleMain(void)
 			break;
 		}
 		if ((timeLimit > 0) && (BATTLE_FRAME_COUNT >= timeLimit) &&
+		    (NO_AI_FLAG == 0) && (FINISHING_ENTITY == NULL) &&
 		    (PARTNER_ENTITY.digimonEntity.stats.current.currentHP - COMBAT_DATA_PTR->fighter[0].hpDamageBuffer > 0)) {
-			timedOut = 1;
-			writePStat(PSTAT_BATTLE_TIMED_OUT, 1);
-			break;
+			/* Let techniques and hit reactions close before removing their EFE engine.
+			 * With no surviving enemy, let the normal victory/death animations finish. */
+			BTL_getRemainingEnemies(ENTITY_TABLE[1], enemies, &remaining);
+			if (remaining > 0) {
+				for (fighterIndex = 0; fighterIndex <= ENEMY_COUNT; fighterIndex++) {
+					FighterData *fighter = &COMBAT_DATA_PTR->fighter[fighterIndex];
+					if ((fighter->flags & (FIGHTER_FLAG_ATTACKING | FIGHTER_FLAG_KNOCKED_BACK | FIGHTER_FLAG_BLOCKING)) ||
+					    (fighter->hpDamageBuffer != 0)) {
+						break;
+					}
+				}
+				if (fighterIndex > ENEMY_COUNT) {
+					timedOut = 1;
+					writePStat(PSTAT_BATTLE_TIMED_OUT, 1);
+					break;
+				}
+			}
 		}
 		BTL_tickPartnerAI();
 		BTL_tickEnemyAI();
