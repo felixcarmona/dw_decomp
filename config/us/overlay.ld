@@ -889,6 +889,47 @@ SECTIONS
 				.data.MAIN_D_8013468C
 			);
 			. = ALIGN(., 4);
+            /* Player chart opens MENU before reaching its modal renderer.
+             * The cell writer and primitive/number helpers stay resident to reserve scrolling room below EVL. */
+            BUILD_DIR/src/main/game_menu.c.o(
+                .text.chartCardBuild .text.chartCardBuild.*
+                .text.chartCardRender .text.chartCardRender.*
+                .text.chartCardPrompt .text.chartCardPrompt.*
+                .text.chartAppend .text.chartAppend.*
+                .rodata.CHART_POPUP_AUTOMATIC
+                .rodata.CHART_POPUP_BATTLES
+                .rodata.CHART_POPUP_BONUS_ANY
+                .rodata.CHART_POPUP_BONUS_ONE_OF
+                .rodata.CHART_POPUP_CLOSE
+                .rodata.CHART_POPUP_DISCIPLINE
+                .rodata.CHART_POPUP_EVOLVE
+                .rodata.CHART_POPUP_FROM
+                .rodata.CHART_POPUP_HAPPINESS
+                .rodata.CHART_POPUP_HAVE
+                .rodata.CHART_POPUP_MISTAKES
+                .rodata.CHART_POPUP_MISTAKES_ANY
+                .rodata.CHART_POPUP_NEEDS
+                .rodata.CHART_POPUP_NO
+                .rodata.CHART_POPUP_READY
+                .rodata.CHART_POPUP_SHORT
+                .rodata.CHART_POPUP_STATS
+                .rodata.CHART_POPUP_STATS_ANY
+                .rodata.CHART_POPUP_STAT_BRN
+                .rodata.CHART_POPUP_STAT_DEF
+                .rodata.CHART_POPUP_STAT_HP
+                .rodata.CHART_POPUP_STAT_MP
+                .rodata.CHART_POPUP_STAT_OFF
+                .rodata.CHART_POPUP_STAT_SPD
+                .rodata.CHART_POPUP_TECHS
+                .rodata.CHART_POPUP_TOP
+                .rodata.CHART_POPUP_VERDICT
+                .rodata.CHART_POPUP_VIEW
+                .rodata.CHART_POPUP_WEIGHT
+                .rodata.CHART_POPUP_YES
+                .rodata.CHART_STAT_NAMES
+            );
+            . = ALIGN(., 4);
+
             /* Lab UI runs synchronously after the resident entry loads MENU.
              * The roster callbacks and state stay resident. */
             BUILD_DIR/src/main/mod_lab.c.o(.text.modLabFieldPtr .text.modLabFit .text.modLabBound
