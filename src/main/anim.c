@@ -216,6 +216,7 @@ void startAnimation(entity, animId)
 	} else {
 		instrPtr = (int16_t *)((int32_t)animTable + animTable[animId]);
 	}
+	modSmoothBeforeStart(entity, animId);
 	if ((*instrPtr & 0x7fff) == 1) {
 		/* MOD (memreclaim): an NPC slot trimmed away (npc_anim_trim.c);
 		 * no original animation is 1 frame long */
