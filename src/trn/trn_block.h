@@ -59,10 +59,11 @@ static int8_t TB_box2Dy; /* box 2 under the stats box: lower by the skip hint's 
    boxes) opens that much lower, under it, with its text (TB_box2Dy). TB_box2Y: box 2's y for the gains in
    STATS_GAINS, by the gym's own check (TB(statGainsAreZero)) */
 int32_t TB(statGainsAreZero)(void);
+/* Four pixels between the stats box and every lower box, with or without the hint row. */
 static int32_t TB_box2Y(void)
 {
 	TB_box2Dy = TB(statGainsAreZero)() ? 0 : MOD_COUNT_ROW_H;
-	return 0x12 + TB_box2Dy;
+	return 0x16 + TB_box2Dy;
 }
 
 /* from the session's setup (TB(saveTrainingStartTime)), after it read the flag: the menu's x5 row is a normal session
@@ -90,8 +91,8 @@ static void TB_tickMessage(void)
 
 static void TB_renderMessage(void)
 {
-	renderString(0, -78, 24 + TB_box2Dy, 156, 12, 0, 120, 4, 0);
-	renderString(0, -78, 36 + TB_box2Dy, 156, 12, 0, 132, 4, 0);
+	renderString(0, -84, 28 + TB_box2Dy, 168, 12, 0, 120, 4, 0);
+	renderString(0, -84, 40 + TB_box2Dy, 168, 12, 0, 132, 4, 0);
 }
 
 /* before the gym's award function */
@@ -185,7 +186,7 @@ int32_t TB(modBlockNext)(void)
 		drawString(TB_doneText, 0, 120);
 		drawString(TB_REASONS[TB_reason], 0, 132);
 		TB_box1Seen = 0;
-		createMenuBox(2, -0x58, TB_box2Y(), 0xb0, 0x23, 2, TB_tickMessage, TB_renderMessage);
+		createMenuBox(2, -94, TB_box2Y(), 188, 0x23, 2, TB_tickMessage, TB_renderMessage);
 	}
 	return 0;
 }
