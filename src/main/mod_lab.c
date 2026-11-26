@@ -443,6 +443,8 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
  * for the partner buffer is skipped. The partner is reloaded as Continue loads it (loadMMD, its sounds), keeps its
  * stats and care, gets the species' first three techniques and its finisher as battle moves, and the species is
  * marked raised (setDigimonRaised), as if it had been reached by evolution.
+ * Its sounds are staged at GENERAL_BUFFER, over the map background's palettes (memreclaim), so the .TFS header is
+ * read again after them.
  * Hooked from tamerTickWalkingState() (tamer.c).
  */
 #define PAD_L2		0x1
@@ -454,6 +456,7 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 void learnMove(int32_t move);
 void setDigimonRaised(int32_t digimonId);
 int32_t isFileReadQueueBusy(void);
+void readMapTFS(int32_t mapId);
 
 extern Entity *ENTITY_TABLE[];
 
@@ -588,6 +591,8 @@ static void modRosterSwitch(int32_t type)
 	startAnimation(ENTITY_TABLE[1], 0);
 	PARTNER_ENTITY.digimonEntity.stats.current.vabId = 4;
 	loadPartnerSounds(type);
+	readMapTFS(CURRENT_SCREEN); /* the sounds were staged over the background's palettes (GENERAL_BUFFER): read
+	                              * them again, as the evolution's exit does, or the next time-of-day change loads noise */
 	PARTNER_ENTITY.digimonEntity.entity.isOnMap = 1;
 	PARTNER_ENTITY.digimonEntity.entity.isOnScreen = 1;
 	modRosterSetMoves(type);
