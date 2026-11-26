@@ -9,7 +9,7 @@
  * "×Select △Cancel" reads "○Select ×Cancel" without a text of its own; a △ painted green ({color 5}, the fishing help's
  * "submenu, under △") is the field menu's button and stays. A button glyph the text paints in its button's colour
  * (× cyan 6, △ green 5, ○ orange 10) takes the colour of the button it now is (modButtonColor). The dialogue box's
- * button (SYSTEM_W.TIM, three 16x12 frames pressing it, drawn by renderUIBox and the care menu's badge) is made a ○
+ * button (SYSTEM_W.TIM, three 16x12 frames pressing it, drawn by renderUIBox) is made a ○
  * from the disc's own frames: the cross is painted over with the button's face and a ring drawn where it was, in the
  * red of the PlayStation's ○ (its own CLUT, modButtonClut).
  *

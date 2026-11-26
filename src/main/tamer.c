@@ -569,12 +569,10 @@ void tamerTickWalkingState(void)
 	}
 
 	checkItemPickup();
-	/* MOD (feed menu): X in front of the hungry partner, mod_feed.c. Before the map: with the X badge shown,
-	 * X cares for the partner even beside a machine */
-	if (modFeedTick()) {
+	checkMapInteraction();
+	if (modFeedTick()) { /* Square care is available only while ordinary field control remains. */
 		return;
 	}
-	checkMapInteraction();
 	checkMedalConditions();
 	checkPendingAwards();
 
