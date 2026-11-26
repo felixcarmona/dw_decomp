@@ -577,6 +577,9 @@ MOD_LAB:
     LAB_STR_HANDS_SMALL:
       ja: "Small"
       en_us: "Small"
+    LAB_STR_CAP_COLOUR:
+      ja: "Cap colour"
+      en_us: "Cap colour"
     LAB_STR_CLOTH_ORANGE:
       ja: "Orange"
       en_us: "Orange"

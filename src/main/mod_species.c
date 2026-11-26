@@ -1067,6 +1067,15 @@ void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb);
  * many each garment has (the backpack none), its palette row, and where its count and its directory are in the file's first sector (in u16s) */
 const uint16_t lookShirtObjects[LOOK_SHIRT_OBJECTS + 4 * LOOK_GARMENTS] = { 0, 2, 3, 5, 6, 8, 9, 11, 12, 10, 13,
 	5, 4, 2, 0, 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x80, 0xA0, 0x100, 0x120 };
+/* The original tamer's cap in a cloth colour (the hair colour's byte, with no hairstyle): its nine greys of wool, from
+ * the light to the shade; the letters of its band stay. It is drawn in the hair's palette row. */
+const LookShirtRecipe lookCapRecipe = { { 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+	                                { 0, 0, 0, 0, 0, 0, 0, 255, 224, 192, 160, 128, 100, 72, 44, 16 }, { 0 } };
+#define LOOK_CAP(texture) \
+	if (MOD_TAMER_HAIR && head[0x69]) { \
+		lookShirtPalette((uint16_t *)((texture) + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW), (LookShirtRecipe *)&lookCapRecipe, \
+		                 (uint8_t *)head + LOOK_CLOTH + LOOK_CLOTH_SIZE * (MOD_TAMER_HAIR % head[0x69])); \
+	}
 #define LOOK_GARMENT_OBJECTS(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + (g)]
 #define LOOK_GARMENT_ROW(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + LOOK_GARMENTS + (g)]
 #define LOOK_GARMENT_COUNT(g)	lookShirtObjects[LOOK_SHIRT_OBJECTS + 2 * LOOK_GARMENTS + (g)]
@@ -1235,15 +1244,16 @@ int32_t lookTamerLoad(void *component)
 		worn[0] = head[0x68] + (worn[3] == TAMER_PACK_NONE);
 	}
 	if (MOD_TAMER_LOOK == 0 && k == 0) {
-		/* the original tamer with another face or small hands: the disc's model, and his texture with that face; these textures
+		/* the original tamer with another face, cap colour or small hands: the disc's model, and his texture with that face; these textures
 		 * follow the looks' own */
 		k = MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE : 0;
-		if (k == 0 && !MOD_TAMER_HANDS) {
+		if (k == 0 && !MOD_TAMER_HANDS && !MOD_TAMER_HAIR) {
 			return 0;
 		}
 		modSmoothMapReset();
 		texture = malloc3(0x4800);
 		readFileSectors(TAMER_LOOK_FILE, texture, k == 0 ? head[0x6C] : head[3] + 9 * (head[7] - 1 + k), 9);
+		LOOK_CAP(texture);
 		uploadModelTexture(texture, component);
 		free3(texture);
 		concatStrings(path, MAIN_D_8011D484, getDigimonModelName(0));
@@ -1276,6 +1286,8 @@ int32_t lookTamerLoad(void *component)
 	if (MOD_TAMER_LOOK != 0) {
 		lookHairPalette((uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_HAIR_ROW),
 		                (uint8_t *)head + 0x80 + 3 * (MOD_TAMER_HAIR % head[6]), (uint8_t *)head + LOOK_LEVELS);
+	} else {
+		LOOK_CAP(texture);
 	}
 	/* each garment: its drawing over the texture, its colour in its palette row. The backpack's first sector is read
 	 * last and stays: its polygons are taken from it further down. */
