@@ -359,7 +359,8 @@ static int32_t EVL_cancelTick(EvoSequenceData *data)
 	Entity *entity = &data->partner->digimonEntity.entity;
 
 	if (EVL_cancelPhase == 0) {
-		if (!(MOD_EVO_CANCEL & MOD_EVO_CANCEL_ALLOWED) || PAUSE_STATE != 0 || data->state > 2 || data->timer >= 0xcc) {
+		if (!(MOD_EVO_CANCEL & MOD_EVO_CANCEL_ALLOWED) || PAUSE_STATE != 0 || data->state == 0 || data->state > 2 ||
+		    data->timer >= 0xcc) { /* from the black (state 1, the field is gone) until the new form shows */
 			EVL_cancelHold = 0;
 			EVL_cancelShown = 0;
 			return 0;
@@ -371,9 +372,6 @@ static int32_t EVL_cancelTick(EvoSequenceData *data)
 		if (POLLED_INPUT & CANCEL_BUTTON) {
 			if (EVL_cancelHold < EVL_CANCEL_TICKS - 1) {
 				EVL_cancelHold++;
-				return 0;
-			}
-			if (data->state == 0) { /* the map is hidden at this state's end: state 3 gives back what was hidden */
 				return 0;
 			}
 			EVL_cancelHold = EVL_CANCEL_TICKS;
