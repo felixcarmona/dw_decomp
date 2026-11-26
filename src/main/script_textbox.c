@@ -619,6 +619,8 @@ void registerTextbox(boxId, row, rows, doubleBuffer, mode)
 	clearTextSubArea(&rect);
 }
 
+#define DRAW_STRING2_SPACE_WIDTH 8 /* MOD: advance of a space (81 40) */
+
 #if !VERSION_IS(US)
 int32_t drawString2(uint8_t *str, int16_t x, int16_t y)
 #else
@@ -743,6 +745,16 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			if (glyph == 0x4081) {
 				setRECT(&rect, x + pos, y, 0xc, 0xc);
 				clearTextSubArea(&rect);
+#if VERSION_IS(US)
+				/*
+				 * MOD: the original left adv at the previous glyph's
+				 * width (12 after a capital, 5 after ", " and ". ",
+				 * which looked glued). A fixed 8 px is what it gave
+				 * after most lowercase letters; no original line then
+				 * starts a glyph past TEXT_DRAW_LIMIT (docs/mods/font.md).
+				 */
+				adv = DRAW_STRING2_IS_FIXED_WIDTH != 0 ? 0xc : DRAW_STRING2_SPACE_WIDTH;
+#endif
 			} else {
 #if !VERSION_IS(US)
 				drawGlyph(glyph, x + pos, y);
