@@ -3181,6 +3181,16 @@ void STD_initializeBracket(void)
 	}
 }
 
+/* MOD (mega): STD_WIN_CHANCES has rows for Rookie, Champion and Ultimate
+ * (level - 3); a Mega (the player's partner) counts as an Ultimate there,
+ * where it used to read past the row. */
+static int32_t stdWinChanceRow(int32_t type)
+{
+	int32_t level = DIGI_PARA(type).level;
+
+	return (level > 5 ? 5 : level) - 3;
+}
+
 void STD_setupParticipants(uint8_t *out, uint8_t *list)
 {
 	int32_t i;
@@ -3204,7 +3214,7 @@ void STD_setupParticipants(uint8_t *out, uint8_t *list)
 	}
 
 	for (i = 0; i < 4; i++) {
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[i * 2]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[i * 2 + 1L]).level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[stdWinChanceRow(PARTICIPANT_TYPES[i * 2])][stdWinChanceRow(PARTICIPANT_TYPES[i * 2 + 1L])]) {
 			STD_ROUND1_WINNERS[i] = i * 2;
 		} else {
 			STD_ROUND1_WINNERS[i] = i * 2 + 1;
@@ -3217,13 +3227,13 @@ void STD_setupParticipants(uint8_t *out, uint8_t *list)
 		} else {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[0];
 		}
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[2]]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[3]]).level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[stdWinChanceRow(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[2]])][stdWinChanceRow(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[3]])]) {
 			STD_ROUND2_WINNERS[1] = STD_ROUND1_WINNERS[2];
 		} else {
 			STD_ROUND2_WINNERS[1] = STD_ROUND1_WINNERS[3];
 		}
 	} else {
-		if (randomLimit(100) < STD_WIN_CHANCES[DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[0]]).level - 3][DIGI_PARA(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[1]]).level - 3]) {
+		if (randomLimit(100) < STD_WIN_CHANCES[stdWinChanceRow(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[0]])][stdWinChanceRow(PARTICIPANT_TYPES[STD_ROUND1_WINNERS[1]])]) {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[0];
 		} else {
 			STD_ROUND2_WINNERS[0] = STD_ROUND1_WINNERS[1];

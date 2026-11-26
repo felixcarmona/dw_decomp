@@ -16,6 +16,7 @@
 #include <dw/graphics.h>
 #include <dw/input.h>
 #include <dw/item.h>
+#include <dw/level.h>
 #include <dw/main.h>
 #include <dw/model.h>
 #include <dw/move.h>
@@ -396,6 +397,12 @@ char FMT_PLAYTIME[8] = "%d : %d";
 RECT EVO_CHART_TEXT_AREA = { 0, 12, 256, 200 };
 
 RECT EVO_CHART_NAME_AREA = { 0, 48, 120, 12 };
+
+/* MOD (mega): the level name of the Megas, drawn into the text area with the
+ * chart's other level names (row 0x3C holds "Ultimate"; 0x48 is free) */
+#define EVO_CHART_MEGA_ROW	0x48
+#define EVO_CHART_MEGA_WIDTH	0x22
+static char EVO_CHART_MEGA_LABEL[] = "Mega";
 
 RECT MEDAL_VIEW_TEXT_AREA = { 0, 12, 256, 200 };
 
@@ -3141,9 +3148,20 @@ void renderEvoChartDetail(void)
 				                  clut.m[EVO_CHART_BOXES[id - 1].clut],
 				                  4, 0);
 			}
-			renderBorderBox(toSprites->posX + 0x9f,
-			                toSprites->posY + 0x77, 0x12, 0x12,
-			                0xbebebe, 0x3c3c3c, 0x87, 0x87, 0x87, 4);
+			if (DIGI_PARA(id).level == LEVEL_MEGA) {
+				/* MOD (mega): the chart has no Mega column and no Mega portraits: a
+				 * gold box with the level name under it */
+				renderBorderBox(toSprites->posX + 0x9f,
+				                toSprites->posY + 0x77, 0x12, 0x12,
+				                0x60e0ff, 0x104878, 0xb0, 0x88, 0x28, 4);
+				renderString(0, toSprites->posX + 8 - EVO_CHART_MEGA_WIDTH / 2,
+				             toSprites->posY + 0x13, EVO_CHART_MEGA_WIDTH, 0xc, 0,
+				             EVO_CHART_MEGA_ROW, 4);
+			} else {
+				renderBorderBox(toSprites->posX + 0x9f,
+				                toSprites->posY + 0x77, 0x12, 0x12,
+				                0xbebebe, 0x3c3c3c, 0x87, 0x87, 0x87, 4);
+			}
 		}
 		toSprites++;
 	}
@@ -3170,6 +3188,11 @@ void renderEvoChartDetail(void)
 		break;
 	case 5:
 		renderString(0, -0x64, 0x3a, 0x41, 0xc, 0, 0x3c, 4);
+		break;
+	case LEVEL_MEGA: /* MOD (mega) */
+		renderString(0, -0x44 - EVO_CHART_MEGA_WIDTH / 2, 0x3a, EVO_CHART_MEGA_WIDTH, 0xc, 0,
+		             EVO_CHART_MEGA_ROW, 4);
+		break;
 	}
 #endif
 	len = strlen(DIGIMON_NAME(CHART_SELECTED_DIGIMON)) / 2;
@@ -3691,6 +3714,7 @@ int32_t drawEvoChartStrings(int8_t arg)
 #if VERSION_IS(US)
 		drawString(CARD_CHART_LABELS[3], 0, 0x24);
 		drawString(CARD_CHART_LABELS[4], 0, 0x3c);
+		drawString(EVO_CHART_MEGA_LABEL, 0, EVO_CHART_MEGA_ROW); /* MOD (mega) */
 #endif
 		return 1;
 	case 2:

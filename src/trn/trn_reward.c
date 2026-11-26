@@ -697,6 +697,8 @@ int16_t TRN_calculateTrainingMultiplier(int32_t type, int16_t mode, int16_t flag
 		num = num * 10;
 	} else if (DIGI_PARA(type).level == 4) {
 		num = num * 11;
+	} else if (DIGI_PARA(type).level == 6) { /* MOD (mega): x1.3 */
+		num = num * 13;
 	} else {
 		num = num * 12;
 	}
