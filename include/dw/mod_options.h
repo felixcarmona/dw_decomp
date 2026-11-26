@@ -21,7 +21,8 @@ extern int32_t MOD_OPT_CLOCK;	/* DIGITAL CLOCK: the hour in digits under the clo
 extern int32_t MOD_OPT_BARS;	/* NEW STATUS BARS: happiness and discipline as one red/green fill (patches 0162-0164), 0 = the original's */
 extern int32_t MOD_OPT_EVO_GUIDE; /* EVOLUTION GUIDE: the evolution chart's requirement card and lit lines (patch 0176), 0 = the original chart */
 extern int32_t MOD_OPT_NEW_DIGIMON; /* NEW DIGIMON: the species the mod made raisable; 0 = the original's only */
-extern int32_t MOD_OPT_CHEATS; /* CHEATS: lab menu and Select shortcuts, off by default */
+extern int32_t MOD_OPT_CHEATS; /* CHEATS: lab menu, off by default */
+extern int32_t MOD_OPT_SHORTCUTS; /* the Cheats menu's row: Select + L1/R1/L2/R2 under CHEATS, off by default */
 extern int32_t MOD_OPT_TOUCHED;	/* changed in OPTIONS since the console started: a loaded save keeps it */
 
 /* the code of the button glyph that does what the US layout's glyph `code` (Shift-JIS, big endian) does */
