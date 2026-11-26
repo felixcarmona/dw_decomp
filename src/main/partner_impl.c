@@ -2412,7 +2412,8 @@ static void renderCareHUD(void)
 		renderRectPolyFT4(x, y, 48, 8, 144, 236, 31, getClut(272, 508), 15, 0);
 		if (pixels)
 			renderRectPolyFT4(x + 18, y + 3, pixels, 2, 196, 236, 31, getClut(272, 507), 14, 0);
-		renderRectPolyFT4(x + 1, y - 2, 11, 11, 144 + icon * 11, 224, 31, clut, 13, 0);
+		/* The cap left of the slot's bevel is 15 pixels (frame columns 0..14): the 11-pixel icon is centred in it. */
+		renderRectPolyFT4(x + 2, y - 2, 11, 11, 144 + icon * 11, 224, 31, clut, 13, 0);
 	}
 }
 
