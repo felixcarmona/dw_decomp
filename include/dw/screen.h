@@ -62,5 +62,6 @@ char *getScreenCaption(int32_t id);
 ToiletData *getScreenToilet(int32_t id);
 void *getScreenDoor(int32_t id); /* a DoorStruct */
 uint8_t *getMapHeadScript(int32_t section);
+int32_t findNewScreen(int32_t from, int32_t step); /* MOD (screen jump, temporary test tool) */
 
 #endif
