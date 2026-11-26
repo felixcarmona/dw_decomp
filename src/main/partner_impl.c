@@ -2251,8 +2251,8 @@ void tickConditions(void)
 #ifdef __MWERKS__
 	extern int32_t getFreshEvolutionTarget(int32_t currentDigimon);
 	extern int32_t getInTrainingEvolutionTarget(int32_t currentDigimon);
-	extern int32_t getRookieEvolutionTarget(int32_t currentDigimon);
-	extern int32_t getChampionEvolutionTarget(int32_t currentDigimon);
+	extern int32_t getRookieEvolutionTarget(int32_t currentDigimon, int32_t roll);
+	extern int32_t getChampionEvolutionTarget(int32_t currentDigimon, int32_t roll);
 	extern int16_t tamerGetState(void);
 #endif
 	int16_t evoTimer;
@@ -2304,7 +2304,7 @@ void tickConditions(void)
 		due = level >= 1 && level <= LEVEL_ULTIMATE && MOD_EVO_TIMING[level] >= 0 &&
 		      evoTimer >= MOD_EVO_TIMING[level];
 		if (due) {
-			EVOLUTION_TARGET = getNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type);
+			EVOLUTION_TARGET = rollNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type);
 			/* The Fresh picker is also used to preview training's stop; only the tick resets its timer. */
 			if (level == 1)
 				PARTNER_PARA.evoTimer = 0;
