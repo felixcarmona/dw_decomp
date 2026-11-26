@@ -948,7 +948,7 @@ uint8_t COLD_ANIM_BUFFER[COLD_ANIM_MAX];
  * past COLD_CACHE_SECTORS still reads the disc, as everything does with 2 MB (MOD_COLD_CACHE_TYPE -1).
  */
 #define COLD_CACHE		((uint8_t *)0x80200000)
-#define COLD_CACHE_SECTORS	16
+#define COLD_CACHE_SECTORS	32 /* 64 KB: largest import 61,304 B, plus 4,232 B */
 #define COLD_CACHE_MIN_TYPE	180
 #define RAM_PROBE_VALUE		0x5AA5C33Cu
 
@@ -993,19 +993,24 @@ void refreshColdCache(void)
  * one being played, so the animation does not advance meanwhile.
  */
 uint32_t MOD_COLD_PENDING;		/* the table entry the partner waits for, 0 none */
-static uint32_t COLD_READ_ENTRY;	/* the entry of the last request */
-static uint32_t COLD_READY;		/* the entry COLD_ANIM_BUFFER holds, for startAnimation */
+static uint32_t COLD_READY;		/* the entry COLD_ANIM_BUFFER holds until overwritten */
 static uint8_t COLD_READ_BUSY;		/* the file queue's flag */
 static uint8_t COLD_PENDING_ANIM;
 void startAnimation(Entity *entity, uint8_t animId);
 int32_t addFileReadRequestSection(char *path, uint8_t *buffer, int32_t offset, int32_t sectors, uint8_t *isRunning, int32_t a, int32_t b);
 
+/* A model load changes the meaning of every table entry, even for the same species. */
+void invalidateColdAnimation(void)
+{
+	COLD_READY = 0;
+	MOD_COLD_PENDING = 0;
+	MOD_COLD_CACHE_TYPE = -(MOD_COLD_CACHE_TYPE < 0);
+}
+
 /* tickAnimation, for an entity whose animation is off */
 void tickColdAnimation(Entity *entity)
 {
 	if (entity == (Entity *)&PARTNER_ENTITY.digimonEntity.entity && MOD_COLD_PENDING != 0 && !COLD_READ_BUSY) {
-		COLD_READY = COLD_READ_ENTRY;
-		MOD_COLD_PENDING = 0;
 		startAnimation(entity, COLD_PENDING_ANIM);
 	}
 }
@@ -1029,8 +1034,8 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 	if (entity->type == MOD_COLD_CACHE_TYPE && offset + length <= COLD_CACHE_SECTORS << 11) {
 		return COLD_CACHE + offset;
 	}
-	if (entry == COLD_READY) {
-		COLD_READY = 0;
+	if (entry == COLD_READY && animId == COLD_PENDING_ANIM && !COLD_READ_BUSY) {
+		MOD_COLD_PENDING = 0;
 		return COLD_ANIM_BUFFER + (offset & 0x7FF);
 	}
 	if (!getDigimonModelRef(entity->type, &file, &sector, &size) || file == NULL) {
@@ -1041,11 +1046,13 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 		return NULL;
 	}
 	first = sector + ((size + 0x7FF) >> 11) + (offset >> 11);
+	while (COLD_READ_BUSY) { /* finish any write before reusing the shared buffer */
+		tickFileReadQueue(0);
+	}
+	COLD_READY = entry; /* replaces the old key; usable only after the read finishes */
+	MOD_COLD_PENDING = 0;
+	COLD_PENDING_ANIM = animId;
 	if (MOD_COLD_CACHE_TYPE < 0 && GAME_STATE == 0) {
-		while (COLD_READ_BUSY) { /* a clip replaced while it was being read */
-			tickFileReadQueue(0);
-		}
-		COLD_READ_ENTRY = entry;
 		addFileReadRequestSection(file, COLD_ANIM_BUFFER, first, count, &COLD_READ_BUSY, 0, 0);
 		entity->anim.animId = animId;
 		entity->anim.animFrame = 1;
@@ -1053,7 +1060,6 @@ uint8_t *loadColdAnimation(void *ent, uint32_t entry, int32_t animId)
 		entity->anim.loopCount = 0;
 		entity->anim.animFlag &= ~1;
 		MOD_COLD_PENDING = entry;
-		COLD_PENDING_ANIM = animId;
 		return NULL;
 	}
 	readFileSectors(file, COLD_ANIM_BUFFER, first, count);

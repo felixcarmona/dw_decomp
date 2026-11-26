@@ -25,6 +25,7 @@
 
 uint8_t *trimNpcModel(int32_t type, uint8_t *mmd, int32_t size); /* MOD (memreclaim) */
 
+void invalidateColdAnimation(void); /* MOD (cold animations) */
 extern uint8_t PARTNER_MODEL_BUFFER[];
 extern uint8_t TAMER_MODEL_BUFFER[];
 
@@ -3527,6 +3528,20 @@ static char *getPartnerModelName(int32_t type)
 	return getDigimonModelName(type); /* MOD (integration): species names */
 }
 
+/* The same partner setup for a direct load and an asynchronous apply. */
+static __attribute__((noinline)) ModelComponent *initializePartnerModel(void)
+{
+	ModelComponent *m = &PARTNER_MODEL;
+	invalidateColdAnimation();
+	m->pixelPage = 0x15;
+	m->clutPage = 0x7A01;
+	m->pixelOffsetX = 0;
+	m->pixelOffsetY = 0x80;
+	m->modelId = 0;
+	m->mmdPtr = PARTNER_MODEL_BUFFER;
+	return m;
+}
+
 ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 {
 	ModelComponent *m;
@@ -3610,13 +3625,7 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 		m->modelId = 0;
 		m->mmdPtr = TAMER_MODEL_BUFFER;
 	} else if (modelType == 3) {
-		m = &PARTNER_MODEL;
-		m->pixelPage = 0x15;
-		m->clutPage = 0x7A01;
-		m->pixelOffsetX = 0;
-		m->pixelOffsetY = 0x80;
-		m->modelId = 0;
-		m->mmdPtr = PARTNER_MODEL_BUFFER;
+		m = initializePartnerModel();
 	} else {
 		return 0;
 	}
@@ -3803,6 +3812,7 @@ int32_t loadMMDAsync(int32_t digimonType, int32_t entityType, int32_t buffer,
 	} else if (entityType == 2) {
 		m = &TAMER_MODEL;
 	} else if (entityType == 3) {
+		invalidateColdAnimation();
 		m = &PARTNER_MODEL;
 	} else {
 		return 0;
@@ -3912,13 +3922,7 @@ ModelComponent *applyMMD(int32_t digimonType, int32_t entityType,
 	}
 	if (entityType == 2) {
 	} else if (entityType == 3) {
-		m = &PARTNER_MODEL;
-		m->pixelPage = 0x15;
-		m->clutPage = 0x7A01;
-		m->pixelOffsetX = 0;
-		m->pixelOffsetY = 0x80;
-		m->modelId = 0;
-		m->mmdPtr = PARTNER_MODEL_BUFFER;
+		m = initializePartnerModel();
 		m->useCount = 0;
 	} else {
 		return 0;
