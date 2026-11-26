@@ -475,6 +475,75 @@ MOD_LAB:
     LAB_STR_SHIRT_BLOUSE:
       ja: "Blouse"
       en_us: "Blouse"
+    LAB_STR_TROUSERS:
+      ja: "Trousers"
+      en_us: "Trousers"
+    LAB_STR_TROUSERS_COLOUR:
+      ja: "Trousers colour"
+      en_us: "Trousers colour"
+    LAB_STR_SHOES:
+      ja: "Shoes"
+      en_us: "Shoes"
+    LAB_STR_SHOES_COLOUR:
+      ja: "Shoes colour"
+      en_us: "Shoes colour"
+    LAB_STR_TROUSERS_STRAIGHT:
+      ja: "Straight"
+      en_us: "Straight"
+    LAB_STR_TROUSERS_BAGGY:
+      ja: "Baggy"
+      en_us: "Baggy"
+    LAB_STR_TROUSERS_SKINNY:
+      ja: "Skinny"
+      en_us: "Skinny"
+    LAB_STR_TROUSERS_TRACKSUIT:
+      ja: "Tracksuit"
+      en_us: "Tracksuit"
+    LAB_STR_TROUSERS_SHORTS:
+      ja: "Shorts"
+      en_us: "Shorts"
+    LAB_STR_TROUSERS_CAPRI:
+      ja: "Capri"
+      en_us: "Capri"
+    LAB_STR_TROUSERS_SKIRT:
+      ja: "Skirt"
+      en_us: "Skirt"
+    LAB_STR_TROUSERS_FLARED:
+      ja: "Flared"
+      en_us: "Flared"
+    LAB_STR_SHOES_TRAINERS:
+      ja: "Trainers"
+      en_us: "Trainers"
+    LAB_STR_SHOES_SMALL_TRAINERS:
+      ja: "Small trainers"
+      en_us: "Small trainers"
+    LAB_STR_SHOES_PLAIN:
+      ja: "Plain"
+      en_us: "Plain"
+    LAB_STR_SHOES_FLATS:
+      ja: "Flats"
+      en_us: "Flats"
+    LAB_STR_SHOES_MARY_JANES:
+      ja: "Mary Janes"
+      en_us: "Mary Janes"
+    LAB_STR_SHOES_ANKLE_BOOTS:
+      ja: "Ankle boots"
+      en_us: "Ankle boots"
+    LAB_STR_SHOES_SMALL_ANKLE_BOOTS:
+      ja: "Small boots"
+      en_us: "Small boots"
+    LAB_STR_SHOES_BOOTS:
+      ja: "Boots"
+      en_us: "Boots"
+    LAB_STR_SHOES_CUFFED_BOOTS:
+      ja: "Cuffed boots"
+      en_us: "Cuffed boots"
+    LAB_STR_SHOES_RAIN_BOOTS:
+      ja: "Rain boots"
+      en_us: "Rain boots"
+    LAB_STR_SHOES_SANDALS:
+      ja: "Sandals"
+      en_us: "Sandals"
     LAB_STR_CLOTH_ORANGE:
       ja: "Orange"
       en_us: "Orange"

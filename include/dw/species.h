@@ -345,16 +345,25 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 #define TAMER_LOOK_COUNT	13
 #define TAMER_HAIR_COUNT	20
 #define TAMER_FACE_COUNT	2	/* the faces of looks 1..: one texture each (tools/tamer_looks/face.py) */
-extern uint8_t MOD_TAMER_LOOK;
-extern uint8_t MOD_TAMER_HAIR;
-extern uint8_t MOD_TAMER_FACE;
-/* The shirts (tools/tamer_looks/shirts.py): the torso and the arms of any look. Shirt 0 is the original hoodie and
- * backpack; the others are drawn with the tones of one palette row, written for the chosen cloth colour. */
+/* What the player chose, in the order of the Look page's rows and of the save record */
+#define TAMER_STATE_SIZE	9
+extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")));
+#define MOD_TAMER_LOOK		MOD_TAMER_STATE[0]
+#define MOD_TAMER_HAIR		MOD_TAMER_STATE[1]
+#define MOD_TAMER_FACE		MOD_TAMER_STATE[2]
+#define MOD_TAMER_SHIRT		MOD_TAMER_STATE[3]
+#define MOD_TAMER_CLOTH		MOD_TAMER_STATE[4]
+#define MOD_TAMER_TROUSERS	MOD_TAMER_STATE[5]
+#define MOD_TAMER_SHOES		MOD_TAMER_STATE[7]
+/* The clothes (tools/tamer_looks/shirts.py, legs.py, shoes.py): a shirt is the torso and the arms of any look, a
+ * pair of trousers its legs, a pair of shoes its feet. Garment 0 of each kind is the original tamer's; the others
+ * are drawn with the tones of one palette row each, written for the chosen cloth colour. */
 #define TAMER_SHIRT_COUNT	11
 #define TAMER_CLOTH_COUNT	16
-extern uint8_t MOD_TAMER_SHIRT;
-extern uint8_t MOD_TAMER_CLOTH;
-typedef struct LookShirtRecipe { /* how each tone of the cloth's palette row gets its colour (lookShirtPalette) */
+#define TAMER_TROUSERS_COUNT	9
+#define TAMER_SHOES_COUNT	12
+#define LOOK_GARMENTS		3	/* the shirt, the trousers, the shoes: MOD_TAMER_STATE[3 + 2 * n] and its colour after it */
+typedef struct LookShirtRecipe { /* how each tone of a garment's palette row gets its colour (lookShirtPalette) */
 	uint8_t ways[16]; /* 0 as the texture has it, 1 from the cloth's colour, 2 from the second colour, 3 fixed */
 	uint8_t levels[16];
 	uint8_t whites[16];

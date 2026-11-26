@@ -788,7 +788,7 @@ SECTIONS
         BUILD_DIR/src/main/mod_lab.c.o(.sbss.*);
         . = ALIGN(., 4);
         . = ALIGN(., 4);
-        BUILD_DIR/src/main/mod_species.c.o(.sbss.*);
+        BUILD_DIR/src/main/mod_species.c.o(.sbss .sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_screen.c.o(.sbss.*);
         . = ALIGN(., 4);

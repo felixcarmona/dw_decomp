@@ -2561,10 +2561,12 @@ int32_t isUIBoxAvailable(int32_t id)
 
 /*
  * MOD (tamer looks): the Look page of the Player view. CONFIRM on the Player tab opens it: a row for the hairstyle,
- * one for the hair colour (looks with hair), one for the face, one for the shirt and one for the shirt's colour (every
- * shirt but the original), changed with left and right and seen at once on the tamer beside them, whom L1 and R1
- * turn. A hairstyle, a face or a shirt is read from TAMER.DAT; a colour only writes a palette row again, with nothing read. The page's code is in EVL's tail (config/us/overlay.ld), read when the page opens: MENU, which
- * the Player view runs from, is full, and the world keeps nothing at EVL's address. Its text is MENU's.
+ * one for the hair colour (looks with hair), one for the face, and for the shirt, the trousers and the shoes a row
+ * each and one for its colour (every garment but the original), changed with left and right and seen at once on the
+ * tamer beside them, whom L1 and R1 turn. Five rows show at a time, around the chosen one. A hairstyle, a face or a
+ * garment is read from TAMER.DAT; a colour only writes a palette row again, with nothing read. The page's code is in
+ * EVL's tail (config/us/overlay.ld), read when the page opens: MENU, which the Player view runs from, is full, and
+ * the world keeps nothing at EVL's address. Its text is MENU's.
  */
 extern char *const LAB_LOOK_TEXT[];
 extern char *const LAB_HAIR_TEXT[];
@@ -2573,24 +2575,19 @@ extern ModelComponent TAMER_MODEL;
 int32_t modFileOnDisc(char *name);
 void *malloc3(uint32_t size);
 void free3(void *ptr);
-#define LOOK_HINT_Y	0xac	/* text rows of the last two tamer titles, drawn again when the page closes */
-#define LOOK_NAME_Y	0xc4
-#define LOOK_VALUE_Y	0xd0
-#define LOOK_OPEN_Y	LOOK_NAME_Y	/* the button that opens the page: in the names' row while the page is closed */
+#define LOOK_TOP_Y	0x40	/* the page's text: one line a row, over the tamer titles, drawn again when the page closes */
+#define LOOK_ROW_V(row)	(LOOK_TOP_Y + 12 * (row))
+#define LOOK_HINT_Y	0xac	/* the two hints: over the last two titles */
+#define LOOK_OPEN_Y	0xc4	/* the button that opens the page, under the titles */
 #define LOOK_LEAVE_U	0x80	/* the buttons that save and leave: right of the second hint */
 #define LOOK_KEY_X	0x08	/* on the name's row, right of the name */
 #define LOOK_KEY_W	0x7c
+#define LOOK_NAME_W	84
+#define LOOK_VALUE_U	0x58	/* a row's value in the text area, right of its name */
 #define LOOK_VALUE_X	0x33	/* the value box, from the middle of the window */
 #define LOOK_VALUE_W	86
-#define LOOK_ROWS	5	/* hairstyle, hair colour, face, shirt, shirt colour */
-#define LOOK_TOP_Y	0x94	/* the page's first text row: the shirt's names, over the tamer titles from the eighth on */
-#define LOOK_FIRST_TITLE	7	/* the title drawn at LOOK_TOP_Y */
-/* Where each row's name and value are drawn in the text area: the face's go right of the first hint, the shirt's
- * in the two rows above it */
-static const uint8_t lookPageNameU[LOOK_ROWS] = { 0, 0x80, 0xb8, 0, 0x80 };
-static const uint8_t lookPageValueU[LOOK_ROWS] = { 0, 0x80, 0xf0, 0, 0x80 };
-#define LOOK_ROW_V(row, v)	((row) == 2 ? LOOK_HINT_Y : (row) > 2 ? (v) - (LOOK_NAME_Y - LOOK_TOP_Y) : (v))
-#define LOOK_SHIRT_ROW		2	/* the cloth's palette row (tools/tamer_looks/shirts.py) */
+#define LOOK_ROWS	TAMER_STATE_SIZE	/* hairstyle, hair colour, face, then each garment and its colour */
+#define LOOK_SHOWN	5
 #define LOOK_HEAD_OBJECT	1
 #define LOOK_HAIR_MODE		0x34u	/* textured gouraud triangle: seven words */
 #define LOOK_HAIR_WORDS		7
@@ -2598,22 +2595,21 @@ static const uint8_t lookPageValueU[LOOK_ROWS] = { 0, 0x80, 0xf0, 0, 0x80 };
 #define LOOK_LEVELS		0xC0
 void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels); /* mod_species.c */
 void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb);
-extern LookShirtRecipe lookShirtRecipe; /* of the shirt the tamer wears */
-extern uint16_t lookShirtRow[16]; /* the cloth's palette row as it is in video memory */
+extern LookShirtRecipe lookShirtRecipe[LOOK_GARMENTS]; /* of the clothes the tamer wears */
+extern uint16_t lookShirtRow[LOOK_GARMENTS][16]; /* their palette rows as they are in video memory */
 static int16_t lookTurn;
 static struct {
 	uint16_t palette[16]; /* the hair's palette row on its way to video memory */
 	uint8_t levels[16];
 	uint8_t saved[LOOK_ROWS]; /* each row's choice when the page opened: leaving without saving brings them back */
+	uint8_t count[LOOK_ROWS]; /* how many choices each row has */
 	int16_t width[LOOK_ROWS];
 	uint8_t row;
-	uint8_t looks;
-	uint8_t colours;
-	uint8_t shirts;
-	uint8_t cloths;
 	uint8_t rgb[TAMER_HAIR_COUNT * 3];
-	uint8_t cloth[TAMER_CLOTH_COUNT * 6]; /* per shirt colour: the cloth, and stripes and prints on it */
+	uint8_t cloth[TAMER_CLOTH_COUNT * 6]; /* per cloth colour: the cloth, and stripes, prints and trim on it */
 } lookPageState;
+/* per garment: its palette row, and where its count and its directory are in the file's first sector (in u16s) */
+static const uint16_t lookPageGarment[3 * LOOK_GARMENTS] = { 2, 5, 7, 0x68, 0x6D, 0x6E, 0x80, 0xA0, 0x100 };
 /* The shirts' text: here and not in MENU, which is full */
 static const char lookPageTextShirt[] = LAB_STR_SHIRT;
 static const char lookPageTextCloth[] = LAB_STR_SHIRT_COLOUR;
@@ -2629,10 +2625,46 @@ static const char lookPageTextShirt9[] = LAB_STR_SHIRT_CARDIGAN;
 static const char lookPageTextShirt10[] = LAB_STR_SHIRT_BLOUSE;
 static const char lookPageTextOrange[] = LAB_STR_CLOTH_ORANGE;
 static const char lookPageTextYellow[] = LAB_STR_CLOTH_YELLOW;
-static const char *const lookPageShirts[TAMER_SHIRT_COUNT - 1] = {
+/* how many choices the page has names for, by row */
+static const uint8_t lookPageCounts[LOOK_ROWS] = { TAMER_LOOK_COUNT, TAMER_HAIR_COUNT, TAMER_FACE_COUNT,
+	TAMER_SHIRT_COUNT, TAMER_CLOTH_COUNT, TAMER_TROUSERS_COUNT, TAMER_CLOTH_COUNT, TAMER_SHOES_COUNT, TAMER_CLOTH_COUNT };
+static const char lookPageTextTrousers[] = LAB_STR_TROUSERS;
+static const char lookPageTextTrousersColour[] = LAB_STR_TROUSERS_COLOUR;
+static const char lookPageTextShoes[] = LAB_STR_SHOES;
+static const char lookPageTextShoesColour[] = LAB_STR_SHOES_COLOUR;
+static const char lookPageTextTrousers1[] = LAB_STR_TROUSERS_STRAIGHT;
+static const char lookPageTextTrousers2[] = LAB_STR_TROUSERS_BAGGY;
+static const char lookPageTextTrousers3[] = LAB_STR_TROUSERS_SKINNY;
+static const char lookPageTextTrousers4[] = LAB_STR_TROUSERS_TRACKSUIT;
+static const char lookPageTextTrousers5[] = LAB_STR_TROUSERS_SHORTS;
+static const char lookPageTextTrousers6[] = LAB_STR_TROUSERS_CAPRI;
+static const char lookPageTextTrousers7[] = LAB_STR_TROUSERS_SKIRT;
+static const char lookPageTextTrousers8[] = LAB_STR_TROUSERS_FLARED;
+static const char lookPageTextShoes1[] = LAB_STR_SHOES_TRAINERS;
+static const char lookPageTextShoes2[] = LAB_STR_SHOES_SMALL_TRAINERS;
+static const char lookPageTextShoes3[] = LAB_STR_SHOES_PLAIN;
+static const char lookPageTextShoes4[] = LAB_STR_SHOES_FLATS;
+static const char lookPageTextShoes5[] = LAB_STR_SHOES_MARY_JANES;
+static const char lookPageTextShoes6[] = LAB_STR_SHOES_ANKLE_BOOTS;
+static const char lookPageTextShoes7[] = LAB_STR_SHOES_SMALL_ANKLE_BOOTS;
+static const char lookPageTextShoes8[] = LAB_STR_SHOES_BOOTS;
+static const char lookPageTextShoes9[] = LAB_STR_SHOES_CUFFED_BOOTS;
+static const char lookPageTextShoes10[] = LAB_STR_SHOES_RAIN_BOOTS;
+static const char lookPageTextShoes11[] = LAB_STR_SHOES_SANDALS;
+/* The garments' names but the originals': the shirts', the trousers', the shoes' (lookPageFirst: where each kind starts) */
+static const char *const lookPageClothes[TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT + TAMER_SHOES_COUNT - 3] = {
 	lookPageTextShirt1, lookPageTextShirt2, lookPageTextShirt3, lookPageTextShirt4, lookPageTextShirt5,
-	lookPageTextShirt6, lookPageTextShirt7, lookPageTextShirt8, lookPageTextShirt9, lookPageTextShirt10 };
-/* A shirt colour's name: a hair colour's (its number in LAB_HAIR_TEXT), or one of the two only cloth has */
+	lookPageTextShirt6, lookPageTextShirt7, lookPageTextShirt8, lookPageTextShirt9, lookPageTextShirt10,
+	lookPageTextTrousers1, lookPageTextTrousers2, lookPageTextTrousers3, lookPageTextTrousers4, lookPageTextTrousers5,
+	lookPageTextTrousers6, lookPageTextTrousers7, lookPageTextTrousers8,
+	lookPageTextShoes1, lookPageTextShoes2, lookPageTextShoes3, lookPageTextShoes4, lookPageTextShoes5, lookPageTextShoes6,
+	lookPageTextShoes7, lookPageTextShoes8, lookPageTextShoes9, lookPageTextShoes10, lookPageTextShoes11 };
+static const uint8_t lookPageFirst[LOOK_GARMENTS] = { 0, TAMER_SHIRT_COUNT - 1, TAMER_SHIRT_COUNT + TAMER_TROUSERS_COUNT - 2 };
+/* The names of the rows from the shirt's on */
+static const char *const lookPageRowNames[2 * LOOK_GARMENTS] = { lookPageTextShirt, lookPageTextCloth, lookPageTextTrousers,
+	                                                               lookPageTextTrousersColour, lookPageTextShoes,
+	                                                               lookPageTextShoesColour };
+/* A cloth colour's name: a hair colour's (its number in LAB_HAIR_TEXT), or one of the two only cloth has */
 #define LOOK_CLOTH_ORANGE	0xFE
 #define LOOK_CLOTH_YELLOW	0xFF
 static const uint8_t lookPageClothName[TAMER_CLOTH_COUNT] = { 19, 17, 2, 7, 8, LOOK_CLOTH_ORANGE, LOOK_CLOTH_YELLOW, 16, 15,
@@ -2656,16 +2688,18 @@ int32_t playerKeyHint(int32_t key, int32_t x, int32_t y)
 	return (x + drawStringMode(str, x, y, fitStringMode(str, 0x60)) + 11) & ~3;
 }
 
-/* Whether a row has something to choose: the original tamer and the bald head have no hair colour */
+/* Whether a row has something to choose: the original tamer and the bald head have no hair colour, an original
+ * garment no colour */
 static const char lookPageFaces[TAMER_FACE_COUNT][2] = { "1", "2" };
 static const char lookPageDash[] = "-"; /* a row with nothing to choose */
 static int32_t lookPageRowOpen(int32_t row)
 {
-	return row == 1 ? MOD_TAMER_LOOK >= 2 : row == 4 ? MOD_TAMER_SHIRT != 0 : 1;
+	return row == 1 ? MOD_TAMER_LOOK >= 2 : (row >= 4 && !(row & 1)) ? MOD_TAMER_STATE[row - 1] != 0 : 1;
 }
 
 static char *lookPageValueText(int32_t row)
 {
+	int32_t value = MOD_TAMER_STATE[row];
 	int32_t name;
 
 	if (!lookPageRowOpen(row)) {
@@ -2673,15 +2707,16 @@ static char *lookPageValueText(int32_t row)
 	}
 	switch (row) {
 	case 0:
-		return LAB_LOOK_TEXT[MOD_TAMER_LOOK];
+		return LAB_LOOK_TEXT[value];
 	case 1:
-		return LAB_HAIR_TEXT[MOD_TAMER_HAIR];
+		return LAB_HAIR_TEXT[value];
 	case 2:
-		return (char *)lookPageFaces[MOD_TAMER_FACE];
-	case 3:
-		return MOD_TAMER_SHIRT == 0 ? LAB_LOOK_TEXT[0] : (char *)lookPageShirts[MOD_TAMER_SHIRT - 1];
+		return (char *)lookPageFaces[value];
 	}
-	name = lookPageClothName[MOD_TAMER_CLOTH];
+	if (row & 1) {
+		return value == 0 ? LAB_LOOK_TEXT[0] : (char *)lookPageClothes[lookPageFirst[(row - 3) / 2] + value - 1];
+	}
+	name = lookPageClothName[value];
 	return name == LOOK_CLOTH_ORANGE ? (char *)lookPageTextOrange :
 	       name == LOOK_CLOTH_YELLOW ? (char *)lookPageTextYellow : LAB_HAIR_TEXT[name];
 }
@@ -2691,12 +2726,10 @@ static void lookPageValue(int32_t row)
 	RECT rect;
 	char *str = lookPageValueText(row);
 	int32_t mode = fitStringMode(str, LOOK_VALUE_W - 6);
-	int32_t u = lookPageValueU[row];
-	int32_t v = LOOK_ROW_V(row, LOOK_VALUE_Y);
 
-	setRECT(&rect, u, v, row == 2 ? 0x0c : 0x80, 12);
+	setRECT(&rect, LOOK_VALUE_U, LOOK_ROW_V(row), 0x58, 12);
 	clearTextSubArea(&rect);
-	drawStringMode(str, u, v, mode);
+	drawStringMode(str, LOOK_VALUE_U, LOOK_ROW_V(row), mode);
 	lookPageState.width[row] = measureStringMode(str, mode);
 }
 
@@ -2709,22 +2742,25 @@ static void lookPageRetint(void)
 	LoadImage(&rect, (u_long *)lookPageState.palette);
 }
 
-static void lookPageShirtRetint(void)
+/* A garment (0 the shirt, 1 the trousers, 2 the shoes) in the colour chosen for it */
+static void lookPageShirtRetint(int32_t garment)
 {
 	RECT rect;
 
-	lookShirtPalette(lookShirtRow, &lookShirtRecipe, &lookPageState.cloth[MOD_TAMER_CLOTH * 6]);
-	setRECT(&rect, (TAMER_MODEL.clutPage & 0x3f) << 4, (TAMER_MODEL.clutPage >> 6) + LOOK_SHIRT_ROW, 16, 1);
-	LoadImage(&rect, (u_long *)lookShirtRow);
+	lookShirtPalette(lookShirtRow[garment], &lookShirtRecipe[garment], &lookPageState.cloth[MOD_TAMER_STATE[4 + 2 * garment] * 6]);
+	setRECT(&rect, (TAMER_MODEL.clutPage & 0x3f) << 4, (TAMER_MODEL.clutPage >> 6) + lookPageGarment[garment], 16, 1);
+	LoadImage(&rect, (u_long *)lookShirtRow[garment]);
+}
+
+/* Whether a row's choice is read from the disc (a hairstyle, a face, a garment) and not only a colour */
+static int32_t lookPageRowReads(int32_t row)
+{
+	return row == 0 || row == 2 || (row & 1);
 }
 
 static void lookPageKeep(void)
 {
-	lookPageState.saved[0] = MOD_TAMER_LOOK;
-	lookPageState.saved[1] = MOD_TAMER_HAIR;
-	lookPageState.saved[2] = MOD_TAMER_FACE;
-	lookPageState.saved[3] = MOD_TAMER_SHIRT;
-	lookPageState.saved[4] = MOD_TAMER_CLOTH;
+	memcpy(lookPageState.saved, MOD_TAMER_STATE, LOOK_ROWS);
 }
 
 /* The game draws one face of a polygon, and the menu's close-up shows the hair from angles the field never does (under
@@ -2770,47 +2806,56 @@ int32_t lookPageOpen(void)
 {
 	RECT rect;
 	uint16_t *head;
+	uint16_t sector[LOOK_GARMENTS];
 	char *str;
 	int32_t i;
+	int32_t n;
 
 	if (!modFileOnDisc((char *)lookPageFile) || (head = malloc3(0x800)) == NULL) {
 		return 0;
 	}
 	readFileSectors((char *)lookPageFile, head, 0, 1);
-	lookPageState.looks = head[2] + 1 < TAMER_LOOK_COUNT ? head[2] + 1 : TAMER_LOOK_COUNT;
-	lookPageState.colours = head[6] < TAMER_HAIR_COUNT ? head[6] : TAMER_HAIR_COUNT;
-	for (i = 0; i < lookPageState.colours * 3; i++) {
+	for (i = 0; i < TAMER_HAIR_COUNT * 3; i++) {
 		lookPageState.rgb[i] = ((uint8_t *)head)[0x80 + i];
 	}
 	for (i = 0; i < 16; i++) {
 		lookPageState.levels[i] = ((uint8_t *)head)[LOOK_LEVELS + i];
 	}
-	lookPageState.shirts = head[0x68] < TAMER_SHIRT_COUNT ? head[0x68] : TAMER_SHIRT_COUNT;
-	lookPageState.cloths = head[0x69] < TAMER_CLOTH_COUNT ? head[0x69] : TAMER_CLOTH_COUNT;
-	for (i = 0; i < lookPageState.cloths * 6; i++) {
+	for (i = 0; i < TAMER_CLOTH_COUNT * 6; i++) {
 		lookPageState.cloth[i] = ((uint8_t *)head)[0x180 + i];
 	}
-	if (lookPageState.colours == 0 || MOD_TAMER_LOOK >= lookPageState.looks || lookPageState.cloths == 0 ||
-	    MOD_TAMER_SHIRT >= lookPageState.shirts) {
-		free3(head);
-		return 0;
+	/* what the file has of each row, never more than the game knows; a choice the file does not have closes the page */
+	for (i = 0; i < LOOK_ROWS; i++) {
+		n = i == 0 ? head[2] + 1 : i == 1 ? head[6] : i == 2 ? TAMER_FACE_COUNT :
+		    (i & 1) ? head[lookPageGarment[LOOK_GARMENTS + (i - 3) / 2]] : head[0x69];
+		lookPageState.count[i] = n < lookPageCounts[i] ? n : lookPageCounts[i];
+		if (n == 0 || (lookPageRowReads(i) && MOD_TAMER_STATE[i] >= lookPageState.count[i])) {
+			free3(head);
+			return 0;
+		}
+		if (!lookPageRowReads(i)) {
+			MOD_TAMER_STATE[i] %= lookPageState.count[i];
+		}
 	}
-	/* the recipe of the shirt he wears: the overlay may have been read again since he was loaded */
-	readFileSectors((char *)lookPageFile, head, head[0x80 + 2 * MOD_TAMER_SHIRT], 1);
-	lookShirtRecipe = *(LookShirtRecipe *)((uint8_t *)head + 0x40);
+	/* the recipes of the clothes he wears: the overlay may have been read again since he was loaded */
+	for (i = 0; i < LOOK_GARMENTS; i++) {
+		sector[i] = head[lookPageGarment[2 * LOOK_GARMENTS + i] + 2 * MOD_TAMER_STATE[3 + 2 * i]];
+	}
+	for (i = 0; i < LOOK_GARMENTS; i++) {
+		readFileSectors((char *)lookPageFile, head, sector[i], 1);
+		lookShirtRecipe[i] = *(LookShirtRecipe *)((uint8_t *)head + 0x40);
+	}
 	free3(head);
-	MOD_TAMER_HAIR %= lookPageState.colours;
-	MOD_TAMER_CLOTH %= lookPageState.cloths;
 	lookPageState.row = 0;
 	lookPageKeep();
 	lookTurn = 0;
-	setRECT(&rect, 0, LOOK_TOP_Y, 256, 72);
+	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_OPEN_Y - LOOK_TOP_Y);
 	clearTextSubArea(&rect);
 	drawStringMode(LOOK_PAGE_TEXT[2], 0, LOOK_HINT_Y, fitStringMode(LOOK_PAGE_TEXT[2], 0xb4));
 	drawString(LOOK_PAGE_TEXT[3], 0, LOOK_HINT_Y + 12);
 	for (i = 0; i < LOOK_ROWS; i++) {
-		str = i == 3 ? (char *)lookPageTextShirt : i == 4 ? (char *)lookPageTextCloth : LOOK_PAGE_TEXT[i == 2 ? 9 : i];
-		drawStringMode(str, lookPageNameU[i], LOOK_ROW_V(i, LOOK_NAME_Y), fitStringMode(str, i == 2 ? 0x36 : 84));
+		str = i >= 3 ? (char *)lookPageRowNames[i - 3] : LOOK_PAGE_TEXT[i == 2 ? 9 : i];
+		drawStringMode(str, 0, LOOK_ROW_V(i), fitStringMode(str, LOOK_NAME_W));
 		lookPageValue(i);
 	}
 	playerKeyHint(2, playerKeyHint(1, LOOK_LEAVE_U, LOOK_HINT_Y + 12), LOOK_HINT_Y + 12);
@@ -2821,38 +2866,41 @@ int32_t lookPageOpen(void)
 void lookPageClose(void)
 {
 	RECT rect;
+	int32_t reads = 0;
 	int32_t i;
 
-	if (MOD_TAMER_LOOK != lookPageState.saved[0] || MOD_TAMER_FACE != lookPageState.saved[2] ||
-	    MOD_TAMER_SHIRT != lookPageState.saved[3]) {
-		MOD_TAMER_LOOK = lookPageState.saved[0];
-		MOD_TAMER_HAIR = lookPageState.saved[1];
-		MOD_TAMER_FACE = lookPageState.saved[2];
-		MOD_TAMER_SHIRT = lookPageState.saved[3];
-		MOD_TAMER_CLOTH = lookPageState.saved[4];
+	for (i = 0; i < LOOK_ROWS; i++) {
+		if (lookPageRowReads(i) && MOD_TAMER_STATE[i] != lookPageState.saved[i]) {
+			reads = 1;
+		}
+	}
+	if (reads) {
+		memcpy(MOD_TAMER_STATE, lookPageState.saved, LOOK_ROWS);
 		modTamerRelook();
 	} else {
-		if (MOD_TAMER_HAIR != lookPageState.saved[1]) {
-			MOD_TAMER_HAIR = lookPageState.saved[1];
-			lookPageRetint();
-		}
-		if (MOD_TAMER_CLOTH != lookPageState.saved[4]) {
-			MOD_TAMER_CLOTH = lookPageState.saved[4];
-			lookPageShirtRetint();
+		for (i = 1; i < LOOK_ROWS; i++) {
+			if (MOD_TAMER_STATE[i] != lookPageState.saved[i]) {
+				MOD_TAMER_STATE[i] = lookPageState.saved[i];
+				if (i == 1) {
+					lookPageRetint();
+				} else {
+					lookPageShirtRetint((i - 4) / 2);
+				}
+			}
 		}
 	}
 	lookTurn = 0;
-	setRECT(&rect, 0, LOOK_TOP_Y, 256, 72);
+	setRECT(&rect, 0, LOOK_TOP_Y, 256, LOOK_OPEN_Y - LOOK_TOP_Y);
 	clearTextSubArea(&rect);
-	for (i = LOOK_FIRST_TITLE; i < 11; i++) {
+	for (i = 0; i < 11; i++) {
 		drawString(TAMER_LEVEL_TITLES[i], 0, i * 0xc + 0x40);
 	}
-	playerKeyHint(0, 0, LOOK_OPEN_Y);
 }
 
 void lookPageInput(void)
 {
 	int32_t step = 0;
+	int32_t row;
 
 	if (isKeyDown(CONFIRM_BUTTON) != 0) { /* save: the page closes with the look as it is */
 		lookPageKeep();
@@ -2887,32 +2935,26 @@ void lookPageInput(void)
 		return;
 	}
 	playSound(0, 2);
-	if (lookPageState.row == 0) {
-		MOD_TAMER_LOOK = (MOD_TAMER_LOOK + lookPageState.looks + step) % lookPageState.looks;
+	row = lookPageState.row;
+	MOD_TAMER_STATE[row] = (MOD_TAMER_STATE[row] + lookPageState.count[row] + step) % lookPageState.count[row];
+	if (lookPageRowReads(row)) {
 		modTamerRelook();
-		lookPageValue(1);
-		lookPageValue(2);
-	} else if (lookPageState.row == 1) {
-		MOD_TAMER_HAIR = (MOD_TAMER_HAIR + lookPageState.colours + step) % lookPageState.colours;
+		if (row != 2) { /* the row under a hairstyle or a garment is its colour: open or not with it */
+			lookPageValue(row + 1);
+		}
+	} else if (row == 1) {
 		lookPageRetint();
-	} else if (lookPageState.row == 2) {
-		MOD_TAMER_FACE = (MOD_TAMER_FACE + TAMER_FACE_COUNT + step) % TAMER_FACE_COUNT;
-		modTamerRelook();
-	} else if (lookPageState.row == 3) {
-		MOD_TAMER_SHIRT = (MOD_TAMER_SHIRT + lookPageState.shirts + step) % lookPageState.shirts;
-		modTamerRelook();
-		lookPageValue(4);
 	} else {
-		MOD_TAMER_CLOTH = (MOD_TAMER_CLOTH + lookPageState.cloths + step) % lookPageState.cloths;
-		lookPageShirtRetint();
+		lookPageShirtRetint((row - 4) / 2);
 	}
-	lookPageValue(lookPageState.row);
+	lookPageValue(row);
 }
 
 void lookPageRender(void)
 {
 	StringRect *e = &TAMER_WINDOW_NAME_STRING[0];
 	RECT *r = &TAMER_WINDOW_BOXES[0];
+	int32_t first;
 	int32_t i;
 	int32_t k;
 	int32_t y;
@@ -2920,15 +2962,18 @@ void lookPageRender(void)
 	if (!lookPageRowOpen(lookPageState.row)) { /* a row with nothing to choose stays, showing a dash */
 		lookPageState.row = 0;
 	}
+	first = lookPageState.row < 2 ? 0 : lookPageState.row - 2; /* the rows shown: around the chosen one */
+	if (first > LOOK_ROWS - LOOK_SHOWN) {
+		first = LOOK_ROWS - LOOK_SHOWN;
+	}
 	renderSeparatorLines(TAMER_VIEW_PLAYER_LINES, 0xb, 5);
 	renderString(3, e->posX, e->posY + 1, e->uvWidth, 0xc, e->uvX, e->uvY, 5, 1);
 	renderString(0, -0x54, -0x50, 0x48, 0xc, 0, 0x30, 5, 1);
-	for (i = 0; i < LOOK_ROWS; i++) {
-		y = -0x34 + i * 0x14;
-		renderString(i == lookPageState.row ? 3 : 0, -0x29, y, i == 2 ? 0x38 : 0x54, 0xc, lookPageNameU[i],
-		             LOOK_ROW_V(i, LOOK_NAME_Y), 5, 1);
+	for (i = first; i < first + LOOK_SHOWN; i++) {
+		y = -0x34 + (i - first) * 0x14;
+		renderString(i == lookPageState.row ? 3 : 0, -0x29, y, LOOK_NAME_W, 0xc, 0, LOOK_ROW_V(i), 5, 1);
 		renderString(0, LOOK_VALUE_X + (LOOK_VALUE_W - lookPageState.width[i]) / 2, y, lookPageState.width[i], 0xc,
-		             lookPageValueU[i], LOOK_ROW_V(i, LOOK_VALUE_Y), 5, 1);
+		             LOOK_VALUE_U, LOOK_ROW_V(i), 5, 1);
 		if (i == lookPageState.row) {
 			for (k = 0; k < 4; k++) {
 				drawLine2P(0x73f6ff, LOOK_VALUE_X - 7 + k, y + 5 - k, LOOK_VALUE_X - 7 + k, y + 6 + k, 5, 0);
@@ -2937,12 +2982,22 @@ void lookPageRender(void)
 			}
 		}
 	}
+	for (k = 0; k < 3; k++) { /* more rows above, more below */
+		if (first > 0) {
+			drawLine2P(0x73f6ff, LOOK_VALUE_X + LOOK_VALUE_W / 2 - k, -0x39 + k, LOOK_VALUE_X + LOOK_VALUE_W / 2 + k + 1,
+			           -0x39 + k, 5, 0);
+		}
+		if (first < LOOK_ROWS - LOOK_SHOWN) {
+			drawLine2P(0x73f6ff, LOOK_VALUE_X + LOOK_VALUE_W / 2 - k, 0x2f - k, LOOK_VALUE_X + LOOK_VALUE_W / 2 + k + 1,
+			           0x2f - k, 5, 0);
+		}
+	}
 	renderString(0, -0x29, 0x36, 0xb4, 0xc, 0, LOOK_HINT_Y, 5, 1);
 	renderString(0, -0x29, 0x46, LOOK_LEAVE_U, 0xc, 0, LOOK_HINT_Y + 12, 5, 1);
 	renderString(0, LOOK_KEY_X, -0x50, LOOK_KEY_W, 0xc, LOOK_LEAVE_U, LOOK_HINT_Y + 12, 5, 1);
 	renderDigiviceEntity(ENTITY_TABLE[0], 0);
 	renderInsetBox(r->x, r->y, r->w, r->h, 5);
-	for (i = 0; i < LOOK_ROWS; i++) {
+	for (i = 0; i < LOOK_SHOWN; i++) {
 		renderInsetBox(160 + LOOK_VALUE_X, 118 - 0x34 + i * 0x14, LOOK_VALUE_W, 14, 5);
 	}
 }
