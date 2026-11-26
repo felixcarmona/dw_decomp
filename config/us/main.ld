@@ -111,6 +111,12 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.text.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.text.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.text.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.text.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.text.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.text.*);
@@ -337,6 +343,12 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.rodata.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.rodata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.rodata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.rodata.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.rodata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.rodata.*);
@@ -496,6 +508,12 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.data.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.data.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.data.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.data.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/tournament.c.o(.data.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.data.*);
@@ -622,6 +640,12 @@ SECTIONS
         . = ALIGN(., 4);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.sdata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.sdata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.sdata.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.sdata.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/efe_table.c.o(.sdata.*);
         . = ALIGN(., 4);
@@ -759,6 +783,12 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.sbss.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.sbss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.sbss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.sbss.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/world_object.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/entity_text.c.o(.sbss.*);
@@ -885,6 +915,12 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_species.c.o(.bss.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/tfs_stream.c.o(.bss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_trim.c.o(.bss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/npc_anim_keep.c.o(.bss.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/game_menu.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tamer.c.o(.bss.*);
@@ -990,5 +1026,10 @@ ASSERT(OVL_END(.DOOA) <= OVL_OT_0_ADDR, "DOOA overlay overlaps its ordering tabl
 ASSERT(OVL_END(.DGET) <= LOAD_AREA_END, "DGET overlay overflows the load area")
 ASSERT(OVL_END(.TRN) <= OVL_TRN_MAX_END, "TRN overlay is larger than the original's slot")
 ASSERT(OVL_END(.TRN2) <= OVL_TRN_MAX_END, "TRN2 overlay is larger than the original's slot")
+ASSERT(TFS_RING_ADDR + TFS_RING_SLOTS * TFS_SLOT_SIZE == TFS_RING_END,
+       "TFS ring size does not match TFS_RING_END")
+ASSERT(TFS_RING_END <= OVL_KAR_BASE, "TFS ring overlaps KAR, which coexists with the curling map")
+ASSERT(STACK_SIZE_KB * 1024 >= 4 * STACK_MEASURED_MAX,
+       "the stack is less than 4 times the deepest use measured")
 ASSERT(main_BSS_END + MIN_HEAP <= STACK_ADDR - STACK_SIZE_KB * 1024,
        "main leaves less than MIN_HEAP bytes of heap below the stack")

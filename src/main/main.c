@@ -3584,6 +3584,24 @@ int32_t main(void)
 	}
 }
 
+/* MOD (memreclaim): the stack's last 16 bytes; overwritten = the stack
+ * reached the heap (include/dw/memmap.h STACK_SIZE_KB) */
+#define MOD_STACK_GUARD_WORD	0x57A6C0DE
+uint32_t *MOD_STACK_GUARD;
+int32_t MOD_STACK_GUARD_HITS;
+
+void modCheckStackGuard(void)
+{
+	int32_t i;
+
+	for (i = 0; i < 4; i++) {
+		if (MOD_STACK_GUARD[i] != MOD_STACK_GUARD_WORD) {
+			MOD_STACK_GUARD_HITS++;
+			MOD_STACK_GUARD[i] = MOD_STACK_GUARD_WORD;
+		}
+	}
+}
+
 void initializeHeap(void)
 {
 	unsigned long heap;
@@ -3592,6 +3610,11 @@ void initializeHeap(void)
 	heap = (_end & 0xfffffff0) + 0x10;
 	size = ((_stack_addr - (_stack_size << 10)) & 0xfffffff0) - heap;
 	InitHeap3((unsigned long *)heap, size);
+	/* MOD (memreclaim): canary at the stack limit, checked by modPresent */
+	MOD_STACK_GUARD = (uint32_t *)((_stack_addr - (_stack_size << 10)) & 0xfffffff0);
+	for (size = 0; size < 4; size++) {
+		MOD_STACK_GUARD[size] = MOD_STACK_GUARD_WORD;
+	}
 }
 
 void initializeFramebuffer(void)
@@ -5249,6 +5272,7 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 	modInterpBattle = battle;
 	modExtraRollback = n > 1 ? extra : NULL;
 	lateTickObjects();
+	modCheckStackGuard(); /* MOD (memreclaim) */
 	MOD_FPS_TICKS++;
 	l1 = modLines();
 	tickLines = (l1 - l0) & 0xFFFF;

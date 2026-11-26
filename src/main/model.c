@@ -20,6 +20,8 @@
 #include <dw/version.h>
 #include <dw/world_object.h>
 
+uint8_t *trimNpcModel(int32_t type, uint8_t *mmd, int32_t size); /* MOD (memreclaim) */
+
 extern uint8_t PARTNER_MODEL_BUFFER[];
 extern uint8_t TAMER_MODEL_BUFFER[];
 
@@ -3481,6 +3483,8 @@ ModelComponent *loadMMD(int32_t digiType, int32_t modelType)
 			handleNullModel();
 		}
 		readDigimonModel(digiType, path, m->mmdPtr);
+		/* MOD (memreclaim): drop the animations NPCs never play */
+		m->mmdPtr = trimNpcModel(digiType, m->mmdPtr, getDigimonModelFileSize(digiType, path));
 		m->modelPtr = (TMDModel *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[0]);
 		m->animTablePtr = (long *)((char *)m->mmdPtr + ((long *)m->mmdPtr)[1]);
 		GsMapModelingData((u_long *)&m->modelPtr->flags);

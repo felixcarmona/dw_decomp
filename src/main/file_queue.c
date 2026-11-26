@@ -4,6 +4,7 @@
 
 #include <dw/file.h>
 #include <dw/file_queue.h>
+#include <dw/tfs_stream.h>
 #include <dw/world_object.h>
 
 #define FILE_QUEUE_SIZE		32
@@ -66,6 +67,19 @@ void initializeFileReadQueue(void)
 void _tickFileReadQueue(int32_t instanceId)
 {
 	tickFileReadQueue(0);
+	tfsStreamTick(); /* MOD (memreclaim): map background prefetch */
+}
+
+/* MOD (memreclaim): nothing queued or reading */
+int32_t isFileReadQueueIdle(void)
+{
+	return FILE_READ_QUEUE_HEAD == NULL;
+}
+
+/* MOD (memreclaim): the head request's CdRead has been started */
+int32_t isFileReadQueueReading(void)
+{
+	return (FILE_READ_QUEUE_HEAD != NULL) && (FILE_READ_QUEUE_HEAD->state == 1);
 }
 
 void _renderFileReadQueue(int32_t instanceId)
@@ -101,6 +115,9 @@ void tickFileReadQueue(int32_t unused)
 	}
 
 	if (req->state == 2) {
+		if (tfsStreamBusy()) {
+			return; /* MOD (memreclaim): a background tile read is in flight */
+		}
 		if ((int32_t)req->size < 0) {
 			mode = CdlModeSpeed;
 			pathBuf[0] = '\\';
@@ -219,6 +236,8 @@ int32_t addFileReadRequest(char *path, uint8_t *buffer, uint8_t *isRunning,
 	}
 
 	slot->next = NULL;
+	/* MOD (memreclaim): size < 0 = unknown until CdSearchFile */
+	tfsStreamCheckTarget(buffer, (size < 0) ? 0x80000 : size);
 
 	if (isRunning != NULL) {
 		*isRunning = 1;

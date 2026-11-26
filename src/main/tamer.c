@@ -20,6 +20,7 @@
 #include <dw/kar.h>
 #include <dw/main.h>
 #include <dw/map.h>
+#include <dw/tfs_stream.h>
 #include <dw/math.h>
 #include <dw/model.h>
 #include <dw/murd.h>
@@ -800,6 +801,7 @@ int8_t startBattle(int16_t instanceId)
 	int32_t battleData;
 
 	GAME_STATE = 1;
+	tfsStreamInvalidate(); /* MOD (memreclaim): the battle reuses the load area */
 	copyVector(&STORED_TAMER_POS, &TAMER_ENTITY.entity.posData->location);
 
 	unsetCameraFollowPlayer();
