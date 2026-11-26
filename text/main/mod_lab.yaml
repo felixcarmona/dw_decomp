@@ -265,3 +265,21 @@ MOD_LAB:
     LAB_STR_BACK:
       ja: "Back"
       en_us: "Back"
+    LAB_STR_SIMPLE_STEP:
+      ja: "Step: "
+      en_us: "Step: "
+    LAB_STR_STEP_ARROWS:
+      ja: " (up/down)"
+      en_us: " (up/down)"
+    LAB_STR_SIMPLE_ADJUST:
+      ja: "Left/right: adjust value"
+      en_us: "Left/right: adjust value"
+    LAB_STR_SIMPLE_EVOLVE:
+      ja: "Evolve"
+      en_us: "Evolve"
+    LAB_STR_SIMPLE_TRAVEL:
+      ja: "Travel"
+      en_us: "Travel"
+    LAB_STR_SIMPLE_CANCEL:
+      ja: "Cancel"
+      en_us: "Cancel"
