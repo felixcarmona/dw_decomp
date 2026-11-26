@@ -1371,14 +1371,15 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 
 			EVL_clampBaseStats();
 			if (IS_SCRIPT_PAUSED == 1) {
+				/* MOD (tamer level as data): the chances are MOD_TAMER_LEVEL's */
 				if (DIGI_PARA(newId).level == 4) {
-					addTamerLevel(20, 1);
+					modTamerLevelEvent(MOD_TL_EVOLVE_CHAMPION_CHANCE, 1);
 				}
 				if (DIGI_PARA(newId).level == 5) {
-					addTamerLevel(100, 1);
+					modTamerLevelEvent(MOD_TL_EVOLVE_ULTIMATE_CHANCE, 1);
 				}
 				if (DIGI_PARA(newId).level == LEVEL_MEGA) { /* MOD (mega) */
-					addTamerLevel(100, 1);
+					modTamerLevelEvent(MOD_TL_EVOLVE_MEGA_CHANCE, 1);
 				}
 			}
 		}
