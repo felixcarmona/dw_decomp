@@ -2465,3 +2465,26 @@ void setImmortalHour(void)
 	HAS_IMMORTAL_HOUR = 1;
 	IMMORTAL_HOUR = HOUR;
 }
+
+/*
+ * MOD (optional name): a partner the player did not name (OK on the empty keyboard) carries its species' name, and
+ * that name follows it into every species it becomes. A typed name is two bytes a letter, a species name ASCII, so
+ * the two are never equal: a name equal to the species' is always one the player left out.
+ */
+int32_t modPartnerNameIsSpecies(int32_t type)
+{
+	return strcmp(PARTNER_ENTITY.name, DIGIMON_NAME(type)) == 0;
+}
+
+void modPartnerNameSetSpecies(int32_t type)
+{
+	strncpy(PARTNER_ENTITY.name, DIGIMON_NAME(type), sizeof(PARTNER_ENTITY.name) - 1);
+	PARTNER_ENTITY.name[sizeof(PARTNER_ENTITY.name) - 1] = '\0';
+}
+
+void modPartnerNameFollow(int32_t from, int32_t to)
+{
+	if (from != to && modPartnerNameIsSpecies(from)) {
+		modPartnerNameSetSpecies(to);
+	}
+}
