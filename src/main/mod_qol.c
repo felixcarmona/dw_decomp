@@ -128,9 +128,9 @@ void modPlate(int32_t x, int32_t y, const char *text, int32_t hi, int32_t r, int
 	modPlateText(x + 3, y + 2, text, hi, r, g, b);
 }
 
-/* s049-49/script.py pays by shop_hi = profit / 256: <=6, <=11, else recruit. */
+/* s049-49/script.py pays by shop_hi = profit / 256: <=6, <=9, else recruit. */
 #define MOD_SHOP_MIDDLE 1792
-#define MOD_SHOP_RECRUIT 3072
+#define MOD_SHOP_RECRUIT 2560
 #define MOD_SHOP_PLATE_OBJECT 0x1fb3
 
 static void modShopPlateRender(int32_t instanceId)
