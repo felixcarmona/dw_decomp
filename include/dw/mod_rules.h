@@ -31,6 +31,21 @@ extern int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE];
 #define MOD_DAILY_CLEAR_MASK	6 /* ... with this mask */
 extern int16_t MOD_DAILY[MOD_DAILY_SIZE];
 
+/* a new game and a new partner: MOD_NEWGAME[], every slot -1 = the rule does not exist (modNewGame answers 0), written by tools/balance.py
+ * from content/tables/new-game.json */
+#define MOD_NEWGAME_SIZE	9
+#define MOD_NG_MONEY		0 /* the tamer's money in a new game */
+#define MOD_NG_START_HOUR	1 /* the game clock in a new game */
+#define MOD_NG_START_MINUTE	2
+#define MOD_NG_FIRST_LIFETIME	3 /* the first partner's lifetime (hours) and age (days) */
+#define MOD_NG_FIRST_AGE	4
+#define MOD_NG_LIVES		5 /* the lives of a partner at its start (a new game, a reincarnation) */
+#define MOD_NG_BIRTH_LIFETIME	6 /* the lifetime (hours) of every partner that is born or reborn */
+#define MOD_NG_BIRTH_DISCIPLINE	7
+#define MOD_NG_BIRTH_HAPPINESS	8
+extern int32_t MOD_NEWGAME[MOD_NEWGAME_SIZE];
+int32_t modNewGame(int32_t slot);
+
 /* the game clock: how many real seconds one game day lasts (MOD_CLOCK[0], -1: game time does not run). A frame of CURRENT_FRAME is
  * 1/20 of a game minute (3 game seconds) whatever the screen's frame rate; the logic runs at 20 ticks a second. */
 #define MOD_CLOCK_SIZE		1
