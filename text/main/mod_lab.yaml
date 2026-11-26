@@ -304,6 +304,12 @@ MOD_LAB:
     LAB_STR_ASK_SAVE:
       ja: "Save the current game?"
       en_us: "Save the current game?"
+    LAB_STR_OLD_AGE:
+      ja: "Die of old age"
+      en_us: "Die of old age"
+    LAB_STR_ASK_OLD_AGE:
+      ja: "Let it die of old age now?"
+      en_us: "Let it die of old age now?"
     LAB_STR_ASK_TITLE:
       ja: "Return to the main menu?"
       en_us: "Return to the main menu?"
