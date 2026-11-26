@@ -5452,7 +5452,9 @@ static void modAutoFrameRatePoll(void)
 #define MOD_CAD_MARGIN 12 /* a pass must end this far before the vblank it is shown at */
 int8_t MOD_FPS_POLICY; /* MOD_FPS_POLICY_*: 0 the ladder, 1/2/3 lock 60 / steady 30 / 20, 4 the 0.0.7 CPU probe */
 int8_t MOD_CAD_LEVEL = 2; /* 2 = 60, 1 = steady 30, 0 = 20 */
-int8_t MOD_CAD_KEEP60 = 60; /* frames per 32 ticks to stay at 60 (60 = 37.5 fps); +4 to step up to it */
+/* frames per 32 ticks to stay at 60; +4 to step up to it. 90 keeps 60 only while nearly every frame of it is shown:
+ * a 60 that shows 2 of 3 frames a tick (refresh intervals 1, 1, 2 or 1, 2) judders more than an even 30 */
+int8_t MOD_CAD_KEEP60 = 90;
 int8_t MOD_CAD_KEEP30 = 4; /* late or skipped frames per 32 ticks tolerated at steady 30 */
 int32_t MOD_CAD_SWITCHES;
 int32_t MOD_CAD_LAST; /* the last recorded tick: cost0 | costX << 12 | shown << 24 | planned << 26 | late << 28 */
@@ -5464,7 +5466,10 @@ static struct {
 	int16_t cool[2]; /* ticks a context waits before trying a higher level again */
 	int8_t count, pos, ctx, prev, up;
 	int8_t ctxLevel[2];
-} modCad = { { 0 }, 0, 0, { MOD_CAD_WINDOW, MOD_CAD_WINDOW }, 0, 0, -1, -1, 0, { 2, 2 } };
+} modCad = { { 0 }, 0, 0, { MOD_CAD_WINDOW, MOD_CAD_WINDOW }, 0, 0, -1, -1, 0, { 2, 1 } };
+/* the world starts at 60; a battle at steady 30: at the stock clock no battle fits 60 (its first pass alone costs about
+ * a refresh), so a first trial at 60 was 16 ticks of late frames at the start of the first battle. A machine fast
+ * enough steps up after a full window, as anywhere. */
 
 /* the frames a tick of these costs could show at 60: the first pass is shown at the vblank after it ends, each
  * extra pass starts at the swap of the one before and is shown at the vblank after it ends, inside the tick */
