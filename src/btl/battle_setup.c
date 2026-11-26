@@ -10,6 +10,8 @@
 #include <dw/params.h>
 #include <dw/script.h>
 #include <dw/mod_options.h> /* MOD (quick battle start) */
+#include <dw/tech_rules.h>
+extern TechRules BTL_TECH_RULES;
 
 extern int16_t DEATH_COUNTDOWN;
 extern int32_t IS_TAMERLESS_BATTLE;
@@ -128,6 +130,7 @@ void BTL_initializeCombat(void)
 		} else {
 			f->buffsRemaining = BM(BUFFUSE_N2);
 		}
+		techRulesReset(&BTL_TECH_RULES); /* MOD (new technique rows) */
 		/* MOD (caps): brains and speed past the old 999 limit do not
 		 * make buffs win every draw or the finisher goal reach 0:
 		 * the goal keeps falling, ten times slower (1101 at 9999) */

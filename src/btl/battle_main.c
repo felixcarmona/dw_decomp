@@ -14,6 +14,7 @@ static int32_t BTL_FLOOR_PCT __attribute__((section(".bss.hard_zero")));
 #include <dw/attack_object.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
+#include <dw/tech_rules.h>
 #include <dw/ids.h>
 #include <dw/pstat.h> /* MOD (timed battle) */
 #include <dw/script.h>
@@ -97,6 +98,8 @@ int16_t BTL_calculateHitChance(DigimonEntity *attacker, DigimonEntity *defender,
 void BTL_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t move);
 /* MOD (unique finishers): the species whose technique BTL_applyMoveStatus applies (-1: the shared numbers) */
 static int16_t BTL_STATUS_CASTER = -1;
+TechRules BTL_TECH_RULES = {{0, 0, 0, 0}, 0, 0}; /* MOD (new technique rows): heals used and fighters weakened in this battle */
+int32_t BTL_isMoveOrdered(DigimonEntity *digimon, FighterData *fighter, int16_t slot);
 int32_t BTL_battleMain(void);
 void BTL_getWeakestEnemy(Entity *self, FighterData *fighter, int16_t *outScore, int16_t *outIndex);
 int16_t BTL_calculateTargetScore(DigimonEntity *self, DigimonEntity *other);
@@ -424,7 +427,7 @@ void BTL_tickPartnerAI(void)
 		case 8:
 		case 9:
 		case 10:
-			if (BTL_isMoveUsable((DigimonEntity *)partner, fighter, COMBAT_DATA_PTR->player.currentCommand[0] - 8) == 0) {
+			if (BTL_isMoveOrdered((DigimonEntity *)partner, fighter, COMBAT_DATA_PTR->player.currentCommand[0] - 8) == 0) {
 				break;
 			}
 			if ((fighter->targetId != 0xff) && (BTL_isFighterDefeated(fighter->targetId) != 0)) {
@@ -1955,6 +1958,16 @@ int32_t BTL_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 		}
 		stats->current.currentHP += row;
 		addEntityText(&digimon->entity, slot, 7, row, ENTITY_TEXT_RISE);
+		BTL_TECH_RULES.heals[slot & 3]++;
+		return 1;
+	}
+	/* MOD (new technique rows): Defense or Speed up by statusChance percent */
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_DEF_UP) {
+		BTL_buffStats(digimon, slot, (int16_t)(stats->base.def * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.def, 0xb, 4);
+		return 1;
+	}
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_SPEED_UP) {
+		BTL_buffStats(digimon, slot, (int16_t)(stats->base.speed * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.speed, 0xb, 5);
 		return 1;
 	}
 	/* MOD (battle as data): the buff moves and what they add, in percent of the stat (the rows of MOD_BATTLE) */
@@ -2237,6 +2250,18 @@ void BTL_tickAttackHits(void)
 			((DigimonEntity *)entity)->stats.current.isHit = 0;
 			continue;
 		}
+		/* MOD (new technique rows): a weakening technique takes statusChance percent of the Defense of the fighter
+		   it reaches, once per fighter and battle, and does no damage */
+		if (modSpeciesMove(ENTITY_TABLE[attack.casterId]->type, tech)->status == TECH_DEF_DOWN) {
+			((DigimonEntity *)entity)->stats.current.isHit = 0;
+			if (!((BTL_TECH_RULES.weakened >> (i & 3)) & 1)) {
+				int16_t less = ((DigimonEntity *)entity)->stats.base.def * modSpeciesMove(ENTITY_TABLE[attack.casterId]->type, tech)->statusChance / 100;
+				BTL_TECH_RULES.weakened |= 1 << (i & 3);
+				((DigimonEntity *)entity)->stats.base.def -= less;
+				addEntityText(entity, i, 0, less, 4);
+			}
+			continue;
+		}
 		BTL_removeMoveEffect((DigimonEntity *)entity, fighter);
 		fighter->flags &= ~(FIGHTER_FLAG_KNOCKED_BACK | FIGHTER_FLAG_ATTACKING | FIGHTER_FLAG_TRANSFORMING);
 		attacker = ENTITY_TABLE[attack.casterId];
@@ -2365,6 +2390,17 @@ void BTL_renderEnemyHPBars(void)
 	}
 }
 
+/* MOD (new technique rows): the same check for an order of the player, who may heal above the automatic threshold */
+int32_t BTL_isMoveOrdered(DigimonEntity *digimon, FighterData *fighter, int16_t slot)
+{
+	int32_t usable;
+
+	BTL_TECH_RULES.ordered = 1;
+	usable = BTL_isMoveUsable(digimon, fighter, slot);
+	BTL_TECH_RULES.ordered = 0;
+	return usable;
+}
+
 int32_t BTL_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t slot)
 {
 	uint8_t move;
@@ -2386,6 +2422,10 @@ int32_t BTL_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 	}
 
 	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining == 0)) {
+		return 0;
+	}
+	/* MOD (new technique rows): no heal at full HP or past its uses, no second weakening of the same fighter */
+	if (techRulesAllow(&BTL_TECH_RULES, modSpeciesMove(digimon->entity.type, tech), &digimon->stats, fighter - COMBAT_DATA_PTR->fighter, digimon == (DigimonEntity *)ENTITY_TABLE[1], fighter->targetId) == 0) {
 		return 0;
 	}
 
@@ -3598,6 +3638,7 @@ void BTL_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 			continue;
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
+		weights[i] += techRulesWeight(modSpeciesMove(digimon->entity.type, tech), fighter->buffPrioTimer); /* MOD (new technique rows) */
 		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer + BTL_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
@@ -3951,6 +3992,7 @@ void BTL_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 				}
 			}
 		}
+		weights[i] += techRulesWeight(modSpeciesMove(digimon->entity.type, tech), fighter->buffPrioTimer); /* MOD (new technique rows) */
 		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer;
 		}

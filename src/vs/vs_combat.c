@@ -29,6 +29,9 @@
 #include <dw/version.h>
 #include <dw/vs.h>
 #include <dw/world_object.h>
+#include <dw/tech_rules.h>
+extern TechRules VS_TECH_RULES;
+int32_t VS_isMoveOrdered(DigimonEntity *digimon, FighterData *fighter, int16_t slot);
 
 extern int16_t VS_STARTING_HP[2];
 extern uint8_t VS_MUSIC;
@@ -354,6 +357,7 @@ void VS__combatInit(void)
 		} else {
 			fighter->buffsRemaining = BM(BUFFUSE_N2);
 		}
+		techRulesReset(&VS_TECH_RULES); /* MOD (new technique rows) */
 
 		fighter->buffPrioTimer = BMD(stats->base.brain, PRIO_DIV) + BM(PRIO_BASE);
 		fighter->finisherGoal = BM(FIN_GOAL) - stats->base.speed;
@@ -1032,7 +1036,7 @@ void VS__tickDigimonAI(fighterId)
 		case 8:
 		case 9:
 		case 10:
-			if (VS_isMoveUsable(entity, data, COMBAT_DATA_PTR->player.currentCommand[fighterId] - 8) != 0) {
+			if (VS_isMoveOrdered(entity, data, COMBAT_DATA_PTR->player.currentCommand[fighterId] - 8) != 0) {
 				data->targetId = otherId;
 				if ((entity->stats.base.moves[COMBAT_DATA_PTR->player.currentCommand[fighterId] - 8] !=
 				     data->queuedAnim) ||

@@ -22,6 +22,7 @@ static int32_t STD_FLOOR_PCT __attribute__((section(".bss.hard_zero")));
 #include <dw/battle.h>
 #include <dw/clock.h>
 #include <dw/combat.h>
+#include <dw/tech_rules.h>
 #include <dw/entity.h>
 #include <dw/evl.h>
 #include <dw/font.h>
@@ -183,6 +184,8 @@ int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim);
 void STD_applyMoveStatus(DigimonEntity *digimon, FighterData *fighter, int32_t move);
 /* MOD (unique finishers): the species whose technique STD_applyMoveStatus applies (-1: the shared numbers) */
 static int16_t STD_STATUS_CASTER = -1;
+TechRules STD_TECH_RULES = {{0, 0, 0, 0}, 0, 0}; /* MOD (new technique rows): heals used and fighters weakened in this battle */
+int32_t STD_isMoveOrdered(DigimonEntity *digimon, FighterData *fighter, int16_t slot);
 int16_t STD_getFighterSlot(int16_t entityId);
 int32_t STD_addBlockedAttack(FighterData *fighter, FighterData *other);
 void STD_buffStats(DigimonEntity *digimon, int32_t slot, int32_t value, int16_t *stat, int32_t color, int32_t flag);
@@ -3715,7 +3718,7 @@ void STD_tickPartnerAI(void)
 		case 8:
 		case 9:
 		case 10:
-			if (STD_isMoveUsable((DigimonEntity *)partner, fighter, COMBAT_DATA_PTR->player.currentCommand[0] - 8) == 0) {
+			if (STD_isMoveOrdered((DigimonEntity *)partner, fighter, COMBAT_DATA_PTR->player.currentCommand[0] - 8) == 0) {
 				break;
 			}
 			fighter->targetId = 1;
@@ -4078,6 +4081,7 @@ void STD_initializeCombat(Entity *entity, Entity *other)
 		} else {
 			f->buffsRemaining = BM(BUFFUSE_N2);
 		}
+		techRulesReset(&STD_TECH_RULES); /* MOD (new technique rows) */
 		/* MOD (caps): brains and speed past the old 999 limit do not
 		 * make buffs win every draw or the finisher goal reach 0:
 		 * the goal keeps falling, ten times slower (1101 at 9999) */
@@ -5622,6 +5626,18 @@ void STD_tickAttackHits(void)
 			((DigimonEntity *)entity)->stats.current.isHit = 0;
 			continue;
 		}
+		/* MOD (new technique rows): a weakening technique takes statusChance percent of the Defense of the fighter
+		   it reaches, once per fighter and battle, and does no damage */
+		if (modSpeciesMove(ENTITY_TABLE[attack.casterId]->type, tech)->status == TECH_DEF_DOWN) {
+			((DigimonEntity *)entity)->stats.current.isHit = 0;
+			if (!((STD_TECH_RULES.weakened >> (i & 3)) & 1)) {
+				int16_t less = ((DigimonEntity *)entity)->stats.base.def * modSpeciesMove(ENTITY_TABLE[attack.casterId]->type, tech)->statusChance / 100;
+				STD_TECH_RULES.weakened |= 1 << (i & 3);
+				((DigimonEntity *)entity)->stats.base.def -= less;
+				addEntityText(entity, i, 0, less, 4);
+			}
+			continue;
+		}
 		STD_removeMoveEffect((DigimonEntity *)entity, fighter);
 		fighter->flags &= ~(FIGHTER_FLAG_KNOCKED_BACK | FIGHTER_FLAG_ATTACKING | FIGHTER_FLAG_TRANSFORMING);
 		attacker = ENTITY_TABLE[attack.casterId];
@@ -5762,6 +5778,16 @@ int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 		}
 		stats->current.currentHP += row;
 		addEntityText(&digimon->entity, slot, 7, row, ENTITY_TEXT_RISE);
+		STD_TECH_RULES.heals[slot & 3]++;
+		return 1;
+	}
+	/* MOD (new technique rows): Defense or Speed up by statusChance percent */
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_DEF_UP) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.def, 0xb, 4);
+		return 1;
+	}
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_SPEED_UP) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.speed * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.speed, 0xb, 5);
 		return 1;
 	}
 	/* MOD (battle as data): the buff moves and what they add, in percent of the stat (the rows of MOD_BATTLE) */
@@ -6238,6 +6264,17 @@ void STD_battleTickFrame(void)
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
 }
 
+/* MOD (new technique rows): the same check for an order of the player, who may heal above the automatic threshold */
+int32_t STD_isMoveOrdered(DigimonEntity *digimon, FighterData *fighter, int16_t slot)
+{
+	int32_t usable;
+
+	STD_TECH_RULES.ordered = 1;
+	usable = STD_isMoveUsable(digimon, fighter, slot);
+	STD_TECH_RULES.ordered = 0;
+	return usable;
+}
+
 int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t slot)
 {
 	uint8_t move;
@@ -6259,6 +6296,10 @@ int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 	}
 
 	if ((modSpeciesMove(digimon->entity.type, tech)->range == 4) && (fighter->buffsRemaining == 0)) {
+		return 0;
+	}
+	/* MOD (new technique rows): no heal at full HP or past its uses, no second weakening of the same fighter */
+	if (techRulesAllow(&STD_TECH_RULES, modSpeciesMove(digimon->entity.type, tech), &digimon->stats, fighter - COMBAT_DATA_PTR->fighter, digimon == (DigimonEntity *)ENTITY_TABLE[1], fighter->targetId) == 0) {
 		return 0;
 	}
 
@@ -6399,6 +6440,7 @@ void STD_selectEnemyMove(DigimonEntity *digimon, FighterData *fighter, int16_t i
 				}
 			}
 		}
+		weights[i] += techRulesWeight(modSpeciesMove(digimon->entity.type, tech), fighter->buffPrioTimer); /* MOD (new technique rows) */
 		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer;
 		}
@@ -6512,6 +6554,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 			continue;
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
+		weights[i] += techRulesWeight(modSpeciesMove(digimon->entity.type, tech), fighter->buffPrioTimer); /* MOD (new technique rows) */
 		if (modSpeciesMove(digimon->entity.type, tech)->range == 4) {
 			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
