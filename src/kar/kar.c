@@ -6,6 +6,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_kar.h>
 #include <dw/mod_font.h>
 #include <dw/anim.h>
 #include <dw/btl.h>
@@ -665,7 +666,7 @@ void KAR_setupMatch(int32_t mode)
 	int32_t i;
 	KarStone *stone;
 
-	obstacles = rand() % 3;
+	obstacles = rand() % BKS(OBST_MAX);
 	MAIN_D_8013523A = 0;
 	MAIN_D_8013523C = 0;
 	MAIN_D_8013523E = 0;
@@ -719,9 +720,9 @@ void KAR_setupMatch(int32_t mode)
 #else
 				spawnX = KAR_D_8005AB98;
 				stone->pos.vy = 0;
-				stone->pos.vx = spawnX.x[i] - rand() % 0x13f;
+				stone->pos.vx = spawnX.x[i] - rand() % BKS(OBST_X_SPAN);
 #endif
-				stone->pos.vz = -(rand() % 0x3e8 + 0x3e8);
+				stone->pos.vz = -(rand() % BKS(OBST_Z_SPAN) + BK(OBST_Z_BASE));
 				stone->rotation.vx = 0;
 				stone->rotation.vy = 0;
 				stone->rotation.vz = 0;
@@ -785,10 +786,10 @@ void KAR_tickStones(int32_t instanceId)
 				}
 			}
 			if (stone->state > 0 && stone->speed >= 0) {
-				move = stone->speed / stone->weight;
-				speed = stone->speed * 98;
+				move = stone->weight > 0 ? stone->speed / stone->weight : 0; /* MOD (curling as data): no weights, no movement */
+				speed = stone->speed * BK(FRICTION); /* MOD (curling as data) */
 				stone->speed = speed / 100;
-				if (move < 2) {
+				if (move < BK(MIN_MOVE)) {
 					stone->speed = 0;
 				}
 				if (stone->state < 3) {
@@ -927,7 +928,7 @@ void KAR_finishMatch(void)
 	setTextColor(1);
 
 	if (KAR_D_8005B5A0[0].row.score > KAR_D_8005B5A0[1].row.score) {
-		if (KAR_D_8005B5A0[0].row.score >= 0xa) {
+		if (KAR_D_8005B5A0[0].row.score >= BK(BIG_WIN)) {
 			writePStat(0x79, 2);
 		} else {
 			writePStat(0x79, 1);
@@ -2339,9 +2340,9 @@ int32_t KAR_chooseOpponentShot(void)
 				} else {
 					angle = ratan2(-0x6a4 - pz, -px);
 					if ((KAR_D_8005B5A0[1].row.thrown % 2) != 0) {
-						angle += rand() % 100;
+						angle += rand() % BKS(AI_NOISE);
 					} else {
-						angle -= rand() % 100;
+						angle -= rand() % BKS(AI_NOISE);
 					}
 					KAR_setOpponentShot(0, angle, 0, -0x6a4);
 				}
@@ -2376,9 +2377,9 @@ int32_t KAR_chooseOpponentShot(void)
 					} else if (KAR_D_80063914.stone.state < 0) {
 						angle = ratan2(-0x6a4 - pz, -px);
 						if ((KAR_D_8005B5A0[1].row.thrown % 2) != 0) {
-							angle += rand() % 100;
+							angle += rand() % BKS(AI_NOISE);
 						} else {
-							angle -= rand() % 100;
+							angle -= rand() % BKS(AI_NOISE);
 						}
 						KAR_setOpponentShot(0, angle, 0, -0x6a4);
 					} else if ((rand() % 2) != 0) {
@@ -2399,9 +2400,9 @@ int32_t KAR_chooseOpponentShot(void)
 				case 3:
 					angle = ratan2(-0x6a4 - pz, -px);
 					if ((KAR_D_8005B5A0[1].row.thrown % 2) != 0) {
-						angle += rand() % 100;
+						angle += rand() % BKS(AI_NOISE);
 					} else {
-						angle -= rand() % 100;
+						angle -= rand() % BKS(AI_NOISE);
 					}
 					KAR_setOpponentShot(0, angle, 0, -0x6a4);
 					break;
@@ -2675,13 +2676,13 @@ int32_t KAR_computeThrowPower(a, b, c)
 	value = cur * 100;
 	while (acc < dist) {
 		acc += cur / a;
-		value = value * 100 / 98;
+		value = value * 100 / BKS(FRICTION);
 		cur = value / 100;
 	}
 	if (MAIN_D_80135248 == 2) {
-		cur -= 0x258;
+		cur -= BK(POWER_SUB_A);
 	} else {
-		cur -= 0x1f4;
+		cur -= BK(POWER_SUB_B);
 	}
 	return cur;
 }
