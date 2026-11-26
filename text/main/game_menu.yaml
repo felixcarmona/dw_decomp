@@ -111,6 +111,15 @@ MENU_LABELS:
     STR_MEDAL_NAME_PERFECT_CURLING:
       ja: カーリング満点
       en_us: Perfect Curling
+    STR_MEDAL_NAME_CURLING_LEGEND:
+      ja: カーリングレジェンド
+      en_us: Curling Legend
+    STR_MEDAL_DESCRIPTION_CURLING_LEGEND:
+      ja: レジェンドカップで優勝
+      en_us: Won the Legend Cup,
+    STR_MEDAL_DESCRIPTION_CURLING_LEGEND_MODES:
+      ja: リンクでいちばんのカップ
+      en_us: the hardest cup of the rink
     STR_MEDAL_NAME_100_FISH:
       ja: 釣り１００ぴき
       en_us: 100 Fish

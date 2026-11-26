@@ -1663,7 +1663,7 @@ uint16_t CHART_LEVEL_ROW_PIECES[3] = {
 #endif
 };
 
-char *MEDAL_NAMES[15] = {
+char *MEDAL_NAMES[16] = {
 	STR_MEDAL_NAME_GRADE_CUP,
 	STR_MEDAL_NAME_VERSION_CUP,
 	STR_MEDAL_NAME_TYPE_CUP,
@@ -1679,10 +1679,11 @@ char *MEDAL_NAMES[15] = {
 	STR_MEDAL_NAME_CARD_COMPLETE,
 	STR_MEDAL_NAME_BITS_MAXED,
 	STR_MEDAL_NAME_10_YEARS,
+	STR_MEDAL_NAME_CURLING_LEGEND, /* MOD (curling cups) */
 };
 
 #if !VERSION_IS(US)
-char *MEDAL_DESCRIPTIONS[45] = {
+char *MEDAL_DESCRIPTIONS[48] = {
 	STR_MEDAL_DESCRIPTION_CUP_D_C_B_A_S,
 	STR_MEDAL_DESCRIPTION_WIN_IN_ALL,
 	STR_OVERWORLD_EMPTY,
@@ -1730,7 +1731,7 @@ char *MEDAL_DESCRIPTIONS[45] = {
 	STR_OVERWORLD_EMPTY,
 };
 #else
-char *MEDAL_DESCRIPTIONS[45] = {
+char *MEDAL_DESCRIPTIONS[48] = {
 	STR_MEDAL_DESCRIPTION_CUP_D_C_B_A_S,
 	STR_MEDAL_DESCRIPTION_WIN_IN_ALL,
 	STR_OVERWORLD_EMPTY,
@@ -1775,6 +1776,9 @@ char *MEDAL_DESCRIPTIONS[45] = {
 	STR_OVERWORLD_EMPTY,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_SURVIVED_FOR_300_DAYS,
+	STR_OVERWORLD_EMPTY,
+	STR_MEDAL_DESCRIPTION_CURLING_LEGEND, /* MOD (curling cups) */
+	STR_MEDAL_DESCRIPTION_CURLING_LEGEND_MODES,
 	STR_OVERWORLD_EMPTY,
 };
 #endif
@@ -3322,21 +3326,31 @@ void tickPlayerMenu(void)
 #else
 		if (PLAYER_MENU_STATE == 2) {
 #endif
-			if ((CHANGED_INPUT & 0x8000) &&
-			    ((MEDAL_SELECTOR_INDEX % 5) != 0)) {
-				MEDAL_SELECTOR_INDEX--;
-			}
-			if ((CHANGED_INPUT & 0x2000) &&
-			    ((MEDAL_SELECTOR_INDEX % 5) != 4)) {
-				MEDAL_SELECTOR_INDEX++;
-			}
-			if ((CHANGED_INPUT & 0x1000) &&
-			    (MEDAL_SELECTOR_INDEX >= 5)) {
-				MEDAL_SELECTOR_INDEX -= 5;
-			}
-			if ((CHANGED_INPUT & 0x4000) &&
-			    (MEDAL_SELECTOR_INDEX < 10)) {
-				MEDAL_SELECTOR_INDEX += 5;
+			/* MOD (curling cups): a sixth column, of the one medal past the fifteen */
+			if (MEDAL_SELECTOR_INDEX >= 15) {
+				if (CHANGED_INPUT & 0x8000) {
+					MEDAL_SELECTOR_INDEX = (MEDAL_SELECTOR_INDEX - 15) * 5 + 4;
+				}
+			} else {
+				if (CHANGED_INPUT & 0x8000) {
+					if ((MEDAL_SELECTOR_INDEX % 5) != 0) {
+						MEDAL_SELECTOR_INDEX--;
+					}
+				} else if (CHANGED_INPUT & 0x2000) {
+					if ((MEDAL_SELECTOR_INDEX % 5) != 4) {
+						MEDAL_SELECTOR_INDEX++;
+					} else if (MEDAL_SELECTOR_INDEX == 4) {
+						MEDAL_SELECTOR_INDEX = 15;
+					}
+				}
+				if ((CHANGED_INPUT & 0x1000) &&
+				    (MEDAL_SELECTOR_INDEX >= 5)) {
+					MEDAL_SELECTOR_INDEX -= 5;
+				}
+				if ((CHANGED_INPUT & 0x4000) &&
+				    (MEDAL_SELECTOR_INDEX < 10)) {
+					MEDAL_SELECTOR_INDEX += 5;
+				}
 			}
 			if (SELECTED_MEDAL != MEDAL_SELECTOR_INDEX) {
 				if (hasMedal(MEDAL_SELECTOR_INDEX) != 0) {
@@ -6282,6 +6296,10 @@ void renderEvoChartDetail(void)
 	}
 }
 
+/* MOD (curling cups): sixteen medals, the fifteen in their five columns drawn closer and the sixteenth alone in a sixth */
+#define MEDAL_SLOT_X(i) (((i) < 15 ? (i) % 5 : 5) * 32 - 0x7a)
+#define MEDAL_SLOT_Y(i) (((i) < 15 ? (i) / 5 : (i) - 15) * 24 - 0x3d)
+
 void renderMedalView(void)
 {
 	int32_t i;
@@ -6298,14 +6316,14 @@ void renderMedalView(void)
 			MENU_STATE = 2;
 		}
 	case 2:
-		renderRectPolyFT4(((MEDAL_SELECTOR_INDEX % 5) * 38) - 0x7e,
-		                  ((MEDAL_SELECTOR_INDEX / 5) * 24) - 0x3d, 0x18, 0x18, 0, 0xd0,
+		renderRectPolyFT4(MEDAL_SLOT_X(MEDAL_SELECTOR_INDEX) - 4,
+		                  MEDAL_SLOT_Y(MEDAL_SELECTOR_INDEX), 0x18, 0x18, 0, 0xd0,
 		                  0x18, 0x7dc7, 1, 0);
 	case 1:
 		renderSeparatorLines(MAIN_D_8012472C, 0xe, 5);
 		renderString(3, MEDAL_VIEW_CROPS[0].x, -0x51, MEDAL_VIEW_CROPS[0].w, 0xc, MEDAL_VIEW_CROPS[0].u, 0xc, 5, 1); /* MOD (language) */
 
-		for (i = 0; i < 0xf; i++) {
+		for (i = 0; i < 16; i++) {
 			if (hasMedal(i) != 0) {
 				if (MEDAL_SELECTOR_INDEX == i) {
 					if (MENU_STATE != 3) {
@@ -6328,11 +6346,11 @@ void renderMedalView(void)
 					renderString(0, -0x7e, 0x27, 0xc, 0xc, 0xe4, 0xc, 5, 1);
 				}
 #endif
-				renderRectPolyFT4(((i % 5) * 38) - 0x7c, ((i / 5) * 24) - 0x3d, 0xf,
+				renderRectPolyFT4(MEDAL_SLOT_X(i) - 2, MEDAL_SLOT_Y(i), 0xf,
 				                  0x18, 0xf0, 0xc8, 0x18, 0x7dc7, 5, 0);
 			}
 
-			renderRectPolyFT4(((i % 5) * 38) - 0x7a, ((i / 5) * 24) - 0x3d, 0xf, 0x18,
+			renderRectPolyFT4(MEDAL_SLOT_X(i), MEDAL_SLOT_Y(i), 0xf, 0x18,
 			                  0xf0, 0xb0, 0x18, 0x7dc7, 5, 0);
 		}
 
