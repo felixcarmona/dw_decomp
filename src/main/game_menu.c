@@ -4041,6 +4041,8 @@ static int8_t CHART_CARD_SCROLL;
 static int8_t CHART_CARD_COUNT;
 #define CHART_CARD_VISIBLE 9
 static int16_t CHART_CARD_ID;	/* MOD (chart criteria): the evolution whose card is drawn, -1 none */
+static int16_t CHART_CARD_LAST_ID = -1;	/* MOD (card memory): the card the popup showed when it was last closed, and where it was scrolled */
+static int8_t CHART_CARD_LAST_SCROLL;
 static int16_t CHART_LIT_FOR;	/* the centre whose lit lines are in CHART_LIT, -1 none */
 
 static void chartDetailOpen(int32_t id)
@@ -4080,6 +4082,8 @@ static int32_t chartDetailInput(void)
 	/* Modal input is consumed before navigation, confirmation and history. */
 	if (CHART_POPUP) {
 		if (isKeyDown(CANCEL_BUTTON) || isKeyDown(0x80)) {
+			CHART_CARD_LAST_ID = CHART_CARD_ID;
+			CHART_CARD_LAST_SCROLL = CHART_CARD_SCROLL;
 			CHART_POPUP = 0;
 			CHART_CARD_ID = -1;
 			playSound(0, 4);
@@ -5341,6 +5345,10 @@ static __attribute__((noinline)) void chartCardRender(int32_t target)
 	if (CHART_CARD_ID != target) {
 		if (MOD_RENDER_PASS != 0) return;
 		chartCardBuild(target);
+		if (CHART_POPUP && CHART_CARD_SCROLL == 0 && target == CHART_CARD_LAST_ID &&
+		    CHART_CARD_LAST_SCROLL <= CHART_CARD_COUNT - 1 - CHART_CARD_VISIBLE) {
+			CHART_CARD_SCROLL = CHART_CARD_LAST_SCROLL; /* MOD (card memory): the same card reopens where it was left */
+		}
 		CHART_NEEDS_W = drawStringMode(CHART_TEXT_NEEDS, 0, CHART_CARD_HEADER_ROW, FIT_VANILLA);
 		CHART_HAVE_W = drawStringMode(CHART_TEXT_HAVE, 128, CHART_CARD_HEADER_ROW, FIT_VANILLA);
 		chartCardPrompt(1);
