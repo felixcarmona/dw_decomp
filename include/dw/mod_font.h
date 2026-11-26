@@ -22,10 +22,12 @@
 /* a C string that a screen cuts into pieces at the original's offsets: drawn in the original's cells (font.c) */
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 void drawStringCells(char *str, int32_t x, int32_t y);
-extern uint8_t TEXTBOX_CELLS;
 #define DRAW_STRING_CELLS(str, x, y) drawStringCells(str, x, y)
 #else
 #define DRAW_STRING_CELLS(str, x, y) drawString(str, x, y)
+#endif
+#if VERSION_IS(US)
+extern uint8_t TEXTBOX_CELLS;
 #endif
 
 /*
@@ -46,8 +48,11 @@ void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
 #define DRAW_STRING_PIECES(str, x, y, ...) drawString(str, x, y)
 #endif
 
-/* the rows of a text box (script_textbox.c) that a screen cuts into pieces: after createTextbox, in the original's cells */
-#if VERSION_IS(US) && FONT_PROPORTIONAL
+/*
+ * the rows of a text box (script_textbox.c) that a screen cuts into pieces: after createTextbox, in the original's cells
+ * (with the original font: a space advances as the original's, by the glyph before it, not the mod's 8 pixels)
+ */
+#if VERSION_IS(US)
 #define TEXTBOX_IN_CELLS(boxId) (TEXTBOX_CELLS |= 1 << (boxId))
 #else
 #define TEXTBOX_IN_CELLS(boxId)

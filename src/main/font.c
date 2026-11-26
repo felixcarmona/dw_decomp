@@ -1366,6 +1366,12 @@ void setTextColor(int32_t color)
 	COLORCODE_HIGHBITS = COLORCODE_LOWBITS << 4;
 }
 
+#if VERSION_IS(US)
+/* MOD (font): set while text is laid out in the original's cells (below; with the original font script_textbox.c's
+ * rule for a space) */
+int8_t FONT_CELLS;
+#endif
+
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 /* the rows of a glyph (GLYPH_HEIGHT, then its width) */
 static uint16_t *glyphRows(uint16_t codepoint)
@@ -1432,8 +1438,6 @@ int32_t glyphWidth(uint16_t codepoint)
  * byte of its width) and its ink is centred in that cell, so every piece still holds exactly its characters.
  * drawStringCells sets it for one C string; script_textbox.c sets it for the rows of the boxes in TEXTBOX_CELLS.
  */
-int8_t FONT_CELLS;
-
 void drawStringCells(char *str, int32_t x, int32_t y)
 {
 	FONT_CELLS = 1;
