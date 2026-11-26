@@ -4447,14 +4447,9 @@ int16_t STD_deinitializeCombat(int16_t a, int16_t b)
 	stats->base.def = INITIAL_COMBAT_STATS[0][3];
 	stats->base.speed = INITIAL_COMBAT_STATS[0][4];
 	stats->base.brain = INITIAL_COMBAT_STATS[0][5];
-	stats->current.currentHP += (int16_t)BMD(stats->base.hp, HEAL_HP); /* MOD (battle as data) */
-	stats->current.currentMP += (int16_t)BMD(stats->base.mp, HEAL_MP);
-	if (stats->current.currentHP > stats->base.hp) {
-		stats->current.currentHP = stats->base.hp;
-	}
-	if (stats->current.currentMP > stats->base.mp) {
-		stats->current.currentMP = stats->base.mp;
-	}
+	/* MOD (battle as data, caps): the sum cannot wrap on a bar of up to 30000 */
+	addWithLimit(&stats->current.currentHP, BMD(stats->base.hp, HEAL_HP), stats->base.hp);
+	addWithLimit(&stats->current.currentMP, BMD(stats->base.mp, HEAL_MP), stats->base.mp);
 
 	return (a == 0) ? 1 : -1;
 }
