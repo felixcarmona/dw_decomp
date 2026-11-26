@@ -1267,7 +1267,8 @@ int32_t newGameStateMachine(void)
 #if !VERSION_IS(US)
 		strcpy(DIGIMON_NAME(0), "？？？");
 #else
-		DIGIMON_NAME(0)[0] = '\0'; /* MOD (language): was a copy of &MAIN_D_80134600[7], the NUL past "BackOK" */
+		if (!isTriggerSet(642)) /* MOD (New Game Plus, trigger 642): the tamer keeps the name */
+			DIGIMON_NAME(0)[0] = '\0'; /* MOD (language): was a copy of &MAIN_D_80134600[7], the NUL past "BackOK" */
 #endif
 		setupNewGameDialogueBox();
 		showNewGameDialogue(0x10, 2);

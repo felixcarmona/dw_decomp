@@ -475,6 +475,7 @@ int32_t createByteSum(uint8_t *data, int32_t len);
 void appendWideDigit(int32_t digit, char **dst, int32_t *started);
 #endif
 void openSaveMachine(void);
+void modNewGamePlusReset(void);
 int32_t tickSaveMachine(void);
 void awardMachinedramonData();
 void gameClearSave();
@@ -4359,6 +4360,76 @@ void initializeDefaultSavegame(void)
 	savegame->inventory.size = 30;
 }
 
+/*
+ * MOD (New Game Plus): the save machine's restart (openSaveMachine with pstat 126 set). Resident, because MENU has no
+ * room left; MENU is loaded while it runs. The game being played becomes a new game in RAM: story, city, partner,
+ * bag and bits as a new game has them. The chart, the medals, the cups, the cards, the techniques learned, the tamer
+ * (name, look, level, play time), the fish count and the battle registrations stay. The triggers that carry over: the
+ * cups won (15-36), the medals (364-383 and 641) and the Digimon ever raised (512-574, 582 and 649). The game beaten
+ * (50) starts clear, so the story runs whole again; trigger 642 takes its place for the save machine, which keeps the
+ * option from then on. Nothing is written to the card: the next save does that, and the backup copy it rewrites
+ * (saves[1]) holds the registrations meanwhile.
+ */
+extern int32_t MOD_CHEATS_TRANSITION;
+#define NG_PLUS_MEDAL 21 /* New Beginning; 22, Second Journey, is the story's */
+#define NG_PLUS_COUNT 20 /* saved pstat: how many New Game Plus runs this save has started */
+#define NG_PLUS_UNLOCKED 642 /* the island was saved in an earlier run: the save machine keeps the option */
+#define NG_PLUS_KEPT(t) (((t) >= 15 && (t) <= 36) || ((t) >= 364 && (t) <= 383) || ((t) >= 512 && (t) <= 574) || \
+			 (t) == 582 || ((t) >= 641 && (t) <= 648) || (t) == TRIGGER_RAISED_MYOTISMON)
+
+void modNewGamePlusReset(void)
+{
+	SavegamePayload *savegame = &SAVE_FILE.saves[0];
+	ScriptState *live = SCRIPT_STATE_PTR;
+	ScriptState *saved = (ScriptState *)savegame->scriptState;
+	uint8_t tamer[TAMER_STATE_SIZE];
+	uint8_t cards[CARD_EXTRA_BYTES];
+	uint8_t raised[NUM_DIGIMON / 8];
+	int32_t i, t;
+
+	memcpy(tamer, MOD_TAMER_STATE, sizeof(tamer));
+	memcpy(cards, MOD_CARD_EXTRA, sizeof(cards));
+	memcpy(raised, SPECIES_RAISED_BITS, sizeof(raised));
+	memcpy(SAVE_FILE.saves[1].battleRegistrationData, savegame->battleRegistrationData,
+	       sizeof(savegame->battleRegistrationData));
+	initializeDefaultSavegame();
+	memcpy(savegame->battleRegistrationData, SAVE_FILE.saves[1].battleRegistrationData,
+	       sizeof(savegame->battleRegistrationData));
+	memcpy(SPECIES_RAISED_BITS, raised, sizeof(raised));
+	memcpy(savegame->playerName, DIGIMON_NAME(0), 0x14);
+	savegame->tamerLevel = TAMER_ENTITY.tamerLevel;
+	savegame->raisedCount = TAMER_ENTITY.raisedCount < 99 ? TAMER_ENTITY.raisedCount + 1 : 99;
+	savegame->playtimeFrames = PLAYTIME_FRAMES;
+	savegame->playtimeHours = PLAYTIME_HOURS;
+	savegame->playtimeMinutes = PLAYTIME_MINUTES;
+	savegame->tournamentsWon = TOURNAMENTS_WON;
+	savegame->tournamentWins = TOURNAMENT_WINS;
+	savegame->tournamentsLost = TOURNAMENTS_LOST;
+	savegame->partnerPara.fishCaught = PARTNER_PARA.fishCaught;
+	memcpy(saved->cards, live->cards, sizeof(saved->cards));
+	memcpy(savegame->partnerData, &PARTNER_ENTITY.learnedMoves, 0x10); /* the techniques learned */
+	for (t = 15; t <= TRIGGER_RAISED_MYOTISMON; t++) {
+		if (NG_PLUS_KEPT(t)) {
+			saved->triggers[t >> 3] |= live->triggers[t >> 3] & (1 << (t & 7));
+		}
+	}
+	saved->triggers[NG_PLUS_UNLOCKED >> 3] |= 1 << (NG_PLUS_UNLOCKED & 7);
+	t = MEDAL_TRIGGER(NG_PLUS_MEDAL);
+	saved->triggers[t >> 3] |= 1 << (t & 7); /* the medal New Beginning */
+	saved->pstats[7] = live->pstats[7]; /* the curling cups won */
+	saved->pstats[NG_PLUS_COUNT] = live->pstats[NG_PLUS_COUNT] < 255 ? live->pstats[NG_PLUS_COUNT] + 1 : 255;
+	loadSavegame(savegame);
+	memcpy(MOD_TAMER_STATE, tamer, sizeof(tamer));
+	memcpy(MOD_CARD_EXTRA, cards, sizeof(cards));
+	for (i = 0; i < SCRIPT_NUM_WREGS; i++) {
+		SCRIPT_STATE_PTR->wregs[i] = 0;
+	}
+	for (i = 35; i < 256; i++) { /* the unsaved pstats, as a boot leaves them */
+		SCRIPT_STATE_PTR->pstats[i] = 0;
+	}
+	MOD_SWAP_FROM = MOD_SWAP_TO = 0;
+}
+
 char *_strncpy(char *dst, char *src, int32_t n)
 {
 	int32_t i;
@@ -5965,6 +6036,11 @@ void modMenuVsBattle(int32_t trial)
 void openSaveMachine(void)
 {
 	loadMenuOverlay();
+	if (readPStat(126)) { /* MOD (New Game Plus): asked by the save machine's script */
+		modNewGamePlusReset();
+		MOD_CHEATS_TRANSITION = 3;
+		return;
+	}
 	CHECKED_MEMORY_CARD = 0x10;
 	CURRENT_MENU = -2;
 	MAIN_STATE = 1;
@@ -5996,6 +6072,10 @@ void modReplayMainMenu(void)
 
 int32_t tickSaveMachine(void)
 {
+	if (MOD_CHEATS_TRANSITION == 3) { /* MOD (New Game Plus): no menu was opened */
+		closeMenuOverlay();
+		return 1;
+	}
 	tickMainMenu();
 	modMainMenuScrollBefore = SAVE_SLOT_SCROLL_TENTHS;
 	renderMainMenu();

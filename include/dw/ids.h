@@ -192,8 +192,9 @@ typedef uint16_t CardId;
 #define TRIGGER_RECRUITED_BASE	200	/* + Digimon type */
 #define TRIGGER_SHOP_STOCK_BASE	0x180	/* + item id */
 #define TRIGGER_RAISED_BASE	0x200	/* + Digimon type */
-/* MOD (technique medals): medal m is trigger 0x16C + m up to medal 19 (0x180 is the shop stock); medal 20 is trigger 641 */
-#define MEDAL_TRIGGER(m)	((m) < 20 ? (m) + 0x16c : (m) - 20 + 641)
+/* MOD (technique medals): medal m is trigger 0x16C + m up to medal 19 (0x180 is the shop stock); medal 20 is trigger 641;
+ * medals 21..26 are 643..648 (642 is New Game Plus, 649 Myotismon raised): a medal past 26 needs another free block */
+#define MEDAL_TRIGGER(m)	((m) < 20 ? (m) + 0x16c : (m) == 20 ? 641 : (m) - 21 + 643)
 
 /*
  * The current and previous screen, 16-bit since step 3 of ids.md § 10.

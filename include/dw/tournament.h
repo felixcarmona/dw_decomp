@@ -36,7 +36,7 @@ int32_t checkTournamentMedalConditions(void);
 #define MOD_MEDAL_HIDE		64
 /* where the original game's residents end: the ids from here on are Horizon's (the City page marks them) */
 #define MOD_ORIGINAL_RESIDENTS_END	59
-#define MOD_MEDAL_COUNT		21 /* medals 0..19 are the triggers 0x16C.., medal 20 is trigger 641 (MEDAL_TRIGGER) */
+#define MOD_MEDAL_COUNT		23 /* medals 0..19 are the triggers 0x16C.., medal 20 is trigger 641, 21.. are 643.. (MEDAL_TRIGGER) */
 enum {
 	MOD_MEDAL_ALL_TRIGGERS = 1, /* a = first trigger, b = how many: all set */
 	MOD_MEDAL_WINS,             /* tournament wins >= a */

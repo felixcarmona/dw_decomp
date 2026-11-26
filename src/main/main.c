@@ -3605,10 +3605,22 @@ int32_t main(void)
 		if (MOD_CHEATS_TRANSITION) {
 			partnerId = MOD_CHEATS_TRANSITION;
 			MOD_CHEATS_TRANSITION = 0;
+			if (partnerId == 3) { /* MOD (New Game Plus): the script waits while the screen goes black */
+				fadeToBlack(0x28);
+				while (FADE_OUT_CURRENT < 0x28) {
+					gameLoop();
+				}
+			}
 			modCheatsCleanup();
 			cleanupGame();
 			finalizeMusic();
 			if (partnerId == 1) { MAIN_STATE = 1; initializeMusic(); goto cheats_loaded; }
+			if (partnerId == 3) { /* MOD (New Game Plus): the new game's scene, as from the title */
+				MAIN_STATE = 0;
+				loadStackedTIMFile(MAIN_D_8012CE8C);
+				initializeMusic();
+				goto cheats_loaded;
+			}
 			goto cheats_title;
 		}
 		cleanupGame();

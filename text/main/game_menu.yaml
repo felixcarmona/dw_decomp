@@ -391,6 +391,24 @@ CHART_TEXT:
     STR_MEDAL_DESCRIPTION_ALL_TECHNIQUES_2:
       en_us: "the new ones included"
       ja: "the new ones included"
+    STR_MEDAL_NAME_NEW_BEGINNING:
+      en_us: "New Beginning"
+      ja: "New Beginning"
+    STR_MEDAL_DESCRIPTION_NEW_BEGINNING_1:
+      en_us: "Started over"
+      ja: "Started over"
+    STR_MEDAL_DESCRIPTION_NEW_BEGINNING_2:
+      en_us: "in a New Game+"
+      ja: "in a New Game+"
+    STR_MEDAL_NAME_SECOND_JOURNEY:
+      en_us: "Second Journey"
+      ja: "Second Journey"
+    STR_MEDAL_DESCRIPTION_SECOND_JOURNEY_1:
+      en_us: "Saved the island again"
+      ja: "Saved the island again"
+    STR_MEDAL_DESCRIPTION_SECOND_JOURNEY_2:
+      en_us: "in a New Game+"
+      ja: "in a New Game+"
     STR_MEDAL_EARNED:
       en_us: "Earned"
       ja: "Earned"
