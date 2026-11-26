@@ -17,6 +17,8 @@
 #include <dw/graphics.h>
 #include <dw/line.h>
 #include <dw/math.h>
+#include <dw/memmap.h>
+#include <dw/mod_present.h>
 #include <dw/model.h>
 #include <dw/params.h>
 #include <dw/rng.h>
@@ -1035,14 +1037,38 @@ void VS_tickEFEEngine(void)
 	}
 }
 
+/* MOD (fps): as BTL_renderEFEEngine (battle_effect.c): the render scripts run
+ * on every render pass of a tick; on the extra passes the effect's
+ * script/data area is copied aside before the slot's scripts and put back
+ * after them, the opcodes that reach outside the effect do nothing and the
+ * random numbers are the first pass's. The copy goes below the arena model
+ * (ARENA_TMD_ADDR), the top of the free part of the EFE heap here. */
 void VS_renderEFEEngine(void)
 {
 	int32_t i;
 	int32_t j;
 	int32_t n;
+	int32_t saved;
+	uint32_t *buf = NULL;
+	int32_t target;
+	int32_t hit;
+	int32_t section;
 
+	target = EFE_TARGET_ENTITY_INDEX;
+	hit = EFE_HIT_ENTITY_INDEX;
+	section = EFE_ACTIVE_SECTION;
 	EFE_DATA_ITERATOR = EFE_DATA_PTR;
 	for (i = 0; i < 0x10; i++) {
+		saved = 0;
+		if (MOD_RENDER_PASS != 0 && EFE_DATA_ITERATOR->data != 0L) {
+			n = EFE_DATA_ITERATOR->numSubEffects;
+			for (j = 0; j < n; j++) {
+				if (EFE_DATA_ITERATOR->subEffects[j].inst != NULL) {
+					saved = modEfeAreaSave(EFE_DATA_ITERATOR->data, ARENA_TMD_ADDR, &buf);
+					break;
+				}
+			}
+		}
 		n = EFE_DATA_ITERATOR->numObjects;
 		for (j = 0; j < n; j++) {
 			EFE_DATA_ITERATOR->uvAnims[j].unk2 = 0;
@@ -1059,9 +1085,18 @@ void VS_renderEFEEngine(void)
 				}
 			}
 		}
+		if (saved) {
+			modEfeAreaRestore(EFE_DATA_ITERATOR->data, buf, saved);
+		}
 		EFE_DATA_ITERATOR++;
 	}
 
+	if (MOD_RENDER_PASS != 0) {
+		/* interpreter state a later tick may read */
+		EFE_TARGET_ENTITY_INDEX = target;
+		EFE_HIT_ENTITY_INDEX = hit;
+		EFE_ACTIVE_SECTION = section;
+	}
 	VS_renderParticleEmitters();
 }
 
@@ -1755,6 +1790,9 @@ void VS_isTargetUnhit(void)
 
 void VS_markEFEFinished(void)
 {
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	UNUSED_EFE_ARRAY[COMBAT_EFFECT_ITR] = 0;
 }
 
@@ -1815,6 +1853,9 @@ void VS_applyBoxAttackHit(void)
 	out = EFE_POP1(int32_t *);
 	ext = EFE_POP1(EfeVector *);
 	*out = 0;
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	if (r < 0) {
 		r = EFE_SUB_EFFECT_INDEX;
 	}
@@ -1858,6 +1899,9 @@ void VS_applyRadiusAttackHit(void)
 	hitFlag = EFE_POP1(int32_t *);
 	r = EFE_POP1(int32_t);
 	*hitFlag = 0;
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	r = r * r;
 	EFE_HIT_ENTITY_INDEX = 1;
 	while (EFE_HIT_ENTITY_INDEX < 10) {
@@ -1914,6 +1958,9 @@ void VS_applyLineAttackHit(void)
 	out = EFE_POP1(int32_t *);
 	arg = EFE_POP1(int32_t *);
 	*out = 0;
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	line[0].vx = ((EfeTransform *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 4))->position.vx;
 	line[0].vy = *(int32_t *)((int32_t)EFE_CURRENT_DATA_SEGMENT + 0xc);
 	line[1].vx = EFE_SCRIPT_CONTEXT->sourceEntity->posData->location.vx;
@@ -1961,7 +2008,7 @@ void VS_faceTargetEntity(void)
 {
 	PositionData *pd;
 
-	if (EFE_SCRIPT_CONTEXT->targetEntity == NULL) {
+	if (EFE_SCRIPT_CONTEXT->targetEntity == NULL || MOD_RENDER_PASS != 0) { /* MOD (fps) */
 		return;
 	}
 
@@ -2289,7 +2336,7 @@ void VS_loadClutColors(void)
 	x = EFE_POP1(int32_t);
 	y = EFE_POP1(int32_t);
 
-	if ((count > 0) && (count <= 16)) {
+	if ((count > 0) && (count <= 16) && MOD_RENDER_PASS == 0) { /* MOD (fps) */
 		m = EFE_DATA_ITERATOR->model;
 		for (i = 0; i < count; i++) {
 			clut[i] = *src++;
@@ -2351,7 +2398,7 @@ void VS_selectRandomTargetEntity(void)
 	int32_t n;
 
 	excludeSelf = *--EFE_DATA_STACK;
-	for (n = rand() % 8; n >= 0; n--) {
+	for (n = modRenderRand() % 8; n >= 0; n--) { /* MOD (fps): see VS_renderEFEEngine */
 		EFE_TARGET_ENTITY_INDEX++;
 		while (1) {
 			while (EFE_TARGET_ENTITY_INDEX < 10) {
@@ -3140,7 +3187,7 @@ void VS_getRandomInRange(void)
 	a = EFE_POP1(int32_t);
 	b = EFE_POP1(int32_t);
 	out = EFE_POP1(int32_t *);
-	*out = customRandom(b, a);
+	*out = modRenderCustomRandom(b, a); /* MOD (fps): see VS_renderEFEEngine */
 }
 
 void VS_interpolateValue(void)
@@ -3567,7 +3614,7 @@ void VS_playEFESound(void)
 	EfeSound *p;
 
 	id = EFE_POP1(int32_t);
-	if (id < 0) {
+	if (id < 0 || MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
 		return;
 	}
 
@@ -3592,7 +3639,9 @@ void VS_addSourceEntityParticleFX(void)
 	int32_t timer;
 
 	timer = EFE_POP1(int32_t);
-	addEntityParticleFX(EFE_SCRIPT_CONTEXT->sourceEntity, timer);
+	if (MOD_RENDER_PASS == 0) { /* MOD (fps): see VS_renderEFEEngine */
+		addEntityParticleFX(EFE_SCRIPT_CONTEXT->sourceEntity, timer);
+	}
 }
 
 void VS_copyFromParentTransform(void)
@@ -3805,6 +3854,9 @@ void VS_addCloudEffect(void)
 	EfeVector *v;
 
 	v = EFE_POP1(EfeVector *);
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	pos.vx = v->vx;
 	pos.vy = v->vy;
 	pos.vz = v->vz;
@@ -3861,6 +3913,9 @@ void VS_addParticleEmitter(void)
 	vec = EFE_POP1(EfeVector *);
 	n = EFE_POP1(int32_t);
 	b = EFE_POP1(int32_t);
+	if (MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
+		return;
+	}
 	for (i = 0; i < 4; i++) {
 		if (EFE_PARTICLE_EMITTERS[i].transform == NULL) {
 			break;
@@ -4040,9 +4095,10 @@ void VS_getScatteredSpawnPosition(void)
 	}
 
 	if (r > 0) {
-		out->vx = out->vx + ((rand() % r) - (r >> 1));
-		out->vy = out->vy + ((rand() % r) - (r >> 1));
-		out->vz = out->vz + ((rand() % r) - (r >> 1));
+		/* MOD (fps): see VS_renderEFEEngine */
+		out->vx = out->vx + ((modRenderRand() % r) - (r >> 1));
+		out->vy = out->vy + ((modRenderRand() % r) - (r >> 1));
+		out->vz = out->vz + ((modRenderRand() % r) - (r >> 1));
 	}
 }
 
@@ -4058,7 +4114,8 @@ void VS_addAttackObjectToTarget(void)
 	int32_t i;
 	int32_t j;
 
-	if (((DigimonEntity *)EFE_SCRIPT_CONTEXT->targetEntity)->stats.current.isHit != 0) {
+	if (((DigimonEntity *)EFE_SCRIPT_CONTEXT->targetEntity)->stats.current.isHit != 0 ||
+	    MOD_RENDER_PASS != 0) { /* MOD (fps): see VS_renderEFEEngine */
 		return;
 	}
 
@@ -4492,7 +4549,7 @@ void VS_loadEFEIndexedVariable(void)
 
 void VS_loadEFERandomValue(void)
 {
-	EFE_SCRIPT_REGISTER = rand();
+	EFE_SCRIPT_REGISTER = modRenderRand(); /* MOD (fps): see VS_renderEFEEngine */
 	EFE_SCRIPT_PTR = (int16_t *)((int32_t)EFE_SCRIPT_PTR + 2);
 }
 
@@ -5475,7 +5532,7 @@ void VS_renderFinisherAura(int32_t id)
 	scale.vy = sy;
 	renderTMDModel(*(uint8_t **)&VS_FINISHER_AURA_MODEL, VS_FINISHER_AURA_OBJECTS[fa->frame / 2 % 3], &coord, NULL, &trans, &rot, &scale);
 	renderTMDModel(*(uint8_t **)&VS_FINISHER_AURA_MODEL, 3, &coord, NULL, &trans, &rot, &scale);
-	rot.vy = rand();
+	rot.vy = modRenderRand(); /* MOD (fps): render-side random number */
 	scale.vx = scale.vz = sx * 140 / 100;
 	renderTMDModel(*(uint8_t **)&VS_FINISHER_AURA_MODEL, 4, &coord, NULL, &trans, &rot, &scale);
 

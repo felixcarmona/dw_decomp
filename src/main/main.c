@@ -13,6 +13,7 @@
 #include <dw/butterfly.h>
 #include <dw/clock.h>
 #include <dw/combat.h>
+#include <dw/efe.h>
 #include <dw/entity.h>
 #include <dw/fade.h>
 #include <dw/font.h>
@@ -4152,6 +4153,27 @@ void modRenderRollbackEnd(void)
 	}
 }
 
+int32_t modEfeAreaSave(int32_t data, uint32_t top, uint32_t **buf)
+{
+	int32_t size = ((EfeFileHeader *)(data - 0x34))->tmdStart & ~3;
+	uint32_t *b;
+
+	b = (uint32_t *)((top - (uint32_t)size) & ~3u);
+	if (size <= 0 || size > 0x10000 ||
+	    (uint32_t)b < (uint32_t)EFE_HEAP_POINTER + 0x5000) {
+		MOD_FPS_EFE_NO_ROOM++;
+		return 0;
+	}
+	modCopy(b, (void *)data, size);
+	*buf = b;
+	return size;
+}
+
+void modEfeAreaRestore(int32_t data, uint32_t *buf, int32_t size)
+{
+	modCopy((void *)data, buf, size);
+}
+
 static uint32_t modRenderLcg = 0x1234567;
 
 /* The random numbers the first render pass of a tick drew (modRenderRand,
@@ -4966,6 +4988,9 @@ void modPresent(int32_t flags, ModRollbackSet *extra)
 			modFpsBeginFrame();
 			modRestorePass0View();
 			modReplayTickPrims();
+			if (modExtraRollback != NULL && modExtraRollback->replay != NULL) {
+				modExtraRollback->replay();
+			}
 		} else {
 			modSavePass0View();
 			if (interp) {
