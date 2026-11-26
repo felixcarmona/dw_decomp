@@ -274,6 +274,14 @@ RaiseData *getSpeciesRaise(int32_t type)
 	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? &rec->raise : &NO_RAISE;
 }
 
+RaiseData *raiseRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &RAISE_DATA[type];
+	}
+	return getSpeciesRaise(type);
+}
+
 EvoRequirements *getSpeciesEvoReqs(int32_t type)
 {
 	SpeciesRecord *rec;

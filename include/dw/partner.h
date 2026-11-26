@@ -53,13 +53,8 @@ typedef struct {
 extern RaiseData RAISE_DATA[NUM_ORIGINAL_DIGIMON];
 RaiseData *getSpeciesRaise(int32_t type);
 int32_t getItemTakeDistance(int32_t type);
-static inline RaiseData *raiseRow(int32_t type)
-{
-	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
-		return &RAISE_DATA[type];
-	}
-	return getSpeciesRaise(type);
-}
+/* MOD (heap): a function, not inline: inlined at every RAISE_ROW it cost the main executable 528 bytes */
+RaiseData *raiseRow(int32_t type);
 #define RAISE_ROW(type) (*raiseRow(type))
 extern PoopPile WORLD_POOP[];
 
