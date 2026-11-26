@@ -11,10 +11,10 @@
  * and restoring this shared row in utils2.c. The sprite is MOD_VERSION_W wide: pixels past the text are clear.
  */
 #define MOD_VERSION_ROW		0x3C /* the title menu's rows are 0..0x30 (OPTIONS) */
-#define MOD_VERSION_LEFT	8
+#define MOD_VERSION_LEFT	16
 #define MOD_VERSION_W		0xFF /* the whole row (a u of 8 bits) */
-#define MOD_VERSION_TOP		224
-#define MOD_VERSION_PAUSE_TOP	4 /* above every clock frame; below, the Cheats hint occupies y=206..230 */
+#define MOD_VERSION_TOP		216
+#define MOD_VERSION_PAUSE_TOP	8 /* above every clock frame; below, the Cheats hint occupies y=206..230 */
 #define MOD_VERSION_COLOR	8 /* 0x50 grey */
 
 extern char MOD_VERSION_TEXT[32];
