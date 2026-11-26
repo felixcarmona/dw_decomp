@@ -24,6 +24,7 @@
 #include <dw/map_object.h>
 #include <dw/math.h>
 #include <dw/model.h>
+#include <dw/move.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/sound.h>
@@ -630,22 +631,54 @@ void initializePartner(int32_t type, int32_t posX, int32_t posY,
 void modInitializeStarterTechniques(int32_t type)
 {
 	int32_t i;
+	int32_t slot;
+	int32_t base;
+	int32_t move;
+	int32_t best;
+	int32_t special;
+	int32_t window;
+	DigimonPara *para;
 
-	/* The rebirth path equips the first list animation (0x2e). New starters
-	 * also learn that list entry; keep the two authored opening exceptions. */
+	/* The rebirth path equips the first list animation (0x2e); keep the two
+	 * authored opening exceptions. */
 	PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x2e;
 	for (i = 0; i < 2; i++) {	/* MOD (species JSON): was Agumon and Gabumon by literal */
 		if (NEW_GAME_TECHNIQUES[i].type == type) {
 			PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = NEW_GAME_TECHNIQUES[i].animation;
 			learnMove(NEW_GAME_TECHNIQUES[i].technique);
-			break;
+			return;
 		}
 	}
 
-	/* Fresh Bubble attacks are intrinsic, outside the learned-move bitset. */
-	if (i == 2 && DIGI_PARA(type).moves[0] < 0x3a) {
-		learnMove(DIGI_PARA(type).moves[0]);
+	/* MOD (starter techniques): every other starter opens with what evolving
+	 * into it teaches (EVL_applyEvolution): the weakest technique of its main
+	 * element, by the same formula slots. Its first list entry can be of any
+	 * strength (Gotsumon's is Megaton Punch). */
+	para = &DIGI_PARA(type);
+	special = para->special[0];
+	base = special <= 6 ? MOD_EVO_FORMULA[MOD_EVF_LEARN_BASE0 + special] : -1;
+	window = evoAmt(MOD_EVF_LEARN_WINDOW);
+	best = 0xff;
+	slot = 0;
+	for (i = 0; base >= 0 && i < 16; i++) {
+		move = para->moves[i];
+		if ((uint32_t)(move - base) <= (uint32_t)window &&
+		    (best == 0xff || (MOVE_DATA[best].power > MOVE_DATA[move].power && MOVE_DATA[move].power != 0))) {
+			best = move;
+			slot = i;
+		}
 	}
+
+	/* No technique of its element: the first list entry. Fresh Bubble attacks
+	 * are intrinsic, outside the learned-move bitset. */
+	if (best == 0xff) {
+		best = para->moves[0];
+		if (best >= 0x3a) {
+			return;
+		}
+	}
+	PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = slot + 0x2e;
+	learnMove(best);
 }
 
 void renderPoop(int32_t instanceId)
