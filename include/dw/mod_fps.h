@@ -41,10 +41,13 @@ int32_t modRenderRand(void);
 
 /* Interpolation of the render passes (main.c, docs/mods/60fps.md 2.3-2.4):
  * MOD_FPS_INTERP switches it (with more than one render per tick);
- * MOD_INTERP_MAP_GEN is bumped when a map is set up or unloaded (a snap). */
+ * MOD_INTERP_MAP_GEN is bumped when a map is set up or unloaded (a snap);
+ * render code that moves an entity itself calls modInterpUnapplyEntity first
+ * to get the tick's values back. */
 extern int32_t MOD_FPS_INTERP;
 extern int32_t MOD_INTERP_MAP_GEN;
 extern int32_t MOD_MIST_SHIFT[3];
+void modInterpUnapplyEntity(int32_t entityId);
 void modInterpInvalidate(void);
 
 #endif
