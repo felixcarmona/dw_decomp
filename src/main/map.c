@@ -5145,6 +5145,10 @@ void handleTileUpdate(int32_t input, int32_t force)
 {
 	int32_t band, phase;
 
+	/* Resolve both axes before uploading a diagonal band. The dry run
+	 * selects its destination without reading a temporary old-column corner. */
+	if (force == 0) handleTileUpdate(input, 2);
+
 	if ((((input & 0x1000) != 0) ||
 	     ((input & 0x8000) != 0) ||
 	     ((input & 0x2000) != 0)) &&
