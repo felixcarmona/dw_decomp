@@ -835,6 +835,13 @@ static int32_t partnerReviewedIdleMayWalk(EntityAnim *anim)
 static int32_t partnerReviewedWalkCycleEnd(EntityAnim *anim)
 {
 	int32_t type = PARTNER_ENTITY.digimonEntity.entity.type;
+	/* Other long imported field walks yield to a pending navigation or needs
+	 * change after 24 logic ticks, reusing animation state: no timer, no allocation. */
+	if (type >= 180 && type != 189 && type != 201 &&
+	    (anim->animId == 2 || anim->animId == 3) &&
+	    anim->frameCount >= 41 && anim->loopCount != 0) {
+		return anim->animFrame >= 26;
+	}
 	return (type == 189 || type == 201) && anim->animId == 2 &&
 	       anim->frameCount == 73 && anim->loopCount != 0 &&
 	       anim->animFrame >= 26 && (anim->animFrame - 2) % 24 == 0;
