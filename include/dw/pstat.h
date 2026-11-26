@@ -268,5 +268,9 @@
    out with both sides standing the battle ends and PSTAT_BATTLE_TIMED_OUT reads 1 (both are not saved) */
 #define PSTAT_BATTLE_TIMED_OUT		PSTAT_241
 #define PSTAT_BATTLE_TIME_LIMIT		PSTAT_242
+/* MOD (death map entry): 1 while the screen was loaded by the partner's death or lost life (Jijimon's house, 218 or 205,
+   where the death and rebirth scenes play), 0 after any other load; checkShopMap writes it on every map load (not saved).
+   A story's enter code on those screens tests it, so that it waits for a real homecoming */
+#define PSTAT_DEATH_MAP_ENTRY		PSTAT_124
 
 #endif
