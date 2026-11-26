@@ -37,12 +37,12 @@ typedef struct {
 long RotTransPers3(SVECTOR *v0, SVECTOR *v1, SVECTOR *v2, long *sxy0, long *sxy1, long *sxy2, long *p, long *flag);
 int abs(int x);
 int32_t addObject(int32_t objectId, int16_t instanceId, void (*tick)(int32_t), void (*render)(int32_t));
-void checkArenaMap(uint8_t mapId);
+void checkArenaMap(int32_t mapId);
 void checkCurlingMap(int32_t mapId);
 void checkFishingMap(int32_t mapId, int32_t arg1);
 int32_t checkMapCollisionX(Entity *entity, int32_t direction);
 int32_t checkMapCollisionZ(Entity *entity, int32_t direction);
-void checkShopMap(uint8_t mapId);
+void checkShopMap(int32_t mapId);
 void clearMapDigimon(void);
 void entityLookAtTile(Entity *entity, int32_t tileX, int32_t tileY);
 void getModelTile(VECTOR *pos, int16_t *outTileX, int16_t *outTileY);
@@ -2940,8 +2940,8 @@ int8_t CURRENT_TIME_OF_DAY;
 int32_t SKIP_MAP_FILE_READ;
 int8_t DAYTIME_TRANSITION_ACTIVE;
 int16_t DAYTIME_TRANSITION_TARGET;
-uint8_t CURRENT_SCREEN;
-uint8_t PREVIOUS_SCREEN;
+ScreenId CURRENT_SCREEN;
+ScreenId PREVIOUS_SCREEN;
 uint8_t CURRENT_EXIT;
 uint8_t PREVIOUS_EXIT;
 int8_t CAMERA_REACHED_TARGET;
@@ -2970,7 +2970,7 @@ int16_t CAMERA_MOVE_FINAL_Y;
 int8_t CAMERA_MOVE_DELTA_X;
 int8_t CAMERA_MOVE_DELTA_Y;
 int16_t SCRIPT_MAP_CHANGE_STATE;
-uint8_t TARGET_MAP;
+ScreenId TARGET_MAP;
 int8_t TRN_LOADING_COMPLETE;
 int32_t MERAMON_SHAKE_DATA;
 uint8_t MERAMON_SHAKE_FRAME_COUNT;
@@ -5521,7 +5521,7 @@ void changeMap(int16_t mapId, int16_t exitId)
 	}
 
 	CURRENT_EXIT = exitId;
-	runMapHeadScript(mapId & 0xff);
+	runMapHeadScript(mapId); /* MOD: the whole 16-bit section id */
 }
 
 void setDeathMap(int16_t a, int16_t b)
