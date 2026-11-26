@@ -6,6 +6,7 @@
 #include <libgs.h>
 #include <libgte.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/mod_fps.h>
 #include <dw/clock.h>
@@ -1184,7 +1185,7 @@ void tickTriangleMenu(void)
 			TRIANGLE_MENU_STATE = -1;
 		}
 		clearTextSubArea(&rect);
-		drawString(STR_YEAR_DAY, 0, 0xe8);
+		DRAW_STRING_CELLS(STR_YEAR_DAY, 0, 0xe8);
 		break;
 	case 1:
 		closeUIBoxIfOpen(0);
@@ -1203,7 +1204,7 @@ void tickTriangleMenu(void)
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickDigimonMenu, renderDigimonMenu);
 			clearTextArea();
-			drawString(STATUS_VIEW_LABELS[0], 0, 0);
+			DRAW_STRING_CELLS(STATUS_VIEW_LABELS[0], 0, 0);
 			MENU_STATE = 0;
 			MENU_SUB_STATE = 0;
 			TRIANGLE_MENU_STATE = -1;
@@ -1224,7 +1225,7 @@ void tickTriangleMenu(void)
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickPlayerMenu, renderPlayerMenu);
 			clearTextArea();
-			drawString(PLAYER_VIEW_LABELS[0], 0, 0);
+			DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[0], 0, 0);
 			MENU_STATE = 0;
 			MENU_SUB_STATE = 0;
 			TRIANGLE_MENU_STATE = -1;
@@ -2895,7 +2896,7 @@ int32_t drawMoveViewHelpStrings(void)
 	/* The original indexed STATUS_VIEW_LABELS[MENU_SUB_STATE + 9], past its 8 entries: the
 	 * help lines are TECH_VIEW_LABELS[1..8], which follow it in the original's data. GCC
 	 * places TECH_VIEW_LABELS elsewhere, so the help read garbage pointers and hung. */
-	drawString(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18);
+	DRAW_STRING_CELLS(TECH_VIEW_LABELS[MENU_SUB_STATE + 1], 0, MENU_SUB_STATE * 0xc + 0x18);
 	MENU_SUB_STATE++;
 
 	if (MENU_SUB_STATE == 8) {
@@ -3665,9 +3666,9 @@ int32_t drawDigimonStatsStrings(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect);
-		drawString(MAIN_D_80124C54, 0, 0xf0);
-		drawString(MAIN_D_80124C0C[2], 0, 0x24);
-		drawString(MAIN_D_80124C0C[3], 0x24, 0x24);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80124C0C[2], 0, 0x24);
+		DRAW_STRING_CELLS(MAIN_D_80124C0C[3], 0x24, 0x24);
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
@@ -3682,11 +3683,11 @@ int32_t drawDigimonStatsStrings(void)
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
-		drawString(STATUS_VIEW_LABELS[1], 0, 0x30);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[1], 0, 0x30);
 		MENU_SUB_STATE = 3;
 		break;
 	case 3:
-		drawString(STATUS_VIEW_LABELS[2], 0, 0x18);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[2], 0, 0x18);
 
 		return 1;
 	}
@@ -3871,7 +3872,7 @@ int32_t drawDigimonMovesText(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect);
-		drawString(MAIN_D_80124C54, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[0] != 0xff) {
 			EQUIPPED_MOVES[0] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[0]);
@@ -3882,7 +3883,7 @@ int32_t drawDigimonMovesText(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		drawString(STATUS_VIEW_LABELS[3], 0, 0x48);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[3], 0, 0x48);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[1] != 0xff) {
 			EQUIPPED_MOVES[1] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[1]);
@@ -3896,7 +3897,7 @@ int32_t drawDigimonMovesText(void)
 #endif
 		break;
 	case 2:
-		drawString(STATUS_VIEW_LABELS[6], 0x84, 0x6c);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[6], 0x84, 0x6c);
 		if (PARTNER_ENTITY.digimonEntity.stats.base.moves[2] != 0xff) {
 			EQUIPPED_MOVES[2] = entityGetTechFromAnim(ENTITY_TABLE[1],
 			                                          PARTNER_ENTITY.digimonEntity.stats.base.moves[2]);
@@ -3917,19 +3918,19 @@ int32_t drawDigimonMovesText(void)
 		} else {
 			EQUIPPED_MOVES[3] = 0xff;
 		}
-		drawString(STATUS_VIEW_LABELS[4], 0, 0x6c);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[4], 0, 0x6c);
 		MENU_SUB_STATE = 4;
 #if VERSION_EQUAL_OR_NEWER(JP_TRIAL)
 		DrawSync(0);
 #endif
 		break;
 	case 4:
-		drawString(STATUS_VIEW_LABELS[5], 0, 0x54);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[5], 0, 0x54);
 		MENU_SUB_STATE = 5;
 		break;
 	case 5:
-		drawString(STATUS_VIEW_LABELS[7], 0, 0x60);
-		drawString(TECH_VIEW_LABELS[0], 0, 0x78);
+		DRAW_STRING_CELLS(STATUS_VIEW_LABELS[7], 0, 0x60);
+		DRAW_STRING_CELLS(TECH_VIEW_LABELS[0], 0, 0x78);
 		MOVE_SELECT_BOX_X = 0x73;
 		MOVE_SELECT_BOX_Y = 0x6f;
 		return 1;
@@ -3949,7 +3950,7 @@ int32_t drawPlayerInfoStrings(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect);
-		drawString(MAIN_D_80124C54, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
@@ -3959,7 +3960,7 @@ int32_t drawPlayerInfoStrings(void)
 #endif
 	case 2:
 	case 3:
-		drawString(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0,
+		DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[MENU_SUB_STATE + 1], 0,
 		           (MENU_SUB_STATE - 1) * 0xc + 0xc);
 		MENU_SUB_STATE++;
 		break;
@@ -3989,16 +3990,16 @@ int32_t drawEvoChartStrings(int32_t arg)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect1);
-		drawString(MAIN_D_80124C54, 0, 0xf0);
-		drawString(CARD_CHART_LABELS[1], 0, 0xc);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
+		DRAW_STRING_CELLS(CARD_CHART_LABELS[1], 0, 0xc);
 		CHART_SELECTED_COLUMN = CHART_SELECTED_ROW = 0;
 		MENU_SUB_STATE = 1;
 		/* fall through */
 	case 1:
-		drawString(CARD_CHART_LABELS[2], 0, 0x18);
+		DRAW_STRING_CELLS(CARD_CHART_LABELS[2], 0, 0x18);
 #if VERSION_IS(US)
-		drawString(CARD_CHART_LABELS[3], 0, 0x24);
-		drawString(CARD_CHART_LABELS[4], 0, 0x3c);
+		DRAW_STRING_CELLS(CARD_CHART_LABELS[3], 0, 0x24);
+		DRAW_STRING_CELLS(CARD_CHART_LABELS[4], 0, 0x3c);
 		drawString(EVO_CHART_MEGA_LABEL, 0, EVO_CHART_MEGA_ROW); /* MOD (mega) */
 #endif
 		return 1;
@@ -4024,11 +4025,11 @@ int32_t drawMedalViewStrings(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect1);
-		drawString(MAIN_D_80124C54, 0, 0xf0);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		drawString(PLAYER_VIEW_LABELS[1], 0, 0xc);
+		DRAW_STRING_CELLS(PLAYER_VIEW_LABELS[1], 0, 0xc);
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
@@ -4060,11 +4061,11 @@ int32_t drawCardViewStrings(void)
 	switch (MENU_SUB_STATE) {
 	case 0:
 		clearTextSubArea(&rect);
-		drawString(MAIN_D_80124C54, 0, 0xF0);
+		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xF0);
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		drawString(CARD_CHART_LABELS[0], 0, 0xC);
+		DRAW_STRING_CELLS(CARD_CHART_LABELS[0], 0, 0xC);
 		SELECTED_CARD = 0;
 		return 1;
 	}

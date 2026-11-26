@@ -6,6 +6,7 @@
 #include <dw/garbage.h>
 #include <dw/input.h>
 #include <dw/item.h>
+#include <dw/mod_font.h>
 #include <dw/params.h>
 #include <dw/script.h>
 #include <dw/sjis.h>
@@ -160,6 +161,9 @@ int32_t drawTextboxStrings(boxId, flag)
 		x = 2;
 	}
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	FONT_CELLS = (TEXTBOX_CELLS >> boxId) & 1;
+#endif
 	while (x != 0) {
 #if !VERSION_IS(US)
 		done = drawString2(buf, px, row);
@@ -178,6 +182,9 @@ int32_t drawTextboxStrings(boxId, flag)
 		buf += 0x40;
 		x--;
 	}
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	FONT_CELLS = 0;
+#endif
 
 	return 1;
 }
@@ -537,6 +544,15 @@ void closeAllTextboxes(void)
 	}
 }
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+/*
+ * MOD (font): the boxes (bit = box id) whose rows a screen cuts into pieces at offsets made for the original
+ * advances (the tournament calendar, the shop's bits and confirm boxes): their rows are drawn in the original's
+ * cells (font.c FONT_CELLS). createTextbox clears the bit; the creator of such a box sets it.
+ */
+uint8_t TEXTBOX_CELLS;
+#endif
+
 // clang-format off
 void createTextbox(boxId, flags, rect, origin, tick, render)
 	uint8_t boxId;
@@ -560,6 +576,9 @@ void createTextbox(boxId, flags, rect, origin, tick, render)
 	entry->origin = *origin;
 	entry->tick = tick;
 	entry->render = render;
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+	TEXTBOX_CELLS &= ~(1 << boxId); /* MOD (font): its rows are laid out to the pixel unless its creator says */
+#endif
 
 	setFreshDialogue();
 }
@@ -648,6 +667,34 @@ static int16_t drawString2Fit(uint8_t **str, int16_t x, int16_t y, int16_t pos, 
 }
 #endif
 
+/*
+ * MOD (font): with a font placed to the pixel (FONT_PROPORTIONAL) a clear that starts at the pen (a tab, a fixed
+ * position) begins at the next grid cell of the text area: the 4 pixels the pen is in hold the previous glyph's last
+ * columns, which clearTextSubArea (x / 4) would erase. It ends on the cell after the stop: the next glyph is drawn after.
+ */
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+static void clearFromPen(int32_t px, int32_t py, int32_t w)
+{
+	RECT rect;
+	int32_t x0;
+
+	x0 = (px + 3) & ~3;
+	w = px + w - x0;
+	if (w > 0) {
+		setRECT(&rect, x0, py, w + 3, 0xc);
+		clearTextSubArea(&rect);
+	}
+}
+#define CLEAR_FROM_PEN(px, py, w) clearFromPen(px, py, w)
+#else
+#define CLEAR_FROM_PEN(px, py, w)                    \
+	do {                                         \
+		setRECT(&rect, px, py, w, 0xc);      \
+		clearTextSubArea(&rect);             \
+	} while (0)
+#endif
+
+
 #if !VERSION_IS(US)
 int32_t drawString2(uint8_t *str, int16_t x, int16_t y)
 #else
@@ -691,8 +738,7 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			rem = pos / 12 % 8;
 			if (rem != 0) {
 				rem = (8 - rem) * 12;
-				setRECT(&rect, x + pos, y, rem, 0xc);
-				clearTextSubArea(&rect);
+				CLEAR_FROM_PEN(x + pos, y, rem);
 				pos = pos + rem;
 			}
 			break;
@@ -705,38 +751,32 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			break;
 		case 0x17:
 			str++;
-			setRECT(&rect, x + pos, y, 0x69, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0x69);
 			pos = 0x69;
 			break;
 		case 0x1b:
 			str++;
-			setRECT(&rect, x + pos, y, 0xa0, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0xa0);
 			pos = 0xa0;
 			break;
 		case 0x1c:
 			str++;
-			setRECT(&rect, x + pos, y, 0x64, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0x64);
 			pos = 0x64;
 			break;
 		case 0x18:
 			str++;
-			setRECT(&rect, x + pos, y, 0x60, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0x60);
 			pos = 0x60;
 			break;
 		case 0x19:
 			str++;
-			setRECT(&rect, x + pos, y, 0x9c, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0x9c);
 			pos = 0x9c;
 			break;
 		case 0x1a:
 			str++;
-			setRECT(&rect, x + pos, y, 0xb4, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 0xb4);
 			pos = 0xb4;
 			break;
 		case TEXT_FIT_TIGHT: /* MOD (item names) */
@@ -758,15 +798,13 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			rem = pos / 12 % 0xb;
 			if (rem != 0) {
 				rem = (0xb - rem) * 12;
-				setRECT(&rect, x + pos, y, rem, 0xc);
-				clearTextSubArea(&rect);
+				CLEAR_FROM_PEN(x + pos, y, rem);
 				pos = pos + rem;
 			}
 			break;
 		case 0xf:
 			str++;
-			setRECT(&rect, x + pos, y, 6, 0xc);
-			clearTextSubArea(&rect);
+			CLEAR_FROM_PEN(x + pos, y, 6);
 			pos += 6;
 			break;
 		case 0xd:
@@ -782,6 +820,22 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			}
 #endif
 
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+			/*
+			 * MOD (font): a space is the font's blank glyph, drawn like any other: its cell keeps the previous
+			 * letter's last columns and clears the rest, and it advances its own width. The name keyboard
+			 * (DRAW_STRING2_IS_FIXED_WIDTH) keeps 12-pixel cells, each letter centred in its own.
+			 */
+			if (DRAW_STRING2_IS_FIXED_WIDTH != 0) {
+				drawGlyph(glyph, x + pos + (0xc - glyphWidth(glyph)) / 2, y);
+				adv = 0xc;
+			} else {
+				adv = drawGlyph(glyph, x + pos, y);
+				if (FONT_CELLS != 0 && glyph == 0x4081) {
+					adv = DRAW_STRING2_SPACE_WIDTH; /* the space's cell in these rows */
+				}
+			}
+#else
 			if (glyph == 0x4081) {
 				setRECT(&rect, x + pos, y, 0xc, 0xc);
 				clearTextSubArea(&rect);
@@ -806,6 +860,8 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 				}
 #endif
 			}
+
+#endif
 
 #if !VERSION_IS(US)
 			pos += 0xc;

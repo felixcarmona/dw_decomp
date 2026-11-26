@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/item.h>
 #include <dw/params.h>
@@ -117,7 +118,11 @@ uint8_t *intToStringSJIS(uint8_t *buf, int32_t value, uint8_t digits, int32_t fl
 					if (flag != 0) {
 						goto skip;
 					}
+#if VERSION_IS(US) && FONT_PROPORTIONAL
+					c = FONT_FIGURE_SPACE; /* MOD (font): as wide as a digit */
+#else
 					c = 0x8140;
+#endif
 				}
 			} else {
 				started = 1;

@@ -1,6 +1,7 @@
 #include <libgpu.h>
 #include <libgs.h>
 
+#include <dw/mod_font.h>
 #include <dw/caps.h> /* MOD (caps) */
 #include <dw/clock.h>
 #include <dw/entity.h>
@@ -369,7 +370,7 @@ void TRN2_createPostTrainingStatsBox(void)
 		}
 		if (i == 3) {
 			drawString(MAIN_D_80134BE0, 0, 84);
-			drawString(MAIN_D_80124C54, 0, 240);
+			DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 240);
 		}
 		DrawSync(0);
 	}
