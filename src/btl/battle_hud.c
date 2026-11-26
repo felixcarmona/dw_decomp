@@ -28,6 +28,8 @@
 #include <text/btl/battle_hud.h>
 
 extern GsRVIEW2 GS_VIEWPOINT;
+extern PACKET GS_WORK_BASES[2][0x14000];
+extern int32_t ACTIVE_FRAMEBUFFER;
 extern int32_t VIEWPORT_DISTANCE;
 extern StatsGains STATS_GAINS;
 extern char BTL_STR_LISTENS_TO[];
@@ -168,7 +170,7 @@ uint8_t BTL_FINISHER_SEGMENTS;
 uint8_t BTL_FINISHER_READY;
 uint8_t BTL_MP_BAR_STEP;
 uint8_t BTL_HP_BAR_STEP;
-/* MOD (fps): the start text object (0x1a6) exists; its pieces are rolled back
+/* MOD (fps): the start text object exists; its pieces are rolled back
  * around the extra render passes (battle_main.c) */
 int8_t BTL_START_TEXT_ACTIVE;
 
@@ -955,7 +957,7 @@ void BTL_initializeBattleStartText(void)
 		((int16_t *)*p)[2] = 0;
 	}
 
-	addObject(0x1a6, 0, NULL, (RenderFunction)BTL_renderBattleStartText);
+	addObject(OBJECT_ID_BATTLE_START_TEXT, 0, NULL, (RenderFunction)BTL_renderBattleStartText);
 	BTL_START_TEXT_ACTIVE = 1;
 }
 
@@ -978,6 +980,10 @@ void BTL_renderBattleStartText(void)
 	SVECTOR q3;
 	POLY_FT4 *ft;
 	uint16_t clut;
+	int32_t room;
+	int32_t draw;
+	int32_t shadows;
+	int32_t trails;
 
 	GsSetProjection(0x200);
 	GsSetLsMatrix(&BTL_BATTLE_START_TEXT_MATRIX);
@@ -999,6 +1005,15 @@ void BTL_renderBattleStartText(void)
 
 	p = BTL_BATTLE_START_TEXT_PIECES;
 	prim = (POLY_FT4 *)GsGetWorkBase();
+	/* The 155 pieces can emit 16,120 bytes while the fighters and fleeing
+	 * NPCs are still visible. Keep those packets inside this framebuffer's
+	 * work area, leaving 4 KB for final frame commands. renderObjects draws
+	 * this banner after the scene and HUD. Drop decoration
+	 * before letters; animation must advance even when no packets fit. */
+	room = (uint8_t *)(GS_WORK_BASES[ACTIVE_FRAMEBUFFER] + 0x14000) - (uint8_t *)prim - 0x1000;
+	draw = room >= 0x9b * (int32_t)sizeof(POLY_FT4);
+	shadows = room >= 0x9b * (int32_t)(sizeof(POLY_FT4) + sizeof(POLY_F4));
+	trails = n != 0x9b && room >= 0x9b * (int32_t)(sizeof(POLY_FT4) * 2 + sizeof(POLY_F4));
 	ot = ACTIVE_ORDERING_TABLE->org;
 	for (i = 0; i < 0x9b; i++, p++) {
 		if (((int16_t *)*p)[4] != BTL_BATTLE_START_TEXT_POSITIONS[i][0]) {
@@ -1016,6 +1031,10 @@ void BTL_renderBattleStartText(void)
 			if (((uint8_t *)*p)[0x12] != 0) {
 				((uint8_t *)*p)[0x12] -= 4;
 			}
+		}
+
+		if (!draw) {
+			continue;
 		}
 
 		p0.vx = ((int16_t *)*p)[4];
@@ -1045,7 +1064,7 @@ void BTL_renderBattleStartText(void)
 		setUVWH(prim, (((uint8_t *)*p)[0x13] * 8) + 0x80, 0x80, 8, 8);
 		AddPrim(ot + 5, prim++);
 
-		if (n != 0x9b) {
+		if (trails) {
 			SetPolyFT4(prim);
 			setRGB0(prim, 0x80, 0x80, 0x80);
 			setTPage(prim, 0, 0, 896, 384);
@@ -1082,12 +1101,14 @@ void BTL_renderBattleStartText(void)
 			AddPrim(ot + 5, prim++);
 		}
 
-		shadow = (POLY_F4 *)prim;
-		SetPolyF4(shadow);
-		setRGB0(shadow, 0, 0, 0);
-		setXY4(shadow, ft->x0 + 2, ft->y0 + 2, ft->x1 + 2, ft->y1 + 2, ft->x2 + 2, ft->y2 + 2, ft->x3 + 2, ft->y3 + 2);
-		AddPrim(ot + 6, shadow++);
-		prim = (POLY_FT4 *)shadow;
+		if (shadows) {
+			shadow = (POLY_F4 *)prim;
+			SetPolyF4(shadow);
+			setRGB0(shadow, 0, 0, 0);
+			setXY4(shadow, ft->x0 + 2, ft->y0 + 2, ft->x1 + 2, ft->y1 + 2, ft->x2 + 2, ft->y2 + 2, ft->x3 + 2, ft->y3 + 2);
+			AddPrim(ot + 6, shadow++);
+			prim = (POLY_FT4 *)shadow;
+		}
 	}
 
 	GsSetWorkBase((PACKET *)prim);
@@ -1097,14 +1118,14 @@ void BTL_renderBattleStartText(void)
 
 void BTL_removeBattleStartText(void)
 {
-	removeObject(0x1a6, 0);
+	removeObject(OBJECT_ID_BATTLE_START_TEXT, 0);
 	BTL_START_TEXT_ACTIVE = 0;
 }
 
 void BTL_initializeBattleStartTextBurst(void)
 {
 	BTL_BATTLE_TEXT_FINISHED = 0;
-	addObject(0x1a6, 0, NULL, (RenderFunction)BTL_renderBattleStartTextBurst);
+	addObject(OBJECT_ID_BATTLE_START_TEXT, 0, NULL, (RenderFunction)BTL_renderBattleStartTextBurst);
 	BTL_START_TEXT_ACTIVE = 1;
 }
 
@@ -1125,6 +1146,10 @@ void BTL_renderBattleStartTextBurst(void)
 	POLY_FT4 *ft;
 	int16_t cx;
 	int16_t cy;
+	int32_t room;
+	int32_t draw;
+	int32_t shadows;
+	POLY_FT4 scratch;
 
 	GsSetProjection(0x200);
 	GsSetLsMatrix(&BTL_BATTLE_START_TEXT_MATRIX);
@@ -1146,6 +1171,10 @@ void BTL_renderBattleStartTextBurst(void)
 	p = BTL_BATTLE_START_TEXT_PIECES;
 	ot = ACTIVE_ORDERING_TABLE->org;
 	prim = (POLY_FT4 *)GsGetWorkBase();
+	/* The burst shares the gathering animation's packet budget. */
+	room = (uint8_t *)(GS_WORK_BASES[ACTIVE_FRAMEBUFFER] + 0x14000) - (uint8_t *)prim - 0x1000;
+	draw = room >= 0x9b * (int32_t)sizeof(POLY_FT4);
+	shadows = room >= 0x9b * (int32_t)(sizeof(POLY_FT4) + sizeof(POLY_F4));
 	for (i = 0; i < 0x9b; i++, p++) {
 		if ((((int16_t *)*p)[6] == 0) && (((int16_t *)*p)[7] == 0)) {
 			dead++;
@@ -1178,25 +1207,29 @@ void BTL_renderBattleStartTextBurst(void)
 
 		PopMatrix();
 
-		ft = prim;
-		setEntityTextDigit(prim, 256, 488);
-		setRGB0(prim, 0x80, 0x80, 0x80);
-		setClut(prim, 256, 488);
+		ft = draw ? prim : &scratch;
+		setEntityTextDigit(ft, 256, 488);
+		setRGB0(ft, 0x80, 0x80, 0x80);
+		setClut(ft, 256, 488);
 		gte_ldv3(&pts[0], &pts[1], &pts[2]);
 		gte_rtpt();
-		gte_stsxy3(&prim->x0, &prim->x1, &prim->x2);
+		gte_stsxy3(&ft->x0, &ft->x1, &ft->x2);
 		gte_stszotz(&otz);
 		gte_ldv0(&pts[3]);
 		gte_rtps();
-		gte_stsxy(&prim->x3);
-		setUVWH(prim, (((uint8_t *)*p)[0x13] * 8) + 0x80, 0x80, 8, 8);
-		AddPrim(ot + 5, prim++);
-		shadow = (POLY_F4 *)prim;
-		SetPolyF4(shadow);
-		setRGB0(shadow, 0, 0, 0);
-		setXY4(shadow, ft->x0 + 2, ft->y0 + 2, ft->x1 + 2, ft->y1 + 2, ft->x2 + 2, ft->y2 + 2, ft->x3 + 2, ft->y3 + 2);
-		AddPrim(ot + 6, shadow++);
-		prim = (POLY_FT4 *)shadow;
+		gte_stsxy(&ft->x3);
+		setUVWH(ft, (((uint8_t *)*p)[0x13] * 8) + 0x80, 0x80, 8, 8);
+		if (draw) {
+			AddPrim(ot + 5, prim++);
+		}
+		if (shadows) {
+			shadow = (POLY_F4 *)prim;
+			SetPolyF4(shadow);
+			setRGB0(shadow, 0, 0, 0);
+			setXY4(shadow, ft->x0 + 2, ft->y0 + 2, ft->x1 + 2, ft->y1 + 2, ft->x2 + 2, ft->y2 + 2, ft->x3 + 2, ft->y3 + 2);
+			AddPrim(ot + 6, shadow++);
+			prim = (POLY_FT4 *)shadow;
+		}
 
 		cx = ft->x0;
 		cy = ft->y0;
@@ -1218,7 +1251,7 @@ void BTL_renderBattleStartTextBurst(void)
 
 void BTL_removeBattleStartTextBurst(void)
 {
-	removeObject(0x1a6, 0);
+	removeObject(OBJECT_ID_BATTLE_START_TEXT, 0);
 	BTL_START_TEXT_ACTIVE = 0;
 }
 
