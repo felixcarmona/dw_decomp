@@ -2622,12 +2622,12 @@ int32_t playerKeyHint(int32_t key, int32_t x, int32_t y)
 	return (x + drawStringMode(str, x, y, fitStringMode(str, 0x60)) + 11) & ~3;
 }
 
-/* Whether a row has something to choose: the original tamer has only his hairstyle, the bald head has no hair colour */
+/* Whether a row has something to choose: the original tamer and the bald head have no hair colour */
 static const char lookPageFaces[TAMER_FACE_COUNT][2] = { "1", "2" };
 static const char lookPageDash[] = "-"; /* a row with nothing to choose */
 static int32_t lookPageRowOpen(int32_t row)
 {
-	return MOD_TAMER_LOOK >= (row == 1 ? 2 : row == 2 ? 1 : 0);
+	return row != 1 || MOD_TAMER_LOOK >= 2;
 }
 
 static void lookPageValue(int32_t row)

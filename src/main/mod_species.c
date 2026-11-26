@@ -785,6 +785,8 @@ char *getDigimonModelName(int32_t type)
 	return rec->modelName;
 }
 
+#define TAMER_LOOK_FILE		"TAMER.DAT"
+
 int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t *sectors)
 {
 	SpeciesRecord *rec;
@@ -1017,7 +1019,6 @@ void tickColdAnimation(Entity *entity)
 }
 
 /* MOD (tamer looks): see species.h */
-#define TAMER_LOOK_FILE		"TAMER.DAT"
 #define TAMER_COLD_BUFFER	(TAMER_MODEL_BUFFER + TAMER_MMD_MAX - TAMER_COLD_MAX)
 #define TAMER_COLD_CACHE	((uint8_t *)0x80210000) /* with RAM above 2 MB: right after the partner's cache */
 extern uint8_t TAMER_MODEL_BUFFER[];
@@ -1036,6 +1037,9 @@ static uint8_t TAMER_COLD_CACHED;
 extern const uint32_t lookPageMagic[]; /* game_menu.c, in the tail (an array here: not addressed through gp) */
 int32_t lookTamerLoad(void *component);
 void lookTamerRelook(void);
+void concatStrings(char *dst, char *src1, char *src2);
+extern char MAIN_D_8011D484[];
+extern char MAIN_D_801340E4[];
 #define LOOK_TIM_PALETTE	20	/* the first palette row inside a TIM */
 #define LOOK_HAIR_ROW	1	/* the hair's palette row (tools/tamer_looks/wig.py) */
 #define LOOK_LEVELS	0xC0	/* in the file's first sector: the brightness of each of the row's sixteen tones */
@@ -1048,11 +1052,12 @@ void modLookOverlay(void)
 	}
 }
 
-/* The texture and the resident model of the chosen look; 0 = load the disc's tamer (look 0, or no file) */
+/* The texture and the resident model of the chosen look; 0 = load the disc's tamer (the original with his own
+ * face, or no file) */
 int32_t modLoadTamerLook(void *component)
 {
 	TAMER_COLD_SECTOR = 0;
-	if (MOD_TAMER_LOOK == 0) {
+	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE) == 0) {
 		return 0;
 	}
 	modLookOverlay();
@@ -1093,6 +1098,7 @@ int32_t lookTamerLoad(void *component)
 	int32_t sector;
 	int32_t sectors;
 	int32_t cold;
+	char path[32];
 
 	TAMER_COLD_SECTOR = 0;
 	TAMER_COLD_READY = 0;
@@ -1101,6 +1107,22 @@ int32_t lookTamerLoad(void *component)
 		return 0;
 	}
 	readFileSectors(TAMER_LOOK_FILE, head, 0, 1);
+	if (MOD_TAMER_LOOK == 0) {
+		/* the original tamer with another face: the disc's model, and his texture with that face; these textures
+		 * follow the looks' own */
+		if (MOD_TAMER_FACE == 0 || MOD_TAMER_FACE >= head[7]) {
+			return 0;
+		}
+		modSmoothMapReset();
+		texture = malloc3(0x4800);
+		readFileSectors(TAMER_LOOK_FILE, texture, head[3] + 9 * (head[7] - 1 + MOD_TAMER_FACE), 9);
+		uploadModelTexture(texture, component);
+		free3(texture);
+		concatStrings(path, MAIN_D_8011D484, getDigimonModelName(0));
+		concatStrings(path, path, MAIN_D_801340E4);
+		readFile(path, TAMER_MODEL_BUFFER);
+		return 1;
+	}
 	sector = head[8 + 2 * (MOD_TAMER_LOOK - 1)];
 	sectors = head[9 + 2 * (MOD_TAMER_LOOK - 1)];
 	if (MOD_TAMER_LOOK > head[2] || head[6] == 0 || (sectors << 11) > TAMER_MMD_MAX - TAMER_COLD_MAX) {
