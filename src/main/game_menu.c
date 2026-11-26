@@ -4431,7 +4431,7 @@ void renderEvoChartView(void)
 #define CHART_CARD_W		128
 #define CHART_CARD_H		184
 #define CHART_CARD_SHIFT	139	/* the level and name move right, under the "to" column */
-#define CHART_CARD_TREE_SHIFT	7	/* and the "Tree" label clears the card */
+#define CHART_CARD_TREE_SHIFT	21	/* and the "Tree" label clears the card */
 #define CHART_LIT_EDGE		0x50be28 /* the lines of a met evolution, BGR */
 #define CHART_LIT_CORE		0xb4ffaa
 #define CHART_DIM_LINE		0x6a5c48
