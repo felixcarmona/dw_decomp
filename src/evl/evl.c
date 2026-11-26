@@ -13,6 +13,7 @@
 #include <dw/file_queue.h>
 #include <dw/graphics.h>
 #include <dw/ids.h>
+#include <dw/input.h>
 #include <dw/level.h>
 #include <dw/memmap.h>
 #include <dw/mod_qol.h>
@@ -301,6 +302,152 @@ void EVL_resetSparks(void)
 	}
 }
 
+/* MOD (evolution cancel): an evolution the hours chose (MOD_EVO_CANCEL, mod_qol.c) can be stopped while the old form
+ * is still all there is to see: from the scene's first tick until the silhouette starts to change size (0xcc). The
+ * cancel button held fills a ring around its glyph, bottom left, in a second (EVL_CANCEL_TICKS); released, the ring
+ * empties twice as fast. Full, the scene freezes and fades to black; in the black everything the scene put up is
+ * taken down (shards, sparks, particles, the wireframe, the white palette, the camera, the hidden map), the old
+ * form's voice bank is loaded again, and the field fades back in with nothing changed. Main then keeps the evolution
+ * from being offered again until the partner has slept. */
+#define EVL_CANCEL_TICKS 20
+#define EVL_CANCEL_FADE 16
+#define EVL_CANCEL_ROW 0xD8 /* the text area's row of the tallies' hint: never on screen together */
+#define EVL_CANCEL_X (-141)
+#define EVL_CANCEL_Y 103
+extern uint32_t POLLED_INPUT;
+extern uint8_t PAUSE_STATE;
+extern uint8_t *GENERAL_BUFFER_PTR;
+void drawLine2P(uint32_t color, int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t order, uint32_t mode);
+void renderString(uint8_t color, int16_t x, int16_t y, int16_t w, int16_t h, uint8_t u, uint8_t v, long layer, int32_t shadow);
+void clearTextSubArea(RECT *rect);
+void setTextColor(int32_t color);
+int32_t fitStringMode(char *str, int32_t maxW);
+int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode);
+int32_t loadVLALL(int32_t idx, uint8_t *buffer);
+void fadeToBlack(int16_t frames);
+void fadeFromBlack(int16_t frames);
+extern int16_t FADE_OUT_CURRENT;
+
+static int16_t EVL_cancelW = 0;
+static int8_t EVL_cancelHold = 0;
+static int8_t EVL_cancelPhase = 0; /* 1 fading out */
+static int8_t EVL_cancelShown = 0;
+
+/* the cancel button's glyph in its colour (the font draws it as the button that cancels now: a green triangle, with
+ * JAPANESE CONTROLS a blue cross), then the line */
+static void EVL_cancelHintDraw(void)
+{
+	RECT area;
+	static char glyph[] = { 0x81, 0x7E, 0 };
+
+	setRECT(&area, 0, EVL_CANCEL_ROW, 256, 12);
+	clearTextSubArea(&area);
+	setTextColor(MOD_OPT_BUTTONS ? 6 : 5);
+	drawStringMode(glyph, 0, EVL_CANCEL_ROW, 0);
+	setTextColor(1);
+	EVL_cancelW = 20 + drawStringMode(MOD_EVO_CANCEL_TEXT, 20, EVL_CANCEL_ROW, 0);
+}
+
+/* every part of the model solid again, and the scene's pending loads done */
+static void EVL_solidAndLoaded(EvoSequenceData *data)
+{
+	int32_t i;
+
+	for (i = 0; i < 0x28; i++) {
+		PARTNER_WIREFRAME_SUB[i] = 0x10;
+	}
+	while (data->hasFinishedLoading != 0) {
+		tickFileReadQueue(0);
+	}
+}
+
+/* 1: the scene is held (fading out) or over */
+static int32_t EVL_cancelTick(EvoSequenceData *data)
+{
+	int32_t i;
+	Entity *entity = &data->partner->digimonEntity.entity;
+
+	if (EVL_cancelPhase == 0) {
+		if (!(MOD_EVO_CANCEL & MOD_EVO_CANCEL_ALLOWED) || PAUSE_STATE != 0 || data->state > 2 || data->timer >= 0xcc) {
+			EVL_cancelHold = 0;
+			EVL_cancelShown = 0;
+			return 0;
+		}
+		if (EVL_cancelShown == 0 || (data->timer & 15) == 0) {
+			EVL_cancelHintDraw(); /* a pause's box and the scene's own loads reach the text area: drawn again */
+			EVL_cancelShown = 1;
+		}
+		if (POLLED_INPUT & CANCEL_BUTTON) {
+			if (EVL_cancelHold < EVL_CANCEL_TICKS - 1) {
+				EVL_cancelHold++;
+				return 0;
+			}
+			if (data->state == 0) { /* the map is hidden at this state's end: state 3 gives back what was hidden */
+				return 0;
+			}
+			EVL_cancelHold = EVL_CANCEL_TICKS;
+			EVL_cancelPhase = 1;
+			stopSound();
+			fadeToBlack(EVL_CANCEL_FADE);
+			return 1;
+		}
+		EVL_cancelHold -= 2;
+		if (EVL_cancelHold < 0) {
+			EVL_cancelHold = 0;
+		}
+		return 0;
+	}
+	if (FADE_OUT_CURRENT <= EVL_CANCEL_FADE) {
+		return 1;
+	}
+	EVL_cancelShown = 0;
+	for (i = 0; i < 30; i++) { /* the shard sets and (sixteen) the sparks: removing one that is not there does nothing */
+		removeObject(0x604, i);
+		MAIN_D_80135208[i].timer = -1;
+		removeObject(0x605, i);
+	}
+	EVL_resetSparks();
+	EVL_solidAndLoaded(data);
+	PARTNER_WIREFRAME_TOTAL = 0x10;
+	EVL_brightenDigimonClut((int16_t *)EVL_D_80065094, entity, EVL_D_800679E4, 0x70, 0x9a, 0x70);
+	data->state = 3; /* state 3 gives back the camera, the palettes, the map, the music and the map's sounds */
+	EVL_cancelPhase = 2;
+	return 0;
+}
+
+/* after state 3 ran in the black: no cheer, the old form's voices, and the field fades in */
+static void EVL_cancelEnd(EvoSequenceData *data, int32_t instanceId)
+{
+	Entity *entity = &data->partner->digimonEntity.entity;
+
+	startAnimation(entity, 0);
+	isSoundLoaded(0, 8);
+	waitForSoundBufferLoading(3);
+	loadVLALL(entity->type, GENERAL_BUFFER_PTR); /* the scene loaded the new form's voices */
+	waitForSoundBufferLoading(3);
+	MOD_EVO_CANCEL = MOD_EVO_CANCEL_HELD;
+	fadeFromBlack(EVL_CANCEL_FADE);
+	data->timer = -1;
+	removeObject(0x80a, instanceId);
+}
+
+/* the ring: twenty segments from the top, clockwise, one per tick held (nine pixels of radius, the corners of each
+ * segment below); yellow as it fills, a dark track for the rest. The glyph and the line beside it (one piece of
+ * the row) are dim, bright while the button is held, with the game's own drop shadow */
+static void EVL_cancelRender(void)
+{
+	static const int8_t ring[] = { 0, -9, 3, -9, 5, -7, 7, -5, 9, -3, 9, 0, 9, 3, 7, 5, 5, 7, 3, 9, 0, 9, -3, 9, -5, 7, -7, 5, -9, 3, -9, 0, -9, -3, -7, -5, -5, -7, -3, -9, 0, -9 };
+	const int8_t *p = ring;
+	int32_t i;
+	int32_t color;
+
+	for (i = 1; i <= EVL_CANCEL_TICKS; i++, p += 2) {
+		color = i > EVL_cancelHold ? 0x483c3c : 0x28ccff;
+		drawLine2P(color, EVL_CANCEL_X + p[0], EVL_CANCEL_Y + p[1], EVL_CANCEL_X + p[2], EVL_CANCEL_Y + p[3], 4, 0);
+	}
+	renderString(EVL_cancelHold ? 0 : 8, EVL_CANCEL_X - 5, EVL_CANCEL_Y - 6, EVL_cancelW, 12, 0, EVL_CANCEL_ROW, 4, 1);
+}
+
 void EVL_tickEvoSequence(int32_t instanceId)
 {
 	int32_t i;
@@ -331,6 +478,9 @@ void EVL_tickEvoSequence(int32_t instanceId)
 	frame = data->timer;
 	if (0) {
 		unused[0] = 0;
+	}
+	if (EVL_cancelTick(data)) { /* MOD (evolution cancel) */
+		return;
 	}
 
 	if ((partner->digimonEntity.entity.anim.animId == 0xc) &&
@@ -487,13 +637,8 @@ shards:
 			EFECreateFlash();
 		}
 		if (frame == 0x11c) {
+			EVL_solidAndLoaded(data); /* MOD (evolution cancel): shared with the cancel */
 			PARTNER_WIREFRAME_TOTAL = 0;
-			for (i = 0; i < 0x28; i++) {
-				PARTNER_WIREFRAME_SUB[i] = 0x10;
-			}
-			while (data->hasFinishedLoading != 0) {
-				tickFileReadQueue(0);
-			}
 			EVL_applyEvolution(ENTITY_TABLE[1], &PARTNER_ENTITY.digimonEntity.stats, data->para, data->evoTarget);
 			waitForSoundBufferLoading(3);
 			partner = (PartnerEntity *)((uint32_t)&PARTNER_ENTITY);
@@ -544,11 +689,18 @@ shards:
 		break;
 	}
 
+	if (EVL_cancelPhase == 2) { /* MOD (evolution cancel) */
+		EVL_cancelEnd(data, instanceId);
+		return;
+	}
 	data->timer += 1;
 }
 
 void EVL_renderEvoSequence(void)
 {
+	if (EVL_cancelShown) { /* MOD (evolution cancel) */
+		EVL_cancelRender();
+	}
 }
 
 void EVL_fadeClutBank0(int16_t *srcClut, void *entity, int16_t *dstClut, int32_t startFrame, int32_t endFrame, int32_t frame)

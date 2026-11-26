@@ -25,6 +25,7 @@
 #include <dw/mod_options.h>
 #include <dw/species.h>
 #include <dw/screen.h>
+#include <dw/mod_qol.h>
 
 extern int32_t HAS_BUTTERFLY;
 extern int32_t BUTTERFLY_ID;
@@ -323,6 +324,7 @@ void partnerTickSleep(void)
 		if (FADE_OUT_CURRENT > 39) {
 			sleepRegen();
 			handleSleeping();
+			MOD_EVO_CANCEL = 0; /* MOD (evolution cancel): a cancelled evolution is offered again after the night */
 			if (UI_BOX_DATA[0].state == 0) {
 				CHECKED_MEMORY_CARD = 0x10;
 				if ((MEMORY_CARD_ID == -1) ||
@@ -779,6 +781,7 @@ void partnerTickEvolving(void)
 		if (value == -1) {
 			startGameTime();
 			EVOLUTION_TARGET = -1;
+			MOD_EVO_CANCEL &= ~MOD_EVO_CANCEL_ALLOWED; /* MOD (evolution cancel) */
 			loadMapSounds(getMapSoundId(CURRENT_SCREEN));
 			checkShopMap(CURRENT_SCREEN);
 			checkArenaMap(CURRENT_SCREEN);

@@ -6,3 +6,6 @@ MOD_QOL:
     QOL_STR_SKIP_COUNT: # △ is the Shift-JIS character of 81A2, the code the font draws as × (docs/mods/options.md)
       ja: "Press △ to skip"
       en_us: "Press △ to skip"
+    QOL_STR_EVO_CANCEL: # the evolution scene's hint, beside the ring that fills around the cancel button
+      ja: "Hold to stop evolving"
+      en_us: "Hold to stop evolving"

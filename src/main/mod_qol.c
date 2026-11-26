@@ -174,6 +174,12 @@ void modShopPlateAdd(void)
 	addObject(MOD_SHOP_PLATE_OBJECT, 0, NULL, modShopPlateRender);
 }
 
+/* the evolution's cancel (EVL overlay, src/evl/evl.c): bit 0 says the evolution that is starting came from the hours
+   and the requirements (or is the Rookie's fallback) and may be cancelled; bit 1 that one was cancelled, so none is
+   offered again until the partner has slept. The hint's line lives here, where the language's text is switched */
+int8_t MOD_EVO_CANCEL;
+char MOD_EVO_CANCEL_TEXT[] = QOL_STR_EVO_CANCEL;
+
 /* the tallies' skip hint (patch 0333): "Press × to skip" in a row of its own at the bottom of the box that counts (the
    gym's stats box, the battle's bits box), under a divider like the battle box's. The line is drawn once into a row of
    the text area when the box opens, its button in the colour of the button that confirms: × blue (6), with JAPANESE

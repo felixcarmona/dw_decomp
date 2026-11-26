@@ -33,6 +33,7 @@
 #include <dw/types.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <dw/mod_qol.h>
 #include <text/main/partner_impl.h>
 
 extern int8_t PARTNER_ANIMATION;
@@ -531,6 +532,7 @@ void initializeStatusObjects(void)
 
 	CURRENT_POOP_ID = 0;
 	EVOLUTION_TARGET = -1;
+	MOD_EVO_CANCEL = 0; /* MOD (evolution cancel) */
 	HAS_USED_EVOITEM = 0;
 	IS_NATURAL_DEATH = 0;
 	ITEM_SCOLD_FLAG = 0;
@@ -955,6 +957,7 @@ void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
 	PARTNER_PARA.age = 0;
 	PARTNER_PARA.evoTimer = 0;
 	EVOLUTION_TARGET = -1;
+	MOD_EVO_CANCEL = 0; /* MOD (evolution cancel) */
 	PARTNER_PARA.careMistakes = 0;
 	PARTNER_PARA.battles = 0;
 	PARTNER_PARA.weight = RAISE_ROW(type).defaultWeight;
@@ -2262,6 +2265,7 @@ void tickConditions(void)
 	uint8_t level;
 	int16_t tamerState;
 	int32_t due;
+	int32_t natural = -2; /* MOD (evolution cancel): what the hours chose this tick */
 
 	if (GAME_STATE != 0 || PARTNER_STATE != 1 || !IS_GAMETIME_RUNNING ||
 	    CURRENT_FRAME == LAST_HANDLED_FRAME || FADE_PROTECTION == 1)
@@ -2305,9 +2309,9 @@ void tickConditions(void)
 	    tamerState == 0) {
 		/* MOD (evolution rules as data): the hours of each level come from MOD_EVO_TIMING (-1 = never) */
 		due = level >= 1 && level <= LEVEL_ULTIMATE && MOD_EVO_TIMING[level] >= 0 &&
-		      evoTimer >= MOD_EVO_TIMING[level];
+		      evoTimer >= MOD_EVO_TIMING[level] && !(MOD_EVO_CANCEL & MOD_EVO_CANCEL_HELD);
 		if (due) {
-			EVOLUTION_TARGET = rollNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type);
+			natural = EVOLUTION_TARGET = rollNaturalEvolutionTarget(PARTNER_ENTITY.digimonEntity.entity.type);
 			/* The Fresh picker is also used to preview training's stop; only the tick resets its timer. */
 			if (level == 1)
 				PARTNER_PARA.evoTimer = 0;
@@ -2341,6 +2345,11 @@ void tickConditions(void)
 		}
 	}
 	if (EVOLUTION_TARGET != -1 && PARTNER_STATE != 13) {
+		/* MOD (evolution cancel): only the evolution the hours and the requirements chose (the Rookie's fallback
+		 * with it) may be cancelled, not the praise-time rules, the virus bar's or an item's */
+		if (EVOLUTION_TARGET == natural) {
+			MOD_EVO_CANCEL |= MOD_EVO_CANCEL_ALLOWED;
+		}
 		tamerSetState(6);
 		partnerSetState(13);
 	}

@@ -28,4 +28,11 @@ enum { MOD_TB_GO, MOD_TB_HUNGRY, MOD_TB_TOILET, MOD_TB_SLEEPY, MOD_TB_TIRED, MOD
        MOD_TB_LEARNED };
 int32_t modTrainStopReason(int32_t t0, int32_t tiredAt);
 
+/* the evolution's cancel (mod_qol.c): bit 0 this evolution may be cancelled, bit 1 one was cancelled and none is
+   offered until the partner has slept */
+#define MOD_EVO_CANCEL_ALLOWED 1
+#define MOD_EVO_CANCEL_HELD 2
+extern int8_t MOD_EVO_CANCEL;
+extern char MOD_EVO_CANCEL_TEXT[];
+
 #endif
