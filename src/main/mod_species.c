@@ -298,6 +298,22 @@ EvoStatsGains *getSpeciesEvoGains(int32_t type)
 	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? &rec->evoGains : &NO_EVO_GAINS;
 }
 
+EvoRequirements *evoReqRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &EVOLUTION_REQS[type];
+	}
+	return getSpeciesEvoReqs(type);
+}
+
+EvoStatsGains *evoGainsRow(int32_t type)
+{
+	if ((uint32_t)type < NUM_ORIGINAL_DIGIMON) {
+		return &EVOLUTION_STATS_GAINS[type];
+	}
+	return getSpeciesEvoGains(type);
+}
+
 int32_t getItemTakeDistance(int32_t type)
 {
 	SpeciesRecord *rec;
