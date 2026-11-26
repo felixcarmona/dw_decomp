@@ -61,7 +61,7 @@ int16_t arg;
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeOffCounter++;
 		}
-		addObject(0xfac, 0, (TickFunction)TRN_tickOffenseTraining, NULL);
+		addObject(0xfac, 0, (TickFunction)TRN_tickOffenseTraining, (RenderFunction)TRN_renderCareHUD);
 		break;
 	case 0x4e:
 		TRN_D_8008F330.vx = -0x527;
@@ -81,7 +81,7 @@ int16_t arg;
 		TRN_D_8008F340[2].vz = 0xdac;
 		MAIN_D_8013536C = 0x2b;
 		MAIN_D_8013536E = 0x1e;
-		addObject(0xfac, 6, (TickFunction)TRN_tickOffenseTraining, NULL);
+		addObject(0xfac, 6, (TickFunction)TRN_tickOffenseTraining, (RenderFunction)TRN_renderCareHUD);
 		break;
 	}
 
@@ -162,9 +162,8 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((r >= 0) && (MAIN_D_80135370 == 1))) {
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
-			} while (TRN_modBlockNext());
+			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockNext();
 			startAnimation(ENTITY_TABLE[1], 0x12);
 			loadMapObjectPosition(TRN_D_8008F368, TRN_D_8008F388, MAIN_D_8013536C, MAIN_D_8013536E);
 			playSound(8, 0xa);
@@ -173,6 +172,14 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 		}
 		break;
 	case 4:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
 			TRAINING_STATE = 5;
@@ -194,7 +201,7 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 			setCameraFollowPlayer();
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfac, instanceId, TRN_tickOffenseTraining, NULL);
+			removeObject(0xfac, instanceId, TRN_tickOffenseTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;
@@ -231,9 +238,8 @@ void TRN_tickOffenseTraining(int32_t instanceId)
 			setMapObjectsFlag(0x27, 4, 0);
 			setMapObjectsFlag(MAIN_D_8013536C, MAIN_D_8013536E, 1);
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 6, r);
-			} while (TRN_modBlockNext());
+			TRN_awardOffenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 6, r);
+			TRN_modBlockNext();
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 			playSound(8, 0xa);

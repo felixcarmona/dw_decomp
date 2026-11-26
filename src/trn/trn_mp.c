@@ -95,9 +95,8 @@ int16_t instanceId;
 		}
 		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
-			} while (TRN_modBlockNext());
+			TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockNext();
 			setMapObjectsFlag(MAIN_D_80135372, MAIN_D_80135374, 0);
 			setMapObjectsFlag(MAIN_D_80135376, MAIN_D_80135378, 1);
 			loadMapObjectPosition(TRN_D_8008F368, TRN_D_8008F388, MAIN_D_8013536C, MAIN_D_8013536E);
@@ -115,6 +114,14 @@ int16_t instanceId;
 		}
 		break;
 	case 5:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			MAIN_D_8013537C = 0;
 			TRAINING_STATE = 6;
@@ -129,7 +136,7 @@ int16_t instanceId;
 			partnerSetState(1);
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfaf, instanceId, TRN_tickMpTraining, NULL);
+			removeObject(0xfaf, instanceId, TRN_tickMpTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;
@@ -154,7 +161,7 @@ int16_t arg;
 		MAIN_D_80135374 = 0x10;
 		MAIN_D_80135376 = 0xa3;
 		MAIN_D_80135378 = 0x18;
-		addObject(0xfaf, 0, (TickFunction)TRN_tickMpTraining, NULL);
+		addObject(0xfaf, 0, (TickFunction)TRN_tickMpTraining, (RenderFunction)TRN_renderCareHUD);
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeMPcounter++;
 		}

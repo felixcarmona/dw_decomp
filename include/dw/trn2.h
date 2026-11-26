@@ -77,6 +77,8 @@ extern int8_t TRN2_MOD_QUIET;
 void TRN2_modBlockArm(void);
 void TRN2_modBlockBegin(void);
 int32_t TRN2_modBlockNext(void);
+int32_t TRN2_modBlockWait(void);
+void TRN2_renderCareHUD(int32_t instanceId);
 void TRN2_modOpenStatsBox(void);
 
 #endif

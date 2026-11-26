@@ -52,7 +52,7 @@ int16_t arg;
 		TRN_D_8008F320.vz = -0x6d0;
 		MAIN_D_8013536C = 0x53;
 		MAIN_D_8013536E = 0x10;
-		addObject(0xfab, 0, (TickFunction)TRN_tickHpTraining, NULL);
+		addObject(0xfab, 0, (TickFunction)TRN_tickHpTraining, (RenderFunction)TRN_renderCareHUD);
 		MAIN_D_80135370 = readPStat(0xf6);
 		if (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level < 3) {
 			PARTNER_PARA.upgradeHPcounter++;
@@ -123,13 +123,20 @@ int16_t instanceId;
 			MAIN_D_8013537A /= TRN_STEP_OF(MOD_TRAIN_RULES);
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0x12);
 			TRN_modBlockBegin(); /* MOD (training block) */
-			do {
-				TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
-			} while (TRN_modBlockNext());
+			TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
+			TRN_modBlockNext();
 			createCameraMovement(&TAMER_ENTITY.entity.posData->location, 10);
 		}
 		break;
 	case 3:
+		if (TRN_MOD_QUIET) {
+			if (!TRN_modBlockWait()) {
+				TRN_saveTrainingStartTime();
+				TRN_awardHpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, 10);
+				TRN_modBlockNext();
+			}
+			break;
+		}
 		if (TRN_statGainsAreZero() == 1) {
 			TRAINING_STATE = 4;
 			MAIN_D_8013537C = 0;
@@ -157,7 +164,7 @@ int16_t instanceId;
 			removeAllCloudFX();
 			MAIN_D_8013537A = 0;
 			TRAINING_STATE = 0;
-			removeObject(0xfab, instanceId, TRN_tickHpTraining, NULL);
+			removeObject(0xfab, instanceId, TRN_tickHpTraining, (RenderFunction)TRN_renderCareHUD);
 			TRAINING_COMPLETE = 1;
 		}
 		break;
