@@ -568,6 +568,15 @@ MOD_LAB:
     LAB_STR_BACKPACK_ROUND:
       ja: "Round"
       en_us: "Round"
+    LAB_STR_HANDS:
+      ja: "Hands"
+      en_us: "Hands"
+    LAB_STR_HANDS_NORMAL:
+      ja: "Normal"
+      en_us: "Normal"
+    LAB_STR_HANDS_SMALL:
+      ja: "Small"
+      en_us: "Small"
     LAB_STR_CLOTH_ORANGE:
       ja: "Orange"
       en_us: "Orange"

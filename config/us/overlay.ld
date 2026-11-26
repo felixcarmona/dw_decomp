@@ -345,7 +345,7 @@ SECTIONS
              * KAR again), so the Player tab reads EVL to open the page. Its text is MENU's. */
             look_ui_START = .;
             BUILD_DIR/src/main/game_menu.c.o(.text.lookPage* .rodata.lookPage* .bss.lookPageState);
-            BUILD_DIR/src/main/mod_species.c.o(.text.lookTamerLoad .text.lookHairPalette .text.lookShirtPalette
+            BUILD_DIR/src/main/mod_species.c.o(.text.lookTamerLoad .text.lookTamerHands .text.lookHairPalette .text.lookShirtPalette
                 .rodata.lookShirtObjects .bss.lookShirtRecipe .bss.lookShirtRow);
             BUILD_DIR/src/main/model.c.o(.text.lookTamerRelook);
             . = ALIGN(., 4);

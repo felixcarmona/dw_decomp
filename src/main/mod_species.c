@@ -1024,7 +1024,7 @@ void tickColdAnimation(Entity *entity)
 extern uint8_t TAMER_MODEL_BUFFER[];
 void uploadModelTexture(void *textureData, void *component);
 void modSmoothMapReset(void);
-uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")));
+uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss"), aligned(4)));
 static uint32_t TAMER_COLD_READY;	/* the entry the buffer's tail holds */
 static uint16_t TAMER_COLD_SECTOR;	/* 0: the loaded tamer has no cold entries */
 static uint8_t TAMER_COLD_CACHED;
@@ -1082,7 +1082,8 @@ void modLookOverlay(void)
 int32_t modLoadTamerLook(void *component)
 {
 	TAMER_COLD_SECTOR = 0;
-	if ((MOD_TAMER_LOOK | MOD_TAMER_FACE | MOD_TAMER_SHIRT | MOD_TAMER_TROUSERS | MOD_TAMER_SHOES | MOD_TAMER_PACK) == 0) {
+	/* nothing chosen at all: no need of the overlay (it tells the original tamer in colours he does not show itself) */
+	if ((((uint32_t *)MOD_TAMER_STATE)[0] | ((uint32_t *)MOD_TAMER_STATE)[1] | ((uint32_t *)MOD_TAMER_STATE)[2]) == 0) {
 		return 0;
 	}
 	modLookOverlay();
@@ -1158,6 +1159,29 @@ void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb)
 	}
 }
 
+/* Small hands: each hand's corners three quarters as far from the wrist. The model has just been read: its objects
+ * still hold offsets from their table. */
+#define LOOK_HANDS	((1 << 4) | (1 << 7))	/* the objects that are hands */
+void lookTamerHands(void)
+{
+	uint32_t *object = (uint32_t *)(TAMER_MODEL_BUFFER + *(uint32_t *)TAMER_MODEL_BUFFER + 12);
+	int16_t *v;
+	int32_t i;
+	int32_t n;
+
+	if (!MOD_TAMER_HANDS) {
+		return;
+	}
+	for (i = 0; i < 8; i++, object += 7) {
+		if ((LOOK_HANDS >> i) & 1) {
+			v = (int16_t *)((uint8_t *)(object - 7 * i) + object[0]);
+			for (n = object[1] * 4; n > 0; n--, v++) {
+				*v = (*v * 3) >> 2;
+			}
+		}
+	}
+}
+
 int32_t lookTamerLoad(void *component)
 {
 	uint16_t *head = (uint16_t *)TAMER_MODEL_BUFFER;
@@ -1209,19 +1233,21 @@ int32_t lookTamerLoad(void *component)
 		worn[0] = head[0x68] + (worn[3] == TAMER_PACK_NONE);
 	}
 	if (MOD_TAMER_LOOK == 0 && k == 0) {
-		/* the original tamer with another face: the disc's model, and his texture with that face; these textures
+		/* the original tamer with another face or small hands: the disc's model, and his texture with that face; these textures
 		 * follow the looks' own */
-		if (MOD_TAMER_FACE == 0 || MOD_TAMER_FACE >= head[7]) {
+		k = MOD_TAMER_FACE < head[7] ? MOD_TAMER_FACE : 0;
+		if (k == 0 && !MOD_TAMER_HANDS) {
 			return 0;
 		}
 		modSmoothMapReset();
 		texture = malloc3(0x4800);
-		readFileSectors(TAMER_LOOK_FILE, texture, head[3] + 9 * (head[7] - 1 + MOD_TAMER_FACE), 9);
+		readFileSectors(TAMER_LOOK_FILE, texture, k == 0 ? head[0x6C] : head[3] + 9 * (head[7] - 1 + k), 9);
 		uploadModelTexture(texture, component);
 		free3(texture);
 		concatStrings(path, MAIN_D_8011D484, getDigimonModelName(0));
 		concatStrings(path, path, MAIN_D_801340E4);
 		readFile(path, TAMER_MODEL_BUFFER);
+		lookTamerHands();
 		return 1;
 	}
 	if (MOD_TAMER_LOOK == 0) { /* the original tamer in other clothes: his model without them */
@@ -1341,6 +1367,7 @@ int32_t lookTamerLoad(void *component)
 			}
 		}
 	}
+	lookTamerHands();
 	TAMER_COLD_SECTOR = cold;
 	return 1;
 }

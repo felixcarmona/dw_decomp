@@ -346,8 +346,8 @@ int32_t getDigimonModelRef(int32_t type, char **file, int32_t *sector, int32_t *
 #define TAMER_HAIR_COUNT	20
 #define TAMER_FACE_COUNT	2	/* the faces of looks 1..: one texture each (tools/tamer_looks/face.py) */
 /* What the player chose, in the order of the Look page's rows and of the save record */
-#define TAMER_STATE_SIZE	11
-extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")));
+#define TAMER_STATE_SIZE	12
+extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss"), aligned(4)));
 #define MOD_TAMER_LOOK		MOD_TAMER_STATE[0]
 #define MOD_TAMER_HAIR		MOD_TAMER_STATE[1]
 #define MOD_TAMER_FACE		MOD_TAMER_STATE[2]
@@ -356,6 +356,7 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define MOD_TAMER_TROUSERS	MOD_TAMER_STATE[5]
 #define MOD_TAMER_SHOES		MOD_TAMER_STATE[7]
 #define MOD_TAMER_PACK		MOD_TAMER_STATE[9]
+#define MOD_TAMER_HANDS		MOD_TAMER_STATE[11]	/* 1 = small hands */
 /* The clothes (tools/tamer_looks/shirts.py, legs.py, shoes.py): a shirt is the torso and the arms of any look, a
  * pair of trousers its legs, a pair of shoes its feet. Garment 0 of each kind is the original tamer's; the others
  * are drawn with the tones of one palette row each, written for the chosen cloth colour. */
