@@ -6106,7 +6106,13 @@ int8_t entityId;
 			GsSetLightMatrix(&m);
 			GsGetLs(pos->obj.coord2, &m);
 			GsSetLsMatrix(&m);
-			GsSortObject4(&pos->obj, FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER], 5,
+			/* MOD (status portrait): shift 3, not 5. With 5 the 512-entry OT
+			 * buckets are 128 depth units deep, and a portrait camera farther
+			 * than the native ones put a mouth's inside or the far side of a
+			 * head in the same or a nearer bucket than the face: Agumon's
+			 * closed mouth drew as a black hole. 32-unit buckets order them;
+			 * the table still reaches depth 16384, past every portrait. */
+			GsSortObject4(&pos->obj, FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER], 3,
 			              getScratchAddr(0));
 		}
 	}
