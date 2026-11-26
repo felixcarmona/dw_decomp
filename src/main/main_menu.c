@@ -4492,12 +4492,12 @@ void loadSavegame(SavegamePayload *savegame)
 	memcpy(PARTNER_ENTITY.name, savegame->digimonName, 0x14);
     /* The Latin naming keyboard cannot emit Chinese glyph bytes. Restore an automatic
      * species name in the selected language, including a Chinese save loaded on 2 MB. */
-    for (i = 0; i < 20 && PARTNER_ENTITY.name[i]; i++) {
-        if ((uint8_t)(PARTNER_ENTITY.name[i] - 0xA0) < 0x40) {
-            modPartnerNameSetSpecies(SAVED_STATE.partnerType);
-            break;
-        }
-    }
+    /* Chinese species names can start with a Latin prefix such as V. Stop at
+     * the first two-byte character; a Japanese trail byte is never a lead. */
+    for (i = 0; i < 19 && (uint8_t)(PARTNER_ENTITY.name[i] - 0x20) < 0x5f; i++) {}
+    if ((uint8_t)(PARTNER_ENTITY.name[i] - 0xA0) < 0x40)
+        modPartnerNameSetSpecies(SAVED_STATE.partnerType);
+
 	TAMER_ENTITY.tamerLevel = savegame->tamerLevel;
 	TAMER_ENTITY.raisedCount = savegame->raisedCount;
 	MONEY = savegame->money;
