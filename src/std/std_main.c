@@ -25,6 +25,8 @@
 #include <dw/main.h>
 #include <dw/math.h>
 #include <dw/mod_fps.h>
+#include <dw/mod_present.h>
+#include <dw/mod_qol.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -6187,8 +6189,14 @@ void STD_battleTickFrame(void)
 {
 	/* MOD (fps): rendered by the shared tick / present helper (main.c),
 	 * like BTL_battleTickFrame; the AI before this call is part of the tick */
+	if (MOD_SPEED_FIGHT) {
+		modSpeedBeforeTick(0); /* MOD (battle speed, mod_qol.c): a match (STD_runMatch) */
+	}
 	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT = PadRead(1);
+	if (MOD_SPEED_FIGHT) {
+		modSpeedInput();
+	}
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);

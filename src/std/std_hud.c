@@ -20,6 +20,7 @@
 #include <dw/math.h>
 #include <dw/memmap.h>
 #include <dw/mod_present.h>
+#include <dw/mod_qol.h>
 #include <dw/model.h>
 #include <dw/move.h>
 #include <dw/params.h>
@@ -586,7 +587,11 @@ void STD_tickFinisherChargeup(void)
 	}
 
 	if ((COMBAT_DATA_PTR->player.finisherChargeup[0] < BM(CHG_MAX)) && (up != 0)) {
-		COMBAT_DATA_PTR->player.finisherChargeup[0] += BM(CHG_PRESS);
+		/* MOD (battle speed): at x2 the window lasts half the real time, so a press counts twice */
+		COMBAT_DATA_PTR->player.finisherChargeup[0] += MOD_TICK_FAST ? 2 * BM(CHG_PRESS) : BM(CHG_PRESS);
+		if (COMBAT_DATA_PTR->player.finisherChargeup[0] > BM(CHG_MAX)) {
+			COMBAT_DATA_PTR->player.finisherChargeup[0] = BM(CHG_MAX);
+		}
 	}
 }
 

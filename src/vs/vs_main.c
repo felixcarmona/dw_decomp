@@ -11,6 +11,7 @@
 #include <dw/item.h>
 #include <dw/math.h>
 #include <dw/mod_present.h>
+#include <dw/mod_qol.h>
 #include <dw/move.h>
 #include <dw/params.h>
 #include <dw/types.h>
@@ -1062,9 +1063,15 @@ void VS_tickFrame(void)
 {
 	/* MOD (fps): rendered by the shared tick / present helper (main.c),
 	 * like BTL_battleTickFrame */
+	if (MOD_SPEED_FIGHT) {
+		modSpeedBeforeTick(0); /* MOD (battle speed, mod_qol.c): the fight (VS__combatMain) */
+	}
 	modTickStart(MOD_PRESENT_BATTLE);
 	POLLED_INPUT_PREVIOUS = POLLED_INPUT;
 	POLLED_INPUT = PadRead(1);
+	if (MOD_SPEED_FIGHT) {
+		modSpeedInput();
+	}
 	ACTIVE_FRAMEBUFFER = GsGetActiveBuff();
 	ACTIVE_ORDERING_TABLE = &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER];
 	GsSetWorkBase(GS_WORK_BASES[ACTIVE_FRAMEBUFFER]);

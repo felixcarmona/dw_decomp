@@ -178,9 +178,7 @@ int32_t BTL_isBattleFinished(void);
 void BTL_removeDeathCountdown(void);
 int32_t BTL_isCommandMenuClosed(void);
 void BTL_removePartnerStatusBars(void);
-void BTL_renderSpeedPlate(void); /* MOD (battle speed) */
 void BTL_modSpeedBeforeTick(void);
-void BTL_modSpeedInput(void);
 void BTL_removeFinisherChargeup(void);
 void BTL_removeAllFinisherAuras(void);
 void BTL_removeAllPoisonEffects(void);

@@ -89,7 +89,7 @@ typedef struct {
 
 extern EvlSpark EVL_D_80068F84[];
 extern EvoSequenceData EVO_SEQUENCE_DATA;
-/* MOD (evolution skip, main evl.c): 1 the scene may be skipped (its species was raised before), 2 START asked for it */
+/* MOD (evolution skip, main evl.c): 1 the scene may be skipped, 2 START asked for it */
 extern int8_t MOD_EVO_SKIP;
 
 extern EvoStatsGains EVOLUTION_STATS_GAINS[NUM_ORIGINAL_DIGIMON];
