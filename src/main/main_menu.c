@@ -5246,11 +5246,12 @@ static void dropAbsentRegistered(RegisteredDigimon *p, int32_t n)
 
 void setDigimonRaised(int32_t type);
 
+int32_t hasMove(int32_t move);
+
 /* MOD (options): the loaded partner becomes species `to`, its stats, care and age kept: the equipped techniques are
  * the new species' slots of the same techniques (none: its first learned one), the finisher its own */
 static void swapPartnerSpecies(int32_t to)
 {
-	uint32_t *learned = &PARTNER_ENTITY.learnedMoves[0];
 	uint8_t old[16];
 	uint8_t *equipped;
 	int32_t from;
@@ -5274,22 +5275,21 @@ static void swapPartnerSpecies(int32_t to)
 		}
 	}
 	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) {
+		/* its first learned technique, or with none learned its first one, learned (MOD, new technique rows:
+		 * hasMove is 0 and IS_GRID_MOVE false for no technique and for a finisher) */
+		anim = -1;
 		for (k = 0; k < 16; k++) {
 			tech = DIGI_PARA(to).moves[k];
-			if (tech != 0xff && IS_GRID_MOVE(tech) && (learned[MOVE_BIT(tech) / 32] >> (MOVE_BIT(tech) % 32)) & 1) {
-				equipped[0] = 0x2e + k;
+			if (!IS_GRID_MOVE(tech)) continue;
+			if (anim < 0) anim = k;
+			if (hasMove(tech)) {
+				anim = k;
 				break;
 			}
 		}
-	}
-	if (equipped[0] == 0xff && equipped[1] == 0xff && equipped[2] == 0xff) { /* none learned: its first one, learned */
-		for (k = 0; k < 16; k++) {
-			tech = DIGI_PARA(to).moves[k];
-			if (tech != 0xff && IS_GRID_MOVE(tech)) {
-				learned[MOVE_BIT(tech) / 32] |= 1u << (MOVE_BIT(tech) % 32);
-				equipped[0] = 0x2e + k;
-				break;
-			}
+		if (anim >= 0) {
+			learnMove(DIGI_PARA(to).moves[anim]);
+			equipped[0] = 0x2e + anim;
 		}
 	}
 	equipped[3] = 0xff; /* the finisher: the last special technique of its list (as EVL_applyEvolution) */
@@ -5393,9 +5393,9 @@ static void dropAbsentSaveContent(void)
 			INVENTORY.names.array[i] = 0xff;
 		}
 	}
-	for (i = 0; i < NUM_MOVES; i++) {
-		if (IS_GRID_MOVE(i) && isMoveAbsent(i)) { /* MOD (new technique rows): the bit of a technique, not its number */
-			learned[MOVE_BIT(i) / 32] &= ~(1u << (MOVE_BIT(i) % 32));
+	for (i = 0; i < 58; i++) { /* MOD (new technique rows): theirs are in every build, and bits 64..87 are theirs */
+		if (isMoveAbsent(i)) {
+			learned[i / 32] &= ~(1u << (i % 32));
 		}
 	}
 	memcpy(SAVE_FILE.saves[0].partnerData, learned, 0x10);
@@ -5621,18 +5621,15 @@ static int32_t loadSaveCopy(int32_t copy)
 	if (layout < 2) {
 		/* MOD (new technique rows): bits 64..87 meant nothing before (the Cheats menu set those of finishers): a
 		 * partner that already has its form gets, once, the first technique of each new row of its species */
-		PARTNER_ENTITY.learnedMoves[1] &= 0x03ffffff;
-		PARTNER_ENTITY.learnedMoves[2] = PARTNER_ENTITY.learnedMoves[3] = 0;
-		for (i = 0; i < 3; i++) {
-			int32_t el = DIGI_PARA(SAVED_STATE.partnerType).special[i];
-			int32_t k;
+		uint8_t *moves = DIGI_PARA(SAVED_STATE.partnerType).moves;
+		uint32_t bits = 0;
 
-			if (el < NEW_ELEMENT_FIRST || el >= NUM_ELEMENTS) continue;
-			el = NEW_MOVE_FIRST + (el - NEW_ELEMENT_FIRST) * 8;
-			for (k = 0; k < 16; k++) {
-				if (DIGI_PARA(SAVED_STATE.partnerType).moves[k] == el) learnMove(el);
-			}
+		for (i = 0; i < 16; i++) {
+			uint32_t m = moves[i] - NEW_MOVE_FIRST;
+
+			if (m < NUM_NEW_MOVES && (m & 7) == 0) bits |= 1u << m;
 		}
+		PARTNER_ENTITY.learnedMoves[2] = bits; /* bit 64 is the first of the new rows (MOVE_BIT) */
 	}
 	dropAbsentSaveContent();
 	/* The registration menu restores copy 1. Keep its used fields in the selected
