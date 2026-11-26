@@ -2745,7 +2745,7 @@ static char *lookPageValueText(int32_t row)
 	int32_t value = lookPageGet(row);
 	int32_t name;
 
-	if (!lookPageRowOpen(row)) {
+	if (row == LOOK_HANDS_ROW || !lookPageRowOpen(row)) { /* the hands' row is not shown and has no names */
 		return (char *)lookPageDash;
 	}
 	switch (row) {
