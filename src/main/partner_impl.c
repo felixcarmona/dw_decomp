@@ -1977,7 +1977,7 @@ void handleEatingPoop(void)
 		}
 	}
 
-	WORLD_POOP[POOP_TO_EAT].map = 0xff;
+	WORLD_POOP[POOP_TO_EAT].map = -1; /* MOD (screens beyond 255): was 0xff */
 	WORLD_POOP[POOP_TO_EAT].x = -1;
 	WORLD_POOP[POOP_TO_EAT].y = -1;
 	WORLD_POOP[POOP_TO_EAT].size = 0;

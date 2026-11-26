@@ -23,6 +23,7 @@
 #include <dw/version.h>
 #include <dw/world_object.h>
 #include <dw/mod_battle.h>
+#include <dw/screen.h>
 
 #define BTL_FINISHER_TIM	((char *)BATTLE_FINISHER_TIM_ADDR)
 #define BTL_FINISHER_MODEL	((char *)BATTLE_FINISHER_MODEL_ADDR)
@@ -129,6 +130,9 @@ int32_t isScreenConcave(void)
 {
 	int32_t i;
 
+	if (isNewScreen(CURRENT_SCREEN)) { /* MOD (screens beyond 255): the record's flag */
+		return (getScreenFlags(CURRENT_SCREEN) & SCREEN_FLAG_CONCAVE) != 0;
+	}
 	for (i = 0; i < NUM_CONCAVE_SCREENS; ++i) {
 		if (CURRENT_SCREEN == CONCAVE_SCREENS[i]) {
 			return 1;

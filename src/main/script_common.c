@@ -22,6 +22,7 @@
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
+#include <dw/screen.h>
 #include <text/main/script_common.h>
 
 typedef struct {
@@ -3102,6 +3103,9 @@ void checkShopMap(mapId)
 			return;
 		}
 	}
+	if (getScreenFlags(mapId) & SCREEN_FLAG_SHOP) { /* MOD (screens beyond 255): a new screen's record */
+		loadDynamicLibrary(SHOP_REL, &local, 0, 0, 0);
+	}
 }
 
 void loadShopLibrary(void)
@@ -3122,6 +3126,9 @@ void checkArenaMap(mapId)
 			loadDynamicLibrary(DGET_REL, &local, 0, 0, 0);
 			return;
 		}
+	}
+	if (getScreenFlags(mapId) & SCREEN_FLAG_ARENA) { /* MOD (screens beyond 255): a new screen's record */
+		loadDynamicLibrary(DGET_REL, &local, 0, 0, 0);
 	}
 }
 

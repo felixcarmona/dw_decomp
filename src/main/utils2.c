@@ -567,7 +567,7 @@ void updateMapLightState(void)
 
 	p = MAP_LIGHT_UPDATE_DATA;
 	for (i = 0; i <= 0; i++, p++) {
-		if ((p->mapId == (CURRENT_SCREEN_ID & 0xFF)) &&
+		if ((p->mapId == CURRENT_SCREEN_ID) && /* MOD (screens beyond 255): was & 0xFF, so 255 + 0xb7 matched */
 		    ((p->trigger == 0xFFFF) || (isTriggerSet(p->trigger) != 0))) {
 			if ((HOUR >= 7) && (HOUR < 0x13)) {
 				if (p->mode == 0) {

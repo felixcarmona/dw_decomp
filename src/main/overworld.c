@@ -11,6 +11,7 @@
 #include <dw/tamer.h>
 #include <dw/ui.h>
 #include <dw/version.h>
+#include <dw/screen.h>
 
 typedef struct {
 	VECTOR waypoints[8];
@@ -567,6 +568,9 @@ void renderMapOverlays(LocalMapObjectInstance *instances, int16_t screenX,
 
 int32_t isMistActive(void)
 {
+	if (isNewScreen(CURRENT_SCREEN)) { /* MOD (screens beyond 255): the record's flag (the far layer's CLUT row 0x80) */
+		return (getScreenFlags(CURRENT_SCREEN) & SCREEN_FLAG_MIST) != 0;
+	}
 	if (!((CURRENT_SCREEN >= 115 && CURRENT_SCREEN < 120) ||
 	      CURRENT_SCREEN == 121 || CURRENT_SCREEN == 163 ||
 	      CURRENT_SCREEN == 220)) {
@@ -1081,7 +1085,7 @@ void loadMapDigimon(int16_t *data, int16_t mapId)
 	int32_t j;
 
 	digimonCount = *data++;
-	if (MAP_ENTRIES[mapId].flags & 0x80) {
+	if (SCREEN_ENTRY(mapId).flags & 0x80) {
 		for (i = 0; i < digimonCount; i++) {
 			MAP_DIGIMON_TABLE[i].typeId = *data++;
 			MAP_DIGIMON_TABLE[i].followMode = *data++;

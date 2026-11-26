@@ -36,6 +36,7 @@
 #include <dw/ui.h>
 #include <dw/utils.h>
 #include <dw/version.h>
+#include <dw/screen.h>
 #include <text/main/tamer.h>
 
 RECT ITEM_PICKUP_TEXT_AREA = {0, 12, 256, 200};
@@ -926,7 +927,7 @@ void advanceBattleTime(result)
 	if (result == 1) {
 		int8_t flags;
 
-		flags = MAP_ENTRIES[CURRENT_SCREEN].flags & 0x40;
+		flags = SCREEN_ENTRY(CURRENT_SCREEN).flags & 0x40;
 		if (flags == 0) {
 			if (HOUR == MOD_DAYTIME[MOD_DT_DUSK]) {
 				initializeDaytimeTransition(0);
