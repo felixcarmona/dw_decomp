@@ -4490,6 +4490,14 @@ void loadSavegame(SavegamePayload *savegame)
 	SAVED_STATE.partnerStats = savegame->stats;
 	loadSavedInventory(&savegame->inventory);
 	memcpy(PARTNER_ENTITY.name, savegame->digimonName, 0x14);
+    /* The Latin naming keyboard cannot emit Chinese glyph bytes. Restore an automatic
+     * species name in the selected language, including a Chinese save loaded on 2 MB. */
+    for (i = 0; i < 20 && PARTNER_ENTITY.name[i]; i++) {
+        if ((uint8_t)(PARTNER_ENTITY.name[i] - 0xA0) < 0x40) {
+            modPartnerNameSetSpecies(SAVED_STATE.partnerType);
+            break;
+        }
+    }
 	TAMER_ENTITY.tamerLevel = savegame->tamerLevel;
 	TAMER_ENTITY.raisedCount = savegame->raisedCount;
 	MONEY = savegame->money;
@@ -5776,6 +5784,14 @@ static void setRegisteredSpecies(RegisteredDigimon *rec, int32_t type)
 	rec->wideId = type;
 	rec->wideCheck = rec->digimonId;
 	rec->wideTag = REGISTERED_WIDE_TAG;
+    memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
+    rec->name[0xd] = '\0';
+    /* The fixed 13-byte nickname field must end on a whole character. */
+    {
+        int32_t end = 0;
+        while (end < 13 && rec->name[end]) end += isAsciiEncoded(rec->name + end) ? 1 : 2;
+        if (end > 13) rec->name[12] = '\0';
+    }
 }
 
 void registerBattleData(void)
@@ -5791,8 +5807,6 @@ void registerBattleData(void)
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
 	setRegisteredSpecies(rec, PARTNER_ENTITY.digimonEntity.entity.type); /* MOD (scale, wide registered species) */
-	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
-	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	memcpy(rec->moves, PARTNER_ENTITY.digimonEntity.stats.base.moves, 3);
 }
 
@@ -5929,8 +5943,6 @@ void awardMachinedramonData(void)
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
 	setRegisteredSpecies(rec, MOD_VS_UNLOCK[0]); /* MOD (wide registered species) */
-	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
-	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	rec->moves[0] = MOD_VS_UNLOCK[1];
 	rec->moves[1] = MOD_VS_UNLOCK[2];
 	rec->moves[2] = MOD_VS_UNLOCK[3];
@@ -6354,34 +6366,7 @@ static void modFlagRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t rgb
 	GsSetWorkBase((PACKET *)tile);
 }
 
-static uint32_t modFlagPixel(int32_t lang, int32_t x, int32_t y)
-{
-	int32_t dx = x - 12;
-	int32_t dy = y - 8;
-	int32_t diagonal = 2*x - 3*y;
-	int32_t other = 2*(23-x) - 3*y;
-	if (diagonal < 0) diagonal = -diagonal;
-	if (other < 0) other = -other;
-	switch (lang) {
-	case MOD_LANG_EN: /* United Kingdom */
-		if ((x >= 11 && x <= 12) || (y >= 7 && y <= 8)) return 0xd82038;
-		if ((x >= 9 && x <= 14) || (y >= 5 && y <= 10)) return 0xffffff;
-		if (diagonal < 2 || other < 2) return 0xd82038;
-		return diagonal < 5 || other < 5 ? 0xffffff : 0x163478;
-	case MOD_LANG_ES: return y < 4 || y >= 12 ? 0xc82030 : 0xffcf30;
-	case MOD_LANG_PT_BR:
-		if (dx*dx + dy*dy < 19) return dy == 0 ? 0xffffff : 0x16449a;
-		if (dx < 0) dx = -dx;
-		if (dy < 0) dy = -dy;
-		return dx*7 + dy*10 < 70 ? 0xffd632 : 0x129044;
-	case MOD_LANG_FR: return x < 8 ? 0x19489c : x < 16 ? 0xffffff : 0xe83040;
-	case MOD_LANG_DE: return y < 5 ? 0x101010 : y < 11 ? 0xd82430 : 0xffce30;
-	case MOD_LANG_IT: return x < 8 ? 0x15945a : x < 16 ? 0xffffff : 0xda3042;
-	case MOD_LANG_JA: return dx*dx + dy*dy < 21 ? 0xc82042 : 0xffffff;
-	case MOD_LANG_CA: return (y >= 1 && y <= 2) || (y >= 5 && y <= 6) || (y >= 9 && y <= 10) || (y >= 13 && y <= 14) ? 0xda2430 : 0xffd23a;
-	}
-	return 0xffffff;
-}
+#include "language_flags.h"
 
 static void modRenderLanguagePicker(void)
 {
@@ -6389,6 +6374,7 @@ static void modRenderLanguagePicker(void)
 	MenuHighlight selected = {0};
 	selected.x = 69; selected.y = 44; selected.w = 182; selected.h = 16; selected.rowHeight = 18;
 	int32_t i, x, y, end, lang;
+    const uint8_t *run;
 	uint32_t colour;
 	text = (POLY_FT4 *)GsGetWorkBase();
 	renderText(text++, 68, 22, 0, 0, 216, 12, 0);
@@ -6401,13 +6387,15 @@ static void modRenderLanguagePicker(void)
 	for (i = 0; i < modLanguageCount(); i++) {
 		lang = modLanguageAt(i);
         if (lang == MOD_LANG_ZH) continue;
-		for (y = 0; y < 16; y++) {
-			for (x = 0; x < 24; x = end) {
-				colour = modFlagPixel(lang, x, y);
-				for (end = x + 1; end < 24 && modFlagPixel(lang, end, y) == colour; end++);
-				modFlagRect(76+x, 44+i*18+y, end-x, 1, colour);
-			}
-		}
+        run = MOD_FLAG_RUNS + MOD_FLAG_OFFSET[lang];
+        for (y = 0; y < 16; y++) {
+            for (x = 0; x < 24; x += end) {
+                end = *run++;
+                colour = MOD_FLAG_PALETTE[lang][end >> 5];
+                end &= 31;
+                modFlagRect(76+x, 44+i*18+y, end, 1, colour);
+            }
+        }
 		modFlagRect(75, 43+i*18, 26, 18, 0x080808);
 	}
 	selected.pos = MOD_BOOT_LANGUAGE_CURSOR;
