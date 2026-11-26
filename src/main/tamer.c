@@ -1205,13 +1205,14 @@ int32_t tickEntityMoveTo(scriptId1, scriptId2, targetX, targetZ, speed,
 		                  entity->posData->location.vz + MOVE_TO_DELTA_Z);
 		setupEntityMatrix(scriptId1);
 
+		/* A sub-step remainder rounds to zero: snap that axis to its target. */
 		finishedX = finishedZ = 0;
 		if (MOVE_TO_DELTA_X < 0) {
 			if (targetX >= entity->posData->location.vx) {
 				entity->posData->location.vx = targetX;
 				finishedX = 1;
 			}
-		} else if (targetX <= entity->posData->location.vx) {
+		} else if (MOVE_TO_DELTA_X == 0 || targetX <= entity->posData->location.vx) {
 			entity->posData->location.vx = targetX;
 			finishedX = 1;
 		}
@@ -1221,7 +1222,7 @@ int32_t tickEntityMoveTo(scriptId1, scriptId2, targetX, targetZ, speed,
 				entity->posData->location.vz = targetZ;
 				finishedZ = 1;
 			}
-		} else if (entity->posData->location.vz >= targetZ) {
+		} else if (MOVE_TO_DELTA_Z == 0 || entity->posData->location.vz >= targetZ) {
 			entity->posData->location.vz = targetZ;
 			finishedZ = 1;
 		}
@@ -1283,7 +1284,7 @@ int32_t tickEntityMoveToAxis(scriptId, target, axis, speed, withCamera)
 				PREVIOUS_CAMERA_POS_INITIALIZED = 0;
 				return 1;
 			}
-		} else if (*axisValue >= target) {
+		} else if (MOVE_TO_DELTA_X == 0 || *axisValue >= target) {
 			*axisValue = target;
 			PREVIOUS_CAMERA_POS_INITIALIZED = 0;
 			return 1;
