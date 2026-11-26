@@ -15,6 +15,8 @@
 #include <dw/utils.h>
 #include <dw/version.h>
 
+int32_t modPacketFits(int32_t bytes); /* MOD (packet budget): dw/world_object.h */
+
 #if !VERSION_IS(US)
 #define DIGIT_WIDTH 12
 #else
@@ -240,6 +242,10 @@ void renderNumber(int32_t color, int16_t x, int16_t y, int32_t n,
 	 * right edge stays); the original drew only the first n digits */
 	x -= CAPS_SHIFT(n, value, DIGIT_WIDTH);
 	n = CAPS_DIGITS(n, value);
+	/* MOD (packet budget): see dw/world_object.h */
+	if (!modPacketFits(n * (int32_t)sizeof(POLY_FT4))) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 
 	convertValueToDigits(n, value, &count, buf);

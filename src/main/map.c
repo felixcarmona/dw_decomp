@@ -29,6 +29,8 @@
 #include <dw/utils.h>
 #include <dw/vecmath.h>
 #include <dw/version.h>
+
+int32_t modPacketFits(int32_t bytes); /* MOD (packet budget): dw/world_object.h */
 #include <text/main/map.h>
 
 typedef struct {
@@ -6675,6 +6677,10 @@ void renderFXParticle(SVECTOR *pos, int32_t size, RGB8 *color)
 	int32_t depth;
 	DVECTOR screenPos;
 
+	/* MOD (packet budget): see dw/world_object.h */
+	if (!modPacketFits(sizeof(POLY_FT4))) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	depth = worldPosToScreenPos(pos, &screenPos);
 	SetPolyFT4(prim);

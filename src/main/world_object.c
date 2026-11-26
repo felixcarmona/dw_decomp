@@ -1,5 +1,24 @@
+#include <libgs.h>
+
 #include <dw/world_object.h>
 #include <dw/mod_fps.h>
+
+extern PACKET GS_WORK_BASES[2][0x14000];
+extern int32_t ACTIVE_FRAMEBUFFER;
+
+/* MOD (packet budget): see dw/world_object.h */
+int32_t modPacketFits(int32_t bytes)
+{
+	uint8_t *cursor;
+	uint8_t *base;
+
+	cursor = (uint8_t *)GsGetWorkBase();
+	base = (uint8_t *)GS_WORK_BASES[ACTIVE_FRAMEBUFFER & 1];
+	if (cursor < base || cursor > base + 0x14000) {
+		return 1;
+	}
+	return (base + 0x14000 - MOD_PACKET_RESERVE) - cursor >= bytes;
+}
 
 
 WorldObject WORLD_OBJECTS[NUM_WORLD_OBJECTS + 1];

@@ -3708,7 +3708,10 @@ void BTL_drawTMDScreenSpace(void)
 	GsLinkObject4((unsigned long)EFE_DATA_ITERATOR->model->modelPtr->obj, &EFE_SCRATCH->obj, EFE_SCRATCH->id);
 	EFE_SCRATCH->obj.coord2 = NULL;
 	EFE_SCRATCH->obj.attribute = 0;
-	GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	/* MOD (packet budget): at most one POLY_GT4 per primitive (attribute 0) */
+	if (modPacketFits(((struct TMD_STRUCT *)EFE_SCRATCH->obj.tmd)->primn * sizeof(POLY_GT4))) {
+		GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	}
 }
 
 void BTL_loadClutColors(void)
@@ -3767,7 +3770,10 @@ void BTL_drawTMDYXZ(void)
 	GsLinkObject4((unsigned long)EFE_DATA_ITERATOR->model->modelPtr->obj, &EFE_SCRATCH->obj, EFE_SCRATCH->id);
 	EFE_SCRATCH->obj.coord2 = NULL;
 	EFE_SCRATCH->obj.attribute = 0;
-	GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	/* MOD (packet budget): at most one POLY_GT4 per primitive (attribute 0) */
+	if (modPacketFits(((struct TMD_STRUCT *)EFE_SCRATCH->obj.tmd)->primn * sizeof(POLY_GT4))) {
+		GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	}
 }
 
 void BTL_getCameraRotation(void)
@@ -5091,7 +5097,9 @@ void BTL_renderProjectedSprite(void)
 		EFE_SPRITE_SCRATCH->sprite.scalex = ((uint32_t)(EFE_SPRITE_SCRATCH->sprite.scalex * VIEWPORT_DISTANCE) << 5) / (uint32_t)EFE_SPRITE_SCRATCH->otz;
 		EFE_SPRITE_SCRATCH->sprite.scaley = ((uint32_t)(EFE_SPRITE_SCRATCH->sprite.scaley * VIEWPORT_DISTANCE) << 5) / (uint32_t)EFE_SPRITE_SCRATCH->otz;
 		EFE_SPRITE_SCRATCH->otz = (EFE_SPRITE_SCRATCH->otz - 0xa) >> 2;
-		if (EFE_SPRITE_SCRATCH->otz >= 0x20 && EFE_SPRITE_SCRATCH->otz < 0x1000) {
+		/* MOD (packet budget): a sprite is a POLY_FT4 plus a DR_MODE at most */
+		if (EFE_SPRITE_SCRATCH->otz >= 0x20 && EFE_SPRITE_SCRATCH->otz < 0x1000 &&
+		    modPacketFits(sizeof(POLY_FT4) + sizeof(DR_MODE))) {
 			GsSortSprite(&EFE_SPRITE_SCRATCH->sprite, ACTIVE_ORDERING_TABLE, (uint16_t)EFE_SPRITE_SCRATCH->otz);
 		}
 	}
@@ -5202,7 +5210,8 @@ void BTL_renderScreenSprite(void)
 #if VERSION_EQUAL_OR_OLDER(JP_TRIAL)
 	GsSortSprite(&sprite, ACTIVE_ORDERING_TABLE, (uint16_t)depth);
 #else
-	if ((depth >= 0) && (depth < 0x1000)) {
+	/* MOD (packet budget): a sprite is a POLY_FT4 plus a DR_MODE at most */
+	if ((depth >= 0) && (depth < 0x1000) && modPacketFits(sizeof(POLY_FT4) + sizeof(DR_MODE))) {
 		GsSortSprite(&sprite, ACTIVE_ORDERING_TABLE, (uint16_t)depth);
 	}
 #endif
@@ -5584,7 +5593,10 @@ void BTL_drawTMD(void)
 	GsLinkObject4((unsigned long)EFE_DATA_ITERATOR->model->modelPtr->obj, &EFE_SCRATCH->obj, EFE_SCRATCH->id);
 	EFE_SCRATCH->obj.coord2 = NULL;
 	EFE_SCRATCH->obj.attribute = 0;
-	GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	/* MOD (packet budget): at most one POLY_GT4 per primitive (attribute 0) */
+	if (modPacketFits(((struct TMD_STRUCT *)EFE_SCRATCH->obj.tmd)->primn * sizeof(POLY_GT4))) {
+		GsSortObject4(&EFE_SCRATCH->obj, ACTIVE_ORDERING_TABLE, 2, EFE_SORT_WORKSPACE);
+	}
 }
 
 void BTL_initializeSubEffectInstructions(void)
