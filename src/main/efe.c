@@ -7,6 +7,7 @@
 
 #include <dw/efe.h>
 #include <dw/entity.h>
+#include <dw/mod_present.h>
 #include <dw/garbage.h>
 #include <dw/math.h>
 #include <dw/params.h>
@@ -803,6 +804,11 @@ void EFECreateFlash(void)
 	fixedDepth = EFE_POP1(int32_t);
 	worldPos = EFE_POP1(VECTOR *);
 	absMode = EFE_POP1(int32_t);
+	if (MOD_RENDER_PASS != 0) {
+		/* MOD (fps): an effect's render script on an extra render pass of a
+		 * tick does not start flashes (BTL_renderEFEEngine) */
+		return;
+	}
 	mode = absMode;
 	if (absMode < 0) {
 		absMode = -absMode;
