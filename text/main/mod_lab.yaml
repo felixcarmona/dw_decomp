@@ -310,6 +310,21 @@ MOD_LAB:
     LAB_STR_ASK_OLD_AGE:
       ja: "Let it die of old age now?"
       en_us: "Let it die of old age now?"
+    LAB_STR_LEARN:
+      ja: "Learn technique"
+      en_us: "Learn technique"
+    LAB_STR_LEARN_ALL:
+      ja: "Learn all techniques"
+      en_us: "Learn all techniques"
+    LAB_STR_UNLOCK_CHART:
+      ja: "Unlock evolution chart"
+      en_us: "Unlock evolution chart"
+    LAB_STR_MSG_LEARNED:
+      ja: "Learned!"
+      en_us: "Learned!"
+    LAB_STR_MSG_UNLOCKED:
+      ja: "Chart unlocked"
+      en_us: "Chart unlocked"
     LAB_STR_ASK_TITLE:
       ja: "Return to the main menu?"
       en_us: "Return to the main menu?"
