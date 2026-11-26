@@ -2488,14 +2488,21 @@ static void modTitleNameTail(void)
 
 /*
  * MOD (language): the player's name in the save title, written by the memory card's own screens too, must be plain
- * Shift-JIS: an accented letter of the mod font (F040-F057, the name keyboard) becomes its full-width plain letter there.
+ * Shift-JIS: a glyph of the mod font (F040-F087, the name keyboard) becomes its full-width plain letter there (a symbol:
+ * the Shift-JIS one, ♥ a white star).
  * Which ones were accented goes to the header's reserved bytes after the long names' tail ("A" at [5], then each
  * letter's F0 code or 0), for the save slots (loadSaveSlotData). Run after modTitleNameTail.
  */
-static const uint16_t PLAIN_LETTERS[0x18] = {
+static const uint16_t PLAIN_LETTERS[71] = {
 	0x8281, 0x8285, 0x828f, 0x8295, 0x8281, 0x8285, 0x828f, 0x8289, /* á é ó ú à è ò í */
 	0x8289, 0x8295, 0x828e, 0x8283, 0x8260, 0x8264, 0x826e, 0x8274, /* ï ü ñ ç Á É Ó Ú */
 	0x8260, 0x8264, 0x826e, 0x8268, 0x8268, 0x8274, 0x826d, 0x8262, /* À È Ò Í Ï Ü Ñ Ç */
+	0x8148, 0x8149, 0x8145, 0x81e1, 0x81e2, 0x8169, 0x816a, 0x8195, /* ¿ ¡ · « » ( ) & */
+	0x8193, 0x815e, 0x8163, 0x816d, 0x816e, 0x8194, 0x8196, 0x8160, /* % / … [ ] # * ~ */
+	0x8197, 0x815c, 0x815c, 0x81f4, 0x8281, 0x8285, 0x8289, 0x828f, /* @ – — ♪ â ê î ô */
+	0x8295, 0x8281, 0x8285, 0x828f, 0x8281, 0x828f, 0x8289, 0x8295, /* û ä ë ö ã õ ì ù */
+	0x8293, 0x8260, 0x8264, 0x8268, 0x826e, 0x8274, 0x8260, 0x8264, /* ß Â Ê Î Ô Û Ä Ë */
+	0x826e, 0x8260, 0x826e, 0x8268, 0x8274, 0x8199, 0x819a, /* Ö Ã Õ Ì Ù ♥ ★ */
 };
 
 static void modTitlePlayerName(void)
@@ -2503,6 +2510,7 @@ static void modTitlePlayerName(void)
 	uint8_t *p;
 	int32_t i;
 	uint16_t plain;
+	int32_t n;
 
 	p = (uint8_t *)SAVE_FILE.title + 0xe;
 	for (i = 0; i < 6 && p[i * 2] != 0; i++) {
@@ -2511,7 +2519,8 @@ static void modTitlePlayerName(void)
 		}
 		SAVE_FILE.reserved[5] = 'A';
 		SAVE_FILE.reserved[6 + i] = p[i * 2 + 1];
-		plain = p[i * 2 + 1] >= 0x40 && p[i * 2 + 1] < 0x58 ? PLAIN_LETTERS[p[i * 2 + 1] - 0x40] : 0x8140;
+		n = p[i * 2 + 1] - 0x40 - (p[i * 2 + 1] > 0x7f); /* F07F is skipped */
+		plain = n >= 0 && n < (int32_t)(sizeof(PLAIN_LETTERS) / sizeof(PLAIN_LETTERS[0])) ? PLAIN_LETTERS[n] : 0x8140;
 		p[i * 2] = plain >> 8;
 		p[i * 2 + 1] = plain;
 	}
