@@ -3921,6 +3921,9 @@ int32_t MOD_PERF_XEND;      /* ... and when it ended (after DrawSync) */
 int32_t MOD_PERF_XSTARTV;   /* refreshes since tick start at those two points */
 int32_t MOD_PERF_XENDV;
 int32_t MOD_PERF_RESET;
+int32_t MOD_PERF_SNAP;      /* lines of the interpolation snapshot */
+int32_t MOD_PERF_P0END;     /* lines since tick start when the first pass ended */
+int32_t MOD_PERF_P0ENDV;    /* ... and refreshes */
 static int32_t modPerfPrevStart = -1;
 static int32_t modPassSetupLines = 40;
 
@@ -4112,6 +4115,215 @@ int32_t modRenderRand(void)
 	return (modRenderLcg >> 16) & 0x7FFF;
 }
 
+/* MOD (fps): interpolation of the extra render passes (docs/mods/60fps.md
+ * 2.3-2.4). After each tick the state the renders read is snapshotted
+ * ("cur", the previous snapshot becomes "prev"); each render pass then
+ * temporarily writes values between prev and cur, by the fraction of the tick
+ * elapsed at the refresh where the pass is shown, and puts the tick's values
+ * back after the pass, so the logic only ever sees its own state.
+ * - World camera: the 2D origin the 3D is drawn with (POSITION, which is the
+ *   DRAWING_OFFSET of before the tick) and the pair cameraX/Y +
+ *   DRAWING_OFFSET_X/Y renderMap places the tiles and map sprites with. Each
+ *   is interpolated between its own values of the two ticks, so the one-tick
+ *   lag between them is kept and the tiles stay where the 3D is.
+ * - Snaps (render the tick's own state): map load, a change of the 3D view,
+ *   game state or the interpolation switch, a camera step over 64 px; and a pass whose interpolated camera would
+ *   need background tiles outside the VRAM tile window gets the smallest
+ *   later fraction that does not. */
+int32_t MOD_FPS_INTERP = 1;
+int32_t MOD_INTERP_MAP_GEN;   /* bumped on every map setup/unload */
+int32_t MOD_INTERP_STATS[4];  /* passes with alpha < 1, (unused),
+				 VRAM window clamps, snapped ticks */
+int32_t MOD_MIST_SHIFT[3];    /* renderMist: x, y and x of the far layer */
+int32_t isMistActive(void);
+
+typedef struct {
+	int16_t ox, oy;  /* POSITION of the first pass */
+	int16_t cx, cy;  /* MAP_TILE_DATA.cameraX/Y */
+	int32_t dx, dy;  /* DRAWING_OFFSET_X/Y */
+} ModInterpCam;
+
+static ModInterpCam modCamPrev;
+static ModInterpCam modCamCur;
+static int8_t modCamLerp;
+static int8_t modInterpValid;     /* the previous tick was snapshotted */
+static int32_t modInterpMapGen;
+static GsRVIEW2 modInterpView;
+static int8_t modInterpGameState;
+static int16_t modCamSaveCX, modCamSaveCY;
+static int32_t modCamSaveDX, modCamSaveDY;
+static int8_t modInterpLastPassLerped;
+static int8_t modCamApplied;
+
+static int32_t modLerp(int32_t a, int32_t b, int32_t alpha)
+{
+	return a + (((b - a) * alpha + 2048) >> 12);
+}
+
+/* main.c has its own memcpy, and no memory compare */
+static int32_t modSame(const void *a, const void *b, int32_t size)
+{
+	const uint8_t *pa = a;
+	const uint8_t *pb = b;
+
+	while (size-- > 0) {
+		if (*pa++ != *pb++) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int32_t modAbs(int32_t v)
+{
+	return v < 0 ? -v : v;
+}
+
+/* forget the previous tick: the next tick renders its own state */
+void modInterpInvalidate(void)
+{
+	modInterpValid = 0;
+}
+
+/* after the tick (and late tick), before the first pass */
+static void modInterpSnapshot(void)
+{
+	int32_t snap;
+
+	snap = !modInterpValid || modInterpMapGen != MOD_INTERP_MAP_GEN ||
+	       modInterpGameState != GAME_STATE ||
+	       !modSame(&modInterpView, &GS_VIEWPOINT, sizeof(GsRVIEW2));
+	modInterpMapGen = MOD_INTERP_MAP_GEN;
+	modInterpGameState = GAME_STATE;
+	modCopy(&modInterpView, &GS_VIEWPOINT, sizeof(GsRVIEW2));
+
+	modCopy(&modCamPrev, &modCamCur, sizeof(ModInterpCam));
+	modCamCur.ox = modPass0Position.offx;
+	modCamCur.oy = modPass0Position.offy;
+	modCamCur.cx = MAP_TILE_DATA.cameraX;
+	modCamCur.cy = MAP_TILE_DATA.cameraY;
+	modCamCur.dx = DRAWING_OFFSET_X;
+	modCamCur.dy = DRAWING_OFFSET_Y;
+	if (!snap &&
+	    (modAbs(modCamCur.ox - modCamPrev.ox) > 64 || modAbs(modCamCur.oy - modCamPrev.oy) > 64 ||
+	     modAbs(modCamCur.cx - modCamPrev.cx) > 64 || modAbs(modCamCur.cy - modCamPrev.cy) > 64 ||
+	     modAbs(modCamCur.dx - modCamPrev.dx) > 64 || modAbs(modCamCur.dy - modCamPrev.dy) > 64)) {
+		snap = 1; /* a camera cut */
+	}
+	modCamLerp = !snap &&
+		     (modCamCur.ox != modCamPrev.ox || modCamCur.oy != modCamPrev.oy ||
+		      modCamCur.cx != modCamPrev.cx || modCamCur.cy != modCamPrev.cy ||
+		      modCamCur.dx != modCamPrev.dx || modCamCur.dy != modCamPrev.dy);
+	if (snap) {
+		MOD_INTERP_STATS[3]++;
+	}
+
+	modInterpValid = 1;
+}
+
+/* is the background at tile camera (ex, ey) inside the VRAM tile window,
+ * or at least no further out than the tick's own camera (exCur, eyCur)? */
+static int32_t modTilesCovered(int32_t ex, int32_t ey, int32_t exCur, int32_t eyCur)
+{
+	int32_t lo;
+	int32_t hi;
+	int32_t cols;
+
+	cols = MAP_TILE_DATA.width > 3 ? 4 : MAP_TILE_DATA.width;
+	lo = MAP_TILE_X * 128;
+	hi = lo + cols * 128;
+	if (exCur < lo) lo = exCur;
+	if (exCur + 320 > hi) hi = exCur + 320;
+	if (ex < lo || ex + 320 > hi) {
+		return 0;
+	}
+	lo = MAP_TILE_Y * 128;
+	hi = lo + 3 * 128;
+	if (eyCur < lo) lo = eyCur;
+	if (eyCur + 240 > hi) hi = eyCur + 240;
+	if (ey < lo || ey + 240 > hi) {
+		return 0;
+	}
+	return 1;
+}
+
+/* before renderObjects of a pass shown at fraction alpha (0..4096) of the tick */
+static void modInterpApply(int32_t alpha)
+{
+	int32_t cx, cy, dx, dy, ox, oy;
+
+	modInterpLastPassLerped = 0;
+	MOD_MIST_SHIFT[0] = MOD_MIST_SHIFT[1] = MOD_MIST_SHIFT[2] = 0;
+	if (alpha >= 4096) {
+		return;
+	}
+	if (modCamLerp) {
+		/* the background drawn at x is at tile x - (cameraX + DRAWING_OFFSET_X
+		 * - POSITION.offx); keep that inside the tiles in VRAM */
+		for (;;) {
+			cx = modLerp(modCamPrev.cx, modCamCur.cx, alpha);
+			cy = modLerp(modCamPrev.cy, modCamCur.cy, alpha);
+			dx = modLerp(modCamPrev.dx, modCamCur.dx, alpha);
+			dy = modLerp(modCamPrev.dy, modCamCur.dy, alpha);
+			ox = modLerp(modCamPrev.ox, modCamCur.ox, alpha);
+			oy = modLerp(modCamPrev.oy, modCamCur.oy, alpha);
+			if (modTilesCovered(cx + dx - ox, cy + dy - oy,
+					    modCamCur.cx + modCamCur.dx - modCamCur.ox,
+					    modCamCur.cy + modCamCur.dy - modCamCur.oy)) {
+				break;
+			}
+			MOD_INTERP_STATS[2]++;
+			alpha += 512;
+			if (alpha >= 4096) {
+				return;
+			}
+		}
+		modCamSaveCX = MAP_TILE_DATA.cameraX;
+		modCamSaveCY = MAP_TILE_DATA.cameraY;
+		modCamSaveDX = DRAWING_OFFSET_X;
+		modCamSaveDY = DRAWING_OFFSET_Y;
+		MAP_TILE_DATA.cameraX = cx;
+		MAP_TILE_DATA.cameraY = cy;
+		DRAWING_OFFSET_X = dx;
+		DRAWING_OFFSET_Y = dy;
+		POSITION.offx = ox;
+		POSITION.offy = oy;
+		if (isMistActive()) {
+			/* the mist moves by the camera step of each tick (tickMist) */
+			MOD_MIST_SHIFT[0] = modCamCur.cx - cx;
+			MOD_MIST_SHIFT[1] = modCamCur.cy - cy;
+			MOD_MIST_SHIFT[2] = (modCamCur.cx - cx) * 12 / 10;
+		}
+		modCamApplied = 1;
+		modInterpLastPassLerped = 1;
+	}
+
+	MOD_INTERP_STATS[0]++;
+}
+
+/* after renderObjects of a pass (the 2D origin stays until the swap) */
+static void modInterpRestore(void)
+{
+	if (!modInterpLastPassLerped) {
+		return;
+	}
+	if (modCamApplied) {
+		MAP_TILE_DATA.cameraX = modCamSaveCX;
+		MAP_TILE_DATA.cameraY = modCamSaveCY;
+		DRAWING_OFFSET_X = modCamSaveDX;
+		DRAWING_OFFSET_Y = modCamSaveDY;
+		MOD_MIST_SHIFT[0] = MOD_MIST_SHIFT[1] = MOD_MIST_SHIFT[2] = 0;
+		modCamApplied = 0;
+	}
+}
+
+/* after the last pass of a tick */
+static void modInterpEndTick(void)
+{
+	POSITION = modPass0Position;
+	modInterpLastPassLerped = 0;
+}
+
 void gameLoop(void)
 {
 	int32_t n;
@@ -4126,6 +4338,8 @@ void gameLoop(void)
 	int32_t passLines = 0;
 	int32_t lc = 0;
 	int32_t vLast = 0;
+	int32_t interp;
+	int32_t shownV;
 
 	n = MOD_FPS_RENDERS_PER_TICK;
 	if (n < 1) {
@@ -4133,6 +4347,11 @@ void gameLoop(void)
 	}
 	if (n > 3) {
 		n = 3;
+	}
+	/* with one render per tick nothing below touches the interpolation */
+	interp = (n > 1) && (MOD_FPS_INTERP != 0);
+	if (!interp) {
+		modInterpInvalidate();
 	}
 	if (MOD_PERF_RESET != 0) {
 		modPerfReset();
@@ -4190,6 +4409,11 @@ void gameLoop(void)
 			modReplayTickPrims();
 		} else {
 			modSavePass0View();
+			if (interp) {
+				l2 = modLines();
+				modInterpSnapshot();
+				MOD_PERF_SNAP = (modLines() - l2) & 0xFFFF;
+			}
 		}
 		l1 = modLines();
 		if (r > 0) {
@@ -4197,8 +4421,22 @@ void gameLoop(void)
 			MOD_PERF_XSTART = (l1 - l0) & 0xFFFF;
 			MOD_PERF_XSTARTV = VSync(-1) - tickV;
 		}
+		if (interp) {
+			/* the fraction of the tick at the refresh this pass is shown */
+			shownV = VSync(-1) + 1;
+			if (shownV < endV) {
+				shownV = endV;
+			}
+			if (shownV > tickV + 3) {
+				shownV = tickV + 3;
+			}
+			modInterpApply((shownV - tickV) * 4096 / 3);
+		}
 		renderObjects();
 		applyDrawOffset(ACTIVE_FRAMEBUFFER);
+		if (interp) {
+			modInterpRestore();
+		}
 		l2 = modLines();
 		DrawSync(0);
 		l3 = modLines();
@@ -4207,6 +4445,8 @@ void gameLoop(void)
 			modPerfAdd(&MOD_PERF_RENDER_SUM, &MOD_PERF_RENDER_MAX, (l2 - l1) & 0xFFFF);
 			modPerfAdd(&MOD_PERF_GPU_SUM, &MOD_PERF_GPU_MAX, (l3 - l2) & 0xFFFF);
 			MOD_PERF_LAST = tickLines + ((l3 - l1) & 0xFFFF);
+			MOD_PERF_P0END = (l3 - l0) & 0xFFFF;
+			MOD_PERF_P0ENDV = VSync(-1) - tickV;
 			modPerfAdd(&MOD_PERF_SUM, &MOD_PERF_MAX, MOD_PERF_LAST);
 			MOD_PERF_FRAMES++;
 		} else {
@@ -4228,6 +4468,9 @@ void gameLoop(void)
 		GsSortClear(0, 0, 0, &GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
 		GsDrawOt(&GS_ORDERING_TABLE[ACTIVE_FRAMEBUFFER]);
 		MOD_FPS_RENDERS++;
+	}
+	if (interp) {
+		modInterpEndTick();
 	}
 	while (VSync(-1) < tickV + 3) {
 		VSync(0); /* the tick lasts 3 refreshes, as VSync(3) did */
