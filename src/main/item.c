@@ -2392,11 +2392,36 @@ void initializeDroppedItems(void)
 	}
 }
 
+extern uint8_t MAP_COLLISION_DATA[];
+
+/*
+ * MOD: tile (x, y) is on the map and not blocked (bit 0x80, map_collision.c). This and modDropRoom serve only
+ * spawnDroppedItems and are linked with it into the battle overlay (config/us/overlay.ld): no main executable bytes.
+ */
+static inline int32_t modDropFree(int32_t x, int32_t y)
+{
+	return (uint32_t)x < 100 && (uint32_t)y < 100 && (MAP_COLLISION_DATA[x + y * 100] & 0x80) == 0;
+}
+
+/*
+ * MOD: room for the tamer to stand on tile (x, y): it and its left and right neighbours are free. His body box is
+ * 200 wide and 100 deep (tools/maps/reach.py), so standing there he is on that tile.
+ */
+static inline int32_t modDropRoom(int32_t x, int32_t y)
+{
+	return modDropFree(x - 1, y) && modDropFree(x, y) && modDropFree(x + 1, y);
+}
+
 void spawnDroppedItems(Entity *e, ItemId type) /* MOD: was u8 */
 {
 	int32_t i;
 	DroppedItem *it;
 	VECTOR *loc;
+	int32_t n;
+	int32_t x;
+	int32_t y;
+	int16_t tamerX;
+	int16_t tamerY;
 
 	loc = &e->posData->location;
 	for (i = 0; i < 0xb; i++) {
@@ -2413,6 +2438,33 @@ void spawnDroppedItems(Entity *e, ItemId type) /* MOD: was u8 */
 		it->worldItem.spriteLocation.vz = loc->vz;
 		getModelTile(loc, (int16_t *)((char *)it + 0xc),
 		             (int16_t *)((char *)it + 0xe));
+		/*
+		 * MOD: battle moves (anim.c) skip the map collision, so a lunge or a knockback can end the fight with the
+		 * enemy inside a wall, and the pickup needs the tamer's tile within one of the item's (tamer.c). A drop on a
+		 * blocked tile, or with no standing room within one tile, moves toward the tamer to the first tile with room;
+		 * at worst it lands on his own tile. A drop on open ground stays where the enemy fell.
+		 */
+		x = it->tileX;
+		y = it->tileY;
+		n = 9;
+		if (modDropFree(x, y)) {
+			for (n = 0; n < 9; n++) {
+				if (modDropRoom(x + n % 3 - 1, y + n / 3 - 1)) {
+					break;
+				}
+			}
+		}
+		if (n == 9) {
+			getModelTile(&TAMER_ENTITY.entity.posData->location, &tamerX, &tamerY);
+			while ((x != tamerX || y != tamerY) && !modDropRoom(x, y)) {
+				x += (x < tamerX) - (x > tamerX);
+				y += (y < tamerY) - (y > tamerY);
+			}
+			it->tileX = x;
+			it->tileY = y;
+			it->worldItem.spriteLocation.vx = (x - 0x32) * 100 + 0x32;
+			it->worldItem.spriteLocation.vz = (0x32 - y) * 100 - 0x32;
+		}
 		addObject(OBJECT_ID_DROPPED_ITEM, i, 0, renderDroppedItem);
 	}
 }
