@@ -215,6 +215,7 @@ int32_t handleBattleStart(int32_t instanceId);
 void loadBattleData(int32_t a, int32_t b);
 int32_t BTL_battleMain(void);
 int32_t isKeyDown(uint32_t key);
+int32_t modFeedTick(void); /* MOD (feed menu), mod_feed.c */
 void memcpy(uint8_t *dst, uint8_t *src, uint32_t size);
 int32_t strlen(char *s);
 void setupPartnerOnWarp(int32_t x, int32_t y, int32_t z, int32_t rotationY);
@@ -566,6 +567,9 @@ void tamerTickWalkingState(void)
 
 	checkItemPickup();
 	checkMapInteraction();
+	if (modFeedTick()) { /* MOD (feed menu): X in front of the hungry partner, mod_feed.c */
+		return;
+	}
 	checkMedalConditions();
 	checkPendingAwards();
 

@@ -1,0 +1,308 @@
+/*
+ * MOD (feed menu): X in front of a hungry partner opens a list of the food in the inventory.
+ *
+ * On the map, with the partner hungry (condition bit 2), the tamer facing it (within 45 degrees) and close enough
+ * (its item take distance plus FEED_SLACK, as checkEatDistance measures), X opens a box laid out as the inventory's
+ * (two columns of icon, name and amount, the description box under it) with only the items the partner eats
+ * (ITEM_FUNCTIONS[type] == handleFood: Meat..., Rain Plant, Steak). X gives the chosen one as Items > Use does
+ * (startFeedingItem: the partner comes, eats it or refuses it, one unit is used), triangle closes the box. With no
+ * food in the inventory X only plays the refusal sound. While the box is open the clock stops, as with the
+ * triangle menu.
+ * Hooked from tamerTickWalkingState() (tamer.c), after checkMapInteraction(): talking to an NPC, a chest or a
+ * press tile take the X first.
+ */
+#include <libgs.h>
+
+#include <dw/clock.h>
+#include <dw/entity.h>
+#include <dw/fade.h>
+#include <dw/font.h>
+#include <dw/input.h>
+#include <dw/item.h>
+#include <dw/params.h>
+#include <dw/partner.h>
+#include <dw/script.h>
+#include <dw/types.h>
+#include <dw/ui.h>
+#include <dw/version.h>
+#include <dw/world_object.h>
+
+#define FEED_OBJECT_ID	0x1f9b	/* world object id: above the species ids (world_object.h) */
+#define FEED_LIST_BOX	0	/* box 0: the game reads it as "a menu is open" (the triangle menu, the inventory) */
+#define FEED_DESC_BOX	1
+#define FEED_ROWS_SHOWN	5	/* rows of two items, as the 10-slot inventory */
+#define FEED_SLACK	12	/* added to the item take distance (x 20 units in checkEatDistance) */
+#define FEED_FACING	0x200	/* 45 degrees either side */
+#define HUNGRY		4	/* PARTNER_PARA.condition bit */
+#define PARTNER_NORMAL	1	/* PARTNER_STATE */
+
+enum { FEED_OPENING, FEED_OPEN, FEED_CLOSING, FEED_GIVING };
+
+extern int32_t POLLED_INPUT;
+extern int32_t POLLED_INPUT_PREVIOUS;
+extern uint32_t CHANGED_INPUT;
+extern int32_t IS_IN_MENU;
+extern int8_t TAMER_STATE;
+extern int8_t PARTNER_STATE;
+extern uint8_t INVENTORY_POINTER;
+extern TamerEntity TAMER_ENTITY;
+extern char *ITEM_DESCS[];
+
+int32_t _atan(int32_t dy, int32_t dx);
+int32_t checkEatDistance(int32_t distance);
+void tamerSetState(int32_t state);
+void startAnimation(Entity *entity, int32_t animId);
+void setPartnerIdling(void);
+void setCameraFollowPlayer(void);
+void unsetCameraFollowPlayer(void);
+void getEntityScreenPos(Entity *e, int32_t mode, DVECTOR *out);
+void startFeedingItem(ItemId type);
+void playSound(int32_t vabId, uint32_t note);
+void drawString(char *str, int32_t x, int32_t y);
+void renderString(int32_t color, int32_t x, int32_t y, int32_t w, int32_t h, int32_t u, int32_t v, int32_t layer,
+                  int32_t shadow);
+void renderSelectionCursor(int32_t x, int32_t y, int16_t w, int16_t h, int32_t layer);
+void renderItemSprite(ItemId type, int16_t x, int16_t y, int32_t layer);
+void renderItemAmount(int32_t color, int32_t n, int32_t x, int32_t y, int32_t value, int32_t layer);
+void clearTextSubArea(RECT *rect);
+
+static uint8_t feedSlots[30]; /* the inventory slots shown, in inventory order */
+static int32_t feedCount;
+static int32_t feedCursor;
+static int32_t feedRowOffset;
+static int32_t feedState;
+
+static int32_t isFood(ItemId type)
+{
+	return type != ITEM_NONE && ITEM_FUNCTIONS[type] == (ItemFunction)handleFood;
+}
+
+static int32_t feedCollect(void)
+{
+	int32_t i;
+
+	feedCount = 0;
+	for (i = 0; i < INVENTORY.size; i++) {
+		if (isFood(INVENTORY.types.array[i]) && INVENTORY.amounts.array[i] != 0) {
+			feedSlots[feedCount++] = i;
+		}
+	}
+	return feedCount;
+}
+
+/* the partner is within FEED_FACING of where the tamer looks, and close enough to take an item */
+static int32_t feedPartnerAhead(void)
+{
+	VECTOR *t = &TAMER_ENTITY.entity.posData->location;
+	VECTOR *p = &PARTNER_ENTITY.digimonEntity.entity.posData->location;
+	int32_t diff;
+	int32_t reach;
+
+	reach = getItemTakeDistance(PARTNER_ENTITY.digimonEntity.entity.type) + FEED_SLACK;
+	if (reach > 127) {
+		reach = 127;
+	}
+	if (checkEatDistance(reach) == 0) {
+		return 0;
+	}
+	diff = (_atan(p->vz - t->vz, p->vx - t->vx) - TAMER_ENTITY.entity.posData->rotation.vy) & 0xFFF;
+	return diff <= FEED_FACING || diff >= 0x1000 - FEED_FACING;
+}
+
+static int32_t feedRows(void)
+{
+	return (feedCount + 1) / 2;
+}
+
+/* the names in the text area at the inventory's places by list index (column * 0x60, row * 0xC), the description at
+ * 0xB4 (updateItemDescription's row) */
+static void feedDrawNames(void)
+{
+	int32_t i;
+	char *name;
+
+	clearTextArea();
+	for (i = 0; i < feedCount; i++) {
+		name = ITEM_NAME(INVENTORY.types.array[feedSlots[i]]);
+		drawStringMode(name, (i & 1) * 0x60, (i / 2) * 0xC, fitStringMode(name, ITEM_FIELD_W));
+	}
+	DrawSync(0);
+}
+
+static void feedDrawDescription(void)
+{
+	RECT area;
+
+	setRECT(&area, 0, 0xB4, 0xFC, 0xC);
+	clearTextSubArea(&area);
+	drawString(ITEM_DESCS[INVENTORY.types.array[feedSlots[feedCursor]]], 0, 0xB4);
+	DrawSync(0);
+}
+
+static void feedRenderList(int32_t boxId)
+{
+	UIBoxData *box = &UI_BOX_DATA[boxId];
+	int32_t i;
+	int32_t row;
+	int32_t x;
+	int32_t y;
+	ItemId type;
+
+	for (i = feedRowOffset * 2; i < feedCount && i < (feedRowOffset + FEED_ROWS_SHOWN) * 2; i++) {
+		type = INVENTORY.types.array[feedSlots[i]];
+		row = i / 2 - feedRowOffset;
+		x = box->finalPos.x + ((i & 1) ? 0x9A : 0xA);
+		y = box->finalPos.y + 8 + row * 0x12;
+		renderItemSprite(type, x, y, 6 - boxId);
+		renderString(ITEM_PARA[type].itemColor == 0xFF ? 8 : ITEM_PARA[type].itemColor + 5, x + 0x13, y + 2, 0x60,
+		             0xC, (i & 1) * 0x60, (i / 2) * 0xC, 6 - boxId, 1);
+		renderItemAmount(0, 2, x + 0x79, y + 4, INVENTORY.amounts.array[feedSlots[i]], 6 - boxId);
+	}
+	row = feedCursor / 2 - feedRowOffset;
+	renderSelectionCursor(box->finalPos.x + ((feedCursor & 1) ? 0x97 : 7), box->finalPos.y + 7 + row * 0x12, 0x8A,
+	                      0x12, 6 - boxId);
+	box->rowOffset = feedRowOffset;
+}
+
+static void feedRenderDescription(int32_t boxId)
+{
+	renderString(9, UI_BOX_DATA[boxId].finalPos.x + 0x1A, UI_BOX_DATA[boxId].finalPos.y + 8, 0xFC, 0xC, 0, 0xB4,
+	             6 - boxId, 1);
+}
+
+static void feedOpenBoxes(void)
+{
+	RECT finalPos;
+	RECT startPos;
+	DVECTOR xy;
+	UIBoxData *box = &UI_BOX_DATA[FEED_LIST_BOX];
+	int32_t shown;
+	uint8_t features;
+
+	shown = feedRows() < FEED_ROWS_SHOWN ? feedRows() : FEED_ROWS_SHOWN;
+	features = 2;
+	box->rowOffset = 0;
+	box->visibleRows = FEED_ROWS_SHOWN;
+	box->totalRows = feedRows();
+	if (feedRows() > FEED_ROWS_SHOWN) {
+		features |= 4; /* the scroll bar */
+	}
+	setRECT(&finalPos, -0x98, -0x68, 0x130, 0x14 + shown * 0x12);
+	getEntityScreenPos(&PARTNER_ENTITY.digimonEntity.entity, 1, &xy);
+	setRECT(&startPos, xy.vx - 5, xy.vy - 5, 10, 10);
+	createAnimatedUIBox(FEED_LIST_BOX, 0, features, &finalPos, &startPos, NULL, (RenderFunction)feedRenderList);
+	setRECT(&startPos, finalPos.x + 8, finalPos.y + 0xE, 0x10, 0x10);
+	setRECT(&finalPos, -0x98, finalPos.y + finalPos.h + 2, 0x130, 0x1C);
+	createAnimatedUIBox(FEED_DESC_BOX, 0, 2, &finalPos, &startPos, NULL, (RenderFunction)feedRenderDescription);
+}
+
+static void feedCloseBoxes(void)
+{
+	RECT rect;
+	DVECTOR xy;
+
+	getEntityScreenPos(&PARTNER_ENTITY.digimonEntity.entity, 1, &xy);
+	setRECT(&rect, xy.vx - 5, xy.vy - 5, 10, 10);
+	removeAnimatedUIBox(FEED_DESC_BOX, &rect);
+	removeAnimatedUIBox(FEED_LIST_BOX, &rect);
+}
+
+static void feedMoveCursor(int32_t cursor)
+{
+	if (cursor < 0 || cursor >= feedCount || cursor == feedCursor) {
+		return;
+	}
+	playSound(0, 2);
+	feedCursor = cursor;
+	if (feedCursor / 2 < feedRowOffset) {
+		feedRowOffset = feedCursor / 2;
+	}
+	if (feedCursor / 2 >= feedRowOffset + FEED_ROWS_SHOWN) {
+		feedRowOffset = feedCursor / 2 - FEED_ROWS_SHOWN + 1;
+	}
+	INVENTORY_POINTER = feedSlots[feedCursor]; /* removeOneSelectedItem takes the eaten unit from this slot */
+	feedDrawDescription();
+}
+
+static void feedTick(int32_t instanceId)
+{
+	int32_t pressed = POLLED_INPUT & ~POLLED_INPUT_PREVIOUS;
+
+	(void)instanceId;
+	switch (feedState) {
+	case FEED_OPENING:
+		if (UI_BOX_DATA[FEED_LIST_BOX].state == 1 && UI_BOX_DATA[FEED_DESC_BOX].state == 1) {
+			feedState = FEED_OPEN;
+		}
+		break;
+	case FEED_OPEN:
+		if (pressed & 0x1000) {
+			feedMoveCursor(feedCursor - 2);
+		} else if (pressed & 0x4000) {
+			/* down from the right column onto a last row with one item: to that item */
+			feedMoveCursor(feedCursor + 2 < feedCount ? feedCursor + 2 : (feedCursor & 1) ? feedCursor + 1 : -1);
+		} else if ((pressed & 0x8000) && (feedCursor & 1)) {
+			feedMoveCursor(feedCursor - 1);
+		} else if ((pressed & 0x2000) && !(feedCursor & 1)) {
+			feedMoveCursor(feedCursor + 1);
+		} else if (pressed & CONFIRM_BUTTON) {
+			playSound(0, 3);
+			feedCloseBoxes();
+			feedState = FEED_GIVING;
+		} else if (pressed & CANCEL_BUTTON) {
+			playSound(0, 4);
+			feedCloseBoxes();
+			feedState = FEED_CLOSING;
+		}
+		break;
+	case FEED_CLOSING:
+		if (UI_BOX_DATA[FEED_LIST_BOX].state == 0 && UI_BOX_DATA[FEED_DESC_BOX].state == 0) {
+			removeObject(FEED_OBJECT_ID, 0);
+			tamerSetState(0);
+			setCameraFollowPlayer();
+			IS_IN_MENU = 0;
+			startGameTime();
+		}
+		break;
+	case FEED_GIVING:
+		if (UI_BOX_DATA[FEED_LIST_BOX].state == 0 && UI_BOX_DATA[FEED_DESC_BOX].state == 0) {
+			removeObject(FEED_OBJECT_ID, 0);
+			INVENTORY_POINTER = feedSlots[feedCursor];
+			startFeedingItem(INVENTORY.types.array[feedSlots[feedCursor]]); /* clock back on, tamer and partner */
+		}
+		break;
+	}
+}
+
+/* from tamerTickWalkingState: 1 when X opened the menu (or was answered with the refusal sound) */
+int32_t modFeedTick(void)
+{
+	if ((CHANGED_INPUT & CONFIRM_BUTTON) == 0 || TAMER_STATE != 0 || IS_SCRIPT_PAUSED != 1 || FADE_PROTECTION != 0 ||
+	    UI_BOX_DATA[FEED_LIST_BOX].state != 0 || UI_BOX_DATA[FEED_LIST_BOX].frame != 0 ||
+	    UI_BOX_DATA[FEED_DESC_BOX].state != 0 || UI_BOX_DATA[FEED_DESC_BOX].frame != 0 ||
+	    PARTNER_STATE != PARTNER_NORMAL || (PARTNER_PARA.condition & HUNGRY) == 0 ||
+	    TAMER_ITEM.worldItem.type != ITEM_NONE || !feedPartnerAhead()) {
+		return 0;
+	}
+	if (feedCollect() == 0) {
+		playSound(0, 4);
+		return 1;
+	}
+	feedCursor = 0;
+	feedRowOffset = 0;
+	feedState = FEED_OPENING;
+	INVENTORY_POINTER = feedSlots[0];
+	feedDrawNames();
+	feedDrawDescription();
+
+	tamerSetState(1);
+	startAnimation(&TAMER_ENTITY.entity, 0);
+	unsetCameraFollowPlayer();
+	IS_IN_MENU = 1;
+	stopGameTime();
+	setPartnerIdling();
+	playSound(0, 3);
+	feedOpenBoxes();
+	addObject(FEED_OBJECT_ID, 0, feedTick, NULL);
+	return 1;
+}
