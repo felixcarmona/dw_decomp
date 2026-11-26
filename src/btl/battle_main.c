@@ -2886,6 +2886,13 @@ void BTL_tickStatusEffects(void)
 				if (modModelScale(entity->type) != 0x1000) { /* MOD (species rules as data): a species with its own scale (Meteormon) */
 					entity->posData->scale.vx = entity->posData->scale.vy = entity->posData->scale.vz = modModelScale(entity->type);
 				}
+				/* The squash uses the tired idle even at full HP. Once
+				 * restored, choose the fighter's own healthy/tired stance. */
+				if ((entity->anim.animId == 0x22) &&
+				    !(fighter->flags & (FIGHTER_FLAG_ATTACKING | FIGHTER_FLAG_KNOCKED_BACK |
+				                        FIGHTER_FLAG_STUNNED | FIGHTER_FLAG_CONFUSED))) {
+					startBattleIdleAnimation((DigimonEntity *)entity, stats, fighter->flags);
+				}
 				break;
 			}
 		} else {
