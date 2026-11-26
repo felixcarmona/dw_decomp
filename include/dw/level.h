@@ -41,7 +41,7 @@ extern int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE];
  *                       that triggers the mode 3 check (level, hours), the scolding that arms the flag (level,
  *                       discipline, happiness before it)
  */
-#define MOD_EVO_PAIR_MAX	8
+#define MOD_EVO_PAIR_MAX	16
 #define MOD_EVO_RULES_MAX	10
 #define MOD_EVO_COND_MAX	4
 #define MOD_EVO_SPECIAL_SIZE	9

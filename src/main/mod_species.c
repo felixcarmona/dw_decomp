@@ -165,8 +165,8 @@ int32_t modNativeItemTargetLevel(int32_t type)
 {
 	int32_t level = DIGI_PARA(type).level;
 
-	/* Current stages include Whamon's Ultimate role; native Mega items keep their legacy stage. */
-	return level == LEVEL_MEGA ? LEVEL_ULTIMATE : level;
+	/* Item evolutions always require the stage immediately before the target. */
+	return level;
 }
 
 int32_t isVanillaSpecies(int32_t type)

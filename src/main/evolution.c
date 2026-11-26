@@ -868,10 +868,8 @@ GARBAGE(getFreshEvolutionTarget, 10);
  * writes from content/tables/evolution-rules.json (include/dw/level.h)
  */
 int16_t MOD_EVO_TIMING[MOD_EVO_TIMING_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
-					       { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
-int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2] = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
-						  { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+int16_t MOD_EVO_FRESH[MOD_EVO_PAIR_MAX][2] = { [0 ... MOD_EVO_PAIR_MAX - 1] = { -1, -1 } };
+int16_t MOD_EVO_ULTIMATE[MOD_EVO_PAIR_MAX][2] = { [0 ... MOD_EVO_PAIR_MAX - 1] = { -1, -1 } };
 int16_t MOD_EVO_SPECIAL[MOD_EVO_SPECIAL_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 /* MOD (evolution formulas as data): written by tools/balance.py from content/tables/evolution-rules.json; -1 = the rule does not exist */
 int16_t MOD_EVO_FORMULA[MOD_EVO_FORMULA_SIZE] = { [0 ... MOD_EVO_FORMULA_SIZE - 1] = -1 };

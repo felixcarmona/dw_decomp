@@ -2203,13 +2203,14 @@ void handleEvoItems(int16_t item)
 	if (item >= 0x7c) {
 		/* MOD (evolution rules as data): Dolph Fin, Giga Hand, Noble Mane, Metalbanana: MOD_EVO_ITEMS (content/tables/evolution-rules.json) */
 		modItem = getModEvoItem(item);
-		if (modItem == NULL) {
+		if (modItem == NULL || DIGI_PARA(ENTITY_TABLE[1]->type).level !=
+		    (DIGI_PARA(modItem->target).level == LEVEL_MEGA ? LEVEL_ULTIMATE : modItem->level)) {
 			return;
 		}
 		EVOLUTION_TARGET = modItem->target;
 	} else {
 		if (!modSpeciesAllowed(EVOLUTION_ITEM_TARGET[item - 0x47])) return;
-		level = modNativeItemTargetLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* Native items follow their target's current stage (legacy Mega exception). */
+		level = modNativeItemTargetLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* Native items follow their target's current stage. */
 		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
 			return;
 		}
