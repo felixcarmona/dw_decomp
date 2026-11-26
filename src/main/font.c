@@ -1334,6 +1334,13 @@ extern int32_t MOD_RENDER_PASS;
 static int16_t GLYPH_CARRY_X;
 static int16_t GLYPH_CARRY_Y = -1;
 static uint8_t *GLYPH_CARRY_SLOT;
+#ifdef FONT_KERN
+/* MOD (font): the last glyph drawGlyph drew (its Shift-JIS code, row, where its advance ended), for the kerning */
+static uint16_t KERN_PREV_CODE;
+static int16_t KERN_PREV_Y = -1;
+static int16_t KERN_PREV_END;
+extern int8_t DRAW_STRING2_IS_FIXED_WIDTH; /* dw/script.h: the name keyboard's 12-pixel cells */
+#endif
 #endif
 
 void clearTextSubArea(RECT *rect)
@@ -1347,6 +1354,9 @@ void clearTextSubArea(RECT *rect)
 	ClearImage(rect, 0, 0, 0);
 #if VERSION_IS(US) && FONT_PROPORTIONAL
 	GLYPH_CARRY_Y = -1; /* the previous glyph's cell may be cleared: never copy its pixels back */
+#ifdef FONT_KERN
+	KERN_PREV_Y = -1;
+#endif
 #endif
 }
 
@@ -1379,6 +1389,35 @@ static uint16_t *glyphRows(uint16_t codepoint)
 	}
 	return GLYPH_DATA[n].pixelData;
 }
+
+#ifdef FONT_KERN
+/*
+ * MOD (font): font b's kerning (tools/font/b.txt `kern`, generated KERN_RULES): what the pen moves when the glyph `code`
+ * comes right after `prev` (Shift-JIS codes), 0 for most pairs. The mockup the owner approved draws T V W Y P F closer
+ * to the lowercase letters and the period and comma after them, r f before those two.
+ */
+int32_t kernOf(uint16_t prev, uint16_t code)
+{
+	const uint16_t *r;
+	const uint16_t *right;
+	int32_t i;
+
+	for (r = KERN_RULES; r[0] != 0; r = right + r[2]) {
+		right = r + 3 + r[1];
+		for (i = 0; i < r[1] && r[3 + i] != prev; i++) {
+		}
+		if (i == r[1]) {
+			continue;
+		}
+		for (i = 0; i < r[2]; i++) {
+			if (right[i] == code) {
+				return (int16_t)r[0];
+			}
+		}
+	}
+	return 0;
+}
+#endif
 
 /* the advance of a glyph in pixels (script_textbox.c centres the name keyboard's letters in their 12-pixel cells) */
 int32_t glyphWidth(uint16_t codepoint)
@@ -1436,6 +1475,23 @@ int32_t drawGlyph(codepoint, x, y)
 		x += shift;
 		adv = p[GLYPH_HEIGHT] >> 8; /* from the cell's start, the caller's pen */
 	}
+#ifdef FONT_KERN
+	/* a glyph drawn where the previous one's advance ended, on its row, kerns with it: drawn `k` pixels further and
+	 * its advance returned k longer, so the caller's pen follows (cells and the name keyboard's cells never kern) */
+	k = ((codepoint & 0xff) << 8) | (codepoint >> 8);
+	if (FONT_CELLS == 0 && DRAW_STRING2_IS_FIXED_WIDTH == 0) {
+		if (KERN_PREV_Y == (int16_t)y && KERN_PREV_END == (int16_t)x) {
+			shift = kernOf(KERN_PREV_CODE, k);
+			x += shift;
+			adv += shift;
+		}
+		KERN_PREV_CODE = k;
+		KERN_PREV_Y = y;
+		KERN_PREV_END = x + adv;
+	} else {
+		KERN_PREV_Y = -1;
+	}
+#endif
 	if (x >= TEXT_DRAW_LIMIT || y >= TEXT_DRAW_LIMIT) {
 		return 0;
 	}
@@ -1705,10 +1761,12 @@ void drawString(str, x, y)
 int32_t measureStringMode(char *str, int32_t mode)
 {
 	uint16_t codepoint;
+	uint16_t prev;
 	int32_t w;
 
 	(void)mode;
 	w = 0;
+	prev = 0;
 	while (*str != '\0') {
 		if (isAsciiEncoded(str) != 0) {
 			if (*str == '.') {
@@ -1725,6 +1783,10 @@ int32_t measureStringMode(char *str, int32_t mode)
 			str += 2;
 		}
 		w += glyphWidth(codepoint);
+#ifdef FONT_KERN
+		w += kernOf(prev, swapShortBytes(codepoint)); /* as drawGlyph draws the pair */
+		prev = swapShortBytes(codepoint);
+#endif
 	}
 	return w > 0 ? w - 1 : 0; /* the last glyph's blank column is not ink */
 }
