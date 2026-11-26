@@ -114,7 +114,7 @@ static int32_t feedCount;
 static int32_t feedCursor;
 static int32_t feedRowOffset;
 static int32_t feedState;
-static uint8_t feedMenuRead; /* set by the file queue when MENU has landed */
+static uint8_t feedMenuReading; /* file queue: 1 queued/reading, 0 complete */
 
 /* the list's order, most urgent first (the cursor starts on it): a rank times 0x100 plus an order inside the rank */
 #define RANK_SCOLD	1	/* walking away clears it */
@@ -427,13 +427,13 @@ static void feedTick(int32_t instanceId)
 		/* queued behind nothing: a read ahead of the battle would make loadDynamicLibrary wait for it, and a
 		 * background tile read would make the queue wait (tfsStreamCheckTarget) */
 		if (isFileReadQueueIdle() && !tfsStreamBusy()) {
-			feedMenuRead = 0;
-			loadDynamicLibrary(MENU_REL, &feedMenuRead, 1, NULL, NULL);
+			feedMenuReading = 0;
+			loadDynamicLibrary(MENU_REL, &feedMenuReading, 1, NULL, NULL);
 			feedState = FEED_LOADING;
 		}
 		break;
 	case FEED_LOADING:
-		if (feedMenuRead) {
+		if (!feedMenuReading) {
 			feedShow();
 		}
 		break;
