@@ -1565,8 +1565,9 @@ int32_t rotateEntity(SVECTOR *rotation, int16_t *targetAngle, int16_t *ccDiff,
 	target = *targetAngle;
 	cc = *ccDiff;
 	cw = *cwDiff;
+	/* MOD: choose a direction for an exact half-turn, too. */
 	if (rotation->vy < target) {
-		if (cc < cw) {
+		if (cc <= cw) {
 			rotation->vy -= speed;
 			if ((target - 4096) > rotation->vy) {
 				rotation->vy = target;
@@ -1580,7 +1581,7 @@ int32_t rotateEntity(SVECTOR *rotation, int16_t *targetAngle, int16_t *ccDiff,
 			}
 		}
 	} else if (target < rotation->vy) {
-		if (cc < cw) {
+		if (cc <= cw) {
 			rotation->vy -= speed;
 			if (rotation->vy < target) {
 				rotation->vy = target;
