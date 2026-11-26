@@ -542,9 +542,17 @@ int16_t STD_WIN_X_CURVE[18] = {
 
 char STD_PATH_STDDAT_DRAW_TMD[] = "\\STDDAT\\DRAW.TMD";
 
+/* MOD (language): the gauge's segments are the letters of BI_IN.TIM's FINISH!!; the Spanish texture has REMATE! there
+ * (tools/localize/textures/misc build.py finish), its eighth segment empty */
+#if MOD_LANG_BUILD == MOD_LANG_ES
+uint8_t STD_FINISHER_SEGMENT_U[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+uint8_t STD_FINISHER_SEGMENT_W[8] = { 7, 6, 9, 7, 6, 6, 5, 0 };
+uint8_t STD_FINISHER_SEGMENT_X[8] = { 0, 7, 13, 22, 29, 35, 41, 46 };
+#else
 uint8_t STD_FINISHER_SEGMENT_U[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
 uint8_t STD_FINISHER_SEGMENT_W[8] = { 6, 4, 8, 4, 8, 8, 5, 5 };
 uint8_t STD_FINISHER_SEGMENT_X[8] = { 0, 6, 10, 18, 22, 30, 38, 43 };
+#endif
 char *STD_VERSUS_MODEL_PATH = STD_PATH_STDDAT_DRAW_TMD;
 int16_t STD_VERSUS_MODEL_TARGET_X[4] = { -273, -86, 94, 272 };
 
