@@ -435,6 +435,38 @@ MOVE_NAMES:
       en_us: Tidal Wave
     - ja: オーシャンフューリー
       en_us: Ocean Fury
+    - ja: クイックスラッシュ
+      en_us: Quick Slash
+    - ja: ブレードスロー
+      en_us: Blade Throw
+    - ja: アーマーブレイク
+      en_us: Armor Break
+    - ja: ウォースタンス
+      en_us: War Stance
+    - ja: クロスカッター
+      en_us: Cross Cutter
+    - ja: ワーリングエッジ
+      en_us: Whirling Edge
+    - ja: ジャイアントクリーブ
+      en_us: Giant Cleave
+    - ja: ファイナルエッジ
+      en_us: Final Edge
+    - ja: ロックスロー
+      en_us: Rock Throw
+    - ja: サンドブラスト
+      en_us: Sand Blast
+    - ja: ストーンスキン
+      en_us: Stone Skin
+    - ja: ボルダークラッシュ
+      en_us: Boulder Crash
+    - ja: フィッシャー
+      en_us: Fissure
+    - ja: スタラグマイト
+      en_us: Stalagmite
+    - ja: ランドスライド
+      en_us: Landslide
+    - ja: ガイアクエイク
+      en_us: Gaia Quake
 
 STR_IS_SICK:
   ja: は病気になってしまった！

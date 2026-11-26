@@ -5156,7 +5156,7 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 		p = putRecord(p, SAVE_TAG_TAMER_LOOK, MOD_TAMER_STATE, TAMER_STATE_SIZE); /* MOD (tamer looks) */
 	}
-	{ uint8_t layout = 2; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
+	{ uint8_t layout = 3; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
 	p = &savegame->unknown4E1[3];
@@ -5563,21 +5563,19 @@ static int32_t loadSaveCopy(int32_t copy)
 	SaveExtension *ext;
 	int32_t i;
 	int32_t layout = 0;
+	int32_t valid, tagged;
 
 	if (!isSaveVersionReadable(getSaveVersion(&SAVE_FILE.saves[copy]))) {
 		return 0;
 	}
 	if (copy != 0) {
 		SAVE_FILE.saves[0] = SAVE_FILE.saves[1];
-		for (i = 0; i < saveExtSize(); i++) {
-			saveExtOf(0)[i] = saveExtOf(1)[i];
-		}
+		memcpy(saveExtOf(0), saveExtOf(1), saveExtSize());
 	}
-	if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0])) && isExtensionValid(0) &&
-	    hasUnreadableRecord(saveExtOf(0))) {
-		return 0; /* it holds something this build would silently drop */
-	}
-	if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0])) && isExtensionValid(0)) {
+	valid = isExtensionValid(0);
+	tagged = valid && isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0]));
+	if (tagged) {
+		if (hasUnreadableRecord(saveExtOf(0))) return 0; /* it holds something this build would silently drop */
 		layout = coherentSlotLayout(saveExtOf(0));
 		if (layout < 0) return 0;
 	}
@@ -5591,8 +5589,8 @@ static int32_t loadSaveCopy(int32_t copy)
 	MOD_SWAP_FROM = MOD_SWAP_TO = 0;
 	MOD_SAVE_STORY = 1; /* MOD (story): a save from before the option was played with the story the disc had */
 	MOD_STORY_ARRIVE = 0;
-	if (isExtensionValid(0)) {
-		if (isTaggedVersion(getSaveVersion(&SAVE_FILE.saves[0]))) {
+	if (valid) {
+		if (tagged) {
 			applyRecords(saveExtOf(0));
 		} else {
 			ext = (SaveExtension *)saveExtOf(0);
@@ -5618,18 +5616,18 @@ static int32_t loadSaveCopy(int32_t copy)
 			SAVED_STATE.partnerStats.base.moves[i] = PARTNER_ENTITY.digimonEntity.stats.base.moves[i];
 		}
 	}
-	if (layout < 2) {
-		/* MOD (new technique rows): bits 64..87 meant nothing before (the Cheats menu set those of finishers): a
-		 * partner that already has its form gets, once, the first technique of each new row of its species */
+	if (layout < 3) {
+		/* MOD (new technique rows): bits 64..103 meant nothing before (the Cheats menu set those of finishers): a
+		 * partner that already has its form gets, once, the first technique of each new row of its species. A
+		 * save of layout 2 keeps what it learned of the rows it had (bits 64..87, the first word) */
 		uint8_t *moves = DIGI_PARA(SAVED_STATE.partnerType).moves;
-		uint32_t bits = 0;
 
+		if (layout < 2) PARTNER_ENTITY.learnedMoves[2] = 0; /* bit 64 is the first of the new rows (MOVE_BIT) */
+		PARTNER_ENTITY.learnedMoves[3] = 0;
 		for (i = 0; i < 16; i++) {
-			uint32_t m = moves[i] - NEW_MOVE_FIRST;
-
-			if (m < NUM_NEW_MOVES && (m & 7) == 0) bits |= 1u << m;
+			/* the first of a row: 122, 130... (no technique has an id past the rows, and learnMove takes no other) */
+			if (((moves[i] - NEW_MOVE_FIRST) & 0xc7) == 0) learnMove(moves[i]);
 		}
-		PARTNER_ENTITY.learnedMoves[2] = bits; /* bit 64 is the first of the new rows (MOVE_BIT) */
 	}
 	dropAbsentSaveContent();
 	/* The registration menu restores copy 1. Keep its used fields in the selected

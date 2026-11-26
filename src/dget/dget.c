@@ -92,16 +92,16 @@ static void *dget_sbss_order[] = {
 	&DGET_BUFFER,
 };
 
-/* MOD (cup rules): Rookie, Champion, Ultimate, Mega; Vaccine, Data, Virus; the eight Fields; Dark, Holy, Aqua */
-#define NEW_CUP_COUNT	18
+/* MOD (cup rules): Rookie, Champion, Ultimate, Mega; Vaccine, Data, Virus; the eight Fields; Dark, Holy, Aqua; Blade, Gaia */
+#define NEW_CUP_COUNT	20
 /*
  * one character each, as the calendar's cells hold (the original's are single letters too): 1..4 the level cups by their
  * order, V E U Vaccine, Data, Virus, and in small letters the Fields: n d s g e b r j (Nature Spirits, Deep Savers,
  * Nightmare Soldiers, Wind Guardians, Metal Empire, Virus Busters, Dragon's Roar, Jungle Troopers), and k h a the cups
- * of the new technique rows (Dark, Holy, Aqua)
+ * of the new technique rows (Dark, Holy, Aqua), w t those of the weapon and earth rows (Blade, Gaia)
  */
 static char NEW_CUP_GRADES[NEW_CUP_COUNT][2] = {
-	"1", "2", "3", "4", "V", "E", "U", "n", "d", "s", "g", "e", "b", "r", "j", "k", "h", "a",
+	"1", "2", "3", "4", "V", "E", "U", "n", "d", "s", "g", "e", "b", "r", "j", "k", "h", "a", "w", "t",
 };
 
 void fillEnabledTournamentTable(void)

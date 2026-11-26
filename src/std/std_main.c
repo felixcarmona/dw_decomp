@@ -1188,7 +1188,7 @@ int16_t STD_STAT_BAR_LIMITS[6] = {
 	0x270f, 0x270f, 0x03e7, 0x03e7, 0x03e7, 0x03e7,
 };
 
-RGB8 STD_INTRO_NAME_COLORS[10] = {
+RGB8 STD_INTRO_NAME_COLORS[12] = {
 	{ 0x80, 0x80, 0x80 },
 	{ 0xc8, 0x64, 0x32 },
 	{ 0x1e, 0xff, 0x1e },
@@ -1199,6 +1199,8 @@ RGB8 STD_INTRO_NAME_COLORS[10] = {
 	{ 0xa0, 0x48, 0xe0 },
 	{ 0xf0, 0xe4, 0xa8 },
 	{ 0x38, 0x68, 0xff },
+	{ 0xb0, 0xb8, 0xc8 },
+	{ 0xb4, 0x78, 0x38 },
 };
 
 CameraPreset STD_CAMERA_PRESETS[9] = {
@@ -5789,6 +5791,10 @@ int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 	/* MOD (new technique rows): Defense or Speed up by statusChance percent */
 	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_DEF_UP) {
 		STD_buffStats(digimon, slot, (int16_t)(stats->base.def * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.def, 0xb, 4);
+		return 1;
+	}
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_OFF_UP) {
+		STD_buffStats(digimon, slot, (int16_t)(stats->base.off * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.off, 0xb, 3);
 		return 1;
 	}
 	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_SPEED_UP) {

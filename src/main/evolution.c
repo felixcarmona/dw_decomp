@@ -1294,7 +1294,7 @@ int8_t getNumMasteredMoves(void) {
   int32_t i;
   int32_t j;
 
-  for (i = 0; i < 3; i++) { /* MOD (new technique rows): bits 64..87 */
+  for (i = 0; i < 4; i++) { /* MOD (new technique rows): bits 64..103 */
     for (j = 0; j < 32; j++) {
       if (PARTNER_ENTITY.learnedMoves[i] & 1 << j)
         moveCount++;

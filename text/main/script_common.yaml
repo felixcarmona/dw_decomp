@@ -388,6 +388,12 @@ TOURNAMENT_NAMES:
     STR_TOURNAMENT_NAME_AQUA_CUP:
       ja: みずカップ
       en_us: Aqua Cup
+    STR_TOURNAMENT_NAME_BLADE_CUP:
+      ja: つるぎカップ
+      en_us: Blade Cup
+    STR_TOURNAMENT_NAME_GAIA_CUP:
+      ja: だいちカップ
+      en_us: Gaia Cup
 
 TOURNAMENT_GRADES:
   strings:

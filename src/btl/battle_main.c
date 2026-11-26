@@ -1966,6 +1966,10 @@ int32_t BTL_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 		BTL_buffStats(digimon, slot, (int16_t)(stats->base.def * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.def, 0xb, 4);
 		return 1;
 	}
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_OFF_UP) {
+		BTL_buffStats(digimon, slot, (int16_t)(stats->base.off * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.off, 0xb, 3);
+		return 1;
+	}
 	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_SPEED_UP) {
 		BTL_buffStats(digimon, slot, (int16_t)(stats->base.speed * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.speed, 0xb, 5);
 		return 1;

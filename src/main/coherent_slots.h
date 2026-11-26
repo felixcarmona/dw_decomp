@@ -77,7 +77,7 @@ static int32_t coherentSlotLayout(uint8_t *e)
 		tag = e[at] | (e[at + 1] << 8);
 		len = e[at + 2] | (e[at + 3] << 8);
 		if (tag == SAVE_TAG_END) return 0;
-		if (tag == SAVE_TAG_TECHNIQUE_LAYOUT) return len == 1 && (uint8_t)(e[at + 4] - 1) < 2 ? e[at + 4] : -1;
+		if (tag == SAVE_TAG_TECHNIQUE_LAYOUT) return len == 1 && (uint8_t)(e[at + 4] - 1) < 3 ? e[at + 4] : -1;
 		at += 4 + len;
 	}
 }

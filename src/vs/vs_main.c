@@ -25,7 +25,7 @@
 
 #include "common.h"
 
-extern uint8_t TYPE_FACTORS[][10]; /* NUM_ELEMENTS */
+extern uint8_t TYPE_FACTORS[][12]; /* NUM_ELEMENTS */
 extern int16_t ENEMY_COUNT;
 extern int32_t NO_AI_FLAG;
 extern int32_t VS_DISABLE_HITTING;
@@ -283,6 +283,10 @@ int32_t VS_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 	/* MOD (new technique rows): Defense or Speed up by statusChance percent */
 	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_DEF_UP) {
 		VS_buffStats(digimon, slot, (int16_t)(stats->base.def * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.def, 0xb, 4);
+		return 1;
+	}
+	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_OFF_UP) {
+		VS_buffStats(digimon, slot, (int16_t)(stats->base.off * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100), &stats->base.off, 0xb, 3);
 		return 1;
 	}
 	if (modSpeciesMove(digimon->entity.type, anim)->status == TECH_SPEED_UP) {

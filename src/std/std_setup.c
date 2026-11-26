@@ -158,10 +158,10 @@ int16_t STD_OPPONENT_BASE_STATS[24] = {
 };
 /* MOD (cup rules): the same number for the cups after the original's, 23 onwards (content/tables/tournament-rules.json,
  * newCupStats; balance.py writes it here). */
-int16_t STD_NEW_CUP_BASE_STATS[18] = {
-	150, 200, 250, 220, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250,
+int16_t STD_NEW_CUP_BASE_STATS[20] = {
+	150, 200, 250, 220, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250,
 };
-#define STD_NEW_CUPS		18
+#define STD_NEW_CUPS		20
 #define STD_NEW_CUP_SECTORS	17
 static char STD_PATH_NEW_CUPS[] = "\\STDDAT\\GRADE\\NEWCUPS.BIN";
 

@@ -4,15 +4,17 @@
 #include <dw/entity.h>
 #include <dw/move.h>
 
-/* MOD (new technique rows): what the techniques of the Darkness, Light and Water rows do besides damage, shared by the
+/* MOD (new technique rows): what the techniques of the new rows do besides damage, shared by the
  * field battle, the tournament and the versus fight. Move.status says which and Move.statusChance is its percent:
  *   5  gives back that share of the caster's full HP
  *   6  raises the caster's Defense, 7 its Speed (as the original buff techniques do)
- *   8  lowers the Defense of the fighter it reaches, once per fighter and battle */
+ *   8  lowers the Defense of the fighter it reaches, once per fighter and battle
+ *   9  raises the caster's Offense */
 #define TECH_HEAL	5
 #define TECH_DEF_UP	6
 #define TECH_SPEED_UP	7
 #define TECH_DEF_DOWN	8
+#define TECH_OFF_UP	9
 
 #define TECH_HEALS_PARTNER	3	/* heals per battle: the partner (and both sides of a versus fight) */
 #define TECH_HEALS_ENEMY	2	/* an enemy or a tournament rival */

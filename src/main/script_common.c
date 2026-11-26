@@ -471,8 +471,8 @@ int32_t modLoadCardImage(int32_t id, void *buffer)
 	                           buffer, (id < 66 ? id : id - 66) * 14, 14);
 }
 
-/* MOD (cup rules): 41 names, was 23: the cups 23..40 */
-char *TOURNAMENT_NAMES[41] = {
+/* MOD (cup rules): 43 names, was 23: the cups 23..42 */
+char *TOURNAMENT_NAMES[43] = {
 	STR_TOURNAMENT_NAME_GRADE_D,
 	STR_TOURNAMENT_NAME_GRADE_C,
 	STR_TOURNAMENT_NAME_GRADE_B,
@@ -514,6 +514,8 @@ char *TOURNAMENT_NAMES[41] = {
 	STR_TOURNAMENT_NAME_DARK_CUP,
 	STR_TOURNAMENT_NAME_HOLY_CUP,
 	STR_TOURNAMENT_NAME_AQUA_CUP,
+	STR_TOURNAMENT_NAME_BLADE_CUP,
+	STR_TOURNAMENT_NAME_GAIA_CUP,
 };
 
 char *TOURNAMENT_GRADES[23] = {
