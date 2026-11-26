@@ -36,4 +36,27 @@ extern int8_t MOD_EVO_CANCEL;
 extern char MOD_EVO_CANCEL_TEXT[];
 void modEvoCancelDraw(int32_t hold, int32_t ticks, int32_t w, int32_t row);
 
+/* the partner's line (mod_qol.c): the state each form of this egg arrived with, newest first, for the save machine's
+   rewind. Entry 0 is the current form; a rewind takes it off and gives the partner the one after it back. Five forms
+   hold a whole line from In-training to Mega; a sixth (the Fresh one, or a form that evolved within its level) drops
+   the oldest. Saved bit-packed as record SAVE_TAG_PARTNER_LINE (MOD_LINE_RECORD bytes, modPartnerLineRecord). */
+#define MOD_LINE_MAX 5
+typedef struct {
+	int16_t species, hp, mp, off, def, speed, brain, lifetime, age, weight;
+} ModLineEntry;
+typedef struct {
+	uint8_t count;   /* entries in use */
+	uint8_t used;    /* rewinds this egg has made */
+	uint8_t rewound; /* bit n: the partner was rewound out of level n (its tamer-level roll is not given again) */
+	uint8_t pending; /* a rewind the script started, for EVL_applyEvolution (always 0 when saved) */
+	ModLineEntry entry[MOD_LINE_MAX];
+} ModPartnerLine;
+#define MOD_LINE_ENTRY_BYTES 16 /* 127 bits: species 10, hp 15, mp 15, off/def/speed/brain 14, lifetime 15, age 8, weight 8 */
+#define MOD_LINE_RECORD (3 + MOD_LINE_MAX * MOD_LINE_ENTRY_BYTES) /* count, used, rewound, then the packed entries */
+extern ModPartnerLine MOD_PARTNER_LINE;
+void modPartnerLineRecord(uint8_t *rec, int32_t load);
+void modPartnerLinePush(int32_t oldType);
+#define modPartnerLineStart() modPartnerLinePush(-1) /* a new egg */
+void modPartnerLineQuery(int32_t start);
+
 #endif

@@ -24,7 +24,7 @@
 #define SAVE_TAG_INVENTORY		0x0002 /* i16[n] item ids of the inventory slots, -1 = empty */
 #define SAVE_TAG_PARTNER_TYPE		0x0003 /* i32 species of the partner */
 #define SAVE_TAG_WREGS			0x0004 /* u16[n] the script registers w0.. */
-#define SAVE_TAG_REGISTERED		0x0005 /* i16[n] species of the registered Digimon of the VS mode (kept for reading tools) */
+#define SAVE_TAG_REGISTERED		0x0005 /* i16[n] species of the registered Digimon of the VS mode (no longer written: each registration holds its wide species) */
 #define SAVE_TAG_POOP_MAPS		0x0006 /* i16[n] screens of the poop in the world, -1 = none (authoritative since screens beyond 255; the v1 byte is 0xFF for a screen >= 255) */
 #define SAVE_TAG_SPECIES_RAISED		0x0007 /* bit array: species the tamer has raised */
 #define SAVE_TAG_SPECIES_RECRUITED	0x0008 /* bit array: species the tamer has recruited */
@@ -36,6 +36,7 @@
 #define SAVE_TAG_CARD_COUNTS		0x000D /* nibbles for card ids 66..511, low nibble first */
 #define SAVE_TAG_CARD_STOCK		0x000E /* u16[6] daily shop cards, 0xffff sold */
 #define SAVE_TAG_TAMER_LOOK		0x000F /* MOD_TAMER_STATE: u8 look (0 = the original tamer), hair colour, face, shirt (0 = the original), shirt colour, trousers, their colour, shoes, their colour, backpack (0 = the original, 1 = none), its colour, hands (1 = small); older saves end earlier */
+#define SAVE_TAG_PARTNER_LINE		0x0010 /* MOD_LINE_RECORD (83) bytes: u8 forms in use (0..5), u8 rewinds this egg used, u8 levels rewound out of (bit n), then 5 x 16 bytes, each the fields {species, hp, mp, off, def, speed, brain, lifetime, age, weight} packed low bit first in 10, 15, 15, 14, 14, 14, 14, 15, 8, 8 bits: the state each form of the line arrived with, newest (the current form) first (mod_qol.h, modPartnerLineRecord) */
 #define SAVE_TAG_REQUIRED		0x8000
 #define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots, 2 = and the learned bits 64..87 are the new rows' techniques, 3 = and 88..103; required to prevent silent downgrade substitution */
 /* engine tier 2 */

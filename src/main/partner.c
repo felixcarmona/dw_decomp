@@ -1291,6 +1291,14 @@ uint8_t routine;
 		}
 		SOME_SCRIPT_SYNC_BIT = 0;
 		break;
+	case 13: /* MOD (partner rewind): can the save machine rewind the partner? (p254, p253; mod_qol.c) */
+		modPartnerLineQuery(0);
+		SOME_SCRIPT_SYNC_BIT = 0;
+		break;
+	case 14: /* MOD (partner rewind): the rewind's evolution scene into the form before (p254 = 1 started) */
+		modPartnerLineQuery(1);
+		SOME_SCRIPT_SYNC_BIT = 0;
+		break;
 	default:
 		break;
 	}

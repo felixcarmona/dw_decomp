@@ -1441,7 +1441,35 @@ static int16_t EVL_blendStat(int32_t stat, int32_t gain)
 	return evoAmt(MOD_EVF_STAT_AVG_DIV) > 0 ? (gain + stat) / evoAmt(MOD_EVF_STAT_AVG_DIV) : stat;
 }
 
-/* the species whose evolution scales the base stats by a percent instead of blending them */
+/* MOD (partner rewind): once the new form stands, a rewind gets the state the form arrived with back; any other form
+ * is written on top of the line (mod_qol.c). While pending is set EVL_applyEvolution gives no tamer-level roll */
+static __attribute__((noinline)) void lineArrived(Stats *s, PartnerPara *para, int32_t oldType, int32_t oldLevel)
+{
+	ModPartnerLine *l = &MOD_PARTNER_LINE;
+	ModLineEntry *e = &l->entry[0];
+	int32_t rewind = l->pending && e->species == PARTNER_ENTITY.digimonEntity.entity.type;
+
+	l->pending = 0;
+	if (rewind) { /* modPartnerLineQuery took the current form off and started this evolution into the one before (entry 0) */
+		l->rewound |= 1 << oldLevel;
+		l->used++; /* never past pstat 20 (modPartnerLineQuery) */
+		s->base.hp = s->current.currentHP = e->hp; /* HP and MP full: a clamp does not fit in the overlay */
+		s->base.mp = s->current.currentMP = e->mp;
+		s->base.off = e->off;
+		s->base.def = e->def;
+		s->base.speed = e->speed;
+		s->base.brain = e->brain;
+		para->remainingLifetime = e->lifetime;
+		para->age = e->age;
+		para->weight = e->weight;
+		para->careMistakes = 0;
+		para->battles = 0;
+		para->evoTimer = 0;
+		return;
+	}
+	modPartnerLinePush(oldType);
+}
+
 static int32_t EVL_scalesStats(int32_t id)
 {
 	return id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES0] || id == MOD_EVO_FORMULA[MOD_EVF_SCALE_SPECIES1] ||
@@ -1487,8 +1515,8 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 			stats->base.brain = EVL_blendStat(stats->base.brain, gains->brains);
 
 			EVL_clampBaseStats();
-			if (IS_SCRIPT_PAUSED == 1) {
-				/* MOD (tamer level as data): the chances are MOD_TAMER_LEVEL's */
+			if (IS_SCRIPT_PAUSED == 1 && !MOD_PARTNER_LINE.pending && !(MOD_PARTNER_LINE.rewound & (1 << DIGI_PARA(newId).level))) {
+				/* MOD (tamer level as data): the chances are MOD_TAMER_LEVEL's; MOD (partner rewind): once an egg */
 				if (DIGI_PARA(newId).level == 4) {
 					modTamerLevelEvent(MOD_TL_EVOLVE_CHAMPION_CHANCE, 1);
 				}
@@ -1513,7 +1541,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	}
 	level = DIGI_PARA(newId).level;
 	/* MOD (partners-npc-a): only on reaching Ultimate, not Etemon -> MetalEtemon */
-	if (level == 5 && oldLevel != 5 && HAS_USED_EVOITEM == 0) {
+	if (level == 5 && oldLevel != 5 && HAS_USED_EVOITEM == 0) { /* MOD (partner rewind): lineArrived puts the lifetime back */
 		para->remainingLifetime += evoAmt(MOD_EVF_LIFE_ULTIMATE);
 	}
 	if (level == LEVEL_MEGA && HAS_USED_EVOITEM == 0) { /* MOD (mega) */
@@ -1583,6 +1611,7 @@ void EVL_applyEvolution(Entity *entity, Stats *stats, PartnerPara *para, int16_t
 	if (oldLevel != DIGI_PARA(newId).level) {
 		para->evoTimer = 0;
 	}
+	lineArrived(stats, para, oldType, oldLevel); /* MOD (partner rewind) */
 }
 
 /* MOD (caps) */

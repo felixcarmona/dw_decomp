@@ -10,6 +10,7 @@
  * its life (the gym's own box, a technique or new orders, is the block's own check).
  */
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <libgte.h>
 #include <libgpu.h>
@@ -20,6 +21,7 @@
 #include <dw/evl.h>
 #include <dw/evolution.h>
 #include <dw/font.h>
+#include <dw/ids.h>
 #include <dw/level.h>
 #include <dw/line.h>
 #include <dw/mod_options.h>
@@ -28,8 +30,10 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/sound.h>
+#include <dw/pstat.h>
 #include <dw/script.h>
 #include <dw/sjis.h>
+#include <dw/species.h>
 #include <dw/world_object.h>
 
 #include <text/main/mod_qol.h>
@@ -373,4 +377,118 @@ int32_t modTrainStopReason(int32_t t0, int32_t tiredAt)
 		return MOD_TB_TIRED;
 	}
 	return MOD_TB_GO;
+}
+
+/*
+ * MOD (partner rewind): the line of the partner. Each form of this egg writes the state it arrived with (species,
+ * base stats, lifetime, age, weight) on top of MOD_PARTNER_LINE; the save machine of Jijimon's houses, in a New Game
+ * Plus run, can rewind the partner: the top entry goes and the one under it is the partner again, exactly as it was
+ * when it arrived, with its techniques kept. The line keeps two forms (the save has room for no more), so a rewind goes
+ * one form back. An egg may rewind as many times as the save has started New Game Plus runs (pstat 20). Sukamon and the
+ * King of Sukamon's way back are not written: the top entry is then not the current form, and the machine says it does
+ * not remember. Only what must be resident is here; the evolution side is in the EVL overlay (evl.c).
+ */
+extern int16_t EVOLUTION_TARGET;
+ModPartnerLine MOD_PARTNER_LINE;
+
+static void modPartnerLineFill(ModLineEntry *e)
+{
+	Stats *s = &PARTNER_ENTITY.digimonEntity.stats;
+
+	e->species = PARTNER_ENTITY.digimonEntity.entity.type;
+	e->hp = s->base.hp;
+	e->mp = s->base.mp;
+	e->off = s->base.off;
+	e->def = s->base.def;
+	e->speed = s->base.speed;
+	e->brain = s->base.brain;
+	e->lifetime = PARTNER_PARA.remainingLifetime;
+	e->age = PARTNER_PARA.age;
+	e->weight = PARTNER_PARA.weight;
+}
+
+/* oldType -1: a new egg (a new game or a rebirth), whose line starts with the form it hatched as. Otherwise the end of
+ * EVL_applyEvolution (not a rewind): the form the partner arrived at is written on top of the forms before it; a full
+ * line drops its oldest. Turning into Sukamon is not written, and neither is his way back */
+void modPartnerLinePush(int32_t oldType)
+{
+	ModPartnerLine *l = &MOD_PARTNER_LINE;
+
+	if (oldType < 0) {
+		l->count = l->used = l->rewound = l->pending = 0;
+	} else if (PARTNER_ENTITY.digimonEntity.entity.type == DIGIMON_SUKAMON || oldType == DIGIMON_SUKAMON) {
+		return;
+	}
+	if (l->count >= MOD_LINE_MAX) {
+		l->count = MOD_LINE_MAX - 1;
+	}
+	memmove(&l->entry[1], &l->entry[0], (MOD_LINE_MAX - 1) * sizeof(ModLineEntry));
+	modPartnerLineFill(&l->entry[0]);
+	l->count++;
+}
+
+/* digimon routines 13 (start 0) and 14 (start 1). 13: p254 = 0 the machine does not remember an earlier form, 1 none
+ * left, 2 it can, 3 it can and this egg has not gone back yet; p253 = how many this egg has left (read only on 2 and
+ * 3). 14: the rewind's evolution scene starts into the form before (p254 = 1) or, when 13 would refuse, does not (0) */
+void modPartnerLineQuery(int32_t start)
+{
+	ModPartnerLine *l = &MOD_PARTNER_LINE;
+	int32_t left = readPStat(20) - l->used;
+	int32_t r = 0;
+
+	if (l->count >= 2 && l->entry[0].species == PARTNER_ENTITY.digimonEntity.entity.type) {
+		r = left <= 0 ? 1 : l->used ? 2 : 3;
+	}
+	if (start) {
+		r = r >= 2;
+		if (r) {
+			l->pending = 1;
+			l->count--; /* the current form goes: the one before is entry 0, for EVL_applyEvolution */
+			memmove(&l->entry[0], &l->entry[1], (MOD_LINE_MAX - 1) * sizeof(ModLineEntry));
+			EVOLUTION_TARGET = l->entry[0].species;
+			partnerSetState(13);
+		}
+	}
+	writePStat(PSTAT_253, left);
+	writePStat(PSTAT_254, r);
+}
+
+/* the line as save record SAVE_TAG_PARTNER_LINE (main_menu.c): count, used and rewound, then every entry's fields
+ * packed low bit first in the widths below, which hold caps.h's limits, a lifetime and an age or weight up to 255 */
+static const uint8_t lineBits[10] = {10, 15, 15, 14, 14, 14, 14, 15, 8, 8};
+
+void modPartnerLineRecord(uint8_t *rec, int32_t load)
+{
+	ModPartnerLine *l = &MOD_PARTNER_LINE;
+	int16_t *v = &l->entry[0].species;
+	int32_t i, j, b, w, x, pos = 24;
+
+	if (load) {
+		memset(l, 0, sizeof(*l));
+		if (rec[0] > MOD_LINE_MAX) {
+			return;
+		}
+		l->count = rec[0];
+		l->used = rec[1];
+		l->rewound = rec[2];
+	} else {
+		memset(rec, 0, MOD_LINE_RECORD);
+		rec[0] = l->count;
+		rec[1] = l->used;
+		rec[2] = l->rewound;
+	}
+	for (i = 0; i < MOD_LINE_MAX; i++) {
+		for (j = 0; j < 10; j++, v++) {
+			w = lineBits[j];
+			x = load ? 0 : *v;
+			for (b = 0; b < w; b++, pos++) {
+				if (load) {
+					x |= (rec[pos >> 3] >> (pos & 7) & 1) << b;
+				} else {
+					rec[pos >> 3] |= (x >> b & 1) << (pos & 7);
+				}
+			}
+			*v = x;
+		}
+	}
 }

@@ -31,6 +31,7 @@ int VSyncCallbacks(int slot, void (*callback)(void));
 #include <dw/map_object.h>
 #include <dw/mod_fps.h>
 #include <dw/mod_options.h>
+#include <dw/mod_qol.h>
 #include <dw/mod_version.h>
 #include <dw/mod_rules.h>
 #include <dw/model.h>
@@ -3530,6 +3531,7 @@ int32_t main(void)
 			initializePartner(partnerId, 0, 0, 0, 0, 0, 0);
 			modInitializeStarterTechniques(partnerId);
 			setDigimonRaised(partnerId);
+			modPartnerLineStart(); /* MOD (partner rewind): the starter's line */
 			initializeMap();
 			initializeChest();
 			runMapHeadScript(modNewGame(MOD_NG_START_SCRIPT)); /* was 0xcc */

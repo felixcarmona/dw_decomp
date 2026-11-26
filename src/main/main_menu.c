@@ -11,6 +11,7 @@ extern int MOD_CHEATS_CARD_MODE, MOD_CHEATS_CARD_DONE;
 #include <dw/font.h>
 #include <dw/ids.h>
 #include <dw/mod_options.h>
+#include <dw/mod_qol.h>
 #include <dw/mod_fps.h>
 #include <dw/mod_version.h>
 #include <dw/mod_rules.h>
@@ -245,7 +246,8 @@ SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* Bound every record, including the optional swap and daily pickup bitmap. */
 #define SAVE_RECORDS_MAX (sizeof(SaveExtHead) + 12 * 4 + 4 + 60 + 4 + 32 + 80 + 200 + \
                          2 * (NUM_DIGIMON / 8) + MOD_OPT_BYTES + 4 + sizeof(MOD_GROUND_PICKED) + 4 + 4 + 8 + CARD_EXTRA_BYTES + 12 + \
-                         4 + TAMER_STATE_SIZE /* the tamer's look */)
+                         4 + TAMER_STATE_SIZE /* the tamer's look */ + 4 + MOD_LINE_RECORD /* the partner's line */ - \
+                         (4 + 80) /* SAVE_TAG_REGISTERED, no longer written */)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_INLINE_BYTES);
 SAVE_LAYOUT_CHECK(inlinePadding, sizeof(((RegisteredDigimon *)0)->unk24) == 28 &&
                   __builtin_offsetof(RegisteredDigimon, unk24) == 0x24 && sizeof(RegisteredDigimon) == 0x40);
@@ -4516,6 +4518,7 @@ void loadSavegame(SavegamePayload *savegame)
 
 	modForgetGroundPicked(); /* A missing new record, in any old layout, means no pickups today. */
 	memset(MOD_TAMER_STATE, 0, TAMER_STATE_SIZE); /* MOD (tamer looks): and the original tamer */
+	memset(&MOD_PARTNER_LINE, 0, sizeof(MOD_PARTNER_LINE)); /* MOD (partner rewind): a save without the record remembers nothing */
 
 	SAVED_STATE.playerPos = savegame->tamerPosition;
 	SAVED_STATE.money = savegame->money;
@@ -4808,6 +4811,7 @@ static int32_t isExtensionValid(int32_t copy)
 }
 
 /* appends a record at p (the room is checked at the build: SAVE_RECORDS_MAX); returns where the next one goes */
+
 static uint8_t *putRecord(uint8_t *p, int32_t tag, void *data, int32_t len)
 {
 	int32_t i;
@@ -5203,10 +5207,8 @@ static void prepareSaveFile(int32_t fromRam)
 		}
 		p = putRecord(p, SAVE_TAG_WREGS, words, 2 * SAVE_EXT_SAVED_WREGS);
 	}
-	for (i = 0; i < 40; i++) {
-		words[i] = registeredSpecies(&savegame->battleRegistrationData[i]);
-	}
-	p = putRecord(p, SAVE_TAG_REGISTERED, words, 2 * 40);
+	/* MOD (partner rewind): SAVE_TAG_REGISTERED is no longer written: nothing read it, and each registration holds its
+	 * own wide species (bytes 0x20-0x23); its 84 bytes hold the partner's line */
 	for (i = 0; i < 100; i++) { /* MOD (screens beyond 255): from RAM the wide screen */
 		words[i] = fromRam ? WORLD_POOP[i].map : savegame->worldPoop[i].map == 0xFF ? -1 : savegame->worldPoop[i].map;
 	}
@@ -5229,6 +5231,7 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_CARD_COUNTS, MOD_CARD_EXTRA, sizeof(MOD_CARD_EXTRA));
 		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 		p = putRecord(p, SAVE_TAG_TAMER_LOOK, MOD_TAMER_STATE, TAMER_STATE_SIZE); /* MOD (tamer looks) */
+		{ uint8_t line[MOD_LINE_RECORD]; modPartnerLineRecord(line, 0); p = putRecord(p, SAVE_TAG_PARTNER_LINE, line, sizeof(line)); } /* MOD (partner rewind) */
 	}
 	{ uint8_t layout = 3; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
@@ -5514,6 +5517,7 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_CARD_COUNTS:
 	case SAVE_TAG_CARD_STOCK:
 	case SAVE_TAG_TAMER_LOOK:
+	case SAVE_TAG_PARTNER_LINE:
 	case SAVE_TAG_GROUND_PICKUP_BITS:
 	case SAVE_TAG_TECHNIQUE_LAYOUT:
 		return 1;
@@ -5612,6 +5616,11 @@ static void applyRecords(uint8_t *e)
 			 * loads as the original's too (lookTamerLoad) */
 			for (i = 0; i < TAMER_STATE_SIZE; i++) {
 				MOD_TAMER_STATE[i] = (uint32_t)i < len ? d[i] : 0;
+			}
+			break;
+		case SAVE_TAG_PARTNER_LINE: /* MOD (partner rewind): a record of another size remembers nothing */
+			if (len == MOD_LINE_RECORD) {
+				modPartnerLineRecord(d, 1);
 			}
 			break;
 		case SAVE_TAG_GROUND_PICKUP_BITS:

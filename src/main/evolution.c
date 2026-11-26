@@ -16,6 +16,7 @@
 #include <dw/types.h>
 #include <dw/mod_rules.h>
 #include <dw/mod_options.h>
+#include <dw/mod_qol.h>
 
 void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
                                    int32_t posZ, int32_t rotX, int32_t rotY,
@@ -1332,6 +1333,7 @@ void reincarnatePartner(unused, stats, partner, digimonId)
   initializeReincarnatedPartner(id, 0, 0, 0, 0, 0, 0);
   PARTNER_ENTITY.lives = modNewGame(MOD_NG_LIVES);
   setDigimonRaised(id);
+  modPartnerLineStart(); /* MOD (partner rewind): a new egg, a new line */
 }
 
 /*

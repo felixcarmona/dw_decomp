@@ -150,11 +150,11 @@
 /*
  * The SEQ block of the current music font (every track of it), copied from
  * the FAALL chunk (sound.c). Original 0x5800 (font 0xB uses 0x55F8); the
- * built fonts need at most 0x7284 bytes. Keep 0x7400 bytes (380 spare):
- * tools/sound.py refuses a font with a bigger block, and sound.c checks the
- * size before the copy.
+ * built fonts need at most 0x7284 bytes. Keep 0x7288 bytes (the partner
+ * rewind took the 380 spare for the heap): tools/sound.py refuses a font with
+ * a bigger block, and sound.c checks the size before the copy.
  */
-#define SEQ_BUFFER_SIZE		0x7400
+#define SEQ_BUFFER_SIZE		0x7288
 
 /*
  * SPU RAM (512 KB, sound.c): what the sound banks may use. Below it the
