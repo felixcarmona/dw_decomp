@@ -2583,7 +2583,7 @@ static void modTitlePlayerName(void)
 void drawRegisteredDigimonSlots(int32_t slot)
 {
 	RECT area;
-	uint8_t type;
+	int32_t type; /* MOD (wide registered species): was u8 */
 	int32_t i;
 	int32_t y;
 	int32_t currentSlot;
@@ -2592,7 +2592,7 @@ void drawRegisteredDigimonSlots(int32_t slot)
 	 * over every slot, so the layout does not change while scrolling */
 	MOD_REG_LIST_LONG = 0;
 	for (i = 0; i < 40; i++) {
-		type = SAVE_FILE.saves[0].battleRegistrationData[i].digimonId;
+		type = registeredSpecies(&SAVE_FILE.saves[0].battleRegistrationData[i]);
 		if (type != 0 && LIST_NAME_X + measureStringMode(DIGIMON_NAME(type), FIT_VANILLA) > LIST_CURSOR_END) {
 			MOD_REG_LIST_LONG = 1;
 		}
@@ -2606,7 +2606,7 @@ void drawRegisteredDigimonSlots(int32_t slot)
 		y = i * 0xc + 0xc;
 		drawString(&SAVEGAME_ID_LABEL[(currentSlot + 1) / 10][2], 0, y);
 		drawString(&SAVEGAME_ID_LABEL[(currentSlot + 1) % 10][2], 0xC, y);
-		if ((type = SAVE_FILE.saves[0].battleRegistrationData[currentSlot].digimonId) != 0) {
+		if ((type = registeredSpecies(&SAVE_FILE.saves[0].battleRegistrationData[currentSlot])) != 0) {
 			drawString(SAVE_FILE.saves[0].battleRegistrationData[currentSlot].name, 0x1e, y);
 			if (MOD_REG_LIST_LONG) { /* MOD (long names) */
 				drawStringMode(DIGIMON_NAME(type), LIST_NAME_X, y,
@@ -5092,7 +5092,7 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_WREGS, words, 2 * SAVE_EXT_SAVED_WREGS);
 	}
 	for (i = 0; i < 40; i++) {
-		words[i] = savegame->battleRegistrationData[i].digimonId;
+		words[i] = registeredSpecies(&savegame->battleRegistrationData[i]);
 	}
 	p = putRecord(p, SAVE_TAG_REGISTERED, words, 2 * 40);
 	for (i = 0; i < 100; i++) { /* MOD (screens beyond 255): from RAM the wide screen */
@@ -5184,6 +5184,9 @@ static void dropAbsentRegistered(RegisteredDigimon *p, int32_t n)
 	int32_t i, k;
 
 	for (i = 0; i < n; i++, p++) {
+		if (registeredSpecies(p) != p->digimonId && DIGIMON_NAME(registeredSpecies(p))[0] == '\0') {
+			p->wideTag = 0; /* MOD (wide registered species): a species this build lacks fights as its stand-in */
+		}
 		if (p->digimonId != 0 && DIGIMON_NAME(p->digimonId)[0] == '\0') {
 			p->digimonId = 0;
 			continue;
@@ -5764,6 +5767,16 @@ void renderMainMenu(void)
 	}
 }
 
+/* MOD (wide registered species): the record's byte keeps a species below 256 and, past it, the original it is based
+ * on (what older builds and the original game read); wideId keeps the species itself */
+static void setRegisteredSpecies(RegisteredDigimon *rec, int32_t type)
+{
+	rec->digimonId = type < 256 ? type : getOriginalType(type);
+	rec->wideId = type;
+	rec->wideCheck = rec->digimonId;
+	rec->wideTag = REGISTERED_WIDE_TAG;
+}
+
 void registerBattleData(void)
 {
 	RegisteredDigimon *rec;
@@ -5776,9 +5789,7 @@ void registerBattleData(void)
 	rec->speed = PARTNER_ENTITY.digimonEntity.stats.base.speed;
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
-	/* MOD (scale): the record keeps a u8; a species >= 256 registers as the original it is based on */
-	rec->digimonId = PARTNER_ENTITY.digimonEntity.entity.type < 256 ? PARTNER_ENTITY.digimonEntity.entity.type
-			 : getOriginalType(PARTNER_ENTITY.digimonEntity.entity.type);
+	setRegisteredSpecies(rec, PARTNER_ENTITY.digimonEntity.entity.type); /* MOD (scale, wide registered species) */
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
 	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	memcpy(rec->moves, PARTNER_ENTITY.digimonEntity.stats.base.moves, 3);
@@ -5916,7 +5927,7 @@ void awardMachinedramonData(void)
 	rec->speed = PARTNER_ENTITY.digimonEntity.stats.base.speed;
 	rec->brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
 	rec->discipline = PARTNER_PARA.discipline;
-	rec->digimonId = MOD_VS_UNLOCK[0];
+	setRegisteredSpecies(rec, MOD_VS_UNLOCK[0]); /* MOD (wide registered species) */
 	memcpy(rec->name, PARTNER_ENTITY.name, 0xe);
 	rec->name[0xd] = '\0'; /* MOD (optional name): a species name can pass the record's 13 characters */
 	rec->moves[0] = MOD_VS_UNLOCK[1];

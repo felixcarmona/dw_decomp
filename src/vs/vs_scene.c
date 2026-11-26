@@ -1180,7 +1180,7 @@ void VS_loadFighterEntities(uint8_t slot)
 	fighter1 = &VS_DIGIMON_P1_PTR[VS_BATTLE_SETUP.fighters[0][slot]];
 	fighter2 = &VS_DIGIMON_P2_PTR[VS_BATTLE_SETUP.fighters[1][slot]];
 
-	type1 = fighter1->digimonId;
+	type1 = registeredSpecies(fighter1); /* MOD (wide registered species) */
 	if (ENTITY_TABLE[1] == NULL || ENTITY_TABLE[1]->type != type1) {
 		if (ENTITY_TABLE[1] != NULL) {
 			prev = ENTITY_TABLE[1]->type;
@@ -1192,7 +1192,7 @@ void VS_loadFighterEntities(uint8_t slot)
 		initializeDigimonObject(type1, 1, VS__tickDigimonP1);
 	}
 
-	type2 = fighter2->digimonId;
+	type2 = registeredSpecies(fighter2); /* MOD (wide registered species) */
 	if (ENTITY_TABLE[2] == NULL || ENTITY_TABLE[2]->type != type2) {
 		if (ENTITY_TABLE[2] != NULL) {
 			prev = ENTITY_TABLE[2]->type;
@@ -1218,7 +1218,7 @@ void VS_loadFighterEntities(uint8_t slot)
 	stats->base.moves[0] = fighter1->moves[0];
 	stats->base.moves[1] = fighter1->moves[1];
 	stats->base.moves[2] = fighter1->moves[2];
-	stats->base.moves[3] = VS_getFirstSpecialMove(fighter1->digimonId);
+	stats->base.moves[3] = VS_getFirstSpecialMove(type1);
 
 	stats = &NPC_ENTITIES[0].digimonEntity.stats;
 	stats->current.chargeMode = 0;
@@ -1234,7 +1234,7 @@ void VS_loadFighterEntities(uint8_t slot)
 	stats->base.moves[0] = fighter2->moves[0];
 	stats->base.moves[1] = fighter2->moves[1];
 	stats->base.moves[2] = fighter2->moves[2];
-	stats->base.moves[3] = VS_getFirstSpecialMove(fighter2->digimonId);
+	stats->base.moves[3] = VS_getFirstSpecialMove(type2);
 
 	ENTITY_TABLE[1]->isOnMap = 1;
 	ENTITY_TABLE[1]->isOnScreen = 1;
@@ -1299,7 +1299,7 @@ void VS_renderFighterNamePlate(int16_t side)
 	uint16_t c;
 	uint8_t u;
 	uint8_t v;
-	uint8_t type;
+	int32_t type; /* MOD (wide registered species): was u8 */
 	int32_t portraitTile;
 	int32_t portraitRow;
 
@@ -1312,10 +1312,10 @@ void VS_renderFighterNamePlate(int16_t side)
 	for (i = 0; i < VS_BATTLE_SETUP.battleCount; i++) {
 		if (side == 0) {
 			fighter1 = &VS_DIGIMON_P1_PTR[VS_BATTLE_SETUP.fighters[0][i]];
-			type = fighter1->digimonId;
+			type = registeredSpecies(fighter1);
 		} else {
 			fighter2 = &VS_DIGIMON_P2_PTR[VS_BATTLE_SETUP.fighters[1][i]];
-			type = fighter2->digimonId;
+			type = registeredSpecies(fighter2);
 		}
 		SetPolyFT4(prim);
 		setRGB0(prim, 0x80, 0x80, 0x80);

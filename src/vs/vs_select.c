@@ -288,7 +288,7 @@ static void VS_choosePortraitTiles(RegisteredDigimon **entries)
 	used[63] = 1; /* the special tile of type 0x73 */
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < 40; j++) {
-			type = entries[i][j].digimonId;
+			type = registeredSpecies(&entries[i][j]); /* MOD (wide registered species) */
 			if (type >= 3 && type <= 66) {
 				used[type - 3] = 1;
 			}
@@ -716,7 +716,7 @@ void VS__renderSelectDigimonPlayer(id)
 	uint8_t spriteU;
 	uint8_t spriteV;
 	uint8_t baseIdx;
-	uint8_t type;
+	int32_t type; /* MOD (wide registered species): was u8 */
 	int32_t portraitTile;
 	int32_t portraitRow;
 
@@ -826,7 +826,7 @@ void VS__renderSelectDigimonPlayer(id)
 	}
 
 	for (i = 0; i < rowCount; i++) {
-		type = fighters[st->slotIds[baseIdx + i]].digimonId;
+		type = registeredSpecies(&fighters[st->slotIds[baseIdx + i]]); /* MOD (wide registered species) */
 		VS__setPolyFT4White(prim);
 		prim->tpage = 14;
 		prim->clut = GetClut(0x120, DIGIMON_SPRITE_CLUT[type < 68 ? type : 0] + 0x1e0); /* MOD (scale): the table covers 68 types */
@@ -875,7 +875,7 @@ void VS__renderSelectDigimonPlayer(id)
 				strcpy(buf, STR_NOT_EQUIPPED);
 				text = (uint16_t *)buf;
 			} else {
-				moveId = DIGI_PARA(fighter->digimonId).moves[fighter->moves[j] - 0x2e];
+				moveId = DIGI_PARA(registeredSpecies(fighter)).moves[fighter->moves[j] - 0x2e];
 				text = (uint16_t *)MOVE_NAMES[moveId];
 			}
 			halfLen = strlen((char *)text) / 2;
