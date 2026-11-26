@@ -112,8 +112,8 @@ typedef struct {
 #define SPECIES_EVOLUTION_SWAP_MAX 20
 Move *modSpeciesMove(int32_t type, int32_t move);
 void modApplySpeciesLevels(void);
-/* the level the original game gives a species (its NEW DIGIMON off level): the original evolution items keep their rule with it */
-int32_t modOriginalLevel(int32_t type);
+/* Native evolution items follow current stages, retaining the legacy Mega item exception. */
+int32_t modNativeItemTargetLevel(int32_t type);
 #define SPECIES_VANILLA_BYTES	(NUM_DIGIMON / 8)
 int32_t isVanillaSpecies(int32_t type);
 /* the vanilla species a new partner species becomes with NEW DIGIMON off (its record's vanillaAs), 0 none */

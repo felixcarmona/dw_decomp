@@ -6,6 +6,7 @@
 #include <dw/entity.h>
 #include <dw/file.h>
 #include <dw/main.h>
+#include <dw/level.h>
 #include <dw/memmap.h>
 #include <dw/mod_rules.h>
 #include <dw/script.h>
@@ -160,16 +161,12 @@ void modApplySpeciesLevels(void)
 	}
 }
 
-int32_t modOriginalLevel(int32_t type)
+int32_t modNativeItemTargetLevel(int32_t type)
 {
-	int32_t i;
+	int32_t level = DIGI_PARA(type).level;
 
-	for (i = 0; i < SPECIES_LEVEL_SWAPS; i++) {
-		if (SPECIES_LEVEL_SWAP[i][0] == type) {
-			return SPECIES_LEVEL_SWAP[i][2];
-		}
-	}
-	return DIGI_PARA(type).level;
+	/* Current stages include Whamon's Ultimate role; native Mega items keep their legacy stage. */
+	return level == LEVEL_MEGA ? LEVEL_ULTIMATE : level;
 }
 
 int32_t isVanillaSpecies(int32_t type)

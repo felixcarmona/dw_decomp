@@ -1923,7 +1923,7 @@ uint8_t ITEM_CLUT_DATA[NUM_ITEMS] = {
 	0x0e, 0x11, 0x04, 0x0a, 0x13, 0x0a, 0x04, 0x04,
 	0x04, 0x0a, 0x17, 0x05, 0x04, 0x10, 0x05, 0x0a,
 	0x04, 0x07, 0x08, 0x0e, 0x14, 0x09, 0x04, 0x10,
-	0x04, 0x17, 0x15, 0x04, 0x09, 0x04, 0x04, 0x04,
+	0x04, 0x17, 0x15, 0x04, 0x0e, 0x04, 0x04, 0x04,
 };
 
 uint8_t EVOLUTION_ITEM_TARGET[44] = {
@@ -2060,7 +2060,7 @@ ItemFunction ITEM_FUNCTIONS[NUM_ITEMS] = {
 	(ItemFunction)handleFood,
 	(ItemFunction)handleFood,
 	NULL,
-	NULL,
+	(ItemFunction)handleEvoItems,
 	(ItemFunction)handleEvoItems,
 	(ItemFunction)handleEvoItems,
 	(ItemFunction)handleEvoItems,
@@ -2202,16 +2202,16 @@ void handleEvoItems(int16_t item)
 	int16_t level;
 	ModEvoItem *modItem;
 
-	if (item >= 0x7d) {
-		/* MOD (evolution rules as data): Giga Hand, Noble Mane, Metalbanana: MOD_EVO_ITEMS (content/tables/evolution-rules.json) */
+	if (item >= 0x7c) {
+		/* MOD (evolution rules as data): Dolph Fin, Giga Hand, Noble Mane, Metalbanana: MOD_EVO_ITEMS (content/tables/evolution-rules.json) */
 		modItem = getModEvoItem(item);
-		if (modItem == NULL || !modSpeciesAllowed(modItem->target)) { /* MOD (options): NEW DIGIMON off */
+		if (modItem == NULL) {
 			return;
 		}
 		EVOLUTION_TARGET = modItem->target;
 	} else {
 		if (!modSpeciesAllowed(EVOLUTION_ITEM_TARGET[item - 0x47])) return;
-		level = modOriginalLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* MOD (canon levels): the original game's level */
+		level = modNativeItemTargetLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* Native items follow their target's current stage (legacy Mega exception). */
 		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
 			return;
 		}
