@@ -5598,7 +5598,9 @@ static void modCadRecord(int32_t planned, int32_t shown, int32_t late, int32_t c
 	level = next = MOD_CAD_LEVEL;
 	if (level == 2 && sumShown * MOD_CAD_WINDOW < MOD_CAD_KEEP60 * n) {
 		next = fit30 == n ? 1 : 0;
-	} else if (level == 1 && sumMiss * MOD_CAD_WINDOW > MOD_CAD_KEEP30 * n) {
+	} else if (level == 1 && n == MOD_CAD_WINDOW && sumMiss > MOD_CAD_KEEP30) {
+		/* only on a full window: two lone overruns in the first 16 ticks (a battle's AI choosing) dropped a battle that
+		 * holds steady 30 to 20 for the next 32 ticks or more, a slower and longer judder than the late frames */
 		next = 0;
 	} else if (n == MOD_CAD_WINDOW && modCad.since >= modCad.cool[ctx]) {
 		if (level == 1 && sumPred * MOD_CAD_WINDOW >= (MOD_CAD_KEEP60 + 4) * n) {
