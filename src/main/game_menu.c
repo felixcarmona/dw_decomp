@@ -31,6 +31,7 @@
 #include <dw/tamer.h>
 #include <dw/ui.h>
 #include <dw/lang.h>
+#include <dw/utils.h> /* MOD (frame pacing): the background MENU read */
 #include <dw/version.h>
 #include <text/main/game_menu.h>
 
@@ -191,8 +192,29 @@ static void chartDetailOpen(int32_t id); /* MOD (portraits) */
 static int32_t chartDetailInput(void);
 static void chartOverviewInput(int32_t grid); /* MOD (chart) */
 static void chartBoxXY(int32_t col, int32_t row, int16_t *x, int16_t *y);
-void loadMenuOverlay(void);
 void closeMenuOverlay(void);
+
+/*
+ * MOD (frame pacing): the Player view's MENU is read through the file queue. A blocking read stood the picture
+ * still for about a third of a second; the field keeps drawing under the closing box while it lands.
+ */
+int32_t isFileReadQueueIdle(void);
+int32_t tfsStreamBusy(void);
+static uint8_t playerMenuQueued;
+static uint8_t playerMenuDone;
+
+static int32_t playerMenuRead(void)
+{
+	if (!playerMenuQueued) {
+		if (!isFileReadQueueIdle() || tfsStreamBusy()) {
+			return 0;
+		}
+		playerMenuDone = 0;
+		playerMenuQueued = 1;
+		loadDynamicLibrary(MENU_REL, &playerMenuDone, 1, NULL, NULL);
+	}
+	return playerMenuDone;
+}
 static void chartCardRelease(void); /* MOD (chart criteria) */
 static void chartVanillaInput(void); /* MOD (options): NEW DIGIMON off */
 void renderPlayerInfoView(void);
@@ -1999,7 +2021,7 @@ void tickTriangleMenu(void)
 		break;
 	case 5:
 		closeUIBoxIfOpen(0);
-		if (UI_BOX_DATA[0].frame == 0) {
+		if (UI_BOX_DATA[0].frame == 0 && playerMenuRead()) { /* MOD (frame pacing) */
 			createMenuBox(1, -0x96, -0x59, 300, 0xbe, 0,
 			              tickPlayerMenu, renderPlayerMenu);
 			clearTextArea();
@@ -2782,7 +2804,7 @@ void handleGameMenuSelection(int32_t selection)
 		TRIANGLE_MENU_STATE = 3;
 		break;
 	case 3:
-		loadMenuOverlay();
+		playerMenuQueued = 0; /* MOD (frame pacing): read in the background, state 5 waits for it */
 		TRIANGLE_MENU_STATE = 5;
 		break;
 	case 4:
