@@ -24,6 +24,7 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/tamer.h>
 #include <dw/ui.h>
 #include <dw/version.h>
@@ -179,6 +180,7 @@ void renderDigimonStatsView(void);
 void renderCardsView(void);
 void renderMedalView(void);
 void renderEvoChartView(void);
+static void loadChartPortraits(int32_t chartId); /* MOD (portraits) */
 void renderPlayerInfoView(void);
 void renderString();
 void renderMenuTab(int16_t x, int8_t w, int8_t layer);
@@ -1812,6 +1814,7 @@ void tickPlayerMenu(void)
 								CHART_SELECTED_ROW * 0x13 - 0x45;
 							setWH(&startPos, 10, 10);
 							MAIN_D_80134D46 = 0;
+							loadChartPortraits(CHART_SELECTED_DIGIMON); /* MOD (portraits) */
 							createAnimatedUIBox(
 								2, 1, 0, &finalPos, &startPos,
 								NULL,
@@ -2908,6 +2911,57 @@ void removeUIBox1(void)
 	removeStaticUIBox(1);
 }
 
+/*
+ * MOD (portraits): the chart's sheet (SBOY.TIM at 512,256) has portraits for the original 61 only. The
+ * detail view of a species shows up to 11 others (its "from" and "to" species of DIGI.DAT); their icons
+ * are loaded from DIGI.DAT when the detail opens, into the VRAM of the battle effect slots (576,256 on,
+ * idle outside battle): 12 pairs of 16x16 frames, each with a CLUT below.
+ */
+#define CHART_EXTRA_SLOTS	12
+#define CHART_EXTRA_X		576
+#define CHART_EXTRA_Y		256
+#define CHART_EXTRA_CLUT_Y	496
+#define CHART_EXTRA_TPAGE	((CHART_EXTRA_Y / 256) * 16 + CHART_EXTRA_X / 64)
+static int16_t CHART_EXTRA_ID[CHART_EXTRA_SLOTS];
+
+static void loadChartPortraits(int32_t chartId)
+{
+	EvolutionPath *path;
+	int32_t n;
+	int32_t i;
+	int32_t id;
+
+	for (i = 0; i < CHART_EXTRA_SLOTS; i++) {
+		CHART_EXTRA_ID[i] = 0;
+	}
+	path = &EVOLUTION_PATHS[chartId - 1];
+	n = 0;
+	for (i = 0; i < 11 && n < CHART_EXTRA_SLOTS; i++) {
+		id = i < 5 ? path->from[i] : path->to[i - 5];
+		if (id <= NUM_EVO_CHART_DIGIMON || id >= NUM_DIGIMON) {
+			continue;
+		}
+		CHART_EXTRA_ID[n] = id;
+		loadSpeciesPortrait(id, CHART_EXTRA_X + (n % 8) * 8, CHART_EXTRA_Y + (n / 8) * 16, 16,
+		                    CHART_EXTRA_X + (n % 8) * 16, CHART_EXTRA_CLUT_Y + n / 8);
+		n++;
+	}
+}
+
+/* draws the icon of a species outside the chart's 61 at (x, y); 0 when it has none loaded */
+static void renderChartPortrait(int32_t id, int16_t x, int16_t y)
+{
+	int32_t i;
+
+	for (i = 0; i < CHART_EXTRA_SLOTS; i++) {
+		if (CHART_EXTRA_ID[i] == id) {
+			renderRectPolyFT4(x, y, 0x10, 0x10, (i % 8) * 32, (i / 8) * 16, CHART_EXTRA_TPAGE,
+			                  GetClut(CHART_EXTRA_X + (i % 8) * 16, CHART_EXTRA_CLUT_Y + i / 8), 4, 0);
+			return;
+		}
+	}
+}
+
 void renderEvoChartView(void)
 {
 	int32_t i;
@@ -3121,7 +3175,7 @@ void renderEvoChartDetail(void)
 	for (j = 0; j < fromCount; j++) {
 		id = EVOLUTION_PATHS[CHART_SELECTED_DIGIMON - 1].from[j];
 		if (id > 0) {
-			/* MOD: no portrait beyond the chart's 61 (MasterTyrannomon): an empty box */
+			/* MOD (portraits): beyond the chart's 61 the icon comes from DIGI.DAT */
 			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
 				renderRectPolyFT4(fromSprites->posX, fromSprites->posY,
 				                  0x10, 0x10,
@@ -3129,6 +3183,8 @@ void renderEvoChartDetail(void)
 				                  EVO_CHART_BOXES[id - 1].v, 0x18,
 				                  clut.m[EVO_CHART_BOXES[id - 1].clut],
 				                  4, 0);
+			} else if (id > NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
+				renderChartPortrait(id, fromSprites->posX, fromSprites->posY);
 			}
 			renderBorderBox(fromSprites->posX + 0x9f,
 			                fromSprites->posY + 0x77, 0x12, 0x12,
@@ -3140,7 +3196,7 @@ void renderEvoChartDetail(void)
 	for (j = 0; j < toCount; j++) {
 		id = EVOLUTION_PATHS[CHART_SELECTED_DIGIMON - 1].to[j];
 		if (id > 0) {
-			/* MOD: no portrait beyond the chart's 61 (MasterTyrannomon): an empty box */
+			/* MOD (portraits): beyond the chart's 61 the icon comes from DIGI.DAT */
 			if (id <= NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
 				renderRectPolyFT4(toSprites->posX, toSprites->posY,
 				                  0x10, 0x10,
@@ -3148,6 +3204,8 @@ void renderEvoChartDetail(void)
 				                  EVO_CHART_BOXES[id - 1].v, 0x18,
 				                  clut.m[EVO_CHART_BOXES[id - 1].clut],
 				                  4, 0);
+			} else if (id > NUM_EVO_CHART_DIGIMON && hasDigimonRaised(id & 0xffff) == 1) {
+				renderChartPortrait(id, toSprites->posX, toSprites->posY);
 			}
 			if (DIGI_PARA(id).level == LEVEL_MEGA) {
 				/* MOD (mega): the chart has no Mega column and no Mega portraits: a

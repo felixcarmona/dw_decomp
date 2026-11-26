@@ -223,7 +223,7 @@ void STD_tickCameraChase(void);
 void STD_updateBracket(void);
 void STD_drawBracket(void);
 void STD_addBracketProjectile(int16_t i, int32_t owner, uint8_t flag);
-void STD_setupParticipants(uint8_t *out, uint8_t *list);
+void STD_setupParticipants(uint16_t *out, uint16_t *list);
 void STD_tickBracketProjectile(int32_t id);
 void STD_renderBracketProjectile(int16_t id);
 void STD_combatSetup(void);
@@ -674,6 +674,14 @@ static void *std_main_sbss_order[] = {
  */
 #define STD_TABLE_TYPES 112
 #define STD_ROW(t) ((uint32_t)(t) < STD_TABLE_TYPES ? (uint32_t)(t) : 0)
+/*
+ * MOD (portraits): the bracket draws a participant from tile (type - 1) of the two STDTIM.BIN sheets. A type
+ * outside the tables (a new species, an original without a tile) has its icon from DIGI.DAT loaded over the
+ * tile of a type that takes no part in this bracket, with a CLUT row the sheets leave free (rows 7..15).
+ */
+static uint8_t STD_PORTRAIT_TILE[8];
+static uint8_t STD_PORTRAIT_ROW[8];
+#define STD_PORTRAIT_FIRST_FREE_ROW 8
 
 // clang-format off
 uint8_t STD_INTRO_DIGIMON_NAMES[112][14] = {
@@ -3089,6 +3097,61 @@ void STD_addBracketHitFlash(int16_t i)
 	addObject(0x1b0, i, STD_tickBracketHitFlash, 0);
 }
 
+/*
+ * MOD (portraits): the tile and CLUT row each participant is drawn with (see STD_PORTRAIT_TILE).
+ * Originals with a tile keep theirs; any other participant gets the icon of its species loaded over a tile
+ * (1..63, page 1) no participant uses, and one of the free CLUT rows. Called once the types are known.
+ */
+static void STD_preparePortraits(void)
+{
+	int32_t i;
+	int32_t j;
+	int32_t tile;
+	int32_t type;
+
+	for (i = 0; i < 8; i++) {
+		type = PARTICIPANT_TYPES[i];
+		STD_PORTRAIT_TILE[i] = 0;
+		if (type > 0 && type < STD_TABLE_TYPES) {
+			STD_PORTRAIT_TILE[i] = type;
+			STD_PORTRAIT_ROW[i] = STD_DIGIMON_SPRITE_CLUT[type];
+		}
+	}
+	for (i = 0; i < 8; i++) {
+		type = PARTICIPANT_TYPES[i];
+		if (type <= 0 || STD_PORTRAIT_TILE[i] != 0) {
+			continue;
+		}
+		for (tile = 62; tile >= 1; tile--) { /* 64 is the page quirk of the renderer: never used */
+			for (j = 0; j < 8; j++) {
+				if (STD_PORTRAIT_TILE[j] == tile || (j != i && PARTICIPANT_TYPES[j] == tile)) {
+					break;
+				}
+			}
+			if (j == 8) {
+				break;
+			}
+		}
+		STD_PORTRAIT_TILE[i] = tile;
+		STD_PORTRAIT_ROW[i] = STD_PORTRAIT_FIRST_FREE_ROW + i;
+		loadSpeciesPortrait(type, 0x380 + ((tile - 1) % 8) * 8, ((tile - 1) / 8) * 32, 32, 0x120,
+		                    0x1e0 + STD_PORTRAIT_ROW[i]);
+	}
+}
+
+/* MOD (portraits): the projectile icon (1..16) of a participant, 0 for none; a species outside the tables
+ * throws the one of the original it borrows its techniques from */
+static int32_t STD_projectileIcon(int16_t id)
+{
+	int32_t type;
+
+	type = PARTICIPANT_TYPES[id];
+	if (type >= STD_TABLE_TYPES) {
+		type = getOriginalType(type);
+	}
+	return (uint32_t)type < STD_TABLE_TYPES ? STD_BRACKET_PROJECTILE_ICONS[type] : 0;
+}
+
 void STD_renderBracketDigimon(int16_t id)
 {
 	POLY_FT4 *prim;
@@ -3105,9 +3168,9 @@ void STD_renderBracketDigimon(int16_t id)
 	int32_t h2;
 #endif
 
-	tile = PARTICIPANT_TYPES[id];
+	tile = STD_PORTRAIT_TILE[id]; /* MOD (portraits): was the type */
 	if (tile == 0 || tile >= STD_TABLE_TYPES) {
-		return; /* MOD (scale): no portrait for a type outside the tables */
+		return;
 	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	SetPolyFT4(prim);
@@ -3115,7 +3178,7 @@ void STD_renderBracketDigimon(int16_t id)
 		setSemiTrans(prim, 1);
 	}
 	prim->tpage = GetTPage(0, 1, (tile / 64) * 64 + 0x380, 0);
-	prim->clut = GetClut((tile / 64) * 16 + 0x120, STD_DIGIMON_SPRITE_CLUT[tile] + 0x1e0);
+	prim->clut = GetClut((tile / 64) * 16 + 0x120, STD_PORTRAIT_ROW[id] + 0x1e0);
 	setRGB0(prim, 0x80 - STD_BRACKET_FADE, 0x80 - STD_BRACKET_FADE, 0x80 - STD_BRACKET_FADE);
 	u = ((tile - 1) % 32) * 32 + (STD_BRACKET_SLOTS[id].unk5 & 1) * 16;
 	v = ((tile - 1) / 8) * 32 + (STD_BRACKET_SLOTS[id].unk5 / 2) * 16;
@@ -3225,19 +3288,19 @@ static int32_t stdWinChanceRow(int32_t type)
 	return (level > 5 ? 5 : level < 3 ? 3 : level) - 3; /* MOD (scale): never a negative row */
 }
 
-void STD_setupParticipants(uint8_t *out, uint8_t *list)
+void STD_setupParticipants(uint16_t *out, uint16_t *list)
 {
 	int32_t i;
 	int32_t r;
 	long j;
-	uint8_t *p;
+	uint16_t *p;
 
 	STD_PLAYER_SLOT = randomLimit(8);
 	PARTICIPANT_TYPES[STD_PLAYER_SLOT] = ENTITY_TABLE[1]->type;
 
 	for (i = 1; i < 8; i++) {
 		j = randomLimit(7) + 1;
-		swapByte(&list[i], &list[j]);
+		swapShort((int16_t *)&list[i], (int16_t *)&list[j]);
 	}
 
 	p = list + 1;
@@ -3246,6 +3309,8 @@ void STD_setupParticipants(uint8_t *out, uint8_t *list)
 			PARTICIPANT_TYPES[i] = *p++;
 		}
 	}
+
+	STD_preparePortraits(); /* MOD (portraits) */
 
 	for (i = 0; i < 4; i++) {
 		if (randomLimit(100) < STD_WIN_CHANCES[stdWinChanceRow(PARTICIPANT_TYPES[i * 2])][stdWinChanceRow(PARTICIPANT_TYPES[i * 2 + 1L])]) {
@@ -3407,14 +3472,18 @@ void STD_tickBracketProjectile(id)
 void STD_renderBracketProjectile(int16_t id)
 {
 	POLY_FT4 *prim;
+	int32_t icon;
 
+	icon = STD_projectileIcon(id); /* MOD (portraits) */
+	if (icon == 0) {
+		return;
+	}
 	prim = (POLY_FT4 *)GsGetWorkBase();
 	SetPolyFT4(prim);
 	setRGB0(prim, 0x80, 0x80, 0x80);
 	prim->tpage = GetTPage(0, 2, 0x3c0, 0);
-	prim->clut = GetClut(0x130,
-	                     STD_BRACKET_PROJECTILE_CLUTS[STD_BRACKET_PROJECTILE_ICONS[STD_ROW(PARTICIPANT_TYPES[id])] - 1] + 0x1e0);
-	setUVDataPolyFT4(prim, STD_BRACKET_PROJECTILE_ICONS[STD_ROW(PARTICIPANT_TYPES[id])] * 8 - 8, 0xc0, 8, 8);
+	prim->clut = GetClut(0x130, STD_BRACKET_PROJECTILE_CLUTS[icon - 1] + 0x1e0);
+	setUVDataPolyFT4(prim, icon * 8 - 8, 0xc0, 8, 8);
 	setPosDataPolyFT4(prim, STD_BRACKET_PROJECTILES[id].x, STD_BRACKET_PROJECTILES[id].y, 8, 8);
 	if (STD_BRACKET_SLOTS[id].unk6 == 1) {
 		swapShort(&prim->x0, &prim->x1);
@@ -3427,9 +3496,8 @@ void STD_renderBracketProjectile(int16_t id)
 		SetPolyFT4(prim);
 		setRGB0(prim, 0x80, 0x80, 0x80);
 		prim->tpage = GetTPage(0, 2, 0x3c0, 0);
-		prim->clut = GetClut(0x130,
-		                     STD_BRACKET_PROJECTILE_CLUTS[STD_BRACKET_PROJECTILE_ICONS[STD_ROW(PARTICIPANT_TYPES[id])] - 1] + 0x1e0);
-		setUVDataPolyFT4(prim, STD_BRACKET_PROJECTILE_ICONS[STD_ROW(PARTICIPANT_TYPES[id])] * 8 - 8, 0xc0, 8, 8);
+		prim->clut = GetClut(0x130, STD_BRACKET_PROJECTILE_CLUTS[icon - 1] + 0x1e0);
+		setUVDataPolyFT4(prim, icon * 8 - 8, 0xc0, 8, 8);
 		setPosDataPolyFT4(prim, STD_BRACKET_PROJECTILES[id].x, STD_BRACKET_PROJECTILES[id].y + 8, 8, 8);
 		if (STD_BRACKET_SLOTS[id].unk6 == 1) {
 			swapShort(&prim->x0, &prim->x1);

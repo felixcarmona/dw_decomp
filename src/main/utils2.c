@@ -67,7 +67,7 @@ void renderPauseBox(int32_t instanceId);
 void setPosDataPolyFT4(POLY_FT4 *prim, int16_t posX, int16_t posY, int16_t width, int16_t height);
 void setUVDataPolyFT4(POLY_FT4 *prim, int16_t xPos, int16_t yPos, int16_t width, int16_t height);
 void drawEntityTextIcon(int16_t x, int16_t y, uint8_t u, int32_t otOffset);
-int32_t STD_tournamentMain(uint8_t *arg);
+int32_t STD_tournamentMain(uint16_t *arg);
 
 extern uint8_t ITEM_CLUT_DATA[];
 extern uint8_t MAP_LAYER_ENABLED;
@@ -583,15 +583,81 @@ void updateMapLightState(void)
 	}
 }
 
+/*
+ * MOD (portraits): species of DIGI.DAT as opponents. The cup's pool is the recruited originals of its list
+ * (all recruited ones when the list is empty); partner species whose level lies in the levels of that pool
+ * (Rookie..Ultimate: a Mega is not drawn) join it, up to as many as half the pool, at least seven, so
+ * an early game with few recruits still meets a different bracket. The opponents' stats depend on the cup
+ * and the level only (STD_initializeOpponent), so a species of the level is as strong as the original.
+ */
+#define TOURNAMENT_NEW_MAX	64
+
+static int32_t addTournamentSpecies(uint16_t *pool, int32_t count)
+{
+	uint16_t *cand;
+	int32_t lo;
+	int32_t hi;
+	int32_t level;
+	int32_t n;
+	int32_t add;
+	int32_t i;
+	int32_t j;
+	uint16_t t;
+
+	lo = 9;
+	hi = 0;
+	for (i = 0; i < count; i++) {
+		level = DIGI_PARA(pool[i]).level;
+		if (level < lo) {
+			lo = level;
+		}
+		if (level > hi) {
+			hi = level;
+		}
+	}
+	if (count == 0) {
+		/* no recruit: the levels of the partner itself */
+		lo = hi = DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level;
+	}
+	if (lo < 3) {
+		lo = 3;
+	}
+	if (hi > 5) {
+		hi = 5;
+	}
+	if (hi < lo) {
+		hi = lo;
+	}
+	cand = (uint16_t *)allocateArray(SPECIES_MAX_PARTNERS * 2);
+	n = getSpeciesPartnersByLevel(lo, hi, cand, SPECIES_MAX_PARTNERS);
+	add = count > 7 ? count / 2 : 7;
+	if (add > TOURNAMENT_NEW_MAX) {
+		add = TOURNAMENT_NEW_MAX;
+	}
+	for (i = 0; i < n && add > 0; i++) {
+		j = i + randomLimit(n - i);
+		t = cand[j];
+		cand[j] = cand[i];
+		cand[i] = t;
+		if (t == PARTNER_ENTITY.digimonEntity.entity.type) {
+			continue;
+		}
+		pool[count++] = t;
+		add--;
+	}
+	freeArray((uint32_t *)cand);
+	return count;
+}
+
 void startTournament(void)
 {
 	uint8_t *p;
-	uint8_t *pool;
+	uint16_t *pool;
 	uint8_t *jumpTable;
-	uint8_t *w;
+	uint16_t *w;
 	struct {
-		uint8_t cup;
-		uint8_t opponents[7];
+		uint16_t cup; /* MOD (portraits): the opponents may be species >= 256 (was u8) */
+		uint16_t opponents[7];
 	} t;
 	int16_t result;
 	int16_t expected;
@@ -599,10 +665,12 @@ void startTournament(void)
 	uint8_t isComplete;
 	uint8_t i;
 	int32_t count;
+	uint16_t *o;
+	int32_t k;
 
 	id = readPStat(3);
 	t.cup = id;
-	pool = (uint8_t *)allocateArray(0x70);
+	pool = (uint16_t *)allocateArray((0x70 + TOURNAMENT_NEW_MAX) * 2);
 	w = pool;
 	jumpTable = getCupDataJumpTable(10, id);
 	p = getCupDataJumpTableEntry(jumpTable, 4) + 2;
@@ -630,38 +698,44 @@ void startTournament(void)
 			}
 		}
 	}
-	p = t.opponents;
+	if (id != 0x16) {
+		/* MOD (portraits): the special cup 0x16 lists its own contestants */
+		count = addTournamentSpecies(pool, count);
+	}
+	o = t.opponents;
 	if (count == 7) {
-		for (i = 0; i < 7; i++) {
-			*p++ = pool[i];
+		for (k = 0; k < 7; k++) {
+			*o++ = pool[k];
 		}
 	} else if (count < 7) {
-		for (i = 0; i < count; i++) {
-			*p++ = pool[i];
+		for (k = 0; k < count; k++) {
+			*o++ = pool[k];
 		}
-		for (i = count; i < 7; i++) {
-			*p++ = pool[randomLimit(count)];
+		for (k = count; k < 7; k++) {
+			*o++ = pool[randomLimit(count)];
 		}
 	} else {
-		for (i = 0; i < count; i++) {
+		for (k = 0; k < count; k++) {
 			/* MOD: the whole type, not its low byte */
-			if (PARTNER_ENTITY.digimonEntity.entity.type == pool[i]) {
-				pool[i] = 0xff;
+			if (PARTNER_ENTITY.digimonEntity.entity.type == pool[k]) {
+				pool[k] = 0xffff;
 				count--;
 				break;
 			}
 		}
-		for (i = 0; i < 7; i++) {
-			id = (uint8_t)randomLimit(count) + 1;
+		for (k = 0; k < 7; k++) {
+			int32_t n;
+
+			n = randomLimit(count) + 1;
 			w = pool;
-			while (id != 0) {
-				if (*w++ != 0xff) {
-					id--;
+			while (n != 0) {
+				if (*w++ != 0xffff) {
+					n--;
 				}
 			}
 			w--;
-			*p++ = *w;
-			*w = 0xff;
+			*o++ = *w;
+			*w = 0xffff;
 			count--;
 		}
 	}

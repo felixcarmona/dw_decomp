@@ -1276,6 +1276,8 @@ void VS_renderFighterNamePlate(int16_t side)
 	uint8_t u;
 	uint8_t v;
 	uint8_t type;
+	int32_t portraitTile;
+	int32_t portraitRow;
 
 	if (side == 0) {
 		offset = VS_STATE_OFFSET;
@@ -1295,7 +1297,11 @@ void VS_renderFighterNamePlate(int16_t side)
 		setRGB0(prim, 0x80, 0x80, 0x80);
 		prim->tpage = getTPage(0, 0, 896, 0);
 		prim->clut = GetClut(0x120, VS_DIGIMON_SPRITE_CLUT[type < 68 ? type : 0] + 0x1e0);
-		if (type == 0x73) {
+		if (VS_portraitFor(type, &portraitTile, &portraitRow)) { /* MOD (portraits) */
+			prim->clut = GetClut(0x120, portraitRow + 0x1e0);
+			u = (portraitTile % 8) * 32;
+			v = (portraitTile / 8) * 32;
+		} else if (type == 0x73) {
 			u = 0xe0;
 			v = 0xe0;
 		} else {

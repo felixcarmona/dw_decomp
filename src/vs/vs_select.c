@@ -14,6 +14,7 @@
 #include <dw/main.h>
 #include <dw/params.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/types.h>
 #include <dw/ui.h>
 #include <dw/version.h>
@@ -229,6 +230,85 @@ static void *vs_select_sbss_order[] = {
 	&VS__MODE_STATE,
 };
 
+/*
+ * MOD (portraits): the VS sheet (16TAISEN.TIM at 896,0) has the portraits of types 3..66 (tile type - 3).
+ * A fighter of another type (a species of DIGI.DAT, an original without a tile) is drawn from the icon of its
+ * species, loaded over the tile of a type no fighter of either player has, with a CLUT row below the sheet's
+ * five. VS_portraitFor hands out up to VS_PORTRAIT_CACHE of them, as the lists scroll.
+ */
+#define VS_PORTRAIT_CACHE	12
+#define VS_PORTRAIT_FIRST_ROW	5
+static int16_t VS_PORTRAIT_TYPE[VS_PORTRAIT_CACHE];
+static uint8_t VS_PORTRAIT_TILE[VS_PORTRAIT_CACHE]; /* 0xff: no free tile for this entry */
+static int32_t VS_PORTRAIT_NEXT;
+
+/* 1 if the fighter's portrait comes from the sheet of the originals */
+static int32_t VS_hasSheetTile(int32_t type)
+{
+	return type == 0x73 || (type >= 3 && type <= 66);
+}
+
+int32_t VS_portraitFor(int32_t type, int32_t *tile, int32_t *row)
+{
+	int32_t k;
+
+	if (VS_hasSheetTile(type)) {
+		return 0;
+	}
+	for (k = 0; k < VS_PORTRAIT_CACHE; k++) {
+		if (VS_PORTRAIT_TYPE[k] == type) {
+			*tile = VS_PORTRAIT_TILE[k];
+			*row = VS_PORTRAIT_FIRST_ROW + k;
+			return 1;
+		}
+	}
+	k = VS_PORTRAIT_NEXT;
+	VS_PORTRAIT_NEXT = (k + 1) % VS_PORTRAIT_CACHE;
+	if (VS_PORTRAIT_TILE[k] == 0xff) {
+		return 0;
+	}
+	VS_PORTRAIT_TYPE[k] = type;
+	*tile = VS_PORTRAIT_TILE[k];
+	*row = VS_PORTRAIT_FIRST_ROW + k;
+	loadSpeciesPortrait(type, 896 + (*tile % 8) * 8, (*tile / 8) * 32, 32, 0x120, 0x1e0 + *row);
+	return 1;
+}
+
+static void VS_choosePortraitTiles(RegisteredDigimon **entries)
+{
+	uint8_t used[64];
+	int32_t i;
+	int32_t j;
+	int32_t k;
+	int32_t type;
+
+	for (i = 0; i < 64; i++) {
+		used[i] = 0;
+	}
+	used[63] = 1; /* the special tile of type 0x73 */
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 40; j++) {
+			type = entries[i][j].digimonId;
+			if (type >= 3 && type <= 66) {
+				used[type - 3] = 1;
+			}
+		}
+	}
+	k = 0;
+	for (i = 62; i >= 0 && k < VS_PORTRAIT_CACHE; i--) {
+		if (!used[i]) {
+			VS_PORTRAIT_TILE[k++] = i;
+		}
+	}
+	for (; k < VS_PORTRAIT_CACHE; k++) {
+		VS_PORTRAIT_TILE[k] = 0xff;
+	}
+	for (k = 0; k < VS_PORTRAIT_CACHE; k++) {
+		VS_PORTRAIT_TYPE[k] = -1;
+	}
+	VS_PORTRAIT_NEXT = 0;
+}
+
 void VS__loadTextures(void)
 {
 	RegisteredDigimon *entries[2];
@@ -286,6 +366,7 @@ void VS__loadTextures(void)
 
 		state->listPageCount = ((state->slotCount % 4) == 0) ? state->slotCount / 4 : (state->slotCount / 4) + 1;
 	}
+	VS_choosePortraitTiles(entries); /* MOD (portraits) */
 }
 
 void VS__tickSelectDigimon(void)
@@ -636,6 +717,8 @@ void VS__renderSelectDigimonPlayer(id)
 	uint8_t spriteV;
 	uint8_t baseIdx;
 	uint8_t type;
+	int32_t portraitTile;
+	int32_t portraitRow;
 
 	baseX = id * 154 - 152;
 	y = -109;
@@ -747,7 +830,11 @@ void VS__renderSelectDigimonPlayer(id)
 		VS__setPolyFT4White(prim);
 		prim->tpage = 14;
 		prim->clut = GetClut(0x120, DIGIMON_SPRITE_CLUT[type < 68 ? type : 0] + 0x1e0); /* MOD (scale): the table covers 68 types */
-		if (type == 0x73) {
+		if (VS_portraitFor(type, &portraitTile, &portraitRow)) { /* MOD (portraits): the icon of a species outside the sheet */
+			prim->clut = GetClut(0x120, portraitRow + 0x1e0);
+			spriteU = (portraitTile % 8) * 32 + st->unk4 * 16;
+			spriteV = (portraitTile / 8) * 32;
+		} else if (type == 0x73) {
 			spriteU = (st->unk4 * 16) + 0x3e0;
 			spriteV = 0xe0;
 		} else {
