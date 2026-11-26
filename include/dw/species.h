@@ -27,6 +27,7 @@
 #include <dw/evl.h>
 #include <dw/ids.h>
 #include <dw/model.h>
+#include <dw/move.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/types.h>
@@ -92,6 +93,8 @@ typedef struct {
  * has no new species to keep out: every species counts as vanilla then.
  */
 #define SPECIES_HEADER_VANILLA	0x780
+#define SPECIES_HEADER_BALANCE_OFF 0x4fc
+#define SPECIES_BALANCE_SWAP_MAX 19
 /*
  * MOD (canon levels): the originals whose species file gives them another level than the original game's (Phoenixmon,
  * HerculesKabuterimon, MetalEtemon ... are Mega), at SPECIES_HEADER_LEVEL_OFF of the header sector: a count, then
@@ -107,6 +110,7 @@ typedef struct {
 /* Header u32 sector pointer; sector: u16 count, then 102-byte rows. */
 #define SPECIES_HEADER_EVOLUTION_OFF 0x3c
 #define SPECIES_EVOLUTION_SWAP_MAX 20
+Move *modSpeciesMove(int32_t type, int32_t move);
 void modApplySpeciesLevels(void);
 /* the level the original game gives a species (its NEW DIGIMON off level): the original evolution items keep their rule with it */
 int32_t modOriginalLevel(int32_t type);

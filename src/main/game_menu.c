@@ -3283,7 +3283,7 @@ void renderDigimonMovesView(void)
 		if (EQUIPPED_MOVES[3] != 0xff) {
 			renderString(3, TECH_TITLE_CROPS[1].x, -0xf, TECH_TITLE_CROPS[1].w, 0xc, TECH_TITLE_CROPS[1].u, 0x48, 5, 1);
 			renderString(0, -0x7c, 1, 0x84, 0xc, 0, 0x3c, 5, 1);
-			renderNumber(0, 0x10, 0, 3, MOVE_DATA[EQUIPPED_MOVES[3]].power, 5);
+			renderNumber(0, 0x10, 0, 3, modSpeciesMove(PARTNER_ENTITY.digimonEntity.entity.type, EQUIPPED_MOVES[3])->power, 5);
 			renderString(0, 0x65, 1, 0xc, 0xc,
 			             (MOVE_DATA[EQUIPPED_MOVES[3]].range - 1) * 0xc + 0x48, 0x6c, 5, 1);
 			if (MOVE_DATA[EQUIPPED_MOVES[3]].status != 0) {
@@ -3580,7 +3580,7 @@ void renderDigimonMovesSelected(int16_t panel)
 	}
 
 	if (hasMove(moveId)) {
-		move = &MOVE_DATA[moveId];
+		move = modSpeciesMove(PARTNER_ENTITY.digimonEntity.entity.type, moveId);
 		setRECT(&rect, 0, 0x84, 0x78, 0xc);
 		clearTextSubArea(&rect);
 		drawString(MOVE_NAMES[moveId], 0, 0x84);
@@ -3707,7 +3707,7 @@ void renderDigimonMoveBox(void)
 				renderBox(col * 0x12 - 0x2a, y * 0xf - 7, 0xc, 0xc, 0x68, 0x68, 0x68, 3, 4);
 			}
 			if (hasMove(moveId) == 1) {
-				special = MOVE_DATA[moveId].special;
+				special = modSpeciesMove(PARTNER_ENTITY.digimonEntity.entity.type, moveId)->special;
 				switch (special) {
 				case 0:
 					clut = 0x7a06;

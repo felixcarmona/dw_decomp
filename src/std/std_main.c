@@ -1,3 +1,4 @@
+#include <dw/species.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -4788,7 +4789,7 @@ void STD_tickChargeState(DigimonEntity *digimon, DigimonEntity *target, FighterD
 	case 1:
 		STD_maintainTargetDistance(digimon, target, fighter);
 		tech = entityGetTechFromAnim(&digimon->entity, fighter->queuedAnim);
-		if ((fighter->speedBuffer >= BM(SPEED_MAX)) || (fighter->speedBuffer >= MOVE_DATA[tech].power)) {
+		if ((fighter->speedBuffer >= BM(SPEED_MAX)) || (fighter->speedBuffer >= modSpeciesMove(digimon->entity.type, tech)->power)) {
 			fighter->flags &= ~FIGHTER_FLAG_ON_CHARGEUP;
 		}
 		break;
@@ -5834,7 +5835,7 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 
 	for (i = 0; i < 3; i++) {
 		if (DIGI_PARA(defender->entity.type).special[i] != 0xff) {
-			mult[i] = TYPE_FACTORS[MOVE_DATA[move].special][DIGI_PARA(defender->entity.type).special[i]];
+			mult[i] = TYPE_FACTORS[modSpeciesMove(attacker->entity.type, move)->special][DIGI_PARA(defender->entity.type).special[i]];
 		} else {
 			mult[i] = BM(NEUTRAL_MULT);
 		}
@@ -5845,7 +5846,7 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		def = def * BM(GUARD_PCT) / 100; /* MOD (battle as data) */
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
-		dmg = BMD((off + MOVE_DATA[move].power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
+		dmg = BMD((off + modSpeciesMove(attacker->entity.type, move)->power) * (mult[0] + mult[1] + mult[2]), DMG_DIV);
 	} else {
 		diff = off - def;
 		if (diff > BM(DIFF_CLAMP)) {
@@ -5854,7 +5855,7 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		if (diff < -BM(DIFF_CLAMP)) {
 			diff = -BM(DIFF_CLAMP);
 		}
-		dmg = BMD((mult[0] + mult[1] + mult[2]) * (MOVE_DATA[move].power + BMD(diff * MOVE_DATA[move].power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
+		dmg = BMD((mult[0] + mult[1] + mult[2]) * (modSpeciesMove(attacker->entity.type, move)->power + BMD(diff * modSpeciesMove(attacker->entity.type, move)->power, DIFF_DIV)), DMG_DIV) * (randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN)) / 100;
 	}
 	if ((move >= 0x3a) && (move < 0x71)) {
 		if ((Entity *)attacker == ENTITY_TABLE[1]) {
@@ -6039,7 +6040,7 @@ void STD_startHitAnimation(Entity *entity, AttackObject *attack, uint8_t animId)
 
 	tech = STD_getAttackTech(attack);
 	startAnimation(entity, animId);
-	createParticleFX(MOVE_DATA[tech].special, 1, &attack->position, entity, MOVE_DATA[tech].iframes + 0x10);
+	createParticleFX(modSpeciesMove(ENTITY_TABLE[attack->casterId]->type, tech)->special, 1, &attack->position, entity, MOVE_DATA[tech].iframes + 0x10);
 }
 
 void STD_tickFrames(int16_t count)
@@ -6239,7 +6240,7 @@ int32_t STD_isMoveUsable(DigimonEntity *digimon, FighterData *fighter, int16_t s
 		return 0;
 	}
 
-	mp = MOVE_DATA[tech].mpCost * BM(MP_MULT); /* MOD (battle as data) */
+	mp = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT); /* MOD (battle as data) */
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		mp -= mp * BMBRAIN(PARTNER_ENTITY.digimonEntity.stats.base.brain) / 100;
 		if (PARTNER_PARA.condition & 0x60) {
@@ -6430,7 +6431,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 				values[i] = -1;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = MOVE_DATA[tech].power;
+				values[i] = modSpeciesMove(digimon->entity.type, tech)->power;
 			}
 		}
 		STD_sortScoresDescending(values, keys, groups, 3);
@@ -6458,7 +6459,7 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 				values[i] = 10000;
 			} else {
 				tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
-				values[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
+				values[i] = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
 			}
 		}
 		STD_sortScoresAscending(values, keys, groups, 3);
@@ -6482,10 +6483,10 @@ void STD_selectPartnerMove(DigimonEntity *digimon, FighterData *fighter, int16_t
 		}
 		tech = entityGetTechFromAnim(&digimon->entity, stats->base.moves[i]);
 		if (MOVE_DATA[tech].range == 4) {
-			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(digimon->entity.type).special[0]);
+			weights[i] += fighter->buffPrioTimer + STD_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(digimon->entity.type).special[0]);
 			continue;
 		}
-		weights[i] += STD_calculateElementBonus(MOVE_DATA[tech].special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
+		weights[i] += STD_calculateElementBonus(modSpeciesMove(digimon->entity.type, tech)->special, DIGI_PARA(ENTITY_TABLE[COMBAT_DATA_PTR->player.entityIds[fighter->targetId]]->type).special[0]);
 		if (MOVE_DATA[tech].range != 3) {
 			continue;
 		}
@@ -6575,7 +6576,7 @@ void STD_applyChargeRequirement(DigimonEntity *digimon, FighterData *fighter, in
 		}
 		break;
 	case 1:
-		if ((fighter->speedBuffer < BM(SPEED_MAX)) && (fighter->speedBuffer < MOVE_DATA[tech].power)) {
+		if ((fighter->speedBuffer < BM(SPEED_MAX)) && (fighter->speedBuffer < modSpeciesMove(digimon->entity.type, tech)->power)) {
 			fighter->flags |= FIGHTER_FLAG_ON_CHARGEUP;
 		}
 		break;
@@ -6718,7 +6719,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 	STD_removeMoveEffect(digimon, fighter);
 	if (digimon == (DigimonEntity *)ENTITY_TABLE[1]) {
 		if (!((tech >= 0x3a) && (tech < 0x71))) {
-			cost = MOVE_DATA[tech].mpCost * BM(MP_MULT);
+			cost = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
 			if (PARTNER_PARA.condition & 0x60) {
 				cost += cost / 2;
 			}
@@ -6738,7 +6739,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		}
 	} else {
 		if (!((tech >= 0x3a) && (tech < 0x71))) {
-			digimon->stats.current.currentMP -= (int16_t)(MOVE_DATA[tech].mpCost * 3);
+			digimon->stats.current.currentMP -= (int16_t)(modSpeciesMove(digimon->entity.type, tech)->mpCost * 3);
 		}
 		if (tech < 0x3a) {
 			for (i = 0; i < 0xc; i++) {
@@ -6769,7 +6770,7 @@ void STD_setupMoveExecution(DigimonEntity *digimon, DigimonEntity *target, Fight
 		fighter->buffsRemaining--;
 	}
 
-	fighter->speedBuffer -= MOVE_DATA[tech].power;
+	fighter->speedBuffer -= modSpeciesMove(digimon->entity.type, tech)->power;
 	if (fighter->speedBuffer < -BM(SPEED_FLOOR)) {
 		fighter->speedBuffer = -BM(SPEED_FLOOR);
 	}
@@ -7172,7 +7173,7 @@ int16_t STD_getStrongestMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = MOVE_DATA[tech].power;
+			score[i] = modSpeciesMove(digimon->entity.type, tech)->power;
 		} else {
 			score[i] = -1;
 		}
@@ -7203,7 +7204,7 @@ int16_t STD_getMostEffectiveMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = TYPE_FACTORS[MOVE_DATA[tech].special][DIGI_PARA(target->type).special[0]];
+			score[i] = TYPE_FACTORS[modSpeciesMove(digimon->entity.type, tech)->special][DIGI_PARA(target->type).special[0]];
 		} else {
 			score[i] = -1;
 		}
@@ -7232,7 +7233,7 @@ int16_t STD_getCheapestMove(index, flags)
 	for (i = 0; i < 3; i++) {
 		if (flags[i] == 1) {
 			tech = entityGetTechFromAnim(&digimon->entity, moves[i]);
-			score[i] = MOVE_DATA[tech].mpCost * BM(MP_MULT);
+			score[i] = modSpeciesMove(digimon->entity.type, tech)->mpCost * BM(MP_MULT);
 		} else {
 			score[i] = 1000;
 		}
@@ -7483,7 +7484,7 @@ void STD_setCommandIconUV(DigimonEntity *digimon, POLY_FT4 *prim, uint8_t index)
 	int16_t n;
 
 	if ((index >= 8U) && (index < 0xcU)) {
-		eff = MOVE_DATA[entityGetTechFromAnim(&digimon->entity, digimon->stats.base.moves[index - 8])].special;
+		eff = modSpeciesMove(digimon->entity.type, entityGetTechFromAnim(&digimon->entity, digimon->stats.base.moves[index - 8]))->special;
 		setUVWH(prim, STD_SPECIAL_ICON_UVS[eff][0], STD_SPECIAL_ICON_UVS[eff][1], 0x10, 0xf);
 	} else {
 		setUVWH(prim, STD_COMMAND_ICON_UVS[index - 1][0], STD_COMMAND_ICON_UVS[index - 1][1], 0x10, 0xf);
