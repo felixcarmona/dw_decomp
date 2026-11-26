@@ -19,6 +19,8 @@
 #include <dw/ui.h>
 #include <dw/version.h>
 #include <dw/vs.h>
+#include <dw/chinese_vs.h>
+#include <dw/mod_options.h>
 #include <dw/world_object.h>
 #include <text/vs/vs_select.h>
 
@@ -848,7 +850,10 @@ void VS__renderSelectDigimonPlayer(id)
 		AddPrim(ACTIVE_ORDERING_TABLE->org + 10, prim++);
 
 		text = (uint16_t *)fighters[st->slotIds[baseIdx + i]].name;
-		halfLen = strlen((char *)text) / 2;
+        if (MOD_LANG == MOD_LANG_ZH)
+            prim = zhVsText(prim, zhVsName(&fighters[st->slotIds[baseIdx + i]]),
+                baseX + VS__NAME_POS_X[i], y + VS__NAME_POS_Y[i], 20, 0, 8, 10);
+		halfLen = MOD_LANG == MOD_LANG_ZH ? 0 : strlen((char *)text) / 2;
 		for (j = 0; j < halfLen; j++) {
 			VS__setPolyFT4White(prim);
 			prim->tpage = 7;
@@ -878,7 +883,10 @@ void VS__renderSelectDigimonPlayer(id)
 				moveId = DIGI_PARA(registeredSpecies(fighter)).moves[fighter->moves[j] - 0x2e];
 				text = (uint16_t *)MOVE_NAMES[moveId];
 			}
-			halfLen = strlen((char *)text) / 2;
+            if (MOD_LANG == MOD_LANG_ZH)
+                prim = zhVsText(prim, (char *)text, baseX + panel->x + 1, y + panel->y,
+                    5, st->unk2 - STAT_OFFSETS[j * 2 + 6], 22, 10);
+			halfLen = MOD_LANG == MOD_LANG_ZH ? 0 : strlen((char *)text) / 2;
 			for (k = 0; k < halfLen; k++) {
 				ch = *text++;
 				if (k < 5) {

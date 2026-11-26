@@ -17,6 +17,8 @@
 #include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/vs.h>
+#include <dw/chinese_vs.h>
+#include <dw/mod_options.h>
 #include <dw/world_object.h>
 #include <text/vs/vs_scene.h>
 
@@ -1347,7 +1349,10 @@ void VS_renderFighterNamePlate(int16_t side)
 		} else {
 			name = (uint16_t *)fighter2->name;
 		}
-		length = strlen((char *)name) / 2;
+        if (MOD_LANG == MOD_LANG_ZH)
+            prim = zhVsText(prim, zhVsName(side == 0 ? fighter1 : fighter2),
+                (i == VS_STATE_ROUND ? offset : 0) + side * 154 - 95, i * 20 - 53, 20, 0, 8, 30);
+		length = MOD_LANG == MOD_LANG_ZH ? 0 : strlen((char *)name) / 2;
 		for (n = 0; n < length; n++) {
 			SetPolyFT4(prim);
 			setRGB0(prim, 0x80, 0x80, 0x80);
