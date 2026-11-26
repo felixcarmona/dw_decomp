@@ -900,7 +900,7 @@ void advanceBattleTime(result)
 		PARTNER_PARA.starvationTimer -= 40;
 		if ((PARTNER_PARA.starvationTimer < 1) &&
 		    (PARTNER_PARA.energyLevel <
-		     RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold)) {
+		     RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold)) {
 			++PARTNER_PARA.careMistakes;
 		}
 	} else {

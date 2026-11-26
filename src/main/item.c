@@ -2899,7 +2899,7 @@ void handleFood(int16_t itemId)
 		break;
 	}
 
-	if (itemId == RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].favoriteFood) {
+	if (itemId == RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).favoriteFood) {
 		energy = energy * 14 / 10;
 		happiness += 2;
 	}
@@ -2960,7 +2960,7 @@ void handlePortaPotty(void)
 {
 	if (PARTNER_PARA.condition & CONDITION_POOPY) {
 		PARTNER_PARA.poopLevel =
-			RAISE_DATA[ENTITY_TABLE[1]->type].poopTimer;
+			RAISE_ROW(ENTITY_TABLE[1]->type).poopTimer;
 		PARTNER_PARA.condition &= ~CONDITION_POOPY;
 		handlePoopWeightLoss(ENTITY_TABLE[1]->type);
 	}
@@ -2980,9 +2980,9 @@ void addEnergy(int16_t amount)
 {
 	PARTNER_PARA.energyLevel += amount;
 	if (PARTNER_PARA.energyLevel >
-	    RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap) {
+	    RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap) {
 		PARTNER_PARA.energyLevel =
-			RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyCap;
+			RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyCap;
 	}
 }
 

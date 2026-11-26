@@ -3983,7 +3983,7 @@ void recalculatePPandArena(void)
 
 	pp = 0;
 	for (i = 3; i < 0x3b; i++) {
-		if ((DIGI_PARA(i).level >= 3) && (isTriggerSet((uint16_t)(TRIGGER_RECRUITED_BASE + i)) != 0)) {
+		if ((DIGI_PARA(i).level >= 3) && (isDigimonRecruited(i) != 0)) {
 			if ((i == 0xb) || (i == 0x27) || (i == 0x35)) {
 				pp++;
 			} else {

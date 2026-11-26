@@ -6,6 +6,7 @@
 #include <dw/file.h>
 #include <dw/main.h>
 #include <dw/memmap.h>
+#include <dw/script.h>
 #include <dw/sound.h>
 #include <dw/species.h>
 
@@ -13,7 +14,7 @@
 
 extern int16_t EVOLUTION_TARGET;
 extern ModelComponent NPC_MODELS[5];
-extern int8_t ITEM_TAKE_DISTANCE[NUM_DIGIMON];
+extern int8_t ITEM_TAKE_DISTANCE[NUM_ORIGINAL_DIGIMON];
 extern SkeletonBone *DIGIMON_SKELETONS[NUM_ORIGINAL_DIGIMON];
 extern char *PTR_DIGIMON_FILE_NAMES[NUM_ORIGINAL_DIGIMON];
 extern uint8_t DIGIMON_VBALL_SOUND_ID[NUM_ORIGINAL_DIGIMON];
@@ -22,23 +23,38 @@ int32_t isFileReadQueueBusy(void);
 
 int32_t SPECIES_COUNT;
 int32_t SPECIES_RECORD_READS;
+uint8_t SPECIES_RAISED_BITS[NUM_DIGIMON / 8];
+uint8_t SPECIES_RECRUITED_BITS[NUM_DIGIMON / 8];
 static int32_t SPECIES_RECORDS_SECTOR;
+static int32_t SPECIES_INDEX_SECTOR;
+static int32_t SPECIES_PARTNER_COUNT;
+static uint16_t SPECIES_PARTNER_IDS[SPECIES_MAX_PARTNERS]; /* the partner list of DIGI.DAT, for the lab menu */
+static int32_t SPECIES_FIRST_MEGA;
 static SpeciesRecord SPECIES_CACHE[SPECIES_CACHE_SLOTS];
 static int16_t SPECIES_CACHE_ID[SPECIES_CACHE_SLOTS];
 static uint16_t SPECIES_CACHE_AGE[SPECIES_CACHE_SLOTS];
 static uint16_t SPECIES_CACHE_CLOCK;
+static int32_t SPECIES_LAST_SLOT;
 static uint32_t SPECIES_SECTOR[0x800 / 4];
-/* the evolution paths of the new species (EVOLUTION_PATHS ends at type 62) */
-static EvolutionPath SPECIES_EVOLUTION_PATHS[NUM_DIGIMON - NUM_ORIGINAL_DIGIMON];
 static EvolutionPath NO_EVOLUTION_PATH;
+/* what the per-partner rows read for a type that is no partner (zeroes, like the tables past the originals' rows) */
+/* what an id that is no species reads (the original read the bytes past DIGIMON_DATA) */
+static DigimonPara NO_PARA = { "?" };
+static RaiseData NO_RAISE;
+static EvoRequirements NO_EVO_REQS;
+static EvoStatsGains NO_EVO_GAINS;
 
 EvolutionPath *getEvolutionPath(int32_t type)
 {
+	SpeciesRecord *rec;
+
 	if (type >= 1 && type < NUM_EVOLVING_DIGIMON) {
 		return &EVOLUTION_PATHS[type - 1];
 	}
-	if (type >= NUM_ORIGINAL_DIGIMON && type < SPECIES_COUNT) {
-		return &SPECIES_EVOLUTION_PATHS[type - NUM_ORIGINAL_DIGIMON];
+	if (type >= NUM_ORIGINAL_DIGIMON && (rec = getSpeciesRecord(type)) != NULL &&
+	    (rec->flags & SPECIES_FLAG_PARTNER)) {
+		/* in the cache slot: kept while the species is the partner (isSpeciesInUse) */
+		return &rec->evoPaths;
 	}
 	return &NO_EVOLUTION_PATH;
 }
@@ -69,82 +85,138 @@ static int32_t isSpeciesInUse(int32_t type)
 	return 0;
 }
 
-static void applyPartnerRows(int32_t type, SpeciesRecord *rec)
+void resetSpeciesFlags(void)
 {
 	int32_t i;
-	int32_t j;
-	int32_t other;
-	EvolutionPath *path;
 
-	RAISE_DATA[type] = rec->raise;
-	EVOLUTION_REQS[type] = rec->evoReqs;
-	EVOLUTION_STATS_GAINS[type] = rec->evoGains;
-	ITEM_TAKE_DISTANCE[type - 1] = rec->itemTakeDistance;
-	DIGIMON_VLALL_SOUND_ID[type] = rec->vlallId;
-	*getEvolutionPath(type) = rec->evoPaths;
-	/* each species it evolves from lists it among its targets, and the other way round */
-	for (i = 0; i < 5; i++) {
-		other = rec->evoPaths.from[i];
-		path = getEvolutionPath(other);
-		if (path == &NO_EVOLUTION_PATH) {
-			continue;
-		}
-		for (j = 0; j < 6 && path->to[j] != type; j++) {
-		}
-		if (j == 6) {
-			for (j = 0; j < 6 && path->to[j] != -1; j++) {
-			}
-			if (j < 6) {
-				path->to[j] = type;
-			}
-		}
+	for (i = 0; i < NUM_DIGIMON / 8; i++) {
+		SPECIES_RAISED_BITS[i] = 0;
+		SPECIES_RECRUITED_BITS[i] = 0;
 	}
-	for (i = 0; i < 6; i++) {
-		other = rec->evoPaths.to[i];
-		path = getEvolutionPath(other);
-		if (path == &NO_EVOLUTION_PATH) {
-			continue;
-		}
-		for (j = 0; j < 5 && path->from[j] != type; j++) {
-		}
-		if (j == 5) {
-			for (j = 0; j < 5 && path->from[j] != -1; j++) {
-			}
-			if (j < 5) {
-				path->from[j] = type;
-			}
-		}
+}
+
+int32_t isDigimonRecruited(int32_t type)
+{
+	if ((uint32_t)type < NUM_RECRUITABLE_DIGIMON) {
+		return isTriggerSet((uint16_t)(TRIGGER_RECRUITED_BASE + type)) != 0;
+	}
+	if ((uint32_t)type >= NUM_DIGIMON) {
+		return 0;
+	}
+	return (SPECIES_RECRUITED_BITS[type >> 3] >> (type & 7)) & 1;
+}
+
+void setDigimonRecruited(int32_t type)
+{
+	if ((uint32_t)type < NUM_RECRUITABLE_DIGIMON) {
+		setTrigger((uint16_t)(TRIGGER_RECRUITED_BASE + type));
+	} else if ((uint32_t)type < NUM_DIGIMON) {
+		SPECIES_RECRUITED_BITS[type >> 3] |= 1 << (type & 7);
+	}
+}
+
+/* the partner rows of a new species: its record's partner block (a non-partner has zero rows) */
+RaiseData *getSpeciesRaise(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? &rec->raise : &NO_RAISE;
+}
+
+EvoRequirements *getSpeciesEvoReqs(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? &rec->evoReqs : &NO_EVO_REQS;
+}
+
+EvoStatsGains *getSpeciesEvoGains(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? &rec->evoGains : &NO_EVO_GAINS;
+}
+
+int32_t getItemTakeDistance(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	if (type >= 1 && type < NUM_ORIGINAL_DIGIMON) {
+		return ITEM_TAKE_DISTANCE[type - 1]; /* the originals' table is by type - 1 */
+	}
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? rec->itemTakeDistance : 10;
+}
+
+/* the VLALL voice of a partner type (15 for the tamer, 0 or a non-partner) */
+int32_t getPartnerVlallSoundId(int32_t type)
+{
+	SpeciesRecord *rec;
+
+	if (type <= 0) {
+		return 15;
+	}
+	if (type < NUM_ORIGINAL_DIGIMON) {
+		return DIGIMON_VLALL_SOUND_ID[type];
+	}
+	rec = getSpeciesRecord(type);
+	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? rec->vlallId : 15;
+}
+
+static void addEvolutionLink(int32_t orig, int32_t other, int32_t isFrom)
+{
+	EvolutionPath *path;
+	DigimonId *list;
+	int32_t n;
+	int32_t j;
+
+	if (orig < 1 || orig >= NUM_EVOLVING_DIGIMON) {
+		return;
+	}
+	path = &EVOLUTION_PATHS[orig - 1];
+	list = isFrom ? path->from : path->to;
+	n = isFrom ? 5 : 6;
+	for (j = 0; j < n && list[j] != other; j++) {
+	}
+	if (j < n) {
+		return;
+	}
+	for (j = 0; j < n && list[j] != -1; j++) {
+	}
+	if (j < n) {
+		list[j] = other;
 	}
 }
 
 void initializeSpecies(void)
 {
 	SpeciesHeader *header;
-	SpeciesRecord *rec;
 	FileLookup lookup;
 	int32_t count;
-	int32_t type;
 	int32_t i;
+	SpeciesPartnerList *partners;
+	SpeciesLinks *links;
 
 	SPECIES_COUNT = NUM_ORIGINAL_DIGIMON;
 	SPECIES_RECORD_READS = 0;
+	SPECIES_INDEX_SECTOR = 0;
+	SPECIES_PARTNER_COUNT = 0;
+	SPECIES_FIRST_MEGA = 0;
+	resetSpeciesFlags();
+	for (i = 0; i < 16; i++) {
+		NO_PARA.moves[i] = 0xFF;
+	}
 	for (i = 0; i < 5; i++) {
 		NO_EVOLUTION_PATH.from[i] = -1;
 	}
 	for (i = 0; i < 6; i++) {
 		NO_EVOLUTION_PATH.to[i] = -1;
 	}
-	for (i = 0; i < NUM_DIGIMON - NUM_ORIGINAL_DIGIMON; i++) {
-		SPECIES_EVOLUTION_PATHS[i] = NO_EVOLUTION_PATH;
-	}
-	/* the partner voice of types that were outside DIGIMON_VLALL_SOUND_ID: the
-	 * 15 the guards gave them, unless a row was given (0 is the tamer's) */
-	for (i = NUM_PARTNER_DIGIMON; i < NUM_DIGIMON; i++) {
-		if (DIGIMON_VLALL_SOUND_ID[i] == 0) {
-			DIGIMON_VLALL_SOUND_ID[i] = 15;
-		}
-	}
 	SPECIES_CACHE_CLOCK = 0;
+	SPECIES_LAST_SLOT = 0;
 	for (i = 0; i < SPECIES_CACHE_SLOTS; i++) {
 		SPECIES_CACHE_ID[i] = -1;
 		SPECIES_CACHE_AGE[i] = 0;
@@ -167,18 +239,44 @@ void initializeSpecies(void)
 		return;
 	}
 	SPECIES_RECORDS_SECTOR = header->recordsSector;
+	SPECIES_INDEX_SECTOR = header->indexSector;
 	SPECIES_COUNT = count;
-	/* the partner rows of new species go into the resident per-partner tables */
-	for (type = NUM_ORIGINAL_DIGIMON; type < count; type++) {
-		if (type == NUM_ORIGINAL_DIGIMON || type % SPECIES_RECORDS_PER_SECTOR == 0) {
-			readSpeciesSector(SPECIES_RECORDS_SECTOR + type / SPECIES_RECORDS_PER_SECTOR);
-		}
-		rec = (SpeciesRecord *)SPECIES_SECTOR + type % SPECIES_RECORDS_PER_SECTOR;
-		if ((rec->flags & (SPECIES_FLAG_DEFINED | SPECIES_FLAG_PARTNER)) ==
-		    (SPECIES_FLAG_DEFINED | SPECIES_FLAG_PARTNER)) {
-			applyPartnerRows(type, rec);
+	/* the partner list (first Mega) and the evolution links with the original species */
+	readSpeciesSector(SPECIES_INDEX_SECTOR);
+	partners = (SpeciesPartnerList *)SPECIES_SECTOR;
+	SPECIES_PARTNER_COUNT = partners->count > SPECIES_MAX_PARTNERS ? SPECIES_MAX_PARTNERS : partners->count;
+	SPECIES_FIRST_MEGA = partners->firstMega;
+	for (i = 0; i < SPECIES_PARTNER_COUNT; i++) {
+		SPECIES_PARTNER_IDS[i] = partners->ids[i];
+	}
+	readSpeciesSector(SPECIES_INDEX_SECTOR + 1);
+	links = (SpeciesLinks *)SPECIES_SECTOR;
+	for (i = 0; i < links->count && i < SPECIES_MAX_LINKS; i++) {
+		if (links->link[i][1] & SPECIES_LINK_FROM) {
+			addEvolutionLink(links->link[i][0], links->link[i][1] & ~SPECIES_LINK_FROM, 1);
+		} else {
+			addEvolutionLink(links->link[i][0], links->link[i][1], 0);
 		}
 	}
+}
+
+int32_t getSpeciesPartnerCount(void)
+{
+	return SPECIES_PARTNER_COUNT;
+}
+
+/* the n-th partner species id of DIGI.DAT (0 <= n < getSpeciesPartnerCount()) */
+int32_t getSpeciesPartnerId(int32_t n)
+{
+	if (n < 0 || n >= SPECIES_PARTNER_COUNT) {
+		return -1;
+	}
+	return SPECIES_PARTNER_IDS[n];
+}
+
+int32_t getFirstMegaSpecies(void)
+{
+	return SPECIES_FIRST_MEGA;
 }
 
 SpeciesRecord *getSpeciesRecord(int32_t type)
@@ -192,9 +290,16 @@ SpeciesRecord *getSpeciesRecord(int32_t type)
 		return NULL;
 	}
 	SPECIES_CACHE_CLOCK++;
+	/* the slot of the last hit first: the partner is asked for several times a frame */
+	i = SPECIES_LAST_SLOT;
+	if (SPECIES_CACHE_ID[i] == type) {
+		SPECIES_CACHE_AGE[i] = SPECIES_CACHE_CLOCK;
+		return (SPECIES_CACHE[i].flags & SPECIES_FLAG_DEFINED) ? &SPECIES_CACHE[i] : NULL;
+	}
 	for (i = 0; i < SPECIES_CACHE_SLOTS; i++) {
 		if (SPECIES_CACHE_ID[i] == type) {
 			SPECIES_CACHE_AGE[i] = SPECIES_CACHE_CLOCK;
+			SPECIES_LAST_SLOT = i;
 			return (SPECIES_CACHE[i].flags & SPECIES_FLAG_DEFINED) ? &SPECIES_CACHE[i] : NULL;
 		}
 	}
@@ -227,6 +332,7 @@ SpeciesRecord *getSpeciesRecord(int32_t type)
 	SPECIES_RECORD_READS++;
 	SPECIES_CACHE_ID[slot] = type;
 	SPECIES_CACHE_AGE[slot] = SPECIES_CACHE_CLOCK;
+	SPECIES_LAST_SLOT = slot;
 	return (SPECIES_CACHE[slot].flags & SPECIES_FLAG_DEFINED) ? &SPECIES_CACHE[slot] : NULL;
 }
 
@@ -236,8 +342,7 @@ DigimonPara *getSpeciesPara(int32_t type)
 
 	rec = getSpeciesRecord(type);
 	if (rec == NULL) {
-		/* not a species: what the original read past the table */
-		return &DIGI_PARA(type);
+		return &NO_PARA;
 	}
 	return &rec->para;
 }

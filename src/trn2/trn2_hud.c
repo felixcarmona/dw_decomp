@@ -146,7 +146,7 @@ int16_t TRN2_calculateTrainingMultiplier(type, mode)
 	int16_t result;
 
 	num = 0;
-	tt = RAISE_DATA[type].trainingType;
+	tt = RAISE_ROW(type).trainingType;
 	switch (mode) {
 	case 0:
 		if ((tt == 0) || (tt == 1)) {
@@ -292,7 +292,7 @@ void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t hap
 	if (PARTNER_PARA.condition & 4) {
 		PARTNER_PARA.starvationTimer -= 0xc;
 		if (PARTNER_PARA.starvationTimer <= 0) {
-			if (PARTNER_PARA.energyLevel < RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyThreshold) {
+			if (PARTNER_PARA.energyLevel < RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyThreshold) {
 				PARTNER_PARA.careMistakes++;
 			}
 		}
@@ -300,7 +300,7 @@ void TRN2_advanceTrainingTime(int16_t tiredGain, int16_t energyLoss, int16_t hap
 		PARTNER_PARA.foodLevel -= 0x3d;
 	}
 
-	PARTNER_PARA.energyLevel -= RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].energyUsage;
+	PARTNER_PARA.energyLevel -= RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).energyUsage;
 	if (PARTNER_PARA.condition & 8) {
 		PARTNER_PARA.poopingTimer -= 0x4b0;
 	} else {

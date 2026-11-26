@@ -95,9 +95,9 @@
  * The partner model buffer (PARTNER_MODEL_BUFFER, main.c). The original's was
  * 0x18800 (ETEM.MMD 0x17E14). The size comes from the build (Makefile:
  * PARTNER_MMD_MAX, default 0x20000 = 128 KB; 0x24000 = 144 KB is the most the
- * link-time MIN_HEAP assert leaves) through a generated header; every byte over
- * 0x18800 is a byte less of heap on every screen (docs/mods/memory.md, "Partner
- * model buffer"). The disc tools check the models against the same number.
+ * link-time MIN_HEAP assert leaves) through a generated header; every byte over 0x18800 is a
+ * byte less of heap on every screen (docs/mods/memory.md, "Partner model
+ * buffer"). The disc tools check the models against the same number.
  */
 #include <partner_mmd_max.h>
 #define TAMER_MMD_MAX		0xE000	/* BOYS.MMD 0xDECC (GCC: one array, mod 0002) */

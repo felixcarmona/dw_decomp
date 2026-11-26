@@ -4334,7 +4334,7 @@ int32_t loadMapSetup(int32_t *data)
 	}
 
 	MAP_TILE_DATA.partnerAreaResponse = 0;
-	favoredRegion = RAISE_DATA[PARTNER_ENTITY.digimonEntity.entity.type].favoredRegion;
+	favoredRegion = RAISE_ROW(PARTNER_ENTITY.digimonEntity.entity.type).favoredRegion;
 
 	for (j = 0; j < 4; j++) {
 		if (regionA[j] == favoredRegion) {

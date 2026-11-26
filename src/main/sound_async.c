@@ -275,11 +275,7 @@ int32_t loadVLALL(int32_t idx, uint8_t *buffer)
 
 	readVBALLSection(4, idx);
 
-	if ((idx >= 1) && (idx < NUM_DIGIMON)) { /* MOD: was idx <= 0x41 */
-		soundId = DIGIMON_VLALL_SOUND_ID[idx];
-	} else {
-		soundId = 0xf;
-	}
+	soundId = getPartnerVlallSoundId(idx); /* MOD (scale): 0xf outside the partner ids */
 
 	vabId = 3;
 	path = "VLALL";

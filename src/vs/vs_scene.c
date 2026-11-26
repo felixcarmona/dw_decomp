@@ -1294,7 +1294,7 @@ void VS_renderFighterNamePlate(int16_t side)
 		SetPolyFT4(prim);
 		setRGB0(prim, 0x80, 0x80, 0x80);
 		prim->tpage = getTPage(0, 0, 896, 0);
-		prim->clut = GetClut(0x120, VS_DIGIMON_SPRITE_CLUT[type] + 0x1e0);
+		prim->clut = GetClut(0x120, VS_DIGIMON_SPRITE_CLUT[type < 68 ? type : 0] + 0x1e0);
 		if (type == 0x73) {
 			u = 0xe0;
 			v = 0xe0;

@@ -28,7 +28,7 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
 int8_t getNumMasteredMoves(void);
 
 // clang-format off
-EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON (by target type) */
+EvoRequirements EVOLUTION_REQS[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON (by target type) */
 	{
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 		0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x00,
@@ -488,7 +488,7 @@ EvoRequirements EVOLUTION_REQS[NUM_DIGIMON] = { /* MOD: was NUM_EVOLVING_DIGIMON
 	},
 };
 
-EvoStatsGains EVOLUTION_STATS_GAINS[NUM_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
+EvoStatsGains EVOLUTION_STATS_GAINS[NUM_ORIGINAL_DIGIMON] = { /* MOD: was NUM_PARTNER_DIGIMON */
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0000 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0001 },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x000a, 0x0002 },
@@ -895,8 +895,8 @@ int16_t getInTrainingEvolutionTarget(int32_t currentDigimon) {
       continue;
     }
 
-    isMaxCM = (EVOLUTION_REQS[*targetPtr].flags & 0x10) >> 4;
-    isMaxBattles = EVOLUTION_REQS[*targetPtr].flags & 1;
+    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
+    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
     requirementScore = calculateRequirementScore(
         currentDigimon, *targetPtr, isMaxCM, isMaxBattles, currentBest);
 
@@ -930,31 +930,31 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
       continue;
     }
 
-    isMaxCM = (EVOLUTION_REQS[*targetPtr].flags & 0x10) >> 4;
-    isMaxBattles = EVOLUTION_REQS[*targetPtr].flags & 1;
+    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
+    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
     if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
                                   isMaxBattles, currentBestDigimon) >= 3) {
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].hp != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].mp != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).mp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.mp / 10;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].offense != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).offense != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.off;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].defense != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).defense != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.def;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].speed != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).speed != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.speed;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].brain != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).brain != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.brain;
         statCount++;
       }
@@ -995,31 +995,31 @@ int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
       continue;
     }
 
-    isMaxCM = (EVOLUTION_REQS[*targetPtr].flags & 0x10) >> 4;
-    isMaxBattles = EVOLUTION_REQS[*targetPtr].flags & 1;
+    isMaxCM = (EVO_REQ_ROW(*targetPtr).flags & 0x10) >> 4;
+    isMaxBattles = EVO_REQ_ROW(*targetPtr).flags & 1;
     if (calculateRequirementScore(currentDigimon, *targetPtr, isMaxCM,
                                   isMaxBattles, currentBestDigimon) >= 3) {
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].hp != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).hp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.hp / 10;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].mp != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).mp != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.mp / 10;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].offense != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).offense != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.off;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].defense != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).defense != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.def;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].speed != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).speed != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.speed;
         statCount++;
       }
-      if (EVOLUTION_REQS[(int32_t)*targetPtr].brain != -1) {
+      if (EVO_REQ_ROW((int32_t)*targetPtr).brain != -1) {
         statTotal += PARTNER_ENTITY.digimonEntity.stats.base.brain;
         statCount++;
       }
@@ -1133,7 +1133,7 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
   int8_t numMoves;
   int8_t isBonusFulfilled;
 
-  reqs = &EVOLUTION_REQS[target];
+  reqs = &EVO_REQ_ROW(target);
   partnerEntity = &PARTNER_ENTITY.digimonEntity.stats.base;
   partner = &PARTNER_PARA;
   reqPoints = 0;
@@ -1210,9 +1210,9 @@ int8_t calculateRequirementScore(int32_t current, DigimonId target,
   reqPoints += isBonusFulfilled;
 
   if (reqPoints >= 3 && currentBest != -1) {
-    isTargetRaised = hasDigimonRaised(EVOLUTION_STATS_GAINS[target].targetDigimon);
+    isTargetRaised = hasDigimonRaised(EVO_GAINS_ROW(target).targetDigimon);
     isCurrentBestRaised =
-        hasDigimonRaised(EVOLUTION_STATS_GAINS[currentBest].targetDigimon);
+        hasDigimonRaised(EVO_GAINS_ROW(currentBest).targetDigimon);
 
     if (isTargetRaised == 1 && isCurrentBestRaised == 0)
       reqPoints = 0;
@@ -1252,7 +1252,7 @@ void reincarnatePartner(unused, stats, partner, digimonId)
   int32_t previousId;
 
   DEATH_STATS = *stats;
-  ptr = &EVOLUTION_STATS_GAINS[digimonId];
+  ptr = &EVO_GAINS_ROW(digimonId);
   id = ptr->targetDigimon;
 
   PARTNER_ENTITY.digimonEntity.stats.base.moves[0] = 0x2e;
@@ -1282,7 +1282,7 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 	if (currentDigimon != DIGIMON_MEGADRAMON && currentDigimon != DIGIMON_GIGADRAMON) {
 		return -1;
 	}
-	reqs = &EVOLUTION_REQS[DIGIMON_MACHINEDRAMON];
+	reqs = &EVO_REQ_ROW(DIGIMON_MACHINEDRAMON);
 	if (calculateRequirementScore(currentDigimon, DIGIMON_MACHINEDRAMON, (reqs->flags & 0x10) >> 4,
 	                              reqs->flags & 1, -1) >= 3) {
 		return DIGIMON_MACHINEDRAMON;

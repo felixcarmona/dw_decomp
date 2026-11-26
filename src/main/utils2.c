@@ -15,6 +15,7 @@
 #include <dw/params.h>
 #include <dw/script.h>
 #include <dw/sound.h>
+#include <dw/species.h>
 #include <dw/std.h>
 #include <dw/tournament.h>
 #include <dw/ui.h>
@@ -610,7 +611,7 @@ void startTournament(void)
 	if (i < 0xfe) {
 		if (id != 0x16) {
 			while ((i = *p++) < 0xfe) {
-				if (isTriggerSet(i + TRIGGER_RECRUITED_BASE) != 0) {
+				if (isDigimonRecruited(i)) {
 					*w++ = i;
 					count++;
 				}
@@ -623,7 +624,7 @@ void startTournament(void)
 		}
 	} else {
 		for (i = 0; i < NUM_RECRUITABLE_DIGIMON; i++) {
-			if (isTriggerSet(i + TRIGGER_RECRUITED_BASE) != 0) {
+			if (isDigimonRecruited(i)) {
 				*w++ = i;
 				count++;
 			}
