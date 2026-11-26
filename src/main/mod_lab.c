@@ -112,9 +112,9 @@ static void modLabRender(int32_t instanceId)
 	renderString(0, pos->x + 8, pos->y + 6, 0xB8, MOD_LAB_LINES * 0xC, 0,
 		     MOD_LAB_TEXT_Y, 0, 1);
 	if (modLabMessage != NULL) {
-		/* the message goes in the last free row of the area (0xE4) */
+		/* the message goes in the row right after the options (0xE8) */
 		renderString(3, pos->x + 8, pos->y + 6 + MOD_LAB_LINES * 0xC, 0xB8, 0xC,
-			     0, MOD_LAB_TEXT_Y + 0x44, 0, 1);
+			     0, MOD_LAB_TEXT_Y + MOD_LAB_LINES * 0xC, 0, 1);
 	}
 }
 
@@ -123,9 +123,9 @@ static void modLabShowMessage(char *msg)
 	RECT area;
 
 	modLabMessage = msg;
-	setRECT(&area, 0, MOD_LAB_TEXT_Y + 0x44, 0x100, 0xC);
+	setRECT(&area, 0, MOD_LAB_TEXT_Y + MOD_LAB_LINES * 0xC, 0x100, 0xC);
 	clearTextSubArea(&area);
-	drawString(msg, 0, MOD_LAB_TEXT_Y + 0x44);
+	drawString(msg, 0, MOD_LAB_TEXT_Y + MOD_LAB_LINES * 0xC);
 	DrawSync(0);
 }
 
