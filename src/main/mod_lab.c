@@ -8,8 +8,6 @@
  *   - "Heal partner"   current HP and MP to the maximum
  *   - "One-time gift"  mini quest: gives 1 Meat and sets MOD_LAB_TRIGGER;
  *                      afterwards it says the gift was already taken
- *   - "Frame rate  60 fps"  X (or right) cycles 20 -> 30 -> 60 fps, left
- *                      goes back (MOD_FPS_MODE, main.c; experimental branch)
  *   - "To MasterTyrannomon"  starts the real evolution sequence into the shown
  *                      species when the game is unpaused, the way an
  *                      evolution item does, but with the natural stat gains
@@ -27,7 +25,11 @@
  *                      to, otherwise the first Mega species in DIGI.DAT,
  *                      docs/mods/mega.md); a species the disc's DIGI.DAT
  *                      does not define is skipped
+ *   - "Status bubbles  All"  X (or left/right) switches Classic / All
+ *                      (MOD status-bubbles)
  *   - "Close"
+ * (The frame rate is not an option: it is chosen when the game is built,
+ * Makefile FPS=20|30|60.)
  *
  * The result of an option replaces the stats line until the next key, so the
  * box keeps 8 text rows (0x90..0xEF; the pause label is at 0xF0).
@@ -56,10 +58,11 @@
 #define MOD_LAB_TRIGGER	799	/* free and saved trigger (docs/mods/scripts.md, 717-799) */
 #define MOD_LAB_BOX	5	/* same box the pause uses */
 #define MOD_LAB_TEXT_Y	0x90	/* text area rows we use: 0x90..0xEF (0xF0 is the pause label) */
-#define MOD_LAB_OPTIONS	7
-#define MOD_LAB_OPT_BUBBLES	5	/* MOD (status-bubbles): Classic / All */
-#define MOD_LAB_OPT_FPS	3	/* the frame rate option */
-#define MOD_LAB_OPT_EVOLVE	4	/* MOD (master-tyrannomon, mega) */
+/* MOD (fps): no frame rate option; the frame rate is a build parameter
+ * (Makefile FPS=20|30|60, docs/mods/60fps.md) */
+#define MOD_LAB_OPTIONS	6
+#define MOD_LAB_OPT_BUBBLES	4	/* MOD (status-bubbles): Classic / All */
+#define MOD_LAB_OPT_EVOLVE	3	/* MOD (master-tyrannomon, mega) */
 #define ITEM_MEAT	38
 
 #define PAD_SELECT	0x100
@@ -74,7 +77,6 @@
 
 extern UIBoxData UI_BOX_DATA[];
 extern int32_t IS_SCRIPT_PAUSED;
-extern int32_t MOD_FPS_MODE; /* 0 = 20 fps, 1 = 30, 2 = 60 (main.c) */
 extern int16_t EVOLUTION_TARGET;
 extern uint8_t HAS_USED_EVOITEM;
 
@@ -100,7 +102,6 @@ static char *MOD_LAB_OPTION_TEXT[MOD_LAB_OPTIONS] = {
 	"+1000 bits",
 	"Heal partner",
 	"One-time gift",
-	NULL, /* MOD_LAB_FPS_TEXT */
 	NULL, /* MOD_LAB_EVO_TEXT */
 	"Status bubbles  All",
 	"Close",
@@ -147,20 +148,6 @@ static char *MOD_LAB_EVO_TEXT[] = {
 static int32_t modLabEvoCount(void)
 {
 	return MOD_LAB_EVO_FIXED + getSpeciesPartnerCount() + 1;
-}
-
-static char *MOD_LAB_FPS_TEXT[3] = {
-	"Frame rate  20 fps",
-	"Frame rate  30 fps",
-	"Frame rate  60 fps",
-};
-
-static int32_t modLabFpsMode(void)
-{
-	if (MOD_FPS_MODE < 0) {
-		return 0;
-	}
-	return MOD_FPS_MODE > 2 ? 2 : MOD_FPS_MODE;
 }
 
 static char *appendStr(char *dst, char *src)
@@ -276,9 +263,7 @@ static void modLabDrawText(void)
 	}
 
 	for (i = 0; i < MOD_LAB_OPTIONS; i++) {
-		if (i == MOD_LAB_OPT_FPS) {
-			drawString(MOD_LAB_FPS_TEXT[modLabFpsMode()], 0, TEXT_ROW_Y(ROW_OPTIONS + i));
-		} else if (i == MOD_LAB_OPT_BUBBLES) {
+		if (i == MOD_LAB_OPT_BUBBLES) {
 			drawString(MOD_STATUS_BUBBLES ? "Status bubbles  All" : "Status bubbles  Classic",
 				   0, TEXT_ROW_Y(ROW_OPTIONS + i));
 		} else if (i == MOD_LAB_OPT_EVOLVE) {
@@ -339,13 +324,6 @@ static void modLabFrames(int32_t n)
 	}
 }
 
-static void modLabSetFps(int32_t step)
-{
-	MOD_FPS_MODE = (modLabFpsMode() + step + 3) % 3;
-	/* the option shows the new rate; an older message would only confuse */
-	modLabMessage = NULL;
-}
-
 static void modLabApply(void)
 {
 	Stats *stats = &PARTNER_ENTITY.digimonEntity.stats;
@@ -369,9 +347,6 @@ static void modLabApply(void)
 			setTrigger(MOD_LAB_TRIGGER);
 			modLabShowMessage("You got 1 Meat");
 		}
-		break;
-	case MOD_LAB_OPT_FPS:
-		modLabSetFps(1);
 		break;
 	case MOD_LAB_OPT_BUBBLES:
 		MOD_STATUS_BUBBLES = !MOD_STATUS_BUBBLES;
@@ -437,9 +412,6 @@ void modLabMenu(uint32_t *input, uint32_t *previous)
 		} else if (pressed & PAD_DOWN) {
 			MOD_LAB_CURSOR = (MOD_LAB_CURSOR + 1) % MOD_LAB_OPTIONS;
 			playSound(0, 2);
-		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && MOD_LAB_CURSOR == MOD_LAB_OPT_FPS) {
-			playSound(0, 2);
-			modLabSetFps((pressed & PAD_RIGHT) ? 1 : -1);
 		} else if ((pressed & (PAD_LEFT | PAD_RIGHT)) && MOD_LAB_CURSOR == MOD_LAB_OPT_BUBBLES) {
 			playSound(0, 2);
 			MOD_STATUS_BUBBLES = !MOD_STATUS_BUBBLES;
