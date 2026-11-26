@@ -30,7 +30,6 @@ void playSound(int32_t soundId, uint32_t flag);
 void clearTamerWaypoints(void);
 
 int16_t BTL_CARDINAL_ROTATIONS[4] = { 0, 1024, 2048, 3072 };
-uint8_t BRAIN_TO_COMMAND_MAP[5] = { 3, 4, 5, 7, 8 };
 
 uint8_t BTL_SAVED_CHARGE_MODE;
 long BTL_FINISHER_AURA_ID;
@@ -128,11 +127,7 @@ void BTL_initializeCombat(void)
 	}
 
 	brains = PARTNER_ENTITY.digimonEntity.stats.base.brain;
-	if (brains < 0x1f4) {
-		COMBAT_DATA_PTR->player.numCommands[0] = BRAIN_TO_COMMAND_MAP[brains / 100];
-	} else {
-		COMBAT_DATA_PTR->player.numCommands[0] = 9;
-	}
+	COMBAT_DATA_PTR->player.numCommands[0] = modBtCommands(brains, MOD_BT_CMD_BTL0, MOD_BT_CMD_BTL_TOP); /* MOD (battle as data) */
 
 	COMBAT_DATA_PTR->player.availableCommands[0][0] = 0xb;
 	COMBAT_DATA_PTR->player.availableCommands[0][1] = 1;
@@ -372,10 +367,10 @@ int32_t BTL_isBattleFinished(void)
 		if (TAMER_ITEM.worldItem.type == ITEM_NONE) {
 			DEATH_COUNTDOWN++;
 		}
-		if (DEATH_COUNTDOWN == 0x14) {
+		if (DEATH_COUNTDOWN == BM(T_DEFEAT_SHOW)) {
 			BTL_addDeathCountdown(ENTITY_TABLE[1]);
 		}
-		if (DEATH_COUNTDOWN >= 0xab) {
+		if (DEATH_COUNTDOWN >= BM(T_DEFEAT_END)) {
 			return 1;
 		}
 		return 0;

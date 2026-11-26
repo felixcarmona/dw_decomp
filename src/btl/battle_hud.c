@@ -6,6 +6,7 @@
 #include <libgte.h>
 
 #include <dw/caps.h> /* MOD (caps) */
+#include <dw/mod_battle.h>
 #include <dw/battle.h>
 #include <dw/btl.h>
 #include <dw/combat.h>
@@ -278,7 +279,7 @@ void BTL_initializeFinisherChargeup(void)
 	VECTOR *loc;
 
 	COMBAT_DATA_PTR->player.finisherChargeup[0] = 0;
-	COMBAT_DATA_PTR->player.remainingChargeupTime[0] = 0x50;
+	COMBAT_DATA_PTR->player.remainingChargeupTime[0] = BMS(CHG_WINDOW);
 	COMBAT_DATA_PTR->fighter[0].finisherProgress = 0;
 	if (COMBAT_DATA_PTR->player.hoveredCommand[0] == 0) {
 		COMBAT_DATA_PTR->player.hoveredCommand[0] = COMBAT_DATA_PTR->player.numCommands[0] - 1;
@@ -328,8 +329,8 @@ void BTL_tickFinisherChargeup(void)
 		up = 1;
 	}
 
-	if ((COMBAT_DATA_PTR->player.finisherChargeup[0] < 0x50) && (up != 0)) {
-		COMBAT_DATA_PTR->player.finisherChargeup[0] += 2;
+	if ((COMBAT_DATA_PTR->player.finisherChargeup[0] < BM(CHG_MAX)) && (up != 0)) {
+		COMBAT_DATA_PTR->player.finisherChargeup[0] += BM(CHG_PRESS);
 	}
 }
 

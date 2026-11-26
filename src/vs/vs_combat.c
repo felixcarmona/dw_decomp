@@ -228,9 +228,7 @@ int16_t DIRECTIONS[4] = {
 
 char VS__STR_DEALT[] = "与えた";
 
-uint8_t VS__COMMANDS[8] = {
-	0x02, 0x03, 0x04, 0x05, 0x06, 0x00, 0x00, 0x00,
-};
+/* MOD (battle as data): the menu by brains is MOD_BT_CMD_STD0.. (the tournament's: VS__COMMANDS was { 2, 3, 4, 5, 6 } and 7 above 500) */
 
 /* Damage */
 char STR_DAMAGE[] = "ダメージ";
@@ -343,20 +341,20 @@ void VS__combatInit(void)
 		fighter->finisherProgress = 0;
 		fighter->statusFxId = -1;
 		fighter->activeEffectSlot = -1;
-		fighter->speedBuffer = 100;
+		fighter->speedBuffer = BM(SPEED_START);
 		fighter->unk15 = 0;
 		fighter->hasCollidedWhileDistanceCmd = 0;
 
-		if (stats->base.brain < 400) {
-			fighter->buffsRemaining = stats->base.brain / 100 + 1;
-		} else if (stats->base.brain < 600) {
-			fighter->buffsRemaining = 4;
+		if (stats->base.brain < BM(BUFFUSE_T1)) { /* MOD (battle as data) */
+			fighter->buffsRemaining = BMD(stats->base.brain, BUFFUSE_DIV) + 1;
+		} else if (stats->base.brain < BM(BUFFUSE_T2)) {
+			fighter->buffsRemaining = BM(BUFFUSE_N1);
 		} else {
-			fighter->buffsRemaining = 5;
+			fighter->buffsRemaining = BM(BUFFUSE_N2);
 		}
 
-		fighter->buffPrioTimer = stats->base.brain / 10 + 5;
-		fighter->finisherGoal = 3000 - stats->base.speed;
+		fighter->buffPrioTimer = BMD(stats->base.brain, PRIO_DIV) + BM(PRIO_BASE);
+		fighter->finisherGoal = BM(FIN_GOAL) - stats->base.speed;
 
 		for (slot = 0; slot < 150; ++slot) {
 			fighter->table1[slot] = -1;
@@ -368,11 +366,7 @@ void VS__combatInit(void)
 
 	for (i = 0; i < 2; ++i) {
 		brain = ((DigimonEntity *)ENTITY_TABLE[i + 1])->stats.base.brain;
-		if (brain < 500) {
-			COMBAT_DATA_PTR->player.numCommands[i] = VS__COMMANDS[brain / 100];
-		} else {
-			COMBAT_DATA_PTR->player.numCommands[i] = 7;
-		}
+		COMBAT_DATA_PTR->player.numCommands[i] = modBtCommands(brain, MOD_BT_CMD_STD0, MOD_BT_CMD_STD_TOP); /* MOD (battle as data) */
 
 		COMBAT_DATA_PTR->player.availableCommands[i][0] = 0xb;
 
@@ -642,7 +636,7 @@ void VS_tickDemoDigimonAI(fighterId)
 	data = &COMBAT_DATA_PTR->fighter[fighterId];
 	flags = &data->flags;
 
-	if (BATTLE_FRAME_COUNT % 20 == 0 && data->buffPrioTimer != 0) {
+	if (BMEVERY(BATTLE_FRAME_COUNT, T_PRIO_STEP) && data->buffPrioTimer != 0) {
 		data->buffPrioTimer--;
 	}
 
@@ -655,11 +649,11 @@ void VS_tickDemoDigimonAI(fighterId)
 
 	if (NO_AI_FLAG == 0) {
 		if ((stats->current.currentHP > data->hpDamageBuffer) &&
-		    (stats->base.brain <= 300) &&
-		    (BATTLE_FRAME_COUNT % ((stats->base.brain / 2 + 1) * 20) == 0) &&
-		    (70 - VS_DISCIPLINE[fighterId] > randomLimit(100))) {
+		    (stats->base.brain < BM(SEN_BRAIN)) &&
+		    (BATTLE_FRAME_COUNT % ((BMD(stats->base.brain, SEN_INT_DIV) + 1) * BMS(SEN_INT_MULT)) == 0) &&
+		    (BM(SEN_PARTNER) - VS_DISCIPLINE[fighterId] > randomLimit(100))) {
 			*flags |= 0x2000;
-			data->senileTimer = 100;
+			data->senileTimer = BM(SEN_FRAMES);
 		}
 
 		if (data->cooldown > 1) {
@@ -966,7 +960,7 @@ void VS__tickDigimonAI(fighterId)
 	data = &COMBAT_DATA_PTR->fighter[fighterId];
 	flags = &data->flags;
 
-	if (BATTLE_FRAME_COUNT % 20 == 0 && data->buffPrioTimer != 0) {
+	if (BMEVERY(BATTLE_FRAME_COUNT, T_PRIO_STEP) && data->buffPrioTimer != 0) {
 		data->buffPrioTimer--;
 	}
 
@@ -979,11 +973,11 @@ void VS__tickDigimonAI(fighterId)
 
 	if (NO_AI_FLAG == 0) {
 		if ((stats->current.currentHP > data->hpDamageBuffer) &&
-		    (stats->base.brain <= 300) &&
-		    (BATTLE_FRAME_COUNT % ((stats->base.brain / 2 + 1) * 20) == 0) &&
-		    (70 - VS_DISCIPLINE[fighterId] > randomLimit(100))) {
+		    (stats->base.brain < BM(SEN_BRAIN)) &&
+		    (BATTLE_FRAME_COUNT % ((BMD(stats->base.brain, SEN_INT_DIV) + 1) * BMS(SEN_INT_MULT)) == 0) &&
+		    (BM(SEN_PARTNER) - VS_DISCIPLINE[fighterId] > randomLimit(100))) {
 			*flags |= 0x2000;
-			data->senileTimer = 100;
+			data->senileTimer = BM(SEN_FRAMES);
 		}
 
 		if (data->cooldown > 1) {
@@ -1103,7 +1097,7 @@ void VS__tickDigimonAI(fighterId)
 	switch (COMBAT_DATA_PTR->player.currentCommand[fighterId]) {
 	case 2:
 		if (VS__hasAffordableMoves2(array, fighterId) == 0) {
-			data->cooldown = 0x50;
+			data->cooldown = BM(CD_IDLE);
 			data->flags |= 0x800;
 			return;
 		}
@@ -1112,7 +1106,7 @@ void VS__tickDigimonAI(fighterId)
 		break;
 	case 4:
 		if (VS__hasAffordableMoves2(array, fighterId) == 0) {
-			data->cooldown = 0x50;
+			data->cooldown = BM(CD_IDLE);
 			data->flags |= 0x800;
 			return;
 		}
@@ -1643,7 +1637,7 @@ void VS__tickDigimonConfusion(DigimonEntity *entity, DigimonEntity *other,
 			return;
 		}
 
-		if (randomLimit(100) < 5) {
+		if (randomLimit(100) < BM(IDLE_STOP_PCT)) {
 			handleBattleIdle(entity, &entity->stats, data->flags);
 			VS_startFighterMove(entity, other, data);
 		}
@@ -1731,7 +1725,7 @@ void VS__tickDigimonOnChargeup(DigimonEntity *entity, DigimonEntity *other,
 			VS__tickDigimonWaitingDistance(entity, other, data);
 			tech = (int16_t)entityGetTechFromAnim(&entity->entity,
 			                                      data->queuedAnim);
-			if (data->speedBuffer == 100 ||
+			if (data->speedBuffer >= BM(SPEED_MAX) ||
 			    data->speedBuffer >= MOVE_DATA[tech].power) {
 				data->flags &= ~FIGHTER_FLAG_ON_CHARGEUP;
 			}
@@ -1740,7 +1734,7 @@ void VS__tickDigimonOnChargeup(DigimonEntity *entity, DigimonEntity *other,
 			VS__setWalking(&entity->entity, &entity->stats,
 			               data->flags);
 			VS__tickDigimonRotateKeepDistance(entity, other, data);
-			if (data->speedBuffer == 100) {
+			if (data->speedBuffer >= BM(SPEED_MAX)) {
 				data->flags &= ~FIGHTER_FLAG_ON_CHARGEUP;
 			}
 			break;
@@ -1889,8 +1883,8 @@ int32_t VS__tickDigimonAttackClose(DigimonEntity *entity, DigimonEntity *other,
 					VS_addTargetCursor(fighterId, tech);
 					startAnimation(&entity->entity, data->queuedAnim);
 					entity->entity.anim.animFlag &= 0xfe;
-					VS_ACTIVE_FINISHER_AURA_ID = VS_addFinisherAura(&entity->entity, 80);
-					VS_FINISHER_TIMER = 80;
+					VS_ACTIVE_FINISHER_AURA_ID = VS_addFinisherAura(&entity->entity, BM(FIN_HOLD));
+					VS_FINISHER_TIMER = BM(FIN_HOLD);
 					return 0;
 				}
 			}
@@ -1937,11 +1931,11 @@ void VS__tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 	uint32_t distance;
 	uint32_t total;
 
-	if (data->unk15 > 100) {
+	if (data->unk15 > BM(T_APPROACH_STD)) {
 		handleBattleIdle(entity, &entity->stats, data->flags);
 
 		++data->unk15;
-		if (data->unk15 > 160) {
+		if (data->unk15 > BM(T_APPROACH_REST)) {
 			data->flags &= ~FIGHTER_FLAG_TRANSFORMING;
 			data->unk15 = 0;
 		}
@@ -1973,7 +1967,7 @@ void VS__tickDigimonAttackRanged(DigimonEntity *entity, DigimonEntity *other,
 		handleBattleIdle(entity, &entity->stats, data->flags);
 
 		if ((data->flags & FIGHTER_FLAG_FLATTENED) != 0) {
-			if (BATTLE_FRAME_COUNT % 40 == 0) {
+			if (BMEVERY(BATTLE_FRAME_COUNT, T_FLAT_REPEAT)) {
 				VS_startFighterMove(entity, other, data);
 			} else {
 				entityLookAtLocation(&entity->entity,
@@ -2169,7 +2163,7 @@ void VS__tickDigimonAttackingLogic(int32_t fighterId)
 
 		fighter->flags &= ~FIGHTER_FLAG_10;
 		fighter->flags |= FIGHTER_FLAG_ON_COOLDOWN;
-		fighter->cooldown = 40;
+		fighter->cooldown = BM(CD_ATTACK);
 
 		VS_addFinisherProgress(fighter, fighter->finisherGoal * BM(FIN_ATTACK_PCT) / 100);
 	}
@@ -2266,13 +2260,13 @@ int32_t VS__getBaseDistance(Entity *a, Entity *b)
 
 void VS__increaseSpeedBuffer(FighterData *fighter, Stats *stats)
 {
-	if (fighter->speedBuffer < 100) {
-		if (BATTLE_FRAME_COUNT % 2 == 0) {
-			fighter->speedBuffer += (stats->base.speed / 100) + 1;
+	if (fighter->speedBuffer < BM(SPEED_MAX)) { /* MOD (battle as data) */
+		if (BMEVERY(BATTLE_FRAME_COUNT, T_SPEED_STEP)) {
+			fighter->speedBuffer += BMD(stats->base.speed, SPEED_DIV) + BM(SPEED_PLUS);
 		}
 
-		if (fighter->speedBuffer > 100) {
-			fighter->speedBuffer = 100;
+		if (fighter->speedBuffer > BM(SPEED_MAX)) {
+			fighter->speedBuffer = BM(SPEED_MAX);
 		}
 	}
 }
