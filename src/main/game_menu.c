@@ -3502,12 +3502,13 @@ static int32_t chartDetailInput(void)
 /*
  * MOD (chart): the overview shows every partner species of the build, not the sheet's 61: DIGI.DAT's chart block
  * (tools/species.py chart_tabs) lists them by tab (Fresh and In-Training, Rookie, Champion, Ultimate, Mega), each level
- * in the order of its parents. One tab is shown at a time (L1/R1 change it), a page of CHART_COLS x CHART_ROWS boxes;
- * the D-pad past the grid's left or right edge turns the page. The species of the sheet (1..61) keep their
- * hand-drawn icon; the page's other icons are read from the block when the page is shown, into the battle effect
- * VRAM (idle outside battle; the detail view's icons are in its first 32 rows, the card viewer reloads over it and
- * the page is read again when the tab comes back). The bottom row names the raised species under the cursor and
- * counts the tab's raised species.
+ * in the order of its parents. One tab is shown at a time (L1/R1 change it), CHART_ROWS rows of CHART_COLS boxes that
+ * scroll a row at a time when the cursor goes past the top or bottom row, with a scroll bar at the band's right edge
+ * (it was pages). The species of the sheet (1..61) keep their hand-drawn icon; the others are read from
+ * the block into the battle effect VRAM (idle outside battle; the detail view's icons are in its first 32 rows, the
+ * card viewer reloads over it and the rows are read again when the tab comes back), CHART_PAGE_SIZE slots used as a
+ * ring by the species' place in the tab, so a scroll reads only the row that comes in. The bottom row names the raised
+ * species under the cursor and counts the tab's raised species.
  */
 #define CHART_COLS		14
 #define CHART_ROWS		7
@@ -3516,6 +3517,9 @@ static int32_t chartDetailInput(void)
 #define CHART_GRID_Y		57
 #define CHART_BAND_W		279	/* the tab's band, from x 20 */
 #define CHART_PITCH		0x13
+#define CHART_SCROLL_X		294	/* the scroll bar: past the last column's border (292), inside the band (299) */
+#define CHART_SCROLL_W		3
+#define CHART_SCROLL_H		(CHART_ROWS * CHART_PITCH - 1)
 #define CHART_ICON_X		576	/* the page's icons: 16 a row, 4 halfwords each */
 #define CHART_ICON_Y		288
 #define CHART_ICON_TPAGE	((CHART_ICON_Y / 256) * 16 + CHART_ICON_X / 64)
@@ -3536,10 +3540,10 @@ static uint8_t CHART_TAB_FILL[SPECIES_CHART_TABS][3] = {
 	{ 0xa5, 0x5a, 0x73 }, { 0x0f, 0x50, 0x82 }, { 0x00, 0x87, 0x41 }, { 0xaf, 0x64, 0x2d }, { 0xb4, 0x8c, 0x18 },
 };
 static int8_t CHART_TAB;
-static int8_t CHART_PAGE;
+static int16_t CHART_TOP;		/* the tab's row shown first */
 static int16_t CHART_TAB_COUNT[SPECIES_CHART_TABS];
 static int16_t CHART_RAISED;		/* raised species of the tab */
-static int16_t CHART_PAGE_IDS[CHART_PAGE_SIZE];
+static int16_t CHART_PAGE_IDS[CHART_PAGE_SIZE];	/* the shown species, box by box */
 static int16_t CHART_PAGE_COUNT;
 static int16_t CHART_TAB_LABEL_X[SPECIES_CHART_TABS]; /* where each tab name is in the text area, and its width */
 static int16_t CHART_TAB_LABEL_W[SPECIES_CHART_TABS];
@@ -3549,15 +3553,17 @@ static int8_t CHART_CHIP_PAD;		/* a chip's width past its name */
 static int16_t CHART_TEXT_ID;		/* the species whose name is in the text area (-2: none drawn yet) */
 static int16_t CHART_SHOWN_NAME_W;
 static int16_t CHART_COUNT_W;
-static int16_t CHART_PAGE_X;		/* the page counter's place in its row, and its width (0: one page) */
-static int16_t CHART_PAGE_W;
 
-static int32_t chartPages(void)
+/* the tab's rows of boxes */
+static int32_t chartRows(void)
 {
-	int32_t n;
+	return (CHART_TAB_COUNT[(int32_t)CHART_TAB] + CHART_COLS - 1) / CHART_COLS;
+}
 
-	n = (CHART_TAB_COUNT[(int32_t)CHART_TAB] + CHART_PAGE_SIZE - 1) / CHART_PAGE_SIZE;
-	return n > 0 ? n : 1;
+/* the VRAM slot of the shown box k's icon: its place in the tab, modulo the slots */
+static int32_t chartSlot(int32_t k)
+{
+	return (CHART_TOP * CHART_COLS + k) % CHART_PAGE_SIZE;
 }
 
 /* the icon's top-left corner of a grid box, screen pixels (its border is one pixel out) */
@@ -3572,8 +3578,9 @@ static void chartBoxXY(int32_t col, int32_t row, int16_t *x, int16_t *y)
 	*y = CHART_GRID_Y + 1 + row * CHART_PITCH;
 }
 
-/* reads the shown page: the tab's counts and ids, the raised count, the icons of the species past the sheet */
-static void chartLoadPage(void)
+/* reads the shown rows: the tab's counts and ids, the raised count, and the icons of the species past the sheet, of
+ * every shown row (row < 0) or of shown row `row` only (a scroll) */
+static void chartLoadPage(int32_t row)
 {
 	uint8_t *s;
 	uint16_t *ids;
@@ -3582,6 +3589,7 @@ static void chartLoadPage(void)
 	int32_t k;
 	int32_t sector;
 	int32_t last;
+	int32_t slot;
 	RECT rect;
 
 	CHART_PAGE_COUNT = 0;
@@ -3605,11 +3613,11 @@ static void chartLoadPage(void)
 			CHART_RAISED++;
 		}
 	}
-	if (CHART_PAGE >= chartPages()) {
-		CHART_PAGE = chartPages() - 1;
+	if (CHART_TOP > chartRows() - CHART_ROWS) {
+		CHART_TOP = chartRows() > CHART_ROWS ? chartRows() - CHART_ROWS : 0;
 	}
-	first += CHART_PAGE * CHART_PAGE_SIZE;
-	CHART_PAGE_COUNT = CHART_TAB_COUNT[(int32_t)CHART_TAB] - CHART_PAGE * CHART_PAGE_SIZE;
+	first += CHART_TOP * CHART_COLS;
+	CHART_PAGE_COUNT = CHART_TAB_COUNT[(int32_t)CHART_TAB] - CHART_TOP * CHART_COLS;
 	if (CHART_PAGE_COUNT > CHART_PAGE_SIZE) {
 		CHART_PAGE_COUNT = CHART_PAGE_SIZE;
 	}
@@ -3618,7 +3626,7 @@ static void chartLoadPage(void)
 	}
 	last = -1;
 	for (k = 0; k < CHART_PAGE_COUNT; k++) {
-		if (CHART_PAGE_IDS[k] <= NUM_EVO_CHART_DIGIMON) {
+		if (CHART_PAGE_IDS[k] <= NUM_EVO_CHART_DIGIMON || (row >= 0 && k / CHART_COLS != row)) {
 			continue;
 		}
 		g = first + k;
@@ -3628,9 +3636,10 @@ static void chartLoadPage(void)
 			s = readSpeciesChart(sector);
 			last = sector;
 		}
-		setRECT(&rect, CHART_CLUT_X + (k % 4) * 16, CHART_CLUT_Y + k / 4, 16, 1);
+		slot = chartSlot(k);
+		setRECT(&rect, CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4, 16, 1);
 		LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE));
-		setRECT(&rect, CHART_ICON_X + (k % 16) * 4, CHART_ICON_Y + (k / 16) * 16, 4, 16);
+		setRECT(&rect, CHART_ICON_X + (slot % 16) * 4, CHART_ICON_Y + (slot / 16) * 16, 4, 16);
 		LoadImage(&rect, (u_long *)(s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE + 0x20));
 	}
 	DrawSync(0);
@@ -3731,16 +3740,6 @@ static void chartDrawStatus(void)
 		chartDigits(p, CHART_TAB_COUNT[(int32_t)CHART_TAB]);
 		CHART_COUNT_W = measureStringMode(buf, FIT_VANILLA);
 		drawString(buf, 0, CHART_COUNT_ROW);
-		CHART_PAGE_W = 0;
-		if (chartPages() > 1) {
-			p = chartDigits(buf, CHART_PAGE + 1);
-			*p++ = CHART_SLASH_1;
-			*p++ = CHART_SLASH_2;
-			chartDigits(p, chartPages());
-			CHART_PAGE_X = CHART_COUNT_W + 8;
-			CHART_PAGE_W = measureStringMode(buf, FIT_VANILLA);
-			drawString(buf, CHART_PAGE_X, CHART_COUNT_ROW);
-		}
 	}
 	setRECT(&rect, 0, CHART_NAME_ROW, 256, 12);
 	clearTextSubArea(&rect);
@@ -3769,12 +3768,12 @@ static void chartSelect(void)
 static void chartOverviewInput(int32_t grid)
 {
 	int32_t tab;
-	int32_t page;
+	int32_t top;
 	int32_t row;
 	int32_t col;
 
 	tab = CHART_TAB;
-	page = CHART_PAGE;
+	top = CHART_TOP;
 	row = CHART_SELECTED_ROW;
 	col = CHART_SELECTED_COLUMN;
 	if (CHANGED_INPUT & 0x4) { /* L1, R1: the tab before or after, wrapping */
@@ -3782,36 +3781,37 @@ static void chartOverviewInput(int32_t grid)
 	} else if (CHANGED_INPUT & 0x8) {
 		CHART_TAB = (CHART_TAB + 1) % SPECIES_CHART_TABS;
 	} else if (!grid) { /* the focus on the menu's tab: the D-pad is the menu's, the grid stays */
-	} else if (CHANGED_INPUT & 0x8000) { /* left: past the first column, the page before */
+	} else if (CHANGED_INPUT & 0x8000) { /* left, right: within the row */
 		if (CHART_SELECTED_COLUMN > 0) {
 			CHART_SELECTED_COLUMN--;
-		} else if (CHART_PAGE > 0) {
-			CHART_PAGE--;
-			CHART_SELECTED_COLUMN = CHART_COLS - 1;
 		}
-	} else if (CHANGED_INPUT & 0x2000) { /* right: past the last column or species, the page after */
+	} else if (CHANGED_INPUT & 0x2000) {
 		if (CHART_SELECTED_COLUMN < CHART_COLS - 1 &&
 		    CHART_SELECTED_ROW * CHART_COLS + CHART_SELECTED_COLUMN + 1 < CHART_PAGE_COUNT) {
 			CHART_SELECTED_COLUMN++;
-		} else if (CHART_PAGE + 1 < chartPages()) {
-			CHART_PAGE++;
-			CHART_SELECTED_COLUMN = 0;
 		}
-	} else if ((CHANGED_INPUT & 0x1000) && CHART_SELECTED_ROW > 0) {
-		CHART_SELECTED_ROW--;
-	} else if ((CHANGED_INPUT & 0x4000) && CHART_SELECTED_ROW < CHART_ROWS - 1 &&
-	           (CHART_SELECTED_ROW + 1) * CHART_COLS < CHART_PAGE_COUNT) {
-		CHART_SELECTED_ROW++;
+	} else if (CHANGED_INPUT & 0x1000) { /* up, down: past the top or bottom row, the rows scroll by one */
+		if (CHART_SELECTED_ROW > 0) {
+			CHART_SELECTED_ROW--;
+		} else if (CHART_TOP > 0) {
+			CHART_TOP--;
+		}
+	} else if ((CHANGED_INPUT & 0x4000) && (CHART_TOP + CHART_SELECTED_ROW + 1) < chartRows()) {
+		if (CHART_SELECTED_ROW < CHART_ROWS - 1) {
+			CHART_SELECTED_ROW++;
+		} else {
+			CHART_TOP++;
+		}
 	}
 	if (CHART_TAB != tab) {
-		CHART_PAGE = 0;
+		CHART_TOP = 0;
 		CHART_SELECTED_ROW = CHART_SELECTED_COLUMN = 0;
-	}
-	if (CHART_TAB != tab || CHART_PAGE != page) {
-		chartLoadPage();
+		chartLoadPage(-1);
+	} else if (CHART_TOP != top) {
+		chartLoadPage(CHART_TOP > top ? CHART_ROWS - 1 : 0); /* only the row that comes in */
 	}
 	chartSelect();
-	if (CHART_TAB != tab || CHART_PAGE != page || CHART_SELECTED_ROW != row || CHART_SELECTED_COLUMN != col) {
+	if (CHART_TAB != tab || CHART_TOP != top || CHART_SELECTED_ROW != row || CHART_SELECTED_COLUMN != col) {
 		playSound(0, 2);
 	}
 }
@@ -3956,6 +3956,8 @@ void renderEvoChartView(void)
 	int16_t by;
 	int16_t id;
 	int8_t shift;
+	int32_t y;
+	int32_t slot;
 	EvoClutTable cluts;
 
 	if (!MOD_OPT_NEW_DIGIMON) {
@@ -3967,7 +3969,7 @@ void renderEvoChartView(void)
 	case 0:
 		if (drawEvoChartStrings(0) == 1) {
 			chartDrawLabels();
-			chartLoadPage();
+			chartLoadPage(-1);
 			chartSelect();
 			MENU_STATE = 1;
 		}
@@ -3987,14 +3989,15 @@ void renderEvoChartView(void)
 			}
 			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
 			shift = (id == CHART_SELECTED_DIGIMON) && (1 < MENU_STATE) && ((PLAYTIME_FRAMES % 10) < 5);
+			slot = chartSlot(k);
 			if (id <= NUM_EVO_CHART_DIGIMON) {
 				renderRectPolyFT4(bx - 0xa0, by - 0x78, 0x10, 0x10,
 				                  (uint8_t)((shift ? 0x10 : 0) + EVO_CHART_BOXES[id - 1].u),
 				                  EVO_CHART_BOXES[id - 1].v, 0x18, cluts.m[EVO_CHART_BOXES[id - 1].clut], 5, 0);
 			} else {
-				renderRectPolyFT4(bx - 0xa0, by - 0x78 - shift, 0x10, 0x10, (k % 16) * 16,
-				                  CHART_ICON_Y - 256 + (k / 16) * 16, CHART_ICON_TPAGE,
-				                  GetClut(CHART_CLUT_X + (k % 4) * 16, CHART_CLUT_Y + k / 4), 5, 0);
+				renderRectPolyFT4(bx - 0xa0, by - 0x78 - shift, 0x10, 0x10, (slot % 16) * 16,
+				                  CHART_ICON_Y - 256 + (slot / 16) * 16, CHART_ICON_TPAGE,
+				                  GetClut(CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4), 5, 0);
 			}
 		}
 		/* the texts: the tab names on their chips, the keys, the name and the counters on the bottom row */
@@ -4010,12 +4013,15 @@ void renderEvoChartView(void)
 		if (CHART_SHOWN_NAME_W > 0) {
 			renderString(0, 22 - 0xa0, 0x52, CHART_SHOWN_NAME_W, 0xc, 0, CHART_NAME_ROW, 5, 1);
 		}
-		if (CHART_PAGE_W > 0) {
-			renderString(2, 297 - CHART_PAGE_W - 0xa0, 0x52, CHART_PAGE_W, 0xc, CHART_PAGE_X, CHART_COUNT_ROW, 5, 1);
-			renderString(0, 297 - CHART_PAGE_W - 12 - CHART_COUNT_W - 0xa0, 0x52, CHART_COUNT_W, 0xc, 0,
-			             CHART_COUNT_ROW, 5, 1);
-		} else {
-			renderString(0, 297 - CHART_COUNT_W - 0xa0, 0x52, CHART_COUNT_W, 0xc, 0, CHART_COUNT_ROW, 5, 1);
+		renderString(0, 297 - CHART_COUNT_W - 0xa0, 0x52, CHART_COUNT_W, 0xc, 0, CHART_COUNT_ROW, 5, 1);
+		/* the scroll bar when the tab has more rows than are shown: its thumb, then its track */
+		if (chartRows() > CHART_ROWS) {
+			w = CHART_SCROLL_H * CHART_ROWS / chartRows();
+			y = CHART_GRID_Y + (CHART_SCROLL_H - w) * CHART_TOP / (chartRows() - CHART_ROWS);
+			renderBox(CHART_SCROLL_X - 0xa0, y - 0x78, CHART_SCROLL_W, w, 0xe6, 0xe6, 0xe6, 0, 5);
+			k = CHART_TAB;
+			renderBox(CHART_SCROLL_X - 0xa0, CHART_GRID_Y - 0x78, CHART_SCROLL_W, CHART_SCROLL_H,
+			          CHART_TAB_FILL[k][0] / 2, CHART_TAB_FILL[k][1] / 2, CHART_TAB_FILL[k][2] / 2, 0, 5);
 		}
 		/* the boxes, the tab's band, the chips */
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
