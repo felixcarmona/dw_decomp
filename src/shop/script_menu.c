@@ -1147,13 +1147,15 @@ void openMojyamonShop(void)
 		   holds (a full inventory works when the whole stack given goes, case 5) */
 		int32_t row;
 		int32_t room;
+		int32_t trade;
 
 		row = (ITEM_MENU_LEFT->topRow + ITEM_MENU_LEFT->cursor) * 2;
-		/* Each row has its own saved daily bit, independent of recruitment history. */
-		if (isTriggerSet(MOJYA_DAILY_FIRST + ITEM_MENU_TYPE + row / 2)) {
+		/* North Star is once per save; the other rows reset each day. */
+		trade = ITEM_MENU_TYPE + row / 2;
+		if (isTriggerSet(trade == 8 ? 13 : MOJYA_DAILY_FIRST + trade)) {
 			setInputRepeatMask(0);
 			triggerBoxCloseFlag(1);
-			showMapHeadTextbox(12, owner, 0, 0x4d6);
+			showMapHeadTextbox(trade == 8 ? 10 : 12, owner, 0, 0x4d6);
 			SCRIPT_STATE_2 = 1;
 			SCRIPT_NEXT_STATE_2 = 2;
 			SCRIPT_TEXTBOX_MODE = 1;
@@ -1203,7 +1205,7 @@ void openMojyamonShop(void)
 	case 6:
 		setInputRepeatMask(0);
 		triggerBoxCloseFlag(1);
-		showMapHeadTextbox(10, owner, 0, 0x4d6);
+		showMapHeadTextbox(13, owner, 0, 0x4d6);
 		SCRIPT_STATE_2 = 1;
 		SCRIPT_NEXT_STATE_2 = 2;
 		SCRIPT_TEXTBOX_MODE = 1;

@@ -2210,6 +2210,7 @@ void handleEvoItems(int16_t item)
 		}
 		EVOLUTION_TARGET = modItem->target;
 	} else {
+		if (!modSpeciesAllowed(EVOLUTION_ITEM_TARGET[item - 0x47])) return;
 		level = modOriginalLevel(EVOLUTION_ITEM_TARGET[item - 0x47]) - 1; /* MOD (canon levels): the original game's level */
 		if (level != DIGI_PARA(ENTITY_TABLE[1]->type).level) {
 			return;
