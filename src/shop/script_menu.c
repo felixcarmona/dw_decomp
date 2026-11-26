@@ -2512,9 +2512,10 @@ draw:
 		rect.h = 0x12;
 		GsSortBoxFill(&rect, ACTIVE_ORDERING_TABLE, 6 - boxId);
 	}
-	x2 = bx + 8;
+	/* MOD (bank icons): each row gets its item's icon at the box's edge; the names shift right 12 pixels */
+	x2 = bx + 0x14;
 	y = by + 0x24;
-	renderItemMenuItemList(box, x2, y, 0, 0, 2);
+	renderItemMenuItemList(box, x2, y, bx + 4, by + 0x23, 0);
 }
 
 void tickJukeboxMenu(void)

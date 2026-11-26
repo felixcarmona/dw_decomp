@@ -2653,7 +2653,7 @@ void calculateItemMenuStrings(ItemMenuBox *box, uint8_t row, int32_t isLast)
 		/* MOD (item names): the colour code, or a fit code for a name that would come closer than a glyph's cell (12
 		 * pixels) to the price (0x16: column 0x69; a price of 4 digits starts at its edge) or, in the keeper (type
 		 * 5), than 4 to the count (0x1c: 0x64; its tens are a space below 10) */
-		*out++ = textFitCode(ITEM_NAME(type), ITEM_MENU_TYPE == 5 ? ITEM_FIELD_W : 0x69 - 12);
+		*out++ = textFitCode(ITEM_NAME(type), ITEM_MENU_TYPE == 5 ? ITEM_FIELD_W - 8 : 0x69 - 12);
 #else
 		*out++ = 1;
 #endif

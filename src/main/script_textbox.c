@@ -911,10 +911,18 @@ int32_t drawString2(uint8_t *str, int16_t x, int16_t y, int32_t flag)
 			/* The keeper shares each row with the inventory at x = 128.
 			 * Clear only the gap to the count column, not 100 pixels
 			 * beyond the name: a left-list redraw must preserve it. */
-			if (pos < 0x64) {
-				CLEAR_FROM_PEN(x + pos, y, 0x64 - pos);
+			/* MOD (bank icons): the keeper's text starts 12 pixels further right to leave room for each item's icon, so its
+			 * count column moves 8 pixels left, and a name longer than that keeps its place */
+			{
+				int32_t col = ITEM_MENU_TYPE == 5 ? 0x5c : 0x64;
+
+				if (pos < col) {
+					CLEAR_FROM_PEN(x + pos, y, col - pos);
+					pos = col;
+				} else if (ITEM_MENU_TYPE != 5) {
+					pos = col;
+				}
 			}
-			pos = 0x64;
 			break;
 		case 0x18:
 			str++;
