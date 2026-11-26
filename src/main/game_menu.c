@@ -1102,6 +1102,117 @@ uint16_t MOVE_STATUS_PIECES[5] = {
 #endif
 };
 
+/* the card list's row ("Card List×Select   △Cancel": the title, ×, Select, △, Cancel; 0xd8 is the card count's
+ * suffix, renderCardCount): Cartas centred, Cancelar wider, so × and Cancelar start further left */
+LabelCrop CARD_LIST_CROPS[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x1a, 0x00, 0x34 },
+	{ -0x23, 0x48, 0x0c },
+	{ -0x17, 0x54, 0x30 },
+	{ 0x2b, 0x84, 0x0c },
+	{ 0x37, 0x90, 0x40 },
+#else
+	{ -0x24, 0x00, 0x48 },
+	{ -0x23, 0x48, 0x0c },
+	{ -0x17, 0x54, 0x3c },
+	{ 0x2b, 0x90, 0x0c },
+	{ 0x37, 0x9c, 0x3c },
+#endif
+};
+
+uint16_t CARD_LIST_PIECES[7] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 0x48, 0x54, 0x84, 0x90, 0xd8, PIECES_END,
+#else
+	0 | PIECE_CENTRE, 0x48, 0x54, 0x90, 0x9c, 0xd8, PIECES_END,
+#endif
+};
+
+/* the medal screen's row ("Medals Chart   ×△ Select  Cancel": the title, ×, Select in two crops, △, Cancel):
+ * Medallas centred, Cancelar wider and further left (its last glyph must start before 244, drawGlyph's limit) */
+LabelCrop MEDAL_VIEW_CROPS[6] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x1e, 0x00, 0x3c },
+	{ -0x23, 0x6c, 0x0c },
+	{ -0x17, 0x84, 0x18 },
+	{ 0x01, 0x9c, 0x14 },
+	{ 0x2b, 0x78, 0x0c },
+	{ 0x37, 0xb4, 0x40 },
+#else
+	{ -0x36, 0x00, 0x6c },
+	{ -0x23, 0x6c, 0x0c },
+	{ -0x17, 0x84, 0x18 },
+	{ 0x01, 0x9c, 0x24 },
+	{ 0x2b, 0x78, 0x0c },
+	{ 0x37, 0xc0, 0x30 },
+#endif
+};
+
+uint16_t MEDAL_VIEW_PIECES[6] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xb4, PIECES_END,
+#else
+	0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xc0, PIECES_END,
+#endif
+};
+
+/* the original evolution chart's keys ("×Select   △Cancel", NEW DIGIMON off): Cancelar is wider */
+LabelCrop EVO_CHART_KEY_CROPS[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x1a, 0x00, 0x0c },
+	{ -0x0e, 0x0c, 0x3c },
+	{ 0x3a, 0x48, 0x0c },
+	{ 0x46, 0x54, 0x40 },
+#else
+	{ -0x1a, 0x00, 0x0c },
+	{ -0x0e, 0x0c, 0x3c },
+	{ 0x3a, 0x48, 0x0c },
+	{ 0x46, 0x54, 0x3c },
+#endif
+};
+
+/* the chart detail's "Tree" (x from the card's shift) and level names (x from dx: each centred at dx - 0x44), rows 0x18
+ * ("Tree FreshTraining"), 0x24 ("RookieChampion"), 0x3c ("Ultimate"): Árbol, Novato and Perfecto are wider */
+LabelCrop CHART_TREE_CROP = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	-0x16, 0x00, 0x28,
+#else
+	-0x14, 0x00, 0x24,
+#endif
+};
+
+LabelCrop CHART_LEVEL_CROPS[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	{ -0x58, 0x28, 0x28 },
+	{ -0x61, 0x50, 0x3a },
+	{ -0x5e, 0x00, 0x34 },
+	{ -0x62, 0x34, 0x3c },
+	{ -0x65, 0x00, 0x42 },
+#else
+	{ -0x5b, 0x24, 0x2e },
+	{ -0x63, 0x52, 0x3e },
+	{ -0x5b, 0x00, 0x2f },
+	{ -0x64, 0x2f, 0x41 },
+	{ -0x64, 0x00, 0x41 },
+#endif
+};
+
+uint16_t CHART_TREE_ROW_PIECES[5] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 0x28 | PIECE_CENTRE, 0x50 | PIECE_CENTRE, 0xcc, PIECES_END,
+#else
+	0 | PIECE_CENTRE, 0x24 | PIECE_CENTRE, 0x52 | PIECE_CENTRE, 0xcc, PIECES_END,
+#endif
+};
+
+uint16_t CHART_LEVEL_ROW_PIECES[3] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0 | PIECE_CENTRE, 0x34 | PIECE_CENTRE, PIECES_END,
+#else
+	0 | PIECE_CENTRE, 0x2f | PIECE_CENTRE, PIECES_END,
+#endif
+};
+
 char *MEDAL_NAMES[15] = {
 	STR_MEDAL_NAME_GRADE_CUP,
 	STR_MEDAL_NAME_VERSION_CUP,
@@ -3781,10 +3892,11 @@ static void renderEvoChartViewVanilla(void)
 		renderBorderBox(0x5f, 0x27, 0x22, 0xb0, 0xc88250, 0x5f370a, 0xf, 0x50, 0x82, 5);
 		renderBorderBox(0x84, 0x27, 0x6a, 0x9f, 0x6eaf5a, 0x285a00, 0, 0x87, 0x41, 5);
 		renderBorderBox(0xf1, 0x27, 0x38, 0x9f, 0x6996d2, 0x1e4178, 0xaf, 0x64, 0x2d, 5);
-		renderString(0xf, -0x1a, 0x54, 0xc, 0xc, 0, 0xc, 5, 1);
-		renderString(0, -0xe, 0x54, 0x3c, 0xc, 0xc, 0xc, 5, 1);
-		renderString(7, 0x3a, 0x54, 0xc, 0xc, 0x48, 0xc, 5, 1);
-		renderString(0, 0x46, 0x54, 0x3c, 0xc, 0x54, 0xc, 5, 1);
+		/* MOD (language): each language's crops (EVO_CHART_KEY_CROPS) */
+		for (i = 0; i < 4; i++) {
+			renderString(i == 0 ? 0xf : i == 2 ? 7 : 0, EVO_CHART_KEY_CROPS[i].x, 0x54, EVO_CHART_KEY_CROPS[i].w, 0xc,
+			             EVO_CHART_KEY_CROPS[i].u, 0xc, 5, 1);
+		}
 	}
 }
 
@@ -4500,22 +4612,18 @@ void renderEvoChartDetail(void)
 	             ((DIGI_PARA(CHART_DETAIL_ID).level - 1) * 36) + 0x30, 0x18,
 	             4);
 #else
-	renderString(3, (cardId > 0 ? CHART_CARD_TREE_SHIFT : 0) - 0x14, -0x4f, 0x24, 0xc, 0, 0x18, 4);
+	/* MOD (language): each language's crops (CHART_TREE_CROP, CHART_LEVEL_CROPS) */
+	renderString(3, (cardId > 0 ? CHART_CARD_TREE_SHIFT : 0) + CHART_TREE_CROP.x, -0x4f, CHART_TREE_CROP.w, 0xc,
+	             CHART_TREE_CROP.u, 0x18, 4);
 	switch (DIGI_PARA(CHART_DETAIL_ID).level) {
 	case 1:
-		renderString(0, dx - 0x5b, 0x3a, 0x2e, 0xc, 0x24, 0x18, 4);
-		break;
 	case 2:
-		renderString(0, dx - 0x63, 0x3a, 0x3e, 0xc, 0x52, 0x18, 4);
-		break;
 	case 3:
-		renderString(0, dx - 0x5b, 0x3a, 0x2f, 0xc, 0, 0x24, 4);
-		break;
 	case 4:
-		renderString(0, dx - 0x64, 0x3a, 0x41, 0xc, 0x2f, 0x24, 4);
-		break;
 	case 5:
-		renderString(0, dx - 0x64, 0x3a, 0x41, 0xc, 0, 0x3c, 4);
+		i = DIGI_PARA(CHART_DETAIL_ID).level - 1;
+		renderString(0, dx + CHART_LEVEL_CROPS[i].x, 0x3a, CHART_LEVEL_CROPS[i].w, 0xc, CHART_LEVEL_CROPS[i].u,
+		             i < 2 ? 0x18 : i < 4 ? 0x24 : 0x3c, 4);
 		break;
 	case LEVEL_MEGA: /* MOD (mega) */
 		renderString(0, dx - 0x44 - EVO_CHART_MEGA_WIDTH / 2, 0x3a, EVO_CHART_MEGA_WIDTH, 0xc, 0,
@@ -4585,7 +4693,7 @@ void renderMedalView(void)
 		                  0x18, 0x7dc7, 1, 0);
 	case 1:
 		renderSeparatorLines(MAIN_D_8012472C, 0xe, 5);
-		renderString(3, -0x36, -0x51, 0x6c, 0xc, 0, 0xc, 5, 1);
+		renderString(3, MEDAL_VIEW_CROPS[0].x, -0x51, MEDAL_VIEW_CROPS[0].w, 0xc, MEDAL_VIEW_CROPS[0].u, 0xc, 5, 1); /* MOD (language) */
 
 		for (i = 0; i < 0xf; i++) {
 			if (hasMedal(i) != 0) {
@@ -4623,15 +4731,19 @@ void renderMedalView(void)
 #else
 		renderInsetBox(0x3e, 0x8d, 0xb0, 0xe, 5);
 #endif
+#if !VERSION_IS(US)
 		renderString(FOOTER_GLYPH1_COLOR, -0x23, 0x55, 0xc, 0xc, 0x6c, 0xc, 5, 1);
 		renderString(0, -0x17, 0x55, 0x18, 0xc, 0x84, 0xc, 5, 1);
 		renderString(0, 1, 0x55, 0x24, 0xc, 0x9c, 0xc, 5, 1);
 		renderString(FOOTER_GLYPH2_COLOR, 0x2b, 0x55, 0xc, 0xc, 0x78, 0xc, 5, 1);
-#if !VERSION_IS(US)
 		renderString(0, 0x37, 0x55, 0x18, 0xc, 0x84, 0xc, 5, 1);
 		renderString(0, 0x4f, 0x55, 0x24, 0xc, 0xc0, 0xc, 5, 1);
 #else
-		renderString(0, 0x37, 0x55, 0x30, 0xc, 0xc0, 0xc, 5, 1);
+		/* MOD (language): each language's crops (MEDAL_VIEW_CROPS) */
+		for (j = 1; j < 6; j++) {
+			renderString(j == 1 ? FOOTER_GLYPH1_COLOR : j == 4 ? FOOTER_GLYPH2_COLOR : 0, MEDAL_VIEW_CROPS[j].x, 0x55,
+			             MEDAL_VIEW_CROPS[j].w, 0xc, MEDAL_VIEW_CROPS[j].u, 0xc, 5, 1);
+		}
 #endif
 	}
 }
@@ -4672,11 +4784,12 @@ void renderCardsView(void)
 			}
 		}
 
-		renderString(3, -0x24, -0x50, 0x48, 0xc, 0, 0xc, 5, 1);
-		renderString(FOOTER_GLYPH1_COLOR, -0x23, 0x53, 0xc, 0xc, 0x48, 0xc, 5, 1);
-		renderString(0, -0x17, 0x53, 0x3c, 0xc, 0x54, 0xc, 5, 1);
-		renderString(FOOTER_GLYPH2_COLOR, 0x2b, 0x53, 0xc, 0xc, 0x90, 0xc, 5, 1);
-		renderString(0, 0x37, 0x53, 0x3c, 0xc, 0x9c, 0xc, 5, 1);
+		/* MOD (language): each language's crops (CARD_LIST_CROPS) */
+		renderString(3, CARD_LIST_CROPS[0].x, -0x50, CARD_LIST_CROPS[0].w, 0xc, CARD_LIST_CROPS[0].u, 0xc, 5, 1);
+		renderString(FOOTER_GLYPH1_COLOR, CARD_LIST_CROPS[1].x, 0x53, CARD_LIST_CROPS[1].w, 0xc, CARD_LIST_CROPS[1].u, 0xc, 5, 1);
+		renderString(0, CARD_LIST_CROPS[2].x, 0x53, CARD_LIST_CROPS[2].w, 0xc, CARD_LIST_CROPS[2].u, 0xc, 5, 1);
+		renderString(FOOTER_GLYPH2_COLOR, CARD_LIST_CROPS[3].x, 0x53, CARD_LIST_CROPS[3].w, 0xc, CARD_LIST_CROPS[3].u, 0xc, 5, 1);
+		renderString(0, CARD_LIST_CROPS[4].x, 0x53, CARD_LIST_CROPS[4].w, 0xc, CARD_LIST_CROPS[4].u, 0xc, 5, 1);
 	}
 }
 
@@ -5086,9 +5199,9 @@ int32_t drawEvoChartStrings(int32_t arg)
 		MENU_SUB_STATE = 1;
 		/* fall through */
 	case 1:
-		DRAW_STRING_PIECES(CARD_CHART_LABELS[2], 0, 0x18, 0 | PIECE_CENTRE, 0x24 | PIECE_CENTRE, 0x52 | PIECE_CENTRE, 0xcc);
+		DRAW_STRING_PIECES_AT(CARD_CHART_LABELS[2], 0, 0x18, CHART_TREE_ROW_PIECES); /* MOD (language) */
 #if VERSION_IS(US)
-		DRAW_STRING_PIECES(CARD_CHART_LABELS[3], 0, 0x24, 0 | PIECE_CENTRE, 0x2f | PIECE_CENTRE);
+		DRAW_STRING_PIECES_AT(CARD_CHART_LABELS[3], 0, 0x24, CHART_LEVEL_ROW_PIECES); /* MOD (language) */
 		DRAW_STRING_PIECES(CARD_CHART_LABELS[4], 0, 0x3c, 0 | PIECE_CENTRE);
 		drawString(EVO_CHART_MEGA_LABEL, 0, EVO_CHART_MEGA_ROW); /* MOD (mega) */
 #endif
@@ -5119,7 +5232,7 @@ int32_t drawMedalViewStrings(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_PIECES(PLAYER_VIEW_LABELS[1], 0, 0xc, 0 | PIECE_CENTRE, 0x6c, 0x78, 0x84, 0xc0);
+		DRAW_STRING_PIECES_AT(PLAYER_VIEW_LABELS[1], 0, 0xc, MEDAL_VIEW_PIECES); /* MOD (language) */
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
@@ -5155,7 +5268,7 @@ int32_t drawCardViewStrings(void)
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
-		DRAW_STRING_PIECES(CARD_CHART_LABELS[0], 0, 0xC, 0 | PIECE_CENTRE, 0x48, 0x54, 0x90, 0x9c, 0xd8);
+		DRAW_STRING_PIECES_AT(CARD_CHART_LABELS[0], 0, 0xC, CARD_LIST_PIECES); /* MOD (language) */
 		SELECTED_CARD = 0;
 		return 1;
 	}

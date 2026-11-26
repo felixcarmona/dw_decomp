@@ -61,6 +61,7 @@ extern uint8_t TEXTBOX_CELLS;
 #if FONT_SWITCH
 void drawStringPieces(char *str, int32_t x, int32_t y, const uint16_t *pieces);
 void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, int32_t x, int32_t y, const uint16_t *pieces);
+extern const uint8_t *PIECE_COLORS; /* MOD (language): each glyph's colour for drawGlyphPieces, or NULL */
 #define DRAW_STRING_PIECES(str, x, y, ...)                                         \
 	do {                                                                       \
 		static const uint16_t PIECES_[] = { __VA_ARGS__, PIECES_END };       \

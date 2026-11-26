@@ -2179,6 +2179,7 @@ void modFontScriptsChanged(void)
 		tickFileReadQueue(0);
 	}
 	readFile(MAPHEAD_FILE, MAPHEAD_SCRIPT_PTR);
+	LOAD_FILE_SECTION_STARTPOS = 0; /* DG.SCN's start is looked up again: its copy for the font or the language */
 	readFileSection(DG_FILE, SCRIPT_OFFSET_PTR, 0, SCRIPT_OFFSET_TABLE_SIZE);
 	ACTIVE_MAP_SCRIPT = 0;
 	modScreenFileChanged();
@@ -2783,17 +2784,30 @@ void readFileSection(char *filename, void *dest, uint32_t offset,
 	char path[64];
 	uint8_t mode;
 	int32_t sector;
+#if VERSION_IS(US) && !defined(__MWERKS__)
+	FileLookup lookup;
+#endif
 
 	mode = 0x80;
 	tfsStreamCheckTarget(dest, size); /* MOD (memreclaim) */
 
 	if (LOAD_FILE_SECTION_STARTPOS == 0) {
+#if VERSION_IS(US) && !defined(__MWERKS__)
+		/* MOD (font, language): found by FILE_OFFSET_TABLE, as readFile finds a file: the copy the font or the
+		 * language reads (modLangFile) and the sector build-disc.py wrote (CdSearchFile found the ISO's DG.SCN) */
+		(void)path;
+		if (lookupFileTable(&lookup, filename) == 0) {
+			return;
+		}
+		file.pos = lookup.pos;
+#else
 		path[0] = '\\';
 		strcpy(&path[1], filename);
 		strcat(path, MAIN_D_801345F0);
 		if (CdSearchFile(&file, path) == 0) {
 			return;
 		}
+#endif
 
 		while (CdControl(0xe, &mode, 0) == 0)
 			;

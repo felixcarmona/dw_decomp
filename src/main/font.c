@@ -1578,6 +1578,8 @@ static int32_t pieceOf(const uint16_t *pieces, int32_t cell)
  * advance; `pieces`: the crops' offsets in pixels from x, ascending, the first 0, ending with PIECES_END
  * (DRAW_STRING_PIECES, TEXTBOX_ROW_PIECES, dw/mod_font.h).
  */
+const uint8_t *PIECE_COLORS; /* MOD (language): each glyph's colour (setTextColor) for drawGlyphPieces, or NULL */
+
 void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, int32_t x, int32_t y, const uint16_t *pieces)
 {
 	uint16_t cp;
@@ -1634,6 +1636,9 @@ void drawGlyphPieces(const uint16_t *glyphs, const uint8_t *cells, int32_t n, in
 			if (lead < 0) {
 				lead = pen - start;
 			}
+		}
+		if (PIECE_COLORS != NULL && PIECE_COLORS[i] != 0xff) { /* 0xff: the colour the row had before */
+			setTextColor(PIECE_COLORS[i]);
 		}
 		pen += drawGlyph(cp, x + pen, y);
 		pos += cells[i];
