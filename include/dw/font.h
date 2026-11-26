@@ -21,6 +21,7 @@ void drawString(/* char *str, uint16_t x, uint16_t y */);
 /* MOD (long names): a name drawn tighter when it does not fit its field (font.c drawStringMode) */
 #define FIT_VANILLA	0 /* drawString: the font's own spacing */
 #define FIT_TIGHT	1 /* the same glyphs, one blank column between letters */
+#define FIT_COMPACT	3 /* condensed glyphs with no extra gap, for composed reward rows */
 #define FIT_CONDENSED	2 /* the same, with a 5-column lowercase */
 int32_t measureStringMode(char *str, int32_t mode);
 int32_t fitStringMode(char *str, int32_t maxW);
@@ -36,6 +37,7 @@ int32_t drawStringMode(char *str, int32_t x, int32_t y, int32_t mode);
 #define TEXT_FIT_CONDENSED	0x11
 #define TEXT_COLUMN		0x12
 int32_t textFitCode(char *str, int32_t maxW);
+int32_t drawFittedRow(char *str, int32_t y, int32_t mode, const uint8_t *colors);
 /* MOD (item names): the item name field of the inventory, the fishing bait list, the shop's amount box, the keeper and
  * Mojyamon's trades: 96 pixels (the shop's lists: 93) */
 #define ITEM_FIELD_W		0x60
