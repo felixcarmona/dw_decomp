@@ -208,11 +208,12 @@ void BTL_initializeCombat(void)
 
 /* MOD (quick battle start): the intro without its waits. The tamer's walk back (the loop below: along the waypoints
  * until the next step would leave the combat area, then to the screen's start tile) runs at once, unseen, with only
- * the tamer's animation ticked, so he ends where the intro would have left him; those who flee leave at once; no
- * BATTLE letters. The entity step snaps the 60 fps interpolation. */
+ * the tamer's animation ticked, so he ends where the intro would have left him; those who flee run off during the
+ * fight (modBattleFleeTick); no BATTLE letters. The entity step snaps the 60 fps interpolation. */
+void modBattleFleeStart(int16_t *ids, int32_t count); /* MOD (quick battle start), btl.c */
+
 static void BTL_quickBattleIntro(int16_t *found, int32_t count, int16_t wp)
 {
-	int32_t i;
 	int32_t timer;
 	int16_t result;
 	int16_t tileX;
@@ -254,10 +255,7 @@ static void BTL_quickBattleIntro(int16_t *found, int32_t count, int16_t wp)
 	startAnimation(ENTITY_TABLE[0], 1);
 	entityLookAtLocation(ENTITY_TABLE[0], &ENTITY_TABLE[1]->posData->location);
 
-	for (i = 0; i < count; i++) {
-		ENTITY_TABLE[found[i]]->isOnMap = 0;
-		ENTITY_TABLE[found[i]]->anim.animFlag &= 0xfb;
-	}
+	modBattleFleeStart(found, count); /* btl.c: they run off while the fight goes on */
 
 	GAME_STATE = 1;
 }
