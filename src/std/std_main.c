@@ -2515,7 +2515,13 @@ void STD_tickCameraIntro(void)
 	rot = MAIN_D_80134840;
 	rot.vy = STD_D_8007B9BC[7];
 	STD_D_8007B9BC[8] = processSomeArenaArrays(0x16, p[0], STD_D_8007A41C, STD_D_8007B9EC, STD_D_8007BA44);
+#ifdef __MWERKS__
 	STD_setViewpointFromBone(*(Entity **)&p[6], &off, &rot, STD_D_8007B9BC[8]);
+#else
+	/* MOD: p[6] is 12 bytes past the end of STD_D_8007B9BC: the original reads
+	 * STD_D_8007B9D0.target, which follows it there; GCC places other data next. */
+	STD_setViewpointFromBone(STD_D_8007B9D0.target, &off, &rot, STD_D_8007B9BC[8]);
+#endif
 	GS_VIEWPOINT.vry = (-DIGIMON_DATA[STD_D_8007B9D0.target->type].height * 2) / 3;
 	GS_VIEWPOINT.vpy = -processSomeArenaArrays(0x16, p[0], STD_D_8007A41C, STD_D_8007BA9C, STD_D_8007BA44);
 	p[0]++;
