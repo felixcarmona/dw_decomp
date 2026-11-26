@@ -34,6 +34,7 @@
 #include <dw/ui.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
+#include <text/main/mod_feed.h>
 
 #define FEED_OBJECT_ID	0x1f9b	/* world object id: above the species ids (world_object.h) */
 #define FEED_LIST_BOX	0	/* box 0: the game reads it as "a menu is open" (the triangle menu, the inventory) */
@@ -102,10 +103,11 @@ void renderRectPolyFT4(int16_t posX, int16_t posY, uint8_t width, uint8_t height
                        int16_t texturePage, int16_t clut, int32_t zIndex, int8_t flag);
 u_short GetClut(int32_t x, int32_t y);
 
-static char FEED_SCOLD_NAME[] = "Scold";
-static char FEED_SCOLD_DESC[] = "It misbehaved: teach it.";
-static char FEED_SLEEP_NAME[] = "Sleep";
-static char FEED_SLEEP_DESC[] = "Put it to bed until morning.";
+/* MOD (language): the texts are keyed, text/main/mod_feed.yaml (main.FEED_STR_*) */
+static char FEED_SCOLD_NAME[] = FEED_STR_SCOLD_NAME;
+static char FEED_SCOLD_DESC[] = FEED_STR_SCOLD_DESC;
+static char FEED_SLEEP_NAME[] = FEED_STR_SLEEP_NAME;
+static char FEED_SLEEP_DESC[] = FEED_STR_SLEEP_DESC;
 
 /* by slot - FEED_SCOLD */
 static FeedCommand FEED_COMMANDS[2] = {
@@ -113,9 +115,9 @@ static FeedCommand FEED_COMMANDS[2] = {
 	{ FEED_SLEEP_NAME, FEED_SLEEP_DESC, 0x28, 0x28, PARTNER_SLEEP }, /* MENU_OPTIONS[6] */
 };
 
-static char FEED_NOTE_FAVOURITE[] = "Its favourite food!";
-static char FEED_NOTE_MAY_NOT_CURE_SICK[] = "It may not cure its sickness.";
-static char FEED_NOTE_MAY_NOT_CURE_WOUND[] = "It may not cure its wound.";
+static char FEED_NOTE_FAVOURITE[] = FEED_STR_NOTE_FAVOURITE;
+static char FEED_NOTE_MAY_NOT_CURE_SICK[] = FEED_STR_NOTE_MAY_NOT_CURE_SICK;
+static char FEED_NOTE_MAY_NOT_CURE_WOUND[] = FEED_STR_NOTE_MAY_NOT_CURE_WOUND;
 
 static uint8_t feedSlots[32]; /* the commands and the inventory slots shown, most urgent first */
 static int32_t feedRanks[32];

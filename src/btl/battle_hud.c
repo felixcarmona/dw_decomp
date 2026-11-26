@@ -20,6 +20,7 @@
 #include <dw/script.h>
 #include <dw/sjis.h>
 #include <dw/swap.h>
+#include <dw/lang.h>
 #include <dw/version.h>
 #include <dw/world_object.h>
 #include <text/btl/battle_hud.h>
@@ -749,7 +750,14 @@ void BTL_drawBattleEndText(int32_t flag)
 		if (c == '\0') {
 			return;
 		}
-		glyph = swapShortBytes(convertAsciiToJis(c));
+		if ((c & 0x80) != 0 && BATTLE_END_CURSOR[1] != '\0') {
+			/* MOD (font): a byte with bit 7 starts a two-byte code, as drawString reads it: the mod font's extra
+			 * glyphs (F0xx: the accents, ñ, ¡, ¿...) were drawn as two unknown one-byte glyphs (blank) */
+			glyph = swapShortBytes((c << 8) | (uint8_t)BATTLE_END_CURSOR[1]);
+			BATTLE_END_CURSOR++;
+		} else {
+			glyph = swapShortBytes(convertAsciiToJis(c));
+		}
 		w = drawGlyph(glyph, BATTLE_END_PEN_X, BATTLE_END_PEN_Y);
 		BATTLE_END_PEN_X += w;
 		BATTLE_END_CURSOR++;
@@ -1216,6 +1224,16 @@ void BTL_renderFinisherGauge(int16_t idx)
 	}
 }
 
+/* MOD (language): the finisher's "○PUSH" label: the quad's x and w, its backing box's x and w; the Spanish ○PULSA is 43
+ * wide, moved left so its right edge stays (tools/localize/textures/misc/NOTES.md) */
+int16_t BTL_FINISHER_LABEL[4] = {
+#if MOD_LANG_BUILD == MOD_LANG_ES
+	0x68, 43, 0x66, 0x2f,
+#else
+	0x6e, 37, 0x6c, 0x29,
+#endif
+};
+
 void BTL_renderFinisherReadyIcon(void)
 {
 	GsBOXF box;
@@ -1229,8 +1247,8 @@ void BTL_renderFinisherReadyIcon(void)
 		setRGB0(prim, BTL_FINISHER_BRIGHTNESS, BTL_FINISHER_BRIGHTNESS, BTL_FINISHER_BRIGHTNESS);
 	}
 
-	setUVWH(prim, 0x80, 0x88, 37, 9);
-	setXYWH(prim, 0x6e, -0x4b, 37, 9);
+	setUVWH(prim, 0x80, 0x88, BTL_FINISHER_LABEL[1], 9);
+	setXYWH(prim, BTL_FINISHER_LABEL[0], -0x4b, BTL_FINISHER_LABEL[1], 9);
 	AddPrim(ACTIVE_ORDERING_TABLE->org + 0xa, prim++);
 	GsSetWorkBase((PACKET *)prim);
 
@@ -1241,8 +1259,8 @@ void BTL_renderFinisherReadyIcon(void)
 		box.r = box.g = box.b = BTL_FINISHER_BRIGHTNESS;
 	}
 
-	setWH(&box, 0x29, 0xb);
-	box.x = 0x6c;
+	setWH(&box, BTL_FINISHER_LABEL[3], 0xb);
+	box.x = BTL_FINISHER_LABEL[2];
 	box.y = -0x4c;
 	GsSortBoxFill(&box, ACTIVE_ORDERING_TABLE, 0xa);
 }
