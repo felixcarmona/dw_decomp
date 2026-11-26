@@ -2,6 +2,7 @@
 #include <dw/entity.h>
 #include <dw/garbage.h>
 #include <dw/input.h>
+#include <dw/mod_rules.h>
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/script.h>
@@ -92,7 +93,7 @@ int16_t instanceId;
 		if (MAIN_D_80135370 == 1) {
 			r = TRN_getSlotSessionResult();
 		}
-		if ((((MAIN_D_8013537A >= 0x4b0) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
+		if ((((MAIN_D_8013537A >= TRN_SESSION_OF(MOD_TRAIN_RULES)) || (POLLED_INPUT & CANCEL_BUTTON)) && (MAIN_D_80135370 == 0)) || ((MAIN_D_80135370 == 1) && (r >= 0))) {
 			TRN_awardMpTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, 0, r);
 			setMapObjectsFlag(MAIN_D_80135372, MAIN_D_80135374, 0);
 			setMapObjectsFlag(MAIN_D_80135376, MAIN_D_80135378, 1);

@@ -8,6 +8,7 @@
 #include <dw/trn2.h>
 #include <dw/types.h>
 #include <dw/world_object.h>
+#include <dw/mod_rules.h>
 
 extern int32_t TRAINING_COMPLETE;
 extern uint32_t POLLED_INPUT;
@@ -75,14 +76,14 @@ void TRN2_tickDefenseTrainingMap108(int32_t instanceId)
 			MAIN_D_801353BD = 2;
 		}
 		if (POLLED_INPUT & CANCEL_BUTTON) {
-			MAIN_D_801353C2 = 0x4b0;
+			MAIN_D_801353C2 = TRN_SESSION_OF(MOD_TRAIN2_RULES);
 		}
 		r = 10;
 		MAIN_D_801353C2++;
 		if (MAIN_D_801353BC == 1) {
 			r = TRN2_getSlotSessionResult();
 		}
-		if (((MAIN_D_801353C2 >= 0x4b0) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (r >= 0))) {
+		if (((MAIN_D_801353C2 >= TRN_SESSION_OF(MOD_TRAIN2_RULES)) && (MAIN_D_801353BC == 0)) || ((MAIN_D_801353BC == 1) && (r >= 0))) {
 			setMapObjectsFlag(MAIN_D_801353B8, MAIN_D_801353BA, 0);
 			setMapObjectsFlag(MAIN_D_801353BE, MAIN_D_801353C0, 1);
 			TRN2_awardDefenseTrainingGains(PARTNER_ENTITY.digimonEntity.entity.type, instanceId, r);

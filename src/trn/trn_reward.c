@@ -168,10 +168,10 @@ void TRN_createCloudFXLine(int16_t a, int16_t b, int16_t x, int16_t z, int16_t d
 	int32_t r;
 
 	if ((a % b) == 0) {
-		if (a >= 1200) {
-			a = 1200;
+		if (a >= TRN_SESSION_OF(MOD_TRAIN_RULES)) {
+			a = TRN_SESSION_OF(MOD_TRAIN_RULES);
 		}
-		d = (a / 120) * b;
+		d = (a / TRN_STEP_OF(MOD_TRAIN_RULES)) * b;
 		for (i = 0; i < n; i++) {
 			r = randomLimit(100);
 			pos.vx = (x + d) - r;
