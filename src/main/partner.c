@@ -1186,7 +1186,7 @@ uint8_t routine;
 		SOME_SCRIPT_SYNC_BIT = 0;
 		break;
 	case 2:
-		EVOLUTION_TARGET = readPStat(PSTAT_SUKAMON_BACKUP_DIGIMON);
+		EVOLUTION_TARGET = sukamonBackupSpecies();
 		partnerSetState(13);
 		SOME_SCRIPT_SYNC_BIT = 0;
 		break;

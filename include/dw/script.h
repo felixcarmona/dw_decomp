@@ -402,6 +402,14 @@ void callScriptSection(int32_t scriptId, int32_t section, int32_t param);
 int32_t tickScript(void);
 uint8_t *getScript(uint16_t mapId);
 uint8_t readPStat(uint8_t index);
+/* MOD (species past 255): a pstat is one byte and a species is not. storePartnerSpecies keeps a partner past 254 as
+   PSTAT_WIDE_SPECIES, which no narrow test matches by accident, and pstatSpecies reads the whole species back. The
+   Sukamon backup outlives the partner it names, so it also keeps the species in a saved wide register. */
+#define PSTAT_WIDE_SPECIES	0xFF
+#define WREG_SUKAMON_BACKUP	15
+void storePartnerSpecies(uint8_t index);
+int32_t pstatSpecies(uint8_t index);
+int32_t sukamonBackupSpecies(void);
 int32_t isTriggerSet(uint16_t trigger);
 void writePStat(uint8_t index, uint8_t value);
 void skipOneReadTwoShort(uint16_t *out1, uint16_t *out2);
