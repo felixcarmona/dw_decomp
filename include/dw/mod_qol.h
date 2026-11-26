@@ -17,11 +17,6 @@ void modSpeedBeforeTick(int32_t held);
 void modSpeedInput(void);
 void modSpeedPlateAdd(void);
 void modSpeedPlateRemove(void);
-/* the evolution's skip: modEvoSkipInput each tick of the scene (arms it, draws the hint's line into the text area,
-   takes START), modSkipPlate each frame while armed */
-void modEvoSkipInput(void);
-void modSkipHintDraw(void);
-void modSkipPlate(void);
 /* the tallies' skip hint: modCountHintDraw when the counting box opens (draws the line into the text area); each frame
    modCountHintRow draws the divider at y of the box (x, w) and, when show, the line centred 4 below it */
 #define MOD_COUNT_ROW_H 17 /* what the box grows by: the divider and the line under it */

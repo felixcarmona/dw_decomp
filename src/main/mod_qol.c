@@ -174,77 +174,10 @@ void modShopPlateAdd(void)
 	addObject(MOD_SHOP_PLATE_OBJECT, 0, NULL, modShopPlateRender);
 }
 
-/* the evolution's skip hint: a line of the game's font (in the language shown), drawn into a row of the text area,
-   then shown each frame in the bottom right corner */
-#define MOD_SKIP_ROW 0xD8
-static int16_t MOD_SKIP_W;
-static int16_t modSkipState;
-
-void modSkipHintDraw(void)
-{
-	RECT area;
-	char *text = QOL_STR_SKIP_EVOLUTION;
-
-	setRECT(&area, 0, MOD_SKIP_ROW, 256, 12);
-	clearTextSubArea(&area);
-	setTextColor(1);
-	MOD_SKIP_W = drawStringMode(text, 0, MOD_SKIP_ROW, fitStringMode(text, 240));
-}
-
-/* each tick of the scene: armed (3, the hint drawn and shown) once START is up and no pause is open, so the START
-   that closes a pause (the lab menu evolves under it, and the scene runs under the pause) is not a skip; a pause
-   disarms it (its box reuses the text area); START while armed asks for the skip (2) */
-void modEvoSkipInput(void)
-{
-	if (MOD_EVO_SKIP == 3 && PAUSE_STATE != 0) {
-		MOD_EVO_SKIP = 1;
-	} else if (MOD_EVO_SKIP == 1 && PAUSE_STATE == 0 && !(POLLED_INPUT & 0x800)) {
-		MOD_EVO_SKIP = 3;
-		modSkipHintDraw();
-	} else if (MOD_EVO_SKIP == 3 && (POLLED_INPUT & 0x800)) {
-		MOD_EVO_SKIP = 2;
-	} else if (MOD_EVO_SKIP == 3 && (EVO_SEQUENCE_DATA.state != modSkipState || (EVO_SEQUENCE_DATA.timer & 15) == 0)) {
-		modSkipHintDraw(); /* the scene's own loads reach the text area (the new form's textures): drawn again */
-	}
-	modSkipState = EVO_SEQUENCE_DATA.state;
-}
-
-/* one copy of the line, its colour (r, g, b) multiplying the font's white (0x80 = as drawn) */
-static void modSkipLine(int32_t x, int32_t y, int32_t r, int32_t g, int32_t b, int32_t layer)
-{
-	POLY_FT4 *p = (POLY_FT4 *)GsGetWorkBase();
-
-	initStringFT4(p);
-	setRGB0(p, r, g, b);
-	setUVDataPolyFT4(p, 0, MOD_SKIP_ROW, MOD_SKIP_W, 12);
-	setPosDataPolyFT4(p, x, y, MOD_SKIP_W, 12);
-	AddPrim(ACTIVE_ORDERING_TABLE->org + layer, p++);
-	GsSetWorkBase((PACKET *)p);
-}
-
-/* bottom right, no plate: light grey letters with a dark outline (the line eight times in black around it), so it
-   reads on the black close-up and on the white flash alike (owner's choice B, 2026-10-24) */
-void modSkipPlate(void)
-{
-	int32_t x = 0x98 - MOD_SKIP_W;
-	int32_t y = 0x68;
-	int32_t dx;
-	int32_t dy;
-
-	modSkipLine(x, y, 0x68, 0x68, 0x68, 4);
-	for (dy = -1; dy <= 1; dy++) {
-		for (dx = -1; dx <= 1; dx++) {
-			if (dx != 0 || dy != 0) {
-				modSkipLine(x + dx, y + dy, 0, 0, 0, 5);
-			}
-		}
-	}
-}
-
 /* the tallies' skip hint (patch 0333): "Press × to skip" in a row of its own at the bottom of the box that counts (the
    gym's stats box, the battle's bits box), under a divider like the battle box's. The line is drawn once into a row of
-   the text area when the box opens (the evolution's row: never on screen together), its button in the colour of the
-   button that confirms: × blue (6), with JAPANESE CONTROLS the font draws it as ○ (modButtonGlyph), red (3) */
+   the text area when the box opens, its button in the colour of the button that confirms: × blue (6), with JAPANESE
+   CONTROLS the font draws it as ○ (modButtonGlyph), red (3) */
 #define MOD_COUNT_ROW 0xD8
 #define MOD_COUNT_MAX_W 168
 static int16_t MOD_COUNT_W;

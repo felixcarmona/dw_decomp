@@ -5,7 +5,6 @@
 #include <dw/garbage.h>
 #include <dw/graphics.h>
 #include <dw/main.h>
-#include <dw/mod_qol.h>
 #include <dw/utils.h>
 #include <dw/world_object.h>
 
@@ -18,11 +17,6 @@ void isSoundLoaded();
 void loadVLALL();
 
 int8_t IS_LOAD_EVL_COMPLETE;
-/* MOD (evolution skip): every evolution can be skipped with START (a plate says so), from the start of the scene; the
- * loading waits end at once, and the EVL overlay jumps to the evolution itself (EVL_modSkipToEnd) */
-int8_t MOD_EVO_SKIP;
-extern uint32_t POLLED_INPUT;
-extern uint32_t POLLED_INPUT_PREVIOUS;
 
 EvoSequenceData EVO_SEQUENCE_DATA;
 
@@ -37,12 +31,10 @@ void tickEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
-	(void)data;
-	modEvoSkipInput();
 
 	switch (data->state) {
 	case 0:
-		if ((evoSequenceAlwaysTrue(500) == 1) && (data->timer > 55 || MOD_EVO_SKIP == 2)) {
+		if ((evoSequenceAlwaysTrue(500) == 1) && (data->timer > 55)) {
 			data->state = 1;
 			data->timer = 0;
 			startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 1);
@@ -50,7 +42,7 @@ void tickEvoSequenceLoading(int32_t instanceId)
 		}
 		break;
 	case 1:
-		if ((data->timer > 55 || MOD_EVO_SKIP == 2) && (IS_LOAD_EVL_COMPLETE == 0)) {
+		if ((data->timer > 55) && (IS_LOAD_EVL_COMPLETE == 0)) {
 			removeObject(0x809, instanceId);
 			stopBGM();
 			EVL_initEvoSequence();
@@ -72,9 +64,6 @@ void renderEvoSequenceLoading(int32_t instanceId)
 	EvoSequenceData *data;
 
 	data = &EVO_SEQUENCE_DATA;
-	if (MOD_EVO_SKIP == 3) {
-		modSkipPlate(); /* MOD (evolution skip): the hint (mod_qol.c) */
-	}
 }
 
 GARBAGE(getEvoSequenceState, 20);
@@ -104,7 +93,6 @@ int16_t isInitialized;
 	data->evoTarget = target;
 	data->heightFactor = (DIGI_PARA(data->digimonId).height << 12) /
 			     DIGI_PARA(partner->digimonEntity.entity.type).height;
-	MOD_EVO_SKIP = 1; /* MOD (evolution skip): every evolution, armed by modEvoSkipInput */
 
 	startAnimation(&PARTNER_ENTITY.digimonEntity.entity, 0);
 	stopSound();
