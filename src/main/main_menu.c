@@ -257,9 +257,9 @@ int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 #if FONT_SWITCH
-#define MOD_OPT_ROWS	6 /* MOD (options): and FONT, in a build with both fonts */
+#define MOD_OPT_ROWS	7 /* MOD (options): and FONT, in a build with both fonts */
 #else
-#define MOD_OPT_ROWS	5
+#define MOD_OPT_ROWS	6
 #endif
 static void renderOptionsMenu(void);
 static void drawOptionsText(void);
@@ -4598,7 +4598,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t screens[2];
 	int16_t inventory[30];
 	int32_t partnerType;
-	uint8_t options[6]; /* MOD (options) */
+	uint8_t options[7]; /* MOD (options) */
 	int32_t size;
 	int32_t i;
 
@@ -4661,6 +4661,7 @@ static void prepareSaveFile(int32_t fromRam)
 	options[4] = 0;
 #endif
 	options[5] = MOD_OPT_EVO_GUIDE;
+	options[6] = MOD_OPT_NEW_DIGIMON;
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
@@ -4906,6 +4907,9 @@ static void applyRecords(uint8_t *e)
 #endif
 			if (len >= 6 && !MOD_OPT_TOUCHED) {
 				MOD_OPT_EVO_GUIDE = d[5] != 0;
+			}
+			if (len >= 7 && !MOD_OPT_TOUCHED) {
+				MOD_OPT_NEW_DIGIMON = d[6] != 0;
 			}
 			break;
 		}
@@ -5373,6 +5377,7 @@ static char *MOD_OPT_TEXT[MOD_OPT_ROWS][1 + MOD_OPT_VALUES] = {
 	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_EVO, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_NEWDIGI, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
 	{ MOD_OPT_STR_FPS, MOD_OPT_STR_20, MOD_OPT_STR_60 },
 #if FONT_SWITCH
 	{ MOD_OPT_STR_FONT, MOD_OPT_STR_NEW, MOD_OPT_STR_CLASSIC, MOD_OPT_STR_ORIGINAL },
@@ -5416,8 +5421,10 @@ static int32_t modOptionValue(int32_t row)
 		return MOD_OPT_BARS != 0;
 	case 3:
 		return MOD_OPT_EVO_GUIDE != 0;
+	case 4:
+		return MOD_OPT_NEW_DIGIMON != 0;
 #if FONT_SWITCH
-	case 5: /* NEW, CLASSIC, ORIGINAL */
+	case 6: /* NEW, CLASSIC, ORIGINAL */
 		return MOD_FONT == MOD_FONT_NEW ? 0 : MOD_FONT == MOD_FONT_CLASSIC ? 1 : 2;
 #endif
 	}
@@ -5445,10 +5452,13 @@ static void modSetOption(int32_t row, int32_t value)
 		MOD_OPT_EVO_GUIDE = value;
 		break;
 	case 4:
+		MOD_OPT_NEW_DIGIMON = value;
+		break;
+	case 5:
 		modSetFrameRate(value ? 60 : 20);
 		break;
 #if FONT_SWITCH
-	case 5:
+	case 6:
 		modSetFont(value == 0 ? MOD_FONT_NEW : value == 1 ? MOD_FONT_CLASSIC : MOD_FONT_ORIGINAL);
 		break;
 #endif

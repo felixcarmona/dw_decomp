@@ -365,6 +365,9 @@ MOD_OPTIONS:
     MOD_OPT_STR_EVO:
       ja: "EVOLUTION GUIDE"
       en_us: "EVOLUTION GUIDE"
+    MOD_OPT_STR_NEWDIGI:
+      ja: "NEW DIGIMON"
+      en_us: "NEW DIGIMON"
     MOD_OPT_STR_FPS:
       ja: "FRAME RATE"
       en_us: "FRAME RATE"

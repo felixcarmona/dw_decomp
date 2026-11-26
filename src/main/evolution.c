@@ -13,6 +13,7 @@
 #include <dw/tamer.h>
 #include <dw/types.h>
 #include <dw/mod_rules.h>
+#include <dw/mod_options.h>
 
 void initializeReincarnatedPartner(int32_t type, int32_t posX, int32_t posY,
                                    int32_t posZ, int32_t rotX, int32_t rotY,
@@ -917,7 +918,7 @@ int16_t getFreshEvolutionTarget(int32_t currentDigimon) {
 
   result = -1;
   for (i = 0; i < MOD_EVO_PAIR_MAX; i++) {
-    if (MOD_EVO_FRESH[i][0] == currentDigimon)
+    if (MOD_EVO_FRESH[i][0] == currentDigimon && modSpeciesAllowed(MOD_EVO_FRESH[i][1]))
       result = MOD_EVO_FRESH[i][1];
   }
 
@@ -932,7 +933,7 @@ static void scoreInTrainingTarget(int32_t currentDigimon, DigimonId target, int3
   int8_t isMaxCM;
   int8_t isMaxBattles;
 
-  if (target == -1 || target == 0 || !isPartnerModelFit(target)) /* MOD (scale): a model that does not fit is no target */
+  if (target == -1 || target == 0 || !isPartnerModelFit(target) || !modSpeciesAllowed(target)) /* MOD (scale): a model that does not fit is no target; MOD (options): NEW DIGIMON */
     return;
   isMaxCM = (EVO_REQ_ROW(target).flags & 0x10) >> 4;
   isMaxBattles = EVO_REQ_ROW(target).flags & 1;
@@ -981,7 +982,7 @@ int16_t getRookieEvolutionTarget(int32_t currentDigimon) {
   bestScore = statTotal = statCount = 0U;
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
+    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr) || !modSpeciesAllowed(*targetPtr)) { /* MOD (scale): a model that does not fit is no target; MOD (options): NEW DIGIMON off, the original's species only */
       targetPtr++;
       continue;
     }
@@ -1050,7 +1051,7 @@ int16_t getChampionEvolutionTarget(int32_t currentDigimon) {
   bestScore = statTotal = statCount = 0U;
 
   for (i = 0; i < 6; i++) {
-    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr)) { /* MOD (scale): a model that does not fit is no target */
+    if (*targetPtr == -1 || !isPartnerModelFit(*targetPtr) || !modSpeciesAllowed(*targetPtr)) { /* MOD (scale): a model that does not fit is no target; MOD (options): NEW DIGIMON off, the original's species only */
       targetPtr++;
       continue;
     }
@@ -1378,7 +1379,7 @@ int16_t getModUltimateEvolutionTarget(int32_t currentDigimon)
 	/* MOD (evolution rules as data): the {from, to} pairs of MOD_EVO_ULTIMATE (Megadramon/Gigadramon -> Machinedramon) */
 	for (i = 0; i < MOD_EVO_PAIR_MAX; i++) {
 		target = MOD_EVO_ULTIMATE[i][1];
-		if (MOD_EVO_ULTIMATE[i][0] != currentDigimon || target < 0) {
+		if (MOD_EVO_ULTIMATE[i][0] != currentDigimon || target < 0 || !modSpeciesAllowed(target)) {
 			continue;
 		}
 		reqs = &EVO_REQ_ROW(target);

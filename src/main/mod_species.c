@@ -54,6 +54,17 @@ static RaiseData NO_RAISE;
 static EvoRequirements NO_EVO_REQS;
 static EvoStatsGains NO_EVO_GAINS;
 
+static uint8_t SPECIES_VANILLA[SPECIES_VANILLA_BYTES];
+static int8_t SPECIES_HAS_VANILLA;
+
+int32_t isVanillaSpecies(int32_t type)
+{
+	if (!SPECIES_HAS_VANILLA) {
+		return 1;
+	}
+	return (uint32_t)type < NUM_DIGIMON && ((SPECIES_VANILLA[type >> 3] >> (type & 7)) & 1);
+}
+
 int32_t isRecordOriginal(int32_t type)
 {
 	if ((uint32_t)type >= NUM_ORIGINAL_DIGIMON) {
@@ -339,6 +350,11 @@ void initializeSpecies(void)
 	}
 	for (i = 0; i < SPECIES_RECORD_ORIGINALS_BYTES; i++) {
 		SPECIES_RECORD_ORIGINALS[i] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_RECORD_ORIGINALS + i];
+	}
+	SPECIES_HAS_VANILLA = 0;
+	for (i = 0; i < SPECIES_VANILLA_BYTES; i++) {
+		SPECIES_VANILLA[i] = ((uint8_t *)SPECIES_SECTOR)[SPECIES_HEADER_VANILLA + i];
+		SPECIES_HAS_VANILLA |= SPECIES_VANILLA[i] != 0;
 	}
 	SPECIES_FALLBACK_PORTRAIT = header->fallbackPortrait;
 	SPECIES_CHART_SECTOR = header->chartSector;
