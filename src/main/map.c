@@ -5266,15 +5266,81 @@ void createCameraMovement(target, instanceId)
 	CAMERA_REACHED_TARGET = -1;
 }
 
-// clang-format off
-void tickCameraMovement(instanceId)
-	int16_t instanceId;
-// clang-format on
+/* Shared absolute endpoint for scripted pans and synchronous Continue. */
+static __attribute__((noinline)) void modCameraTargetOffsets(VECTOR *worldTarget, int32_t fromTamer, DVECTOR *out)
 {
 	SVECTOR target;
 	SVECTOR view;
 	SVECTOR screenTarget;
 	SVECTOR screenView;
+
+	SetRotMatrix(&GsWSMATRIX);
+	SetTransMatrix(&GsWSMATRIX);
+	copyVector(&target, worldTarget);
+	view.vx = GS_VIEWPOINT.vrx;
+	view.vy = GS_VIEWPOINT.vry;
+	view.vz = GS_VIEWPOINT.vrz;
+	gte_ldv0(&target);
+	gte_rtps();
+	gte_stsxy((long *)&screenTarget);
+	if (fromTamer) { /* MOD (camera) */
+		modCamTarget(&MOD_CAM_SHIFT);
+		screenTarget.vx += MOD_CAM_SHIFT.vx;
+		screenTarget.vy += MOD_CAM_SHIFT.vy;
+	} else {
+		/* a script pan (tickCameraMoveTo/ToEntity): the target itself becomes the
+		 * point the scroll keeps; the follow eases the shift back while walking */
+		MOD_CAM_SHIFT.vx = MOD_CAM_SHIFT.vy = 0;
+	}
+	SetRotMatrix(&GsWSMATRIX);
+	SetTransMatrix(&GsWSMATRIX);
+	gte_ldv0(&view);
+	gte_rtps();
+	gte_stsxy((long *)&screenView);
+	out->vx = (screenView.vx - screenTarget.vx) + 160;
+	out->vy = (screenView.vy - screenTarget.vy) + 120;
+	PLAYER_OFFSET_X += out->vx - PLAYER_OFFSET_X;
+	PLAYER_OFFSET_Y += out->vy - PLAYER_OFFSET_Y;
+
+	if (out->vx < DRAW_OFFSET_LIMIT_X_MIN) {
+		out->vx = DRAW_OFFSET_LIMIT_X_MIN;
+	}
+
+	if (out->vx > DRAW_OFFSET_LIMIT_X_MAX) {
+		out->vx = DRAW_OFFSET_LIMIT_X_MAX;
+	}
+
+	if (out->vy < DRAW_OFFSET_LIMIT_Y_MIN) {
+		out->vy = DRAW_OFFSET_LIMIT_Y_MIN;
+	}
+
+	if (out->vy > DRAW_OFFSET_LIMIT_Y_MAX) {
+		out->vy = DRAW_OFFSET_LIMIT_Y_MAX;
+	}
+}
+
+/* Restore gameLoop's view before using the old pan's endpoint. No pan object
+ * is queued: the caller uploads the final background before field input. */
+void initializeLoadedDrawingOffsets(void)
+{
+	DVECTOR offset;
+
+	GsSetOrign(DRAWING_OFFSET_X, DRAWING_OFFSET_Y);
+	GsSetRefView2(&GS_VIEWPOINT);
+	GsSetProjection(VIEWPORT_DISTANCE);
+	modCameraTargetOffsets(&TAMER_ENTITY.entity.posData->location, 1, &offset);
+	MAP_TILE_DATA.cameraX += DRAWING_OFFSET_X - offset.vx;
+	MAP_TILE_DATA.cameraY += DRAWING_OFFSET_Y - offset.vy;
+	DRAWING_OFFSET_X = offset.vx;
+	DRAWING_OFFSET_Y = offset.vy;
+}
+
+// clang-format off
+void tickCameraMovement(instanceId)
+	int16_t instanceId;
+// clang-format on
+{
+	DVECTOR offset;
 	int32_t atEdgeX;
 	int32_t atEdgeY;
 	int16_t stepX;
@@ -5289,51 +5355,11 @@ void tickCameraMovement(instanceId)
 	int16_t oldDeltaX, oldDeltaY;
 
 	if (CAMERA_HAS_TARGET == 0) {
-		SetRotMatrix(&GsWSMATRIX);
-		SetTransMatrix(&GsWSMATRIX);
-		copyVector(&target, &CAMERA_TARGET);
-		view.vx = GS_VIEWPOINT.vrx;
-		view.vy = GS_VIEWPOINT.vry;
-		view.vz = GS_VIEWPOINT.vrz;
-		gte_ldv0(&target);
-		gte_rtps();
-		gte_stsxy((long *)&screenTarget);
-		if (modCamFromTamer) { /* MOD (camera) */
-			modCamTarget(&MOD_CAM_SHIFT);
-			screenTarget.vx += MOD_CAM_SHIFT.vx;
-			screenTarget.vy += MOD_CAM_SHIFT.vy;
-		} else {
-			/* a script pan (tickCameraMoveTo/ToEntity): the target itself becomes the
-			 * point the scroll keeps; the follow eases the shift back while walking */
-			MOD_CAM_SHIFT.vx = MOD_CAM_SHIFT.vy = 0;
-		}
-		SetRotMatrix(&GsWSMATRIX);
-		SetTransMatrix(&GsWSMATRIX);
-		gte_ldv0(&view);
-		gte_rtps();
-		gte_stsxy((long *)&screenView);
+		modCameraTargetOffsets(&CAMERA_TARGET, modCamFromTamer, &offset);
+		CAMERA_MOVE_DIFF_X = offset.vx;
+		CAMERA_MOVE_DIFF_Y = offset.vy;
 		CAMERA_DATA = DRAWING_OFFSET_X;
 		CAMERA_MOVE_DRAW_OFFSET_Y = DRAWING_OFFSET_Y;
-		CAMERA_MOVE_DIFF_X = (screenView.vx - screenTarget.vx) + 160;
-		CAMERA_MOVE_DIFF_Y = (screenView.vy - screenTarget.vy) + 120;
-		PLAYER_OFFSET_X += CAMERA_MOVE_DIFF_X - PLAYER_OFFSET_X;
-		PLAYER_OFFSET_Y += CAMERA_MOVE_DIFF_Y - PLAYER_OFFSET_Y;
-
-		if (CAMERA_MOVE_DIFF_X < DRAW_OFFSET_LIMIT_X_MIN) {
-			CAMERA_MOVE_DIFF_X = DRAW_OFFSET_LIMIT_X_MIN;
-		}
-
-		if (CAMERA_MOVE_DIFF_X > DRAW_OFFSET_LIMIT_X_MAX) {
-			CAMERA_MOVE_DIFF_X = DRAW_OFFSET_LIMIT_X_MAX;
-		}
-
-		if (CAMERA_MOVE_DIFF_Y < DRAW_OFFSET_LIMIT_Y_MIN) {
-			CAMERA_MOVE_DIFF_Y = DRAW_OFFSET_LIMIT_Y_MIN;
-		}
-
-		if (CAMERA_MOVE_DIFF_Y > DRAW_OFFSET_LIMIT_Y_MAX) {
-			CAMERA_MOVE_DIFF_Y = DRAW_OFFSET_LIMIT_Y_MAX;
-		}
 
 		CAMERA_MOVE_FINAL_X = MAP_TILE_DATA.cameraX + (CAMERA_DATA - CAMERA_MOVE_DIFF_X);
 		CAMERA_MOVE_FINAL_Y = MAP_TILE_DATA.cameraY + (CAMERA_MOVE_DRAW_OFFSET_Y - CAMERA_MOVE_DIFF_Y);
