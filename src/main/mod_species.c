@@ -1209,7 +1209,7 @@ void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb)
 	}
 }
 
-/* Small hands: each hand's corners three quarters as far from the wrist. The model has just been read: its objects
+/* Small hands, the girl's: each hand's corners five eighths as far from the wrist. The model has just been read: its objects
  * still hold offsets from their table. */
 #define LOOK_HANDS	((1 << 4) | (1 << 7))	/* the objects that are hands */
 void lookTamerHands(void)
@@ -1226,7 +1226,7 @@ void lookTamerHands(void)
 		if ((LOOK_HANDS >> i) & 1) {
 			v = (int16_t *)((uint8_t *)(object - 7 * i) + object[0]);
 			for (n = object[1] * 4; n > 0; n--, v++) {
-				*v = (*v * 3) >> 2;
+				*v = (*v * 5) >> 3;
 			}
 		}
 	}
