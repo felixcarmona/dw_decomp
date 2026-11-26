@@ -35,6 +35,8 @@ int32_t MOD_OPT_CLOCK = 1;
 int32_t MOD_OPT_BARS = 1;
 int32_t MOD_OPT_EVO_GUIDE = 1;
 int32_t MOD_OPT_NEW_DIGIMON = 1;
+int16_t MOD_SWAP_FROM;
+int16_t MOD_SWAP_TO;
 
 int32_t modSpeciesAllowed(int32_t type)
 {
