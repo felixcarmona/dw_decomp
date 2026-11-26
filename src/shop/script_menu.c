@@ -1249,6 +1249,8 @@ void initializeNamingBuffer(uint8_t flags)
 	SCRIPT_TEXTBOX_MODE = 0;
 }
 
+int32_t lookPageQuiz(void);
+
 int32_t newGameStateMachine(void)
 {
 	static uint8_t answers[7];
@@ -1256,6 +1258,9 @@ int32_t newGameStateMachine(void)
 	int32_t i;
 	int32_t sel = 0;
 
+	if (SCRIPT_STATE_2 >= 0x30) { /* MOD (tamer looks): boy or girl, and the Look page (game_menu.c) */
+		return lookPageQuiz();
+	}
 	switch (SCRIPT_STATE_2) {
 	case 0:
 		setTrigger(TRIGGER_49);
@@ -1281,7 +1286,7 @@ int32_t newGameStateMachine(void)
 	case 0x23:
 		if (question == 7) {
 			writePStat(PSTAT_254, modQuizResult(answers));
-			showNewGameDialogue(0x39, 0x12);
+			showNewGameDialogue(0x39, 0x30); /* MOD (tamer looks): was 0x12; boy or girl first */
 		} else {
 			showNewGameDialogue(0x24 + question * 3, 0x24);
 		}
@@ -1369,7 +1374,7 @@ int32_t newGameStateMachine(void)
 		}
 		break;
 	case 0x17:
-		showNewGameSelection(0x1c, 0x18);
+		showNewGameSelection(0x1c, 0x34); /* MOD (tamer looks): was 0x18; the Look page first */
 		break;
 	case 0x18:
 		showNewGameDialogue(0x21, 0x20); /* MOD (optional name): was 0x1d -> 0x1a; first, does the player name it? */

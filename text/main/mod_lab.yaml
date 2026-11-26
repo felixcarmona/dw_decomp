@@ -571,6 +571,9 @@ MOD_LAB:
     LAB_STR_TAMER_GIRL:
       ja: "Girl"
       en_us: "Girl"
+    LAB_STR_LOOK_LATER:
+      ja: "Change it later in the menu."
+      en_us: "Change it later in the menu."
     LAB_STR_CAP_COLOUR:
       ja: "Cap colour"
       en_us: "Cap colour"
