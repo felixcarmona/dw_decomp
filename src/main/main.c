@@ -5295,8 +5295,9 @@ static ModRollbackSet *modLoopRollback; /* the last loop's set (MOD_PRESENT_PAUS
  * item in hand, not while the defeat countdown runs). Fast ticks go in pairs over 3 refreshes (40 ticks a second):
  * the first is due 2 refreshes after the pair began and is shown; the second, MOD_REAL_TICK 0, renders as every tick
  * does (render functions advance state: effect scripts, gauges) but its frame is thrown away and it waits for no
- * refresh. A tick and its render take a little more than one refresh in a fight (measured: ~270 of 263 lines), so
- * one shown frame per tick could not pass 30 ticks a second. Each fast tick is due from when the one before was
+ * refresh; only the Digimon models and the tournament arena, the biggest pure drawing costs, are not sorted in it
+ * (renderDigimon, STD_renderArena0/1), so the pair fits its 3 refreshes. A tick and its render take a little more than one refresh in a fight (measured: ~270 of 263
+ * lines), so one shown frame per tick could not pass 30 ticks a second. Each fast tick is due from when the one before was
  * due, not from when it ended. What counts real time (the play time) skips MOD_REAL_TICK 0. The fight's logic is the
  * same per tick: only the real time between ticks changes. */
 int8_t MOD_BATTLE_FAST;
@@ -5332,8 +5333,10 @@ void modTickStart(int32_t flags)
 		modTickPeriod = 3;
 	}
 	if (MOD_TICK_FAST) {
-		/* due when the one before was due plus its period, unless that is more than a pair behind */
-		modTickV = (now >= modFastDue && now - modFastDue <= 3) ? modFastDue : now;
+		/* due when the one before was due plus its period, unless that is more than a pair behind; a tick that
+		 * starts a refresh early (the pair's second tick ended quickly) is still due then, or the pair's frame
+		 * came 2 refreshes after the last one instead of 3 */
+		modTickV = (now >= modFastDue - 1 && now - modFastDue <= 3) ? modFastDue : now;
 		modTickL0 = modLines();
 		modFastDue = modTickV + modTickRefreshes();
 	} else if (((flags & MOD_PRESENT_BATTLE) | (now < modLastEndV)) &&

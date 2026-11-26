@@ -2910,6 +2910,9 @@ static void modFlagBones(PositionData *pos, int32_t boneCount)
 
 #include "smooth_runtime.inc"
 
+extern int8_t MOD_TICK_FAST; /* main.c (battle speed) */
+extern int8_t MOD_REAL_TICK;
+
 void renderDigimon(instanceId)
 	int16_t instanceId;
 {
@@ -2965,6 +2968,9 @@ void renderDigimon(instanceId)
 		GsSetLsMatrix(&ls);
 		if (ENTITY_TABLE[instanceId]->flatSprite != -1) {
 			continue;
+		}
+		if (MOD_TICK_FAST && !MOD_REAL_TICK) {
+			continue; /* MOD (battle speed): this frame is thrown away; sorting the model only cost time */
 		}
 		/* MOD (packet budget): a bone emits at most one POLY_GT4 (52 B)
 		 * per primitive (attribute 0, no subdivision) */
