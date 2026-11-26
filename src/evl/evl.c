@@ -311,10 +311,16 @@ static void EVL_modSkipToEnd(EvoSequenceData *data)
 	int32_t i;
 
 	if (data->state == 0) {
+		/* state 0's end also hides the other entities and remembers who was on the map; state 3 gives that back, so
+		 * without it the table is stale (zero) and the tamer and the NPCs stay off the map for good */
+		EVL_setOtherEntitiesVisible(0);
+		setMapLayerEnabled(0);
 		EVL_D_800688E8 = GS_VIEWPOINT;
 		MAIN_D_801351E4 = DRAWING_OFFSET_X;
 		MAIN_D_801351E8 = DRAWING_OFFSET_Y;
 		MAIN_D_801351EC = VIEWPORT_DISTANCE;
+		EVL_D_80068908 = ENTITY_TABLE[1]->posData->location;
+		MAIN_D_801351F0 = ENTITY_TABLE[1]->posData->rotation;
 		loadMMDAsync(data->digimonId, 3, MAIN_D_801349E4, &data->modelData, (uint8_t *)&data->hasFinishedLoading);
 	}
 	stopSound();
