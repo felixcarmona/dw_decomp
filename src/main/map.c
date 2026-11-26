@@ -5080,6 +5080,8 @@ void updateDrawingOffsets(DVECTOR *current, DVECTOR *previous)
 	}
 }
 
+extern int8_t TAMER_STATE;
+
 void handleTileUpdate(int32_t input, int32_t force)
 {
 	if ((((input & 0x1000) != 0) ||
@@ -5233,7 +5235,8 @@ void handleTileUpdate(int32_t input, int32_t force)
 			}
 		}
 	}
-	if (force == 1) {
+	/* Curling keeps its window in KAR_flushTiles; this path rereads three rows from the CD. */
+	if (force == 1 && TAMER_STATE != 12) {
 		uploadMapTileImages(MAP_TILE_DATA.tiles,
 				    MAP_TILE_X + ((long)MAP_TILE_Y * MAP_TILE_DATA.width));
 	}
@@ -5629,8 +5632,6 @@ void setCameraFollowPlayer(void)
 }
 
 // clang-format off
-extern int8_t TAMER_STATE;
-
 void updateTileRow(bottom)
 	int8_t bottom;
 // clang-format on
