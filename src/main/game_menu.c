@@ -6959,7 +6959,7 @@ static void lookPageNewGameClose(void)
 }
 
 /* A new game's questions about the tamer, among Jijimon's (newGameStateMachine sends its states from 0x30 here): boy
- * or girl after his seven questions, and the Look page after the name. MAPHEAD 1238 lines 0x3a to 0x3c. */
+ * or girl after his seven questions, then the Look page, then the name. MAPHEAD 1238 lines 0x3a to 0x3c. */
 int32_t lookPageQuiz(void)
 {
 	switch (SCRIPT_STATE_2) {
@@ -6975,17 +6975,14 @@ int32_t lookPageQuiz(void)
 		break;
 	case 0x32: /* a boy: the original tamer */
 		memset(MOD_TAMER_STATE, 0, TAMER_STATE_SIZE);
-		SCRIPT_STATE_2 = 0x12;
+		SCRIPT_STATE_2 = 0x34;
 		break;
 	case 0x33: /* a girl: as she starts, to change on the page */
 		memcpy(MOD_TAMER_STATE, (uint8_t *)lookPageGirl, TAMER_STATE_SIZE);
-		SCRIPT_STATE_2 = 0x12;
+		SCRIPT_STATE_2 = 0x34;
 		break;
-	case 0x34: /* the name is right */
+	case 0x34: /* what the tamer looks like, before the name: the name can follow the look */
 		showNewGameDialogue(0x3c, 0x36);
-		break;
-	case 0x35: /* it is not: the keyboard again */
-		SCRIPT_STATE_2 = 0x13;
 		break;
 	case 0x36:
 		closeBox(0);
@@ -7015,7 +7012,7 @@ int32_t lookPageQuiz(void)
 		if (lookPageState.ask == 0 || FADE_OUT_CURRENT >= 0x14) {
 			lookPageNewGameClose();
 			setupNewGameDialogueBox();
-			SCRIPT_STATE_2 = 0x18;
+			SCRIPT_STATE_2 = 0x12; /* the name */
 		}
 		break;
 	}

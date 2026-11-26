@@ -1375,7 +1375,7 @@ int32_t newGameStateMachine(void)
 		}
 		break;
 	case 0x17:
-		showNewGameSelection(0x1c, 0x34); /* MOD (tamer looks): was 0x18; the Look page first */
+		showNewGameSelection(0x1c, 0x18);
 		break;
 	case 0x18:
 		showNewGameDialogue(0x21, 0x20); /* MOD (optional name): was 0x1d -> 0x1a; first, does the player name it? */
