@@ -5860,7 +5860,7 @@ int32_t STD_calculateDamage(DigimonEntity *attacker, DigimonEntity *defender, in
 		diff = off - def;
 		roll = randomLimit(BMS(RAND_SPAN)) + BM(RAND_MIN);
         dmg = BMD((mult[0] + mult[1] + mult[2]) * modBtDefensePower(modSpeciesMove(attacker->entity.type, move)->power, off, defender->stats.base.def, move == 0x2d), DMG_DIV) * roll / 100;
-        if (MOD_OPT_DIFFICULTY == MOD_DIFF_HARD && (Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1]) {
+        if (modFloorPercent() > 0 && (Entity *)defender == ENTITY_TABLE[1] && (Entity *)attacker != ENTITY_TABLE[1]) {
             floorDamage = BMD((mult[0] + mult[1] + mult[2]) * modBtStatPower(modSpeciesMove(attacker->entity.type, move)->power, off), DMG_DIV) * roll / 100;
             if (floorDamage > DAMAGE_CAP) floorDamage = DAMAGE_CAP;
             STD_HARD_ZERO_DAMAGE = floorDamage;

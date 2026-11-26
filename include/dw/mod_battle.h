@@ -182,6 +182,10 @@ enum {
 	MOD_BT_HARD_FLOOR,
 	MOD_BT_DEF_KNEE,
 	MOD_BT_DEF_HALF,
+	MOD_BT_NORMAL_FROM_HP,	/* NORMAL: an enemy whose maximum HP is at least this much is a late-game enemy (0: none) */
+	MOD_BT_NORMAL_HP,	/* NORMAL: its maximum HP, in percent */
+	MOD_BT_NORMAL_OFF,	/* NORMAL: its Offense, in percent */
+	MOD_BT_NORMAL_FLOOR,	/* NORMAL: the least an enemy hit does, in percent of the same hit against Defense zero (0: none) */
 	MOD_BT_SIZE
 };
 

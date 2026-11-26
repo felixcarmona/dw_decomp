@@ -17,15 +17,21 @@ static inline int32_t modHardScale(int32_t value, int32_t slot, int32_t cap)
 }
 
 /* Round the minimum upward, including after ordinary block chip rounding. */
+static inline int32_t modFloorPercent(void)
+{
+    if (MOD_OPT_DIFFICULTY == MOD_DIFF_EASY) return 0;
+    return MOD_OPT_DIFFICULTY == MOD_DIFF_HARD ? BM(HARD_FLOOR) : BM(NORMAL_FLOOR);
+}
+
 static inline int32_t modHardMinimum(int32_t zeroDamage)
 {
-    return (zeroDamage * BM(HARD_FLOOR) + 99) / 100;
+    return (zeroDamage * modFloorPercent() + 99) / 100;
 }
 
 static inline int32_t modHardBlockedFloor(int32_t damage, int32_t zeroDamage, int32_t blockPercent)
 {
     int32_t minimum;
-    if (MOD_OPT_DIFFICULTY != MOD_DIFF_HARD || zeroDamage <= 0) return damage;
+    if (modFloorPercent() <= 0 || zeroDamage <= 0) return damage;
     minimum = modHardMinimum(zeroDamage * blockPercent / 100);
     return damage < minimum ? minimum : damage;
 }
@@ -35,6 +41,15 @@ static inline int32_t modHardBlockedFloor(int32_t damage, int32_t zeroDamage, in
 static inline void modHardEnemy(Stats *stats)
 {
     int32_t oldHP = stats->base.hp;
+    if (MOD_OPT_DIFFICULTY == MOD_DIFF_NORMAL && BM(NORMAL_FROM_HP) > 0 && oldHP >= BM(NORMAL_FROM_HP)) {
+        /* NORMAL: the late-game enemies are tougher (tools/balance.py battleFormulas normal.*); the early game is untouched */
+        stats->base.hp = oldHP * modBtSpan(MOD_BT_NORMAL_HP) / 100;
+        if (stats->base.hp > HPMP_CAP) stats->base.hp = HPMP_CAP;
+        stats->current.currentHP = (int32_t)stats->current.currentHP * stats->base.hp / oldHP;
+        stats->base.off = stats->base.off * modBtSpan(MOD_BT_NORMAL_OFF) / 100;
+        if (stats->base.off > STAT_CAP) stats->base.off = STAT_CAP;
+        return;
+    }
     if (MOD_OPT_DIFFICULTY != MOD_DIFF_HARD) return;
     stats->base.hp = modHardScale(stats->base.hp, MOD_BT_HARD_HP, HPMP_CAP);
     if (oldHP > 0) stats->current.currentHP = (int32_t)stats->current.currentHP * stats->base.hp / oldHP;
