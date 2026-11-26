@@ -245,7 +245,7 @@ typedef struct {
 #define SAVE_EXT_BYTES		0x1000
 SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* the most a build writes: the head, the records (4 bytes each and their data), the end record and the checksum */
-#define SAVE_RECORDS_MAX	(sizeof(SaveExtHead) + 9 * 4 + 4 + 2 * 30 + 4 + 2 * 16 + 2 * 40 + 2 * 100 + 8 + 2 * (NUM_DIGIMON / 8) + 1 + 4 + 4)
+#define SAVE_RECORDS_MAX	(sizeof(SaveExtHead) + 9 * 4 + 4 + 2 * 30 + 4 + 2 * 16 + 2 * 40 + 2 * 100 + 8 + 2 * (NUM_DIGIMON / 8) + 4 + 4 + 4)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_EXT_BYTES);
 
 uint32_t CONNECTED_CARDS;
@@ -257,6 +257,9 @@ int32_t MEMORY_CARD_ID;
 int32_t MAIN_MENU_TICKS;
 static int32_t MOD_OPTIONS_BACK; /* MOD (options): the title menu comes back from OPTIONS */
 static void renderOptionsMenu(void);
+static void drawOptionsText(void);
+static int32_t modOptionValue(int32_t row);
+static void modSetOption(int32_t row, int32_t value);
 int32_t CURRENT_MENU;
 int32_t NEW_CARDS;
 int32_t MAIN_D_80135054;
@@ -990,13 +993,13 @@ MenuHighlight MENU_HIGHLIGHTS[23] = { /* MOD (options): view 22 */
 		0x0024,
 		0x000c,
 	},
-	{ /* MOD (options): the OPTIONS box (renderOptionsMenu) */
+	{ /* MOD (options): the OPTIONS box (renderOptionsMenu), 4 rows */
 		0x00,
-		{ 0x01, 0x00, 0x00, 0x00, 0x00 },
+		{ 0x04, 0x00, 0x00, 0x00, 0x00 },
 		0x000c,
-		0x003f,
+		0x0035,
 		0x0037,
-		0x00c2,
+		0x00d6,
 		0x000c,
 	},
 };
@@ -2075,7 +2078,7 @@ void drawMainMenuStrings(int32_t menu)
 		drawString(MOD_OPT_STR_OPTIONS, 0, 0x30); /* MOD (options) */
 		break;
 	case 22: /* MOD (options) */
-		drawString(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_OPT_STR_JP_ON : MOD_OPT_STR_JP_OFF, 0, 0);
+		drawOptionsText();
 		break;
 	case 1:
 		drawString(SLOT_ACTION_TITLES[0], 0, 0);
@@ -2574,6 +2577,7 @@ void tickMainMenu(void)
 #endif
 	MenuCursor *cursor;
 	int32_t input;
+	int32_t value; /* MOD (options) */
 	int32_t status;
 #if VERSION_IS(JP_TRIAL) || VERSION_IS(JP_BOMBOM)
 	int32_t i;
@@ -2631,15 +2635,21 @@ void tickMainMenu(void)
 	case 4: /* MOD (options) */
 		cursor = (MenuCursor *)&MENU_HIGHLIGHTS[22];
 		input = tickMenuInput(cursor, 1);
-		if (input == 0 && (CHANGED_INPUT == 0x8000 || CHANGED_INPUT == 0x2000)) {
-			playSound(0, 2);
-			input = 1;
+		value = -1;
+		if (input == 0 && CHANGED_INPUT == 0x8000) { /* left: the left value */
+			value = 0;
+		} else if (input == 0 && CHANGED_INPUT == 0x2000) { /* right: the right one */
+			value = 1;
+		} else if (input == 1) { /* confirm: the other one */
+			value = modOptionValue(cursor->pos) != 1;
 		}
-		if (input == 1) {
-			MOD_OPT_TOUCHED = 1;
-			modSetButtons(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_BUTTONS_US : MOD_BUTTONS_JP);
+		if (value >= 0 && value != modOptionValue(cursor->pos)) {
+			if (input == 0) {
+				playSound(0, 2);
+			}
+			modSetOption(cursor->pos, value);
 			clearTextArea();
-			drawString(MOD_OPT_BUTTONS == MOD_BUTTONS_JP ? MOD_OPT_STR_JP_ON : MOD_OPT_STR_JP_OFF, 0, 0);
+			drawOptionsText();
 		} else if (input == 2) {
 			MOD_OPTIONS_BACK = 1;
 			TARGET_MENU = 0;
@@ -4578,7 +4588,7 @@ static void prepareSaveFile(int32_t fromRam)
 	int16_t screens[2];
 	int16_t inventory[30];
 	int32_t partnerType;
-	uint8_t options[1]; /* MOD (options) */
+	uint8_t options[4]; /* MOD (options) */
 	int32_t size;
 	int32_t i;
 
@@ -4632,6 +4642,9 @@ static void prepareSaveFile(int32_t fromRam)
 		p = putRecord(p, SAVE_TAG_SPECIES_RECRUITED, SPECIES_RECRUITED_BITS, NUM_DIGIMON / 8);
 	}
 	options[0] = MOD_OPT_BUTTONS; /* MOD (options) */
+	options[1] = MOD_OPT_CLOCK;
+	options[2] = modFrameRate();
+	options[3] = MOD_OPT_BARS;
 	p = putRecord(p, SAVE_TAG_OPTIONS, options, sizeof(options));
 	/* MOD (tier 2): the story state's records go here */
 	putRecord(p, SAVE_TAG_END, 0, 0);
@@ -4860,6 +4873,15 @@ static void applyRecords(uint8_t *e)
 		case SAVE_TAG_OPTIONS: /* MOD (options): what the save had, unless OPTIONS changed it since the start */
 			if (len >= 1 && !MOD_OPT_TOUCHED) {
 				modSetButtons(d[0]);
+			}
+			if (len >= 2 && !MOD_OPT_TOUCHED) {
+				MOD_OPT_CLOCK = d[1] != 0;
+			}
+			if (len >= 3 && !MOD_OPT_TOUCHED && (d[2] == 30 || d[2] == 60)) {
+				modSetFrameRate(d[2]);
+			}
+			if (len >= 4 && !MOD_OPT_TOUCHED) {
+				MOD_OPT_BARS = d[3] != 0;
 			}
 			break;
 		}
@@ -5311,13 +5333,85 @@ void renderInitialMenu(void)
 #endif
 }
 
-/* MOD (options): one row, JAPANESE CONTROLS OFF / ON */
+/*
+ * MOD (options): the box's rows, each a label and its two values side by side; the chosen value is drawn yellow and the
+ * other one grey, so the row reads as a switch. Left picks the left value, right the right one, confirm the other one.
+ */
+#define MOD_OPT_ROWS	4
+#define MOD_OPT_VALUE_X	0x80	/* the left value's column in the text area; the right one's is MOD_OPT_VALUE_W further */
+#define MOD_OPT_VALUE_W	0x28
+#define MOD_OPT_TEXT_X	0x38	/* the box's text on the screen */
+
+static char *MOD_OPT_TEXT[MOD_OPT_ROWS][3] = {
+	{ MOD_OPT_STR_JP, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_CLOCK, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_BARS, MOD_OPT_STR_OFF, MOD_OPT_STR_ON },
+	{ MOD_OPT_STR_FPS, MOD_OPT_STR_30, MOD_OPT_STR_60 },
+};
+
+/* 0 the row's left value, 1 the right one, -1 neither (an FPS=20 build's frame rate) */
+static int32_t modOptionValue(int32_t row)
+{
+	switch (row) {
+	case 0:
+		return MOD_OPT_BUTTONS == MOD_BUTTONS_JP;
+	case 1:
+		return MOD_OPT_CLOCK != 0;
+	case 2:
+		return MOD_OPT_BARS != 0;
+	}
+	return modFrameRate() == 60 ? 1 : modFrameRate() == 30 ? 0 : -1;
+}
+
+static void modSetOption(int32_t row, int32_t value)
+{
+	MOD_OPT_TOUCHED = 1;
+	switch (row) {
+	case 0:
+		modSetButtons(value ? MOD_BUTTONS_JP : MOD_BUTTONS_US);
+		break;
+	case 1:
+		MOD_OPT_CLOCK = value;
+		break;
+	case 2:
+		MOD_OPT_BARS = value;
+		break;
+	case 3:
+		modSetFrameRate(value ? 60 : 30);
+		break;
+	}
+}
+
+static void drawOptionsText(void)
+{
+	int32_t r;
+
+	for (r = 0; r < MOD_OPT_ROWS; r++) {
+		drawString(MOD_OPT_TEXT[r][0], 0, r * 0xC);
+		drawString(MOD_OPT_TEXT[r][1], MOD_OPT_VALUE_X, r * 0xC);
+		DrawSync(0);
+		drawString(MOD_OPT_TEXT[r][2], MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, r * 0xC);
+		DrawSync(0);
+	}
+}
+
 static void renderOptionsMenu(void)
 {
 	POLY_FT4 *cur;
+	int32_t r;
+	int32_t y;
+	int32_t value;
 
 	cur = (POLY_FT4 *)GsGetWorkBase();
-	renderText(cur++, 0x42, 0x37, 0, 0, 0xC0, 0xC, 0);
+	for (r = 0; r < MOD_OPT_ROWS; r++) {
+		y = 0x37 + r * 0xC;
+		value = modOptionValue(r);
+		renderText(cur++, MOD_OPT_TEXT_X, y, 0, r * 0xC, MOD_OPT_VALUE_X, 0xC, 0);
+		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X, y, MOD_OPT_VALUE_X, r * 0xC, MOD_OPT_VALUE_W, 0xC,
+			   value == 0 ? 2 : 1);
+		renderText(cur++, MOD_OPT_TEXT_X + MOD_OPT_VALUE_X + MOD_OPT_VALUE_W, y, MOD_OPT_VALUE_X + MOD_OPT_VALUE_W,
+			   r * 0xC, MOD_OPT_VALUE_W, 0xC, value == 1 ? 2 : 1);
+	}
 	GsSetWorkBase((PACKET *)cur);
-	renderMenuBox(0x38, 0x32, 0xD0, 0x16);
+	renderMenuBox(0x30, 0x32, 0xE0, 0x16 + (MOD_OPT_ROWS - 1) * 0xC);
 }
