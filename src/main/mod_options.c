@@ -271,7 +271,8 @@ int32_t modFileOnDisc(char *name)
 }
 
 /*
- * MOD (language): a file's copy in the language, and a map background's with its signs translated (the Spanish copy
+ * MOD (language): a file's copy in the language, and a map background's (.TFS, and the .MAP whose sprites cover a sign)
+ * with its signs translated (the Spanish copy
  * also has them in Spanish; MAP SIGNS ORIGINAL reads the disc's .TFS), from the table tools/build-full.sh writes
  * (LANG_FILES: the name, its Spanish copy, its copy with English signs); the file itself when the disc has no such copy
  */
@@ -290,7 +291,7 @@ char *modLangFile(char *name)
 		if (strcmp(name, LANG_FILE_TABLE[i][0])) {
 			continue;
 		}
-		tfs = strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".TFS");
+		tfs = strlen(name) > 4 && (!strcmp(name + strlen(name) - 4, ".TFS") || !strcmp(name + strlen(name) - 4, ".MAP")); /* a background or its sprites */
 		if (tfs && !MOD_OPT_SIGNS) {
 			return name;
 		}
