@@ -5755,14 +5755,14 @@ int32_t modCardTop(int32_t id, int32_t top)
 
 void renderCardsView(void)
 {
-	CardSprites sprites;
+	const CardSprites *sprites;
 	int32_t j;
 	int32_t i;
 	int16_t card;
 	int8_t amount;
 	int32_t limit;
 
-	sprites = CARD_SPRITE_CLUT;
+	sprites = &CARD_SPRITE_CLUT;
 
 	switch (MENU_STATE) {
 	case 0:
@@ -5791,7 +5791,7 @@ void renderCardsView(void)
 				} else if (amount > 0) {
 					renderRectPolyFT4(j * 24 - 0x81, i * 24 - 0x3e, 0x10, 0x10,
 					                  (card % 8) * 32, (card / 8) * 16, 0x18,
-					                  sprites.v[card] * 64 + 0x7a07, 5, 0);
+					                  sprites->v[card] * 64 + 0x7a07, 5, 0);
 				}
 				renderBorderBox(j * 24 + 0x1e, i * 24 + 0x39, 0x12, 0x12,
 				                0xbebebe, 0x3c3c3c, 0x69, 0x69, 0x69, 5);
@@ -5799,11 +5799,12 @@ void renderCardsView(void)
 		}
 
 		/* MOD (language): each language's crops (CARD_LIST_CROPS) */
-		renderString(3, CARD_LIST_CROPS[0].x, -0x50, CARD_LIST_CROPS[0].w, 0xc, CARD_LIST_CROPS[0].u, 0xc, 5, 1);
-		renderString(FOOTER_GLYPH1_COLOR, CARD_LIST_CROPS[1].x, 0x53, CARD_LIST_CROPS[1].w, 0xc, CARD_LIST_CROPS[1].u, 0xc, 5, 1);
-		renderString(0, CARD_LIST_CROPS[2].x, 0x53, CARD_LIST_CROPS[2].w, 0xc, CARD_LIST_CROPS[2].u, 0xc, 5, 1);
-		renderString(FOOTER_GLYPH2_COLOR, CARD_LIST_CROPS[3].x, 0x53, CARD_LIST_CROPS[3].w, 0xc, CARD_LIST_CROPS[3].u, 0xc, 5, 1);
-		renderString(0, CARD_LIST_CROPS[4].x, 0x53, CARD_LIST_CROPS[4].w, 0xc, CARD_LIST_CROPS[4].u, 0xc, 5, 1);
+		/* the title (colour 3, at the top), then the footer's crops; colours are nibbles, crop 0 first */
+		for (i = 0; i < 5; i++) {
+			renderString(((3 | FOOTER_GLYPH1_COLOR << 4 | FOOTER_GLYPH2_COLOR << 12) >> (i * 4)) & 0xf,
+			             CARD_LIST_CROPS[i].x, i ? 0x53 : -0x50, CARD_LIST_CROPS[i].w, 0xc,
+			             CARD_LIST_CROPS[i].u, 0xc, 5, 1);
+		}
 	}
 }
 
