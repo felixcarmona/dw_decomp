@@ -744,6 +744,10 @@ SECTIONS
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.sbss.*);
         . = ALIGN(., 4);
+        BUILD_DIR/src/main/world_object.c.o(.sbss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/entity_text.c.o(.sbss.*);
+        . = ALIGN(., 4);
         BUILD_DIR/src/main/evl.c.o(.sbss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/btl.c.o(.sbss.*);
@@ -862,6 +866,8 @@ SECTIONS
         BUILD_DIR/src/main/partner_impl.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/mod_lab.c.o(.bss.*);
+        . = ALIGN(., 4);
+        BUILD_DIR/src/main/game_menu.c.o(.bss.*);
         . = ALIGN(., 4);
         BUILD_DIR/src/main/tamer.c.o(.bss.*);
         . = ALIGN(., 4);
