@@ -565,6 +565,8 @@ static int32_t isBattleItem(ItemId type)
 	return (type != ITEM_NONE) && ((ITEM_PARA[type].itemColor == 1) || (ITEM_PARA[type].itemColor == 2));
 }
 
+void drawInventoryText(void);
+
 void modBagFilterForBattle(void)
 {
 	int32_t i;
@@ -592,6 +594,9 @@ void modBagFilterForBattle(void)
 		INVENTORY.amounts.array[n] = 0;
 		INVENTORY.names.array[n] = 0xff;
 	}
+	/* The names are blitted from the text area, which a fight leaves as the last bag menu drew it (the whole bag, in
+	 * its own order): draw it again for the list that was just built. */
+	drawInventoryText();
 }
 
 void modBagRestoreAfterBattle(void)
