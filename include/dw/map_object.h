@@ -35,8 +35,6 @@ typedef struct {
 extern DoorStruct DOOR_MAPDATA[NUM_DOOR_MAPDATA];
 void loadDoorData(DoorStruct *door); /* MOD (screens beyond 255) */
 extern Chest CHEST_ARRAY[NUM_CHESTS];
-extern GsDOBJ2 MEDAL_OBJECT;
-extern GsCOORDINATE2 MEDAL_COORDINATES;
 
 void loadDoors(int16_t doorEntryId);
 void loadDirtCartModel(void);
@@ -46,7 +44,6 @@ void loadWarpCrystals(int16_t mapId);
 void spawnBoulder(void);
 void projectPosition(GsCOORDINATE2 *coord, VECTOR *trans, SVECTOR *rot,
 		     VECTOR *scale);
-void initializeMedalModel(void);
 void spawnToyTownBoxes(void);
 void spawnGearbox(void);
 void spawnAngemonPedestal(void);
@@ -64,6 +61,5 @@ void openToyTownBox(int32_t boxId);
 void somethingToyTown(int32_t boxId);
 int32_t moveAngemonPedestal(void);
 void setDirtCartModel(int32_t model);
-void activateMedalTexture(uint8_t medalId);
 
 #endif

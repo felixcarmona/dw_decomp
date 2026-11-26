@@ -25,20 +25,30 @@ int32_t checkTournamentMedalConditions(void);
  * content/tables/medals.json. A row is checked every tamer tick (MOD_MEDAL_TICK), by the script routine 0x16 (MOD_MEDAL_SCRIPT, `text`
  * is the textbox shown), or both, and may raise the tamer level (MOD_MEDAL_LEVEL_UP).
  */
-#define MOD_MEDAL_MAX		16
+#define MOD_MEDAL_MAX		20
 #define MOD_MEDAL_TICK		1
 #define MOD_MEDAL_SCRIPT	2
 #define MOD_MEDAL_LEVEL_UP	4
+/* MOD (classic and Horizon medals): the OPTIONS switch a row waits for, and whether its medal is hidden while that is off */
+#define MOD_MEDAL_NEW_DIGIMON	8
+#define MOD_MEDAL_NEW_CARDS	16
+#define MOD_MEDAL_STORY		32
+#define MOD_MEDAL_HIDE		64
+/* where the original game's residents end: the ids from here on are Horizon's (the City page marks them) */
+#define MOD_ORIGINAL_RESIDENTS_END	59
+#define MOD_MEDAL_COUNT		20 /* medals 0..19: the triggers 0x16C.. hold no more */
 enum {
 	MOD_MEDAL_ALL_TRIGGERS = 1, /* a = first trigger, b = how many: all set */
 	MOD_MEDAL_WINS,             /* tournament wins >= a */
-	MOD_MEDAL_ALL_CARDS,        /* every card owned, and trigger a set (a = -1: no trigger) */
+	MOD_MEDAL_ALL_CARDS,        /* every card below the id b owned (b = 0: every card), and trigger a set (a = -1: no trigger) */
 	MOD_MEDAL_ALL_MOVES,        /* the first a techniques learned */
 	MOD_MEDAL_STATS,            /* HP and MP >= a, the other four stats >= b */
 	MOD_MEDAL_MONEY,            /* money == a */
 	MOD_MEDAL_YEAR,             /* year == a */
 	MOD_MEDAL_ALL_RAISED,       /* the species a .. b - 1 raised once */
 	MOD_MEDAL_FISH,             /* fish caught >= a */
+	MOD_MEDAL_ALL_PARTNERS,     /* every species of the partner list raised once */
+	MOD_MEDAL_RESIDENTS,        /* every city resident recruited (a = 1: the original game's only) */
 };
 typedef struct {
 	int16_t medal; /* -1 = unused row */
@@ -51,6 +61,9 @@ typedef struct {
 } ModMedal;
 extern ModMedal MOD_MEDALS[MOD_MEDAL_MAX];
 int32_t modMedalHolds(ModMedal *m);
+int32_t modMedalCount(ModMedal *m, int32_t *need);
+int32_t modMedalHidden(int32_t medal);
+int32_t modCityResidents(int32_t originals, int32_t *total);
 
 void initTournamentSchedule(void);
 void initTournamentInfo(int32_t source);

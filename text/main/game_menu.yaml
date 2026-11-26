@@ -337,6 +337,54 @@ CHART_TEXT:
     CITY_STR_RESIDENTS:
       en_us: Residents
       ja: 住人
+    STR_MEDAL_NAME_HORIZON_MASTER:
+      en_us: "Horizon Master"
+      ja: "Horizon Master"
+    STR_MEDAL_NAME_LIMIT_BREAKER:
+      en_us: "Limit Breaker"
+      ja: "Limit Breaker"
+    STR_MEDAL_NAME_HORIZON_CITY:
+      en_us: "Horizon City"
+      ja: "Horizon City"
+    STR_MEDAL_NAME_FULL_COLLECTION:
+      en_us: "Full Collection"
+      ja: "Full Collection"
+    STR_MEDAL_DESCRIPTION_CLASSIC_MASTER_2:
+      en_us: "of the original game"
+      ja: "of the original game"
+    STR_MEDAL_DESCRIPTION_CLASSIC_COLLECTION_2:
+      en_us: "of the original game"
+      ja: "of the original game"
+    STR_MEDAL_DESCRIPTION_HORIZON_MASTER_1:
+      en_us: "Raised every Digimon"
+      ja: "Raised every Digimon"
+    STR_MEDAL_DESCRIPTION_HORIZON_MASTER_2:
+      en_us: "that can be raised"
+      ja: "that can be raised"
+    STR_MEDAL_DESCRIPTION_LIMIT_BREAKER_1:
+      en_us: "Go past the original limits:"
+      ja: "Go past the original limits:"
+    STR_MEDAL_DESCRIPTION_LIMIT_BREAKER_2:
+      en_us: "HP and MP 15000, the rest 1500"
+      ja: "HP and MP 15000, the rest 1500"
+    STR_MEDAL_DESCRIPTION_HORIZON_CITY_1:
+      en_us: "Every resident, old and new,"
+      ja: "Every resident, old and new,"
+    STR_MEDAL_DESCRIPTION_HORIZON_CITY_2:
+      en_us: "lives in the city"
+      ja: "lives in the city"
+    STR_MEDAL_DESCRIPTION_FULL_COLLECTION_1:
+      en_us: "Collected every card,"
+      ja: "Collected every card,"
+    STR_MEDAL_DESCRIPTION_FULL_COLLECTION_2:
+      en_us: "old and new"
+      ja: "old and new"
+    STR_MEDAL_EARNED:
+      en_us: "Earned"
+      ja: "Earned"
+    STR_MEDAL_NOT_EARNED:
+      en_us: "Not earned yet"
+      ja: "Not earned yet"
     STATUS_STR_TIRED:
       en_us: Tired
       ja: つかれ

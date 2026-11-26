@@ -38,8 +38,7 @@ extern int32_t IS_SCRIPT_PAUSED;
 /* MOD (medals as data): rows start unused (medal -1); tools/balance.py build writes them from content/tables/medals.json */
 #define MOD_NO_MEDAL { -1, 0, 0, 0, 0, 0, 0 }
 ModMedal MOD_MEDALS[MOD_MEDAL_MAX] = {
-	MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL,
-	MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL, MOD_NO_MEDAL,
+	[0 ... MOD_MEDAL_MAX - 1] = MOD_NO_MEDAL,
 };
 
 int16_t MOD_TOURNAMENT[MOD_TOURNAMENT_SIZE] = { [0 ... MOD_TOURNAMENT_SIZE - 1] = -1 };

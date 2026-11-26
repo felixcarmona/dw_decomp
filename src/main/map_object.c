@@ -65,7 +65,6 @@ SVECTOR TRAINING_POOP_ROTATION = { 0, 0, 0, 0 };
 SVECTOR DIRT_CART_ROTATION = { 0, 0, 0, 0 };
 #endif
 SVECTOR DIRT_PILE_SIZE_ROTATION = { 0, 0, 0, 0 };
-RECT MEDAL_RECT = { 582, 432, 6, 32 };
 int8_t DIRECTION_FACTORS[4][2] = { { -1, 1 }, { 1, 1 }, { -1, -1 }, { 1, -1 } };
 int8_t DIRT_PILE_SIZE_COUNTER = 15;
 
@@ -80,7 +79,6 @@ char WARP_CRYSTAL_TMD[16] = "\\ETCNA\\WARP.TMD";
 VECTOR BOULDER_DEFAULT_SCALE = { 4096, 4096, 4096, 0 };
 char BOULDER_TMD[] = "\\ETCNA\\IWA.TMD";
 char BOULDER_TIM[16] = "\\ETCNA\\IWA1.TIM";
-char MEDAL_TMD[] = "\\ETCNA\\MEDAL.TMD";
 VECTOR BIG_BOX_LOCATION = { 500, -600, 600, 0 };
 VECTOR SMALL_BOX_LOCATION = { -400, -400, 600, 0 };
 char BIG_BOX_TMD[] = "\\ETCNA\\BIGBOX.TMD";
@@ -111,9 +109,6 @@ GsDOBJ2 CHEST_OBJECTS[2];
 GsCOORDINATE2 WARP_CRYSTAL_COORDS[2];
 GsDOBJ2 WARP_CRYSTAL_OBJECTS[2];
 WarpCrystalData WARP_CRYSTAL_DATA[5];
-char MEDAL_MESH[0x800];
-GsDOBJ2 MEDAL_OBJECT;
-GsCOORDINATE2 MEDAL_COORDINATES;
 
 int32_t readFile(char *path, void *buffer);
 void readMapTFS(int32_t mapId);
@@ -142,7 +137,6 @@ void emptyChests(void);
 int32_t isBoxOffScreen(VECTOR *position, int16_t width, int16_t height);
 
 static void *map_object_text_order[] = {
-	activateMedalTexture,
 	setDirtCartModel,
 	moveAngemonPedestal,
 	somethingToyTown,
@@ -165,7 +159,6 @@ static void *map_object_text_order[] = {
 	spawnGearbox,
 	renderToyTownBoxes,
 	spawnToyTownBoxes,
-	initializeMedalModel,
 	renderBoulder,
 	projectPosition,
 	spawnBoulder,
@@ -198,9 +191,6 @@ static void *map_object_sbss_order[] = {
 };
 
 static void *map_object_bss_order[] = {
-	&MEDAL_COORDINATES,
-	&MEDAL_OBJECT,
-	MEDAL_MESH,
 	WARP_CRYSTAL_DATA,
 	WARP_CRYSTAL_OBJECTS,
 	&WARP_CRYSTAL_COORDS,
@@ -599,12 +589,6 @@ void renderBoulder(int32_t instanceId)
 		drawObject(&GENERAL_OBJECT3,
 			   GS_ORDERING_TABLE + ACTIVE_FRAMEBUFFER, 2);
 	}
-}
-
-void initializeMedalModel(void)
-{
-	loadStaticTMD(MEDAL_TMD, MEDAL_MESH, &MEDAL_OBJECT,
-		      &MEDAL_COORDINATES);
 }
 
 void spawnToyTownBoxes(void)
@@ -1150,18 +1134,6 @@ void setDirtCartModel(model)
 // clang-format on
 {
 	ACTIVE_DIRT_CART_MODEL = model;
-}
-
-void activateMedalTexture(uint8_t medalId)
-{
-	RECT rect;
-
-	rect = MEDAL_RECT;
-	rect.x = ((medalId % 9) * 6) + 518;
-	rect.y = ((medalId / 9) * 32) + 432;
-	MoveImage(&rect, 512, 432);
-
-	DrawSync(0);
 }
 
 void loadDirtPileModel(void)

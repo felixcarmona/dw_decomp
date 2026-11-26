@@ -93,6 +93,12 @@ typedef struct {
  * has no new species to keep out: every species counts as vanilla then.
  */
 #define SPECIES_HEADER_VANILLA	0x780
+/* MOD (medal view): the first sector of the medal art (0: none; tools/species.py medal_block), read with
+ * readSpeciesChart(k, 2): five medals a sector as {16 colours, 16 colours of the medal not earned, 24x24 at 4 bits},
+ * then a sector per medal with its 48x48 picture */
+#define SPECIES_HEADER_MEDALS	0x7F8
+#define SPECIES_MEDALS_PER_SECTOR	5
+#define SPECIES_MEDAL_SMALL_SIZE	352
 #define SPECIES_HEADER_BALANCE_OFF 0x4fc
 #define SPECIES_BALANCE_SWAP_MAX 19
 /*

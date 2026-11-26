@@ -17,6 +17,7 @@
 #include <dw/font.h>
 #include <dw/ids.h>
 #include <dw/level.h>
+#include <dw/mod_options.h>
 #include <dw/mod_rules.h>
 #include <dw/tournament.h>
 #include <dw/input.h>
@@ -31,6 +32,7 @@
 #include <dw/params.h>
 #include <dw/partner.h>
 #include <dw/pstat.h>
+#include <dw/species.h>
 #include <dw/std.h>
 #include <dw/tamer.h>
 #include <dw/types.h>
@@ -706,55 +708,107 @@ void checkMapInteraction(void)
 	}
 }
 
+/* MOD (classic and Horizon medals): is the OPTIONS switch a row waits for on */
+static int32_t modMedalSwitchOn(ModMedal *m)
+{
+	return !(((m->flags & MOD_MEDAL_NEW_DIGIMON) && !MOD_OPT_NEW_DIGIMON) || ((m->flags & MOD_MEDAL_NEW_CARDS) && !MOD_OPT_NEW_CARDS) ||
+	         ((m->flags & MOD_MEDAL_STORY) && !MOD_OPT_STORY));
+}
+
+/* MOD (classic and Horizon medals): a medal that is not shown, because the switch its content belongs to is off */
+int32_t modMedalHidden(int32_t medal)
+{
+	int32_t i;
+
+	for (i = 0; i < MOD_MEDAL_MAX; i++) {
+		if (MOD_MEDALS[i].medal == medal && (MOD_MEDALS[i].flags & MOD_MEDAL_HIDE) && !modMedalSwitchOn(&MOD_MEDALS[i])) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* MOD (medals as data): how far the condition of a MOD_MEDALS row is: the count reached, and in *need the count that
+ * awards the medal (a condition that is not a count: 0 or 1 of 1) */
+int32_t modMedalCount(ModMedal *m, int32_t *need)
+{
+	int32_t i;
+	int32_t have;
+	int32_t end;
+	BaseStats *bs;
+
+	have = 0;
+	*need = 1;
+	switch (m->kind) {
+	case MOD_MEDAL_ALL_TRIGGERS:
+		*need = m->b;
+		for (i = 0; i < m->b; i++) {
+			have += isTriggerSet(m->a + i) != 0;
+		}
+		break;
+	case MOD_MEDAL_WINS:
+		*need = m->a;
+		have = TOURNAMENT_WINS;
+		break;
+	case MOD_MEDAL_ALL_CARDS:
+		*need = 0;
+		end = m->b > 0 ? m->b : NUM_CARDS;
+		for (i = 0; i < end; i++) {
+			if (modCardIsReal(i)) {
+				++*need;
+				have += getCardAmount(i) != 0;
+			}
+		}
+		if (have == *need && m->a >= 0 && isTriggerSet(m->a) == 0) {
+			--have; /* every card, but the game is not beaten yet */
+		}
+		break;
+	case MOD_MEDAL_ALL_MOVES:
+		*need = m->a;
+		for (i = 0; i < m->a; i++) {
+			have += hasMove(i) != 0;
+		}
+		break;
+	case MOD_MEDAL_STATS:
+		bs = &PARTNER_ENTITY.digimonEntity.stats.base;
+		have = bs->hp >= m->a && bs->mp >= m->a && bs->off >= m->b && bs->def >= m->b && bs->brain >= m->b &&
+		       bs->speed >= m->b;
+		break;
+	case MOD_MEDAL_MONEY:
+		have = MONEY == m->a;
+		break;
+	case MOD_MEDAL_YEAR:
+		have = YEAR == m->a;
+		break;
+	case MOD_MEDAL_ALL_RAISED:
+		*need = m->b - m->a;
+		for (i = m->a; i < m->b; i++) {
+			have += hasDigimonRaised((uint16_t)i) != 0;
+		}
+		break;
+	case MOD_MEDAL_FISH:
+		*need = m->a;
+		have = PARTNER_PARA.fishCaught;
+		break;
+	case MOD_MEDAL_ALL_PARTNERS:
+		*need = getSpeciesPartnerCount();
+		for (i = 0; i < *need; i++) {
+			have += hasDigimonRaised((uint16_t)getSpeciesPartnerId(i)) != 0;
+		}
+		break;
+	case MOD_MEDAL_RESIDENTS:
+		have = modCityResidents(m->a, need);
+		break;
+	}
+	return have > *need ? *need : have;
+}
+
 /* MOD (medals as data): does the condition of a MOD_MEDALS row hold */
 int32_t modMedalHolds(ModMedal *m)
 {
-	int32_t i;
-	BaseStats *bs;
+	int32_t need;
 
-	switch (m->kind) {
-	case MOD_MEDAL_ALL_TRIGGERS:
-		for (i = 0; i < m->b; i++) {
-			if (isTriggerSet(m->a + i) == 0) {
-				return 0;
-			}
-		}
-		return 1;
-	case MOD_MEDAL_WINS:
-		return TOURNAMENT_WINS >= m->a;
-	case MOD_MEDAL_ALL_CARDS:
-		for (i = 0; i < NUM_CARDS; i++) {
-			if (modCardIsReal(i) && getCardAmount(i) == 0) {
-				return 0;
-			}
-		}
-		return m->a < 0 || isTriggerSet(m->a) != 0;
-	case MOD_MEDAL_ALL_MOVES:
-		for (i = 0; i < m->a; i++) {
-			if (hasMove(i) == 0) {
-				return 0;
-			}
-		}
-		return 1;
-	case MOD_MEDAL_STATS:
-		bs = &PARTNER_ENTITY.digimonEntity.stats.base;
-		return bs->hp >= m->a && bs->mp >= m->a && bs->off >= m->b && bs->def >= m->b && bs->brain >= m->b &&
-		       bs->speed >= m->b;
-	case MOD_MEDAL_MONEY:
-		return MONEY == m->a;
-	case MOD_MEDAL_YEAR:
-		return YEAR == m->a;
-	case MOD_MEDAL_ALL_RAISED:
-		for (i = m->a; i < m->b; i++) {
-			if (hasDigimonRaised((uint16_t)i) == 0) {
-				return 0;
-			}
-		}
-		return 1;
-	case MOD_MEDAL_FISH:
-		return PARTNER_PARA.fishCaught >= m->a;
-	}
-	return 0;
+	return modMedalSwitchOn(m) && modMedalCount(m, &need) == need && need > 0;
 }
 
 /* MOD (medals as data): the medals checked every tick, from MOD_MEDALS (content/tables/medals.json) */

@@ -29,6 +29,7 @@
 #include <dw/sound.h>
 #include <dw/species.h>
 #include <dw/tamer.h>
+#include <dw/tournament.h> /* MOD (classic and Horizon medals) */
 #include <dw/ui.h>
 #include <dw/lang.h>
 #include <dw/utils.h> /* MOD (frame pacing): the background MENU read */
@@ -161,8 +162,6 @@ typedef struct {
 	int32_t v[6];
 } ConditionMaskTable;
 
-extern GsDOBJ2 MEDAL_OBJECT;
-extern GsCOORDINATE2 MEDAL_COORDINATES;
 extern int32_t IS_IN_MENU;
 extern GsOT *ACTIVE_ORDERING_TABLE;
 extern int32_t CHANGED_INPUT;
@@ -267,7 +266,6 @@ void drawLine3P(int32_t color, int32_t x0, int32_t y0,
                 int32_t y2, int32_t zIndex, int32_t flag);
 int32_t hasDigimonRaised(int32_t digimonId);
 int32_t hasMedal(uint16_t medal);
-void activateMedalTexture(int32_t medalId, int32_t previousMedalId);
 int32_t loadCardImage(int32_t id);
 void renderEvoChartDetail(void);
 void renderCardImage(void);
@@ -296,7 +294,6 @@ void clearTextSubArea(RECT *rect);
 void sortArray(int16_t *arr, int8_t count);
 void removeStaticUIBox(int16_t id);
 void drawObject(GsDOBJ2 *obj, GsOT *ot, int32_t flag);
-void renderDigiviceMedals(void);
 void drawString(char *str, int32_t x, int32_t y);
 void renderBorderBox(int16_t x, int16_t y, int16_t w, int16_t h,
                      int32_t c1, int32_t c2, uint8_t r, uint8_t g, uint8_t b,
@@ -318,7 +315,6 @@ static void *game_menu_functions[] = {
 	removeUIBox1,
 	removeTriangleMenu,
 	sortArray,
-	renderDigiviceMedals,
 	drawMoveViewHelpStrings,
 	renderDigimonMoveBox,
 	renderDigimonMovesSelected,
@@ -371,16 +367,12 @@ uint8_t EQUIPPED_MOVES[4] = {
 	0xff, 0xff, 0xff, 0xff,
 };
 
-SVECTOR MEDAL_ROTATION = { 0x0000, 0x0000, 0x0000, 0x0000 };
 
 GsRVIEW2 DIGIVICE_ENTITY_VIEW = {
 	1300, 0, -3280, 0, 0, 0, 0, NULL,
 };
 
-GsRVIEW2 MEDAL_VIEW = {
-	-1050, 220, -10000, -1050, 220, 0, 0, NULL,
-};
-
+ 
 MENU_LABELS_TEXT
 
 StatsIconClutTable STATS_VIEW_ELEMENT_CLUT = { {
@@ -1663,7 +1655,7 @@ uint16_t CHART_LEVEL_ROW_PIECES[3] = {
 #endif
 };
 
-char *MEDAL_NAMES[16] = {
+char *MEDAL_NAMES[MOD_MEDAL_COUNT] = {
 	STR_MEDAL_NAME_GRADE_CUP,
 	STR_MEDAL_NAME_VERSION_CUP,
 	STR_MEDAL_NAME_TYPE_CUP,
@@ -1680,6 +1672,10 @@ char *MEDAL_NAMES[16] = {
 	STR_MEDAL_NAME_BITS_MAXED,
 	STR_MEDAL_NAME_10_YEARS,
 	STR_MEDAL_NAME_CURLING_LEGEND, /* MOD (curling cups) */
+	STR_MEDAL_NAME_HORIZON_MASTER, /* MOD (classic and Horizon medals) */
+	STR_MEDAL_NAME_LIMIT_BREAKER,
+	STR_MEDAL_NAME_HORIZON_CITY,
+	STR_MEDAL_NAME_FULL_COLLECTION,
 };
 
 #if !VERSION_IS(US)
@@ -1731,55 +1727,48 @@ char *MEDAL_DESCRIPTIONS[48] = {
 	STR_OVERWORLD_EMPTY,
 };
 #else
-char *MEDAL_DESCRIPTIONS[48] = {
+/* MOD (medal view): two lines a medal; the panel's third row says how far the medal is */
+char *MEDAL_DESCRIPTIONS[MOD_MEDAL_COUNT * 2] = {
 	STR_MEDAL_DESCRIPTION_CUP_D_C_B_A_S,
 	STR_MEDAL_DESCRIPTION_WIN_IN_ALL,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_WIN_IN_ALL_VER_1_2,
-	STR_OVERWORLD_EMPTY,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_FIRE_GRAPPLE_THUNDER_WIND,
 	STR_MEDAL_DESCRIPTION_NATURE_COOL_METALLIC_FILTH_CUP,
-	STR_MEDAL_DESCRIPTION_WIN_IN_ALL,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_DINO_WING_ANIMAL_HUMAN_CUP,
-	STR_MEDAL_DESCRIPTION_WIN_IN_ALL,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_WON_CHAMPIONSHIP_100_TIMES,
 	STR_OVERWORLD_EMPTY,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_MASTERED_56_SWITCH_TECHNIQUES,
 	STR_OVERWORLD_EMPTY,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_RAISED_ALL_61_DIGIMON,
-	STR_OVERWORLD_EMPTY,
-	STR_OVERWORLD_EMPTY,
+	STR_MEDAL_DESCRIPTION_CLASSIC_MASTER_2,
 	STR_MEDAL_DESCRIPTION_MAXED_ALL_OF_THE_DIGIMONS,
 	STR_MEDAL_DESCRIPTION_PARAMETERS,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_GOT_A_PERFECT_SCORE_IN_CURLING,
-	STR_OVERWORLD_EMPTY,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_100_FISH_CAUGHT,
 	STR_OVERWORLD_EMPTY,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_FINISHED_THE_GAME,
-	STR_OVERWORLD_EMPTY,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_JIJIMON_SAID_THE_TOWN,
 	STR_MEDAL_DESCRIPTION_IS_FLOURISHING,
-	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_COLLECTED_ALL_DIGIMON_CARDS,
-	STR_OVERWORLD_EMPTY,
-	STR_OVERWORLD_EMPTY,
+	STR_MEDAL_DESCRIPTION_CLASSIC_COLLECTION_2,
 	STR_MEDAL_DESCRIPTION_COLLECTED_999999_BITS,
-	STR_OVERWORLD_EMPTY,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_SURVIVED_FOR_300_DAYS,
 	STR_OVERWORLD_EMPTY,
 	STR_MEDAL_DESCRIPTION_CURLING_LEGEND, /* MOD (curling cups) */
 	STR_MEDAL_DESCRIPTION_CURLING_LEGEND_MODES,
-	STR_OVERWORLD_EMPTY,
+	STR_MEDAL_DESCRIPTION_HORIZON_MASTER_1,
+	STR_MEDAL_DESCRIPTION_HORIZON_MASTER_2,
+	STR_MEDAL_DESCRIPTION_LIMIT_BREAKER_1,
+	STR_MEDAL_DESCRIPTION_LIMIT_BREAKER_2,
+	STR_MEDAL_DESCRIPTION_HORIZON_CITY_1,
+	STR_MEDAL_DESCRIPTION_HORIZON_CITY_2,
+	STR_MEDAL_DESCRIPTION_FULL_COLLECTION_1,
+	STR_MEDAL_DESCRIPTION_FULL_COLLECTION_2,
 };
 #endif
 
@@ -1908,6 +1897,11 @@ int16_t MOVE_SELECT_BOX_Y;
 int16_t MOVE_SELECT_BOX_X;
 int8_t SELECTED_MEDAL;
 int8_t MEDAL_SELECTOR_INDEX;
+/* MOD (medal view): the medals the view shows, in order (one hidden by its OPTIONS switch is left out); the cursor
+ * (MEDAL_SELECTOR_INDEX) is a place in this list, and the grid shows three rows of five from MEDAL_TOP_ROW */
+static uint8_t MEDAL_SHOWN[MOD_MEDAL_COUNT];
+static int8_t MEDAL_SHOWN_COUNT;
+static int8_t MEDAL_TOP_ROW;
 int16_t SELECTED_CARD;
 static int16_t CARD_TOP_ROW;
 int16_t CHART_SELECTED_DIGIMON;
@@ -3255,7 +3249,7 @@ void tickPlayerMenu(void)
 		    (PLAYER_MENU_STATE != 0 || playerLookEnter())) {
 			MENU_STATE = 2;
 			playSound(0, 3);
-			MEDAL_SELECTOR_INDEX = SELECTED_MEDAL = 0;
+			/* MOD (medal view): the cursor stays on the medal the page is already showing */
 			SELECTED_CARD = 0;
 			CARD_TOP_ROW = 0;
 		}
@@ -3321,43 +3315,31 @@ void tickPlayerMenu(void)
 			}
 		}
 
-#if !VERSION_IS(US)
+		/* MOD (medal view): the cursor walks the medals shown, and the grid follows it */
 		if (PLAYER_MENU_STATE == 2 && MENU_STATE == 2) {
-#else
-		if (PLAYER_MENU_STATE == 2) {
-#endif
-			/* MOD (curling cups): a sixth column, of the one medal past the fifteen */
-			if (MEDAL_SELECTOR_INDEX >= 15) {
-				if (CHANGED_INPUT & 0x8000) {
-					MEDAL_SELECTOR_INDEX = (MEDAL_SELECTOR_INDEX - 15) * 5 + 4;
-				}
-			} else {
-				if (CHANGED_INPUT & 0x8000) {
-					if ((MEDAL_SELECTOR_INDEX % 5) != 0) {
-						MEDAL_SELECTOR_INDEX--;
-					}
-				} else if (CHANGED_INPUT & 0x2000) {
-					if ((MEDAL_SELECTOR_INDEX % 5) != 4) {
-						MEDAL_SELECTOR_INDEX++;
-					} else if (MEDAL_SELECTOR_INDEX == 4) {
-						MEDAL_SELECTOR_INDEX = 15;
-					}
-				}
-				if ((CHANGED_INPUT & 0x1000) &&
-				    (MEDAL_SELECTOR_INDEX >= 5)) {
-					MEDAL_SELECTOR_INDEX -= 5;
-				}
-				if ((CHANGED_INPUT & 0x4000) &&
-				    (MEDAL_SELECTOR_INDEX < 10)) {
-					MEDAL_SELECTOR_INDEX += 5;
+			if ((CHANGED_INPUT & 0x8000) && ((MEDAL_SELECTOR_INDEX % 5) != 0)) {
+				MEDAL_SELECTOR_INDEX--;
+			}
+			if ((CHANGED_INPUT & 0x2000) && ((MEDAL_SELECTOR_INDEX % 5) != 4) &&
+			    (MEDAL_SELECTOR_INDEX + 1 < MEDAL_SHOWN_COUNT)) {
+				MEDAL_SELECTOR_INDEX++;
+			}
+			if ((CHANGED_INPUT & 0x1000) && (MEDAL_SELECTOR_INDEX >= 5)) {
+				MEDAL_SELECTOR_INDEX -= 5;
+			}
+			if ((CHANGED_INPUT & 0x4000) && (MEDAL_SELECTOR_INDEX / 5 < (MEDAL_SHOWN_COUNT - 1) / 5)) {
+				MEDAL_SELECTOR_INDEX += 5;
+				if (MEDAL_SELECTOR_INDEX >= MEDAL_SHOWN_COUNT) {
+					MEDAL_SELECTOR_INDEX = MEDAL_SHOWN_COUNT - 1;
 				}
 			}
 			if (SELECTED_MEDAL != MEDAL_SELECTOR_INDEX) {
-				if (hasMedal(MEDAL_SELECTOR_INDEX) != 0) {
-					activateMedalTexture(MEDAL_SELECTOR_INDEX,
-					                     SELECTED_MEDAL);
-					MENU_STATE = 3;
+				if (MEDAL_SELECTOR_INDEX / 5 < MEDAL_TOP_ROW) {
+					MEDAL_TOP_ROW = MEDAL_SELECTOR_INDEX / 5;
+				} else if (MEDAL_SELECTOR_INDEX / 5 > MEDAL_TOP_ROW + 2) {
+					MEDAL_TOP_ROW = MEDAL_SELECTOR_INDEX / 5 - 2;
 				}
+				MENU_STATE = 3;
 				playSound(0, 2);
 			}
 			SELECTED_MEDAL = MEDAL_SELECTOR_INDEX;
@@ -4183,8 +4165,8 @@ void renderPlayerInfoView(void)
 		}
 
 		count = 0;
-		for (j = 0; j < 0x12; j++) {
-			if (hasMedal(j) != 0) {
+		for (j = 0; j < MOD_MEDAL_COUNT; j++) { /* MOD (classic and Horizon medals) */
+			if (hasMedal(j) != 0 && !modMedalHidden(j)) {
 				count++;
 			}
 		}
@@ -4908,6 +4890,31 @@ static int32_t chartRows(void)
 }
 
 /* the VRAM slot of the shown box k's icon: its place in the tab, modulo the slots */
+/* MOD (classic and Horizon medals): a small gold corner on the box of what the original game did not have, in the
+ * chart, the City page and the card album. `x`, `y`: the box's border as renderBorderBox takes it. A primitive
+ * added earlier is drawn over the later ones of its layer, so this comes before the box's picture; the dark
+ * triangle under the gold one is its edge. */
+static __attribute__((noinline)) void modAddedCorner(int32_t x, int32_t y)
+{
+	POLY_F3 *prim;
+	int32_t i;
+
+	x += 18 - 0xa0;
+	y += 1 - 0x78;
+	prim = (POLY_F3 *)GsGetWorkBase();
+	for (i = 0; i < 2; i++) {
+		setPolyF3(prim);
+		if (i == 0) {
+			setRGB0(prim, 0xff, 0xd8, 0x40);
+		} else {
+			setRGB0(prim, 0x60, 0x38, 0x00);
+		}
+		setXY3(prim, x - 5 - i * 2, y, x, y, x, y + 5 + i * 2);
+		AddPrim(ACTIVE_ORDERING_TABLE->org + 5, prim++);
+	}
+	GsSetWorkBase((PACKET *)prim);
+}
+
 static int32_t chartSlot(int32_t k)
 {
 	return (CHART_TOP * CHART_COLS + k) % CHART_PAGE_SIZE;
@@ -5411,10 +5418,13 @@ void renderEvoChartView(void)
 		chartDrawStatus();
 		for (k = 0; k < CHART_PAGE_COUNT; k++) {
 			id = CHART_CELL_ID(CHART_PAGE_IDS[k]);
+			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
+			if (CITY_VIEW ? id >= MOD_ORIGINAL_RESIDENTS_END : id > NUM_EVO_CHART_DIGIMON) {
+				modAddedCorner(bx - 1, by - 1);
+			}
 			if (CITY_VIEW ? ((CHART_PAGE_IDS[k] & 0x8000) && !isDigimonRecruited(id)) : !hasDigimonRaised(id)) {
 				continue;
 			}
-			chartBoxXY(k % CHART_COLS, k / CHART_COLS, &bx, &by);
 			shift = ((PLAYTIME_FRAMES + k * 3) % 20) < 10; /* two idle frames, half a second each, out of step */
 			slot = chartSlot(k);
 			if (id <= NUM_EVO_CHART_DIGIMON) {
@@ -6296,14 +6306,100 @@ void renderEvoChartDetail(void)
 	}
 }
 
-/* MOD (curling cups): sixteen medals, the fifteen in their five columns drawn closer and the sixteenth alone in a sixth */
-#define MEDAL_SLOT_X(i) (((i) < 15 ? (i) % 5 : 5) * 32 - 0x7a)
-#define MEDAL_SLOT_Y(i) (((i) < 15 ? (i) / 5 : (i) - 15) * 24 - 0x3d)
+/*
+ * MOD (medal view): the medals are drawn pictures, not the stamped coin. Their small pictures sit where the coin's
+ * stamps were (VRAM 512..572, 432..480; the last one where the coin's own texture was), one palette each under them, and the
+ * selected medal's large picture goes to a free part of the view's text page. A medal not earned yet is the same picture
+ * with its dark palette.
+ */
+#define MEDAL_ART_X(i)		((i) >= 18 ? 512 : 518 + ((i) % 9) * 6)
+#define MEDAL_ART_Y(i)		((i) >= 18 ? 432 + ((i) - 18) * 24 : 432 + ((i) / 9) * 24)
+#define MEDAL_CLUT_X(i)		(528 + ((i) & 1) * 16)
+#define MEDAL_CLUT_Y(i)		(480 + ((i) >> 1))
+#define MEDAL_CLUT(i)		((MEDAL_CLUT_Y(i) << 6) | (MEDAL_CLUT_X(i) >> 4))
+#define MEDAL_LARGE_V		96 /* text page rows 96..143: the view owns rows 12..211 and writes text above row 72 */
+#define MEDAL_TEXT_PAGE		0x1b /* the text page (704, 256) as a texture page */
+
+static __attribute__((noinline)) void medalViewOpen(void)
+{
+	int32_t i;
+	uint8_t *p;
+	RECT rect;
+
+	MEDAL_SHOWN_COUNT = 0;
+	MEDAL_TOP_ROW = 0;
+	p = NULL;
+	for (i = 0; i < MOD_MEDAL_COUNT; i++) {
+		if (!modMedalHidden(i)) {
+			MEDAL_SHOWN[MEDAL_SHOWN_COUNT++] = i;
+		}
+		if (i % SPECIES_MEDALS_PER_SECTOR == 0) {
+			p = readSpeciesChart(i / SPECIES_MEDALS_PER_SECTOR, 2);
+		}
+		if (p != NULL) {
+			setRECT(&rect, MEDAL_CLUT_X(i), MEDAL_CLUT_Y(i), 16, 1);
+			LoadImage(&rect, (u_long *)(p + (i % SPECIES_MEDALS_PER_SECTOR) * SPECIES_MEDAL_SMALL_SIZE + (hasMedal(i) ? 0 : 32)));
+			setRECT(&rect, MEDAL_ART_X(i), MEDAL_ART_Y(i), 6, 24);
+			LoadImage(&rect, (u_long *)(p + (i % SPECIES_MEDALS_PER_SECTOR) * SPECIES_MEDAL_SMALL_SIZE + 64));
+			DrawSync(0); /* the next read reuses the sector */
+		}
+	}
+	/* the list is shorter after an option was switched off: the cursor the view remembers may be past its end */
+	if (SELECTED_MEDAL >= MEDAL_SHOWN_COUNT) {
+		MEDAL_SELECTOR_INDEX = SELECTED_MEDAL = 0;
+	}
+	MEDAL_TOP_ROW = SELECTED_MEDAL / 5 > 2 ? SELECTED_MEDAL / 5 - 2 : 0;
+}
+
+static __attribute__((noinline)) void medalLoadLarge(int32_t medal)
+{
+	uint8_t *p;
+	RECT rect;
+
+	p = readSpeciesChart((MOD_MEDAL_COUNT + SPECIES_MEDALS_PER_SECTOR - 1) / SPECIES_MEDALS_PER_SECTOR + medal, 2);
+	if (p != NULL) {
+		setRECT(&rect, TEXT_VRAM_X, TEXT_VRAM_Y + MEDAL_LARGE_V, 12, 48);
+		LoadImage(&rect, (u_long *)p);
+		DrawSync(0);
+	}
+}
+
+/* the third row of the panel: earned, how many of how many, or not earned yet */
+static __attribute__((noinline)) char *medalStateText(int32_t medal, char *buf)
+{
+	int32_t i;
+	int32_t have;
+	int32_t need;
+	char *p;
+
+	if (hasMedal(medal) != 0) {
+		return STR_MEDAL_EARNED;
+	}
+	for (i = 0; i < MOD_MEDAL_MAX; i++) {
+		if (MOD_MEDALS[i].medal == medal) {
+			have = modMedalCount(&MOD_MEDALS[i], &need);
+			if (need > 1) {
+				p = chartDigits(buf, have);
+				*p++ = ' ';
+				*p++ = CHART_SLASH_1;
+				*p++ = CHART_SLASH_2;
+				*p++ = ' ';
+				*chartDigits(p, need) = 0;
+				return buf;
+			}
+		}
+	}
+	return STR_MEDAL_NOT_EARNED;
+}
 
 void renderMedalView(void)
 {
 	int32_t i;
 	int32_t j;
+	int32_t n;
+	int32_t x;
+	int32_t y;
+	int32_t rows;
 
 	switch (MENU_STATE) {
 	case 0:
@@ -6316,63 +6412,45 @@ void renderMedalView(void)
 			MENU_STATE = 2;
 		}
 	case 2:
-		renderRectPolyFT4(MEDAL_SLOT_X(MEDAL_SELECTOR_INDEX) - 4,
-		                  MEDAL_SLOT_Y(MEDAL_SELECTOR_INDEX), 0x18, 0x18, 0, 0xd0,
-		                  0x18, 0x7dc7, 1, 0);
 	case 1:
 		renderSeparatorLines(MAIN_D_8012472C, 0xe, 5);
 		renderString(3, MEDAL_VIEW_CROPS[0].x, -0x51, MEDAL_VIEW_CROPS[0].w, 0xc, MEDAL_VIEW_CROPS[0].u, 0xc, 5, 1); /* MOD (language) */
 
-		for (i = 0; i < 16; i++) {
-			if (hasMedal(i) != 0) {
-				if (MEDAL_SELECTOR_INDEX == i) {
-					if (MENU_STATE != 3) {
-#if !VERSION_IS(US)
-						renderString(0, -0x42, 0x17, 0x84, 0xc, 0, 0x18, 5, 1);
-#else
-						renderString(0, -0x5d, 0x17, 0xac, 0xc, 0, 0x18, 5, 1);
-#endif
-						for (j = 0; j < 3; j++) {
-							renderString(0, -0x7e, j * 13 + 0x27, 0xfc, 0xc, 0,
-							             j * 12 + 0x24, 5, 1);
-						}
-					}
-					renderDigiviceMedals();
+		for (n = MEDAL_TOP_ROW * 5; n < MEDAL_SHOWN_COUNT && n < MEDAL_TOP_ROW * 5 + 15; n++) {
+			i = MEDAL_SHOWN[n];
+			x = (n % 5) * 37 - 130;
+			y = (n / 5 - MEDAL_TOP_ROW) * 26 - 63;
+			renderRectPolyFT4(x, y, 24, 24, (MEDAL_ART_X(i) - 512) * 4, MEDAL_ART_Y(i) - 256, 0x18, MEDAL_CLUT(i), 5, 0);
+			if (n == MEDAL_SELECTOR_INDEX && MENU_STATE != 1) {
+				for (j = 0; j < 2; j++) { /* the cursor: a frame two pixels thick, under the medal */
+					drawLine2P(0x20e0ff, x - 1 + j, y - 1 + j, x + 24 - j, y - 1 + j, 5, 0);
+					drawLine2P(0x20e0ff, x - 1 + j, y + 24 - j, x + 24 - j, y + 24 - j, 5, 0);
+					drawLine2P(0x20e0ff, x - 1 + j, y - 1 + j, x - 1 + j, y + 24 - j, 5, 0);
+					drawLine2P(0x20e0ff, x + 24 - j, y - 1 + j, x + 24 - j, y + 24 - j, 5, 0);
 				}
-			} else {
-#if !VERSION_IS(US)
-				if (MEDAL_SELECTOR_INDEX == i) {
-					renderString(0, -0x42, 0x17, 0xc, 0xc, 0xe4, 0xc, 5, 1);
-					renderString(0, -0x7e, 0x27, 0xc, 0xc, 0xe4, 0xc, 5, 1);
-				}
-#endif
-				renderRectPolyFT4(MEDAL_SLOT_X(i) - 2, MEDAL_SLOT_Y(i), 0xf,
-				                  0x18, 0xf0, 0xc8, 0x18, 0x7dc7, 5, 0);
 			}
-
-			renderRectPolyFT4(MEDAL_SLOT_X(i), MEDAL_SLOT_Y(i), 0xf, 0x18,
-			                  0xf0, 0xb0, 0x18, 0x7dc7, 5, 0);
+		}
+		if (MENU_STATE != 3 && MEDAL_SHOWN_COUNT > 0) {
+			i = MEDAL_SHOWN[MEDAL_SELECTOR_INDEX];
+			renderRectPolyFT4(85, -49, 48, 48, 0, MEDAL_LARGE_V, MEDAL_TEXT_PAGE, MEDAL_CLUT(i), 5, 0);
+			renderString(0, -0x5d, 0x17, 0xac, 0xc, 0, 0x18, 5, 1);
+			for (j = 0; j < 3; j++) {
+				renderString(j < 2 ? 0 : hasMedal(i) != 0 ? 7 : 2, -0x7e, j * 13 + 0x27, 0xfc, 0xc, 0, j * 12 + 0x24, 5, 1);
+			}
+		}
+		rows = (MEDAL_SHOWN_COUNT + 4) / 5;
+		if (rows > 3) {
+			j = 76 * 3 / rows;
+			renderBox(61, -63 + (76 - j) * MEDAL_TOP_ROW / (rows - 3), 3, j, 120, 220, 255, 0, 5);
+			renderBox(61, -63, 3, 76, 20, 30, 38, 0, 5);
 		}
 
-#if !VERSION_IS(US)
-		renderInsetBox(0x5c, 0x8d, 0x88, 0xe, 5);
-#else
 		renderInsetBox(0x3e, 0x8d, 0xb0, 0xe, 5);
-#endif
-#if !VERSION_IS(US)
-		renderString(FOOTER_GLYPH1_COLOR, -0x23, 0x55, 0xc, 0xc, 0x6c, 0xc, 5, 1);
-		renderString(0, -0x17, 0x55, 0x18, 0xc, 0x84, 0xc, 5, 1);
-		renderString(0, 1, 0x55, 0x24, 0xc, 0x9c, 0xc, 5, 1);
-		renderString(FOOTER_GLYPH2_COLOR, 0x2b, 0x55, 0xc, 0xc, 0x78, 0xc, 5, 1);
-		renderString(0, 0x37, 0x55, 0x18, 0xc, 0x84, 0xc, 5, 1);
-		renderString(0, 0x4f, 0x55, 0x24, 0xc, 0xc0, 0xc, 5, 1);
-#else
 		/* MOD (language): each language's crops (MEDAL_VIEW_CROPS) */
 		for (j = 1; j < 6; j++) {
 			renderString(j == 1 ? FOOTER_GLYPH1_COLOR : j == 4 ? FOOTER_GLYPH2_COLOR : 0, MEDAL_VIEW_CROPS[j].x, 0x55,
 			             MEDAL_VIEW_CROPS[j].w, 0xc, MEDAL_VIEW_CROPS[j].u, 0xc, 5, 1);
 		}
-#endif
 	}
 }
 
@@ -6482,6 +6560,9 @@ void renderCardsView(void)
 			for (j = 0; j < 11; j++) {
 				card = j + (i + CARD_TOP_ROW) * 11;
 				if (card >= limit || (card >= 66 && !modCardIsReal(card))) continue;
+				if (card >= 66) {
+					modAddedCorner(j * 24 + 0x1e, i * 24 + 0x39);
+				}
 				amount = getCardAmount(card);
 				if (amount > 0) {
 					tpage = 0x18;
@@ -6945,30 +7026,6 @@ int8_t entityId;
 	tickAnimation(entity);
 }
 
-void renderDigiviceMedals(void)
-{
-	MATRIX m;
-
-	m = GsWSMATRIX;
-	FRAMEBUFFER_OT[0]->length = 9;
-	FRAMEBUFFER_OT[0]->org = FRAMEBUFFER0_ORIGIN;
-	FRAMEBUFFER_OT[1]->length = 9;
-	FRAMEBUFFER_OT[1]->org = FRAMEBUFFER1_ORIGIN;
-
-	GsSetProjection(0x400);
-	GsSetRefView2(&MEDAL_VIEW);
-	GsClearOt(0, 1, FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER]);
-
-	MEDAL_ROTATION.vy += 0x64;
-	RotMatrix(&MEDAL_ROTATION, &MEDAL_COORDINATES.coord);
-	MEDAL_COORDINATES.flg = 0;
-	drawObject(&MEDAL_OBJECT, FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER], 5);
-	GsSortOt(FRAMEBUFFER_OT[ACTIVE_FRAMEBUFFER], ACTIVE_ORDERING_TABLE);
-
-	GsSetProjection(VIEWPORT_DISTANCE);
-	GsSetRefView2(&GS_VIEWPOINT);
-}
-
 int32_t drawDigimonMovesText(void)
 {
 	RECT rect;
@@ -7143,6 +7200,8 @@ int32_t drawMedalViewStrings(void)
 {
 	RECT rect1;
 	RECT rect2;
+	char buf[24];
+	int32_t medal = MEDAL_SHOWN[MEDAL_SELECTOR_INDEX]; /* MOD (medal view) */
 
 	rect1 = MEDAL_VIEW_TEXT_AREA;
 	rect2 = MEDAL_DETAIL_AREA;
@@ -7150,6 +7209,7 @@ int32_t drawMedalViewStrings(void)
 	case 0:
 		clearTextSubArea(&rect1);
 		DRAW_STRING_CELLS(MAIN_D_80124C54, 0, 0xf0);
+		medalViewOpen(); /* MOD (medal view) */
 		MENU_SUB_STATE = 1;
 		break;
 	case 1:
@@ -7157,19 +7217,19 @@ int32_t drawMedalViewStrings(void)
 		MENU_SUB_STATE = 2;
 		break;
 	case 2:
-		drawString(MEDAL_NAMES[MEDAL_SELECTOR_INDEX], 0, 0x18);
+		medalLoadLarge(medal);
+		drawString(MEDAL_NAMES[medal], 0, 0x18);
 		MENU_SUB_STATE = 3;
 		break;
 	case 3:
 	case 4:
-	case 5:
-		drawString(MEDAL_DESCRIPTIONS[(MENU_SUB_STATE - 3) + MEDAL_SELECTOR_INDEX * 3], 0,
-		           (MENU_SUB_STATE - 3) * 0xc + 0x24);
+		drawString(MEDAL_DESCRIPTIONS[(MENU_SUB_STATE - 3) + medal * 2], 0, (MENU_SUB_STATE - 3) * 0xc + 0x24);
 		MENU_SUB_STATE++;
-		if (MENU_SUB_STATE == 6) {
-			return 1;
-		}
 		break;
+	case 5:
+		drawString(medalStateText(medal, buf), 0, 0x3c);
+		MENU_SUB_STATE = 6;
+		return 1;
 	case 6:
 		clearTextSubArea(&rect2);
 		MENU_SUB_STATE = 2;

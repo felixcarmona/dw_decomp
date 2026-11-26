@@ -39,6 +39,7 @@ int VSyncCallbacks(int slot, void (*callback)(void));
 #include <dw/memmap.h>
 #include <dw/species.h>
 #include <dw/tamer.h>
+#include <dw/tournament.h> /* MOD (classic and Horizon medals) */
 #include <dw/types.h>
 #include <dw/ui.h>
 #include <dw/utils.h>
@@ -173,7 +174,6 @@ void initializeMap(void);
 void runMapHeadScript(int32_t scriptId);
 uint8_t readPStat(int32_t id);
 void initializeUIBoxData(void);
-void initializeMedalModel(void);
 void initializeChest(void);
 void initializeFileReadQueue(void);
 void fillEFEXTable(void);
@@ -3477,7 +3477,6 @@ int32_t main(void)
 	initializeUIBoxData();
 	initializeEffectData();
 	initializeInventoryModules();
-	initializeMedalModel();
 	initializeClockData();
 	initializeStatusObjects();
 	initializeSpecies(); /* MOD (species): DIGI.DAT */
@@ -4047,6 +4046,32 @@ void recalculateProsperity(void)
 	writePStat(1, pp);
 }
 
+/* MOD (classic and Horizon medals): the city residents recruited, and in *total how many there are; originals: the fifty
+ * of the original game only (the roster's ids below 59) */
+int32_t modCityResidents(int32_t originals, int32_t *total)
+{
+	int32_t i;
+	int32_t type;
+	int32_t have;
+
+	have = 0;
+	*total = 0;
+	for (i = 3; i < (originals ? MOD_ORIGINAL_RESIDENTS_END : NUM_RECRUITABLE_DIGIMON + CITY_RESIDENTS_EXTRA_COUNT); i++) {
+		type = i;
+#if CITY_RESIDENTS_EXTRA_COUNT
+		if (i >= NUM_RECRUITABLE_DIGIMON) {
+			type = CITY_RESIDENTS_EXTRA[i - NUM_RECRUITABLE_DIGIMON];
+		} else
+#endif
+		if (!(CITY_RESIDENTS[i >> 3] & (1 << (i & 7)))) {
+			continue;
+		}
+		++*total;
+		have += isDigimonRecruited(type) != 0;
+	}
+	return have;
+}
+
 void recalculatePPandArena(void)
 {
 	uint8_t pp;
@@ -4266,7 +4291,6 @@ static void modReplayTickPrims(void)
  * first pass, and get the first pass's result back afterwards. */
 extern int8_t MENU_STATE;
 extern int8_t MENU_SUB_STATE;
-extern SVECTOR MEDAL_ROTATION;
 extern int16_t MONOCHROMON_BUBBLE_TIMER;
 extern uint8_t TEXTBOX_OPEN_TIMER;
 extern int16_t STATS_GAINS[6];   /* training overlays count them down while rendering */
@@ -4275,7 +4299,6 @@ extern uint8_t FLEE_BUBBLE_DATA[8 * 12]; /* renderFleeBubble: frame++ */
 static ModRollbackVar MOD_ROLLBACK_VARS[] = {
 	{ &MENU_STATE, sizeof(MENU_STATE) },
 	{ &MENU_SUB_STATE, sizeof(MENU_SUB_STATE) },
-	{ &MEDAL_ROTATION, sizeof(MEDAL_ROTATION) },
 	{ &MONOCHROMON_BUBBLE_TIMER, sizeof(MONOCHROMON_BUBBLE_TIMER) },
 	{ &TEXTBOX_OPEN_TIMER, sizeof(TEXTBOX_OPEN_TIMER) },
 	{ UI_BOX_DATA, sizeof(UIBoxData) * 6 },
