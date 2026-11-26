@@ -181,6 +181,47 @@ int32_t getPartnerVlallSoundId(int32_t type)
 	return (rec != NULL && (rec->flags & SPECIES_FLAG_PARTNER)) ? rec->vlallId : 15;
 }
 
+static int16_t EXTRA_PARENT[SPECIES_EXTRA_PARENTS];		/* 0: unused */
+static DigimonId EXTRA_TO[SPECIES_EXTRA_PARENTS][SPECIES_EXTRA_TARGETS];	/* 0: empty */
+
+int32_t getEvolutionExtraTargets(int32_t type, DigimonId **targets)
+{
+	int32_t k;
+	int32_t n;
+
+	for (k = 0; k < SPECIES_EXTRA_PARENTS; k++) {
+		if (EXTRA_PARENT[k] == type && type > 0) {
+			for (n = 0; n < SPECIES_EXTRA_TARGETS && EXTRA_TO[k][n] > 0; n++) {
+			}
+			*targets = EXTRA_TO[k];
+			return n;
+		}
+	}
+	return 0;
+}
+
+/* a Baby II's Rookie target with every "to" slot taken: into its extra list */
+static void addExtraTarget(int32_t orig, int32_t other)
+{
+	int32_t k;
+	int32_t j;
+
+	if (DIGIMON_DATA[orig].level != 2) {
+		return;
+	}
+	for (k = 0; k < SPECIES_EXTRA_PARENTS && EXTRA_PARENT[k] != orig && EXTRA_PARENT[k] != 0; k++) {
+	}
+	if (k == SPECIES_EXTRA_PARENTS) {
+		return;
+	}
+	EXTRA_PARENT[k] = orig;
+	for (j = 0; j < SPECIES_EXTRA_TARGETS && EXTRA_TO[k][j] != other && EXTRA_TO[k][j] > 0; j++) {
+	}
+	if (j < SPECIES_EXTRA_TARGETS) {
+		EXTRA_TO[k][j] = other;
+	}
+}
+
 static void addEvolutionLink(int32_t orig, int32_t other, int32_t isFrom)
 {
 	EvolutionPath *path;
@@ -203,6 +244,8 @@ static void addEvolutionLink(int32_t orig, int32_t other, int32_t isFrom)
 	}
 	if (j < n) {
 		list[j] = other;
+	} else if (!isFrom) {
+		addExtraTarget(orig, other); /* MOD (evolution) */
 	}
 }
 

@@ -239,6 +239,14 @@ int32_t getDigimonTextureRef(int32_t type, char **file, int32_t *sector, int32_t
 /* the evolution paths of a type (EVOLUTION_PATHS covers types 1..62, new
  * species have their own rows; any other type has none) */
 EvolutionPath *getEvolutionPath(int32_t type);
+/*
+ * MOD (evolution): a Baby II's Rookie targets past its 6 "to" slots. A link whose original has no free "to" slot and
+ * is an In-Training species goes here (up to SPECIES_EXTRA_TARGETS per Baby II); getInTrainingEvolutionTarget walks
+ * them after the 6. Returns the count and points *targets at them (0: none).
+ */
+#define SPECIES_EXTRA_PARENTS	4
+#define SPECIES_EXTRA_TARGETS	12
+int32_t getEvolutionExtraTargets(int32_t type, DigimonId **targets);
 /* MOD (dcb-import): the bone offset a technique effect of `type` starts
  * from: `borrowed` (the originalType's EFE entry) or this species' own one */
 int16_t *getSpeciesEffectOrigin(int32_t type, int16_t *borrowed);
