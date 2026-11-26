@@ -167,7 +167,7 @@ enum {
 	MOD_BT_T_DEFEAT_END,
 	MOD_BT_T_SETTLE,
 	MOD_BT_T_DIGIT,		/* ticks a digit of the defeat countdown shows (it pulses 20 ticks of them; the countdown ends after 5) */
-	MOD_BT_MUSIC_LAST_SPECIES,	/* the species whose presence on the player's side (entity 1) makes the battle play the last-battle track (-1: none) */
+	MOD_BT_MUSIC_LAST_SPECIES,	/* the species that, as the first enemy of the fight (COMBAT_DATA_PTR->player.entityIds[1], Machinedramon in the original), makes the battle play the last-battle track (-1: none) */
 	MOD_BT_MUSIC_LAST_TRACK,	/* the track (font 0x21) it plays */
 	MOD_BT_SIZE
 };
