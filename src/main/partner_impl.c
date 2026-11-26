@@ -1248,8 +1248,11 @@ void handlePraiseScold(state)
 
 	if (state == 4) {
 		NANIMON_TRIGGER = 0;
-		if ((DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level == 3) && (oldDiscipline == 0) &&
-		    (oldHappiness == -100)) {
+		/* MOD (evolution rules as data): the level and the discipline and happiness before the scolding that arm the flag */
+		if (MOD_EVO_SPECIAL[MOD_SPECIAL_SCOLD_LEVEL] >= 0 &&
+		    (DIGI_PARA(PARTNER_ENTITY.digimonEntity.entity.type).level == MOD_EVO_SPECIAL[MOD_SPECIAL_SCOLD_LEVEL]) &&
+		    (oldDiscipline == MOD_EVO_SPECIAL[MOD_SPECIAL_SCOLD_DISCIPLINE]) &&
+		    (oldHappiness == MOD_EVO_SPECIAL[MOD_SPECIAL_SCOLD_HAPPINESS])) {
 			NANIMON_TRIGGER = 1;
 		}
 	}
@@ -2253,15 +2256,18 @@ void tickConditions(void)
 					EVOLUTION_TARGET = -1;
 			}
 		}
-		if (level == 4 && evoTimer == 360)
+		/* MOD (evolution rules as data): the Champion hour that runs the praise-time rules */
+		if (MOD_EVO_SPECIAL[MOD_SPECIAL_CHECK_LEVEL] >= 0 && level == MOD_EVO_SPECIAL[MOD_SPECIAL_CHECK_LEVEL] &&
+		    evoTimer == MOD_EVO_SPECIAL[MOD_SPECIAL_CHECK_HOURS])
 			EVOLUTION_TARGET = handleSpecialEvolutions(
 				3, ENTITY_TABLE[1]);
 	}
-	if (PARTNER_PARA.virusBar >= 16) {
-		/* MOD (partners-npc-a): nor does it turn back into a Sukamon */
-		if (PARTNER_ENTITY.digimonEntity.entity.type != 0x27L &&
-		    PARTNER_ENTITY.digimonEntity.entity.type != DIGIMON_KING_SUKAMON) {
-			EVOLUTION_TARGET = 0x27;
+	/* MOD (evolution rules as data): the virus bar's threshold, the species it becomes and the two it does not apply to */
+	if (MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_THRESHOLD] >= 0 && MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_TARGET] >= 0 &&
+	    PARTNER_PARA.virusBar >= MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_THRESHOLD]) {
+		if (PARTNER_ENTITY.digimonEntity.entity.type != MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_IMMUNE_A] &&
+		    PARTNER_ENTITY.digimonEntity.entity.type != MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_IMMUNE_B]) {
+			EVOLUTION_TARGET = MOD_EVO_SPECIAL[MOD_SPECIAL_VIRUS_TARGET];
 			writePStat(5, PARTNER_ENTITY.digimonEntity.entity.type);
 			PARTNER_PARA.sukaBackupHP =
 				PARTNER_ENTITY.digimonEntity.stats.base.hp;
