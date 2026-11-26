@@ -30,6 +30,7 @@ void renderString(int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4, in
 int32_t flipIdleTextboxPage(int32_t boxId);
 void closeTextbox(int32_t boxId, RECT *target);
 void renderCustomSizedTextbox(void);
+void renderShopBitsBox(void);
 int32_t isKeyDown(uint32_t key);
 void setFreshDialogue(void);
 int32_t isXPressedAfterDialogue(void);
@@ -132,6 +133,8 @@ static const uint16_t *TEXTBOX_PIECES;
 static uint8_t TEXTBOX_PIECES_BOX; /* the box id + 1; 0: none */
 static uint8_t TEXTBOX_PIECES_ROW;
 static const uint16_t *DRAW2_PIECES; /* set while drawString2 draws that row */
+/* The currency box can coexist with the card shop's independently sliced answers. */
+static const uint16_t BALANCE_PIECES[] __attribute__((section(".rodata.balance_pieces"))) = { PIECE_WORDS | PIECE_CENTRE, 0x48 | PIECE_CENTRE, 0x90, PIECES_END };
 #endif
 
 // clang-format off
@@ -187,9 +190,14 @@ int32_t drawTextboxStrings(boxId, flag)
 #if FONT_SWITCH
 		/* MOD (font): the row a screen copies in pieces (TEXTBOX_ROW_PIECES) */
 		/* MOD (language): the row on either page (a box that flips writes its back page's rows after its front's) */
-		cellsRow = boxId + 1 == TEXTBOX_PIECES_BOX &&
-		           (box->vramRows != 0 ? box->writeRow % box->vramRows : box->writeRow) == TEXTBOX_PIECES_ROW;
-		DRAW2_PIECES = cellsRow && (FONT_PROPORTIONAL || (TEXTBOX_PIECES[0] & PIECE_WORDS)) ? TEXTBOX_PIECES : NULL;
+		if (box->render == renderShopBitsBox) {
+			cellsRow = 1;
+			DRAW2_PIECES = BALANCE_PIECES;
+		} else {
+			cellsRow = boxId + 1 == TEXTBOX_PIECES_BOX &&
+			           (box->vramRows != 0 ? box->writeRow % box->vramRows : box->writeRow) == TEXTBOX_PIECES_ROW;
+			DRAW2_PIECES = cellsRow && (FONT_PROPORTIONAL || (TEXTBOX_PIECES[0] & PIECE_WORDS)) ? TEXTBOX_PIECES : NULL;
+		}
 		/* MOD (language): with the original font that row is drawn in the original's cells, never in the name
 		 * keyboard's 12-pixel ones (its labels, NAMING_LABEL_PIECES) */
 		cellsRow = cellsRow && !FONT_PROPORTIONAL;
