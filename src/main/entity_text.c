@@ -183,7 +183,12 @@ void lateTickEntityText(int32_t instanceId)
 			break;
 		}
 		if (*frame < 21) {
-			entry->y += ENTITY_TEXT_Y_OFFSETS[*frame];
+			/* MOD (healing techniques): a healed amount rises, fast and then slower, where a hit bounces */
+			if (entry->icon & ENTITY_TEXT_RISE) {
+				entry->y -= *frame < 6 ? 3 : *frame < 14 ? 2 : 1;
+			} else {
+				entry->y += ENTITY_TEXT_Y_OFFSETS[*frame];
+			}
 		}
 
 		/* drawn by renderEntityText on layer 14 - i */
@@ -255,15 +260,15 @@ void renderEntityText(instanceId)
 				       entry->value, 14 - i);
 		}
 
-		if (entry->icon != 0) {
+		if ((entry->icon & ~ENTITY_TEXT_RISE) != 0) {
 			if (GAME_STATE != 4) {
 				drawEntityTextIcon(entry->x - 8, entry->y,
-						   ENTITY_TEXT_ICON_U[entry->icon - 1],
+						   ENTITY_TEXT_ICON_U[(entry->icon & ~ENTITY_TEXT_RISE) - 1],
 						   14 - i);
 			} else {
 				drawEntityTextIcon(screenPos.vx + entry->x - 8,
 						   screenPos.vy - 8 + entry->y,
-						   ENTITY_TEXT_ICON_U[entry->icon - 1],
+						   ENTITY_TEXT_ICON_U[(entry->icon & ~ENTITY_TEXT_RISE) - 1],
 						   14 - i);
 			}
 		}

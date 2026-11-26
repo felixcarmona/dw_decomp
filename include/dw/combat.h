@@ -114,6 +114,9 @@ typedef struct {
 	PlayerData player;
 } CombatData;
 
+/* MOD (healing techniques): with this bit in the icon of addEntityText the number rises instead of bouncing */
+#define ENTITY_TEXT_RISE 0x80
+
 extern CombatData COMBAT_DATA;
 extern CombatData *COMBAT_DATA_PTR;
 

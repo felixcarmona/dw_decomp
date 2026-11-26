@@ -5753,6 +5753,17 @@ int32_t STD_applyBuffMove(DigimonEntity *digimon, int32_t slot, int16_t anim)
 	int32_t row;
 
 	stats = &digimon->stats;
+	/* MOD (healing techniques): a technique of status 5 gives back statusChance percent of the full HP; the amount
+	   that came back rises over the fighter in green */
+	if (modSpeciesMove(digimon->entity.type, anim)->status == 5) {
+		row = stats->base.hp * modSpeciesMove(digimon->entity.type, anim)->statusChance / 100;
+		if (row > stats->base.hp - stats->current.currentHP) {
+			row = stats->base.hp - stats->current.currentHP;
+		}
+		stats->current.currentHP += row;
+		addEntityText(&digimon->entity, slot, 7, row, ENTITY_TEXT_RISE);
+		return 1;
+	}
 	/* MOD (battle as data): the buff moves and what they add, in percent of the stat (the rows of MOD_BATTLE) */
 	for (row = 0; row < 5; row++) {
 		if (BMV(BUFF_MOVE0 + row) == anim) {
