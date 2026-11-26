@@ -71,6 +71,22 @@ typedef struct {
 #define SPECIES_HEADER_LEVELS	0x40
 
 /*
+ * MOD (record originals): an original species (id < NUM_ORIGINAL_DIGIMON) can be carried by its DIGI.DAT record,
+ * like a new species: model, texture, skeleton, effect origins, condition bubble, partner block and evolution
+ * paths come from the record (the DW1 enemies made partners, the playable WereGarurumon). The header sector holds
+ * a bitmap of those ids at SPECIES_HEADER_RECORD_ORIGINALS (bit t & 7 of byte t >> 3). At boot their record's
+ * rows are copied over the resident tables (DIGIMON_DATA, RAISE_DATA, EVOLUTION_REQS / _STATS_GAINS,
+ * ITEM_TAKE_DISTANCE, the voices, ORIGINAL_DIGIMON_TYPES, SPECIES_BATTLE_MUSIC), so the per-frame readers of
+ * those tables need no test; the readers that already go through the record for new species (skeleton,
+ * model, texture, training rows, effect origins, condition bubble, evolution paths, cup lists) take the
+ * record. Without DIGI.DAT, or with a file that does not carry them, they are the disc's species.
+ */
+#define SPECIES_HEADER_RECORD_ORIGINALS	0x20
+#define SPECIES_RECORD_ORIGINALS_BYTES	((NUM_ORIGINAL_DIGIMON + 7) / 8)
+/* 1 if the original type is carried by its DIGI.DAT record (always 0 for ids >= NUM_ORIGINAL_DIGIMON) */
+int32_t isRecordOriginal(int32_t type);
+
+/*
  * MOD (scale): the two index sectors after the header. The first lists the
  * species that can be partners (the lab menu walks it), the second the
  * evolution links of new species with the original ones: the game cannot
