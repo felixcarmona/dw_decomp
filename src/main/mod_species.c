@@ -1115,28 +1115,43 @@ void lookHairPalette(uint16_t *row, uint8_t *rgb, uint8_t *levels)
 	}
 }
 
-/* A garment's palette row for a cloth colour (the cloth's r, g, b and the r, g, b of stripes, prints and trim): per tone the
- * recipe says whether it stays, is a fixed colour, or shows colour * level / 128 + (255 - colour) * white / 128. */
+/* A garment's palette row for a cloth colour (its shade, the colour, its light and the second colour: LOOK_CLOTH). Per
+ * tone the recipe says whether it stays, is a fixed colour, or lies between two of those at a level of 128: from the
+ * shade (0) through the colour (128) to the light (255), or from black to the second colour or to the shade. */
 void lookShirtPalette(uint16_t *row, LookShirtRecipe *recipe, uint8_t *rgb)
 {
 	int32_t i;
 	int32_t k;
+	int32_t w;
 	uint32_t c;
 	uint32_t v;
-	uint8_t *src;
+	const uint8_t *a;
+	const uint8_t *b;
 
 	for (i = 0; i < 16; i++) {
-		if (recipe->ways[i] == 0) {
+		w = recipe->levels[i];
+		switch (recipe->ways[i]) {
+		case 0:
 			continue;
-		}
-		if (recipe->ways[i] == 3) {
+		case 3:
 			row[i] = recipe->fixed[i] | 0x8000;
 			continue;
+		case 1:
+			a = rgb;
+			if (w > 128) {
+				a = rgb + 3;
+				w -= 128;
+			}
+			b = a + 3;
+			break;
+		default:
+			a = NULL;
+			b = recipe->ways[i] == 2 ? rgb + 9 : rgb;
+			break;
 		}
-		src = recipe->ways[i] == 1 ? rgb : rgb + 3;
 		v = 0x8000;
 		for (k = 0; k < 3; k++) {
-			c = (src[k] * recipe->levels[i] + (255 - src[k]) * recipe->whites[i]) >> 10;
+			c = ((a != NULL ? a[k] * (128 - w) : 0) + b[k] * w) >> 10;
 			v |= (c > 31 ? 31 : c) << (5 * k);
 		}
 		row[i] = v;
@@ -1268,7 +1283,7 @@ int32_t lookTamerLoad(void *component)
 		}
 		memcpy(&lookShirtRecipe[g], first + LOOK_SHIRT_RECIPE, sizeof(lookShirtRecipe[g]));
 		row = (uint16_t *)(texture + LOOK_TIM_PALETTE + 32 * LOOK_GARMENT_ROW(g));
-		lookShirtPalette(row, &lookShirtRecipe[g], (uint8_t *)head + 0x180 + 6 * (MOD_TAMER_STATE[4 + 2 * g] % head[0x69]));
+		lookShirtPalette(row, &lookShirtRecipe[g], (uint8_t *)head + LOOK_CLOTH + LOOK_CLOTH_SIZE * (MOD_TAMER_STATE[4 + 2 * g] % head[0x69]));
 		memcpy(lookShirtRow[g], row, sizeof(lookShirtRow[g]));
 		if (at[g] * 4 + (sectors[g][1] << 11) > TAMER_MMD_MAX) {
 			free3(texture);

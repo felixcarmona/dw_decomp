@@ -366,10 +366,12 @@ extern uint8_t MOD_TAMER_STATE[TAMER_STATE_SIZE] __attribute__((section(".sbss")
 #define TAMER_PACK_COUNT	7	/* the original backpack, none, then the others */
 #define TAMER_PACK_NONE		1
 #define LOOK_GARMENTS		4	/* the shirt, the trousers, the shoes, the backpack: MOD_TAMER_STATE[3 + 2 * n] and its colour after it */
+#define LOOK_CLOTH		0x300	/* in the file's first sector: per cloth colour its shade, the colour, its light and
+					 * the second colour, r, g, b each */
+#define LOOK_CLOTH_SIZE		12
 typedef struct LookShirtRecipe { /* how each tone of a garment's palette row gets its colour (lookShirtPalette) */
-	uint8_t ways[16]; /* 0 as the texture has it, 1 from the cloth's colour, 2 from the second colour, 3 fixed */
+	uint8_t ways[16]; /* 0 as the texture has it, 1 the cloth's colour, 2 the second colour, 3 fixed, 4 the cloth's shade */
 	uint8_t levels[16];
-	uint8_t whites[16];
 	uint16_t fixed[16];
 } LookShirtRecipe;
 struct ModelComponent;

@@ -2607,7 +2607,7 @@ static struct {
 	int16_t width[LOOK_ROWS];
 	uint8_t row;
 	uint8_t rgb[TAMER_HAIR_COUNT * 3];
-	uint8_t cloth[TAMER_CLOTH_COUNT * 6]; /* per cloth colour: the cloth, and stripes, prints and trim on it */
+	uint8_t cloth[TAMER_CLOTH_COUNT * LOOK_CLOTH_SIZE]; /* per cloth colour: its shade, the cloth, its light, and the second colour */
 } lookPageState;
 /* per garment: its palette row, and where its count and its directory are in the file's first sector (in u16s) */
 static const uint16_t lookPageGarment[3 * LOOK_GARMENTS] = { 2, 5, 7, 3, 0x68, 0x6D, 0x6E, 0x6F, 0x80, 0xA0, 0x100, 0x120 };
@@ -2759,7 +2759,7 @@ static void lookPageShirtRetint(int32_t garment)
 {
 	RECT rect;
 
-	lookShirtPalette(lookShirtRow[garment], &lookShirtRecipe[garment], &lookPageState.cloth[MOD_TAMER_STATE[4 + 2 * garment] * 6]);
+	lookShirtPalette(lookShirtRow[garment], &lookShirtRecipe[garment], &lookPageState.cloth[MOD_TAMER_STATE[4 + 2 * garment] * LOOK_CLOTH_SIZE]);
 	setRECT(&rect, (TAMER_MODEL.clutPage & 0x3f) << 4, (TAMER_MODEL.clutPage >> 6) + lookPageGarment[garment], 16, 1);
 	LoadImage(&rect, (u_long *)lookShirtRow[garment]);
 }
@@ -2833,8 +2833,8 @@ int32_t lookPageOpen(void)
 	for (i = 0; i < 16; i++) {
 		lookPageState.levels[i] = ((uint8_t *)head)[LOOK_LEVELS + i];
 	}
-	for (i = 0; i < TAMER_CLOTH_COUNT * 6; i++) {
-		lookPageState.cloth[i] = ((uint8_t *)head)[0x180 + i];
+	for (i = 0; i < TAMER_CLOTH_COUNT * LOOK_CLOTH_SIZE; i++) {
+		lookPageState.cloth[i] = ((uint8_t *)head)[LOOK_CLOTH + i];
 	}
 	/* what the file has of each row, never more than the game knows; a choice the file does not have closes the page */
 	for (i = 0; i < LOOK_ROWS; i++) {
