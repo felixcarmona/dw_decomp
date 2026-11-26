@@ -4912,6 +4912,8 @@ void recalculateProsperity(void);
 #define CHART_COLS		14
 #define CHART_ROWS		7
 #define CHART_PAGE_SIZE		(CHART_COLS * CHART_ROWS)
+_Static_assert((CHART_PAGE_SIZE / SPECIES_CHART_ICONS_PER_SECTOR + 1) * 0x800 <= TEXTURE_BUFFER_SIZE,
+		"a chart page's icon sectors must fit the texture buffer (chartLoadPage)");
 #define CHART_GRID_X		27	/* the first box's border, screen pixels */
 #define CHART_GRID_Y		57
 #define CHART_BAND_W		279	/* the tab's band, from x 20 */
@@ -5040,6 +5042,7 @@ static void chartLoadPage(int32_t row)
 	int32_t id;
 	int32_t clut;
 	uint8_t *icon;
+	int32_t lo;
 
 	CHART_PAGE_COUNT = 0;
 	CHART_RAISED = 0;
@@ -5083,7 +5086,21 @@ static void chartLoadPage(int32_t row)
 	for (k = 0; k < CHART_PAGE_COUNT; k++) {
 		CHART_PAGE_IDS[k] = ids[first + k];
 	}
+	/* the icon sectors the page (or row) needs follow each other on the disc: one read for all of them into the texture
+	 * buffer, as the card viewer does, instead of one read a sector (each read pays a seek). A full page spans at most
+	 * CHART_PAGE_SIZE / 7 + 1 = 15 sectors, the buffer's 0x7800 bytes */
+	lo = -1;
 	last = -1;
+	for (k = 0; k < CHART_PAGE_COUNT; k++) {
+		if (CHART_CELL_ID(CHART_PAGE_IDS[k]) <= NUM_EVO_CHART_DIGIMON || (row >= 0 && k / CHART_COLS != row)) continue;
+		sector = 1 + (first + k) / SPECIES_CHART_ICONS_PER_SECTOR;
+		if (lo < 0) lo = sector;
+		last = sector;
+	}
+	if (lo >= 0) {
+		DrawSync(0); /* the previous uploads may still read the buffer */
+		if (!readSpeciesChartSectors(lo, last - lo + 1, TEXTURE_BUFFER, CITY_VIEW)) lo = -1;
+	}
 	for (k = 0; k < CHART_PAGE_COUNT; k++) {
 		id = CHART_CELL_ID(CHART_PAGE_IDS[k]);
 		if (row >= 0 && k / CHART_COLS != row) continue;
@@ -5098,15 +5115,11 @@ static void chartLoadPage(int32_t row)
 			}
 			continue;
 		}
+		if (lo < 0) continue;
 		g = first + k;
 		sector = 1 + g / SPECIES_CHART_ICONS_PER_SECTOR;
-		if (sector != last) {
-			DrawSync(0); /* the uploads read the sector buffer */
-			s = readSpeciesChart(sector, CITY_VIEW);
-			last = sector;
-		}
 		slot = chartSlot(k);
-		icon = s + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE;
+		icon = TEXTURE_BUFFER + (sector - lo) * 0x800 + (g % SPECIES_CHART_ICONS_PER_SECTOR) * SPECIES_CHART_ICON_SIZE;
 		setRECT(&rect, CHART_CLUT_X + (slot % 4) * 16, CHART_CLUT_Y + slot / 4, 16, 1);
 		if (CITY_VIEW && !isDigimonRecruited(id)) {
 			cityGreyClut((uint16_t *)icon, slot);

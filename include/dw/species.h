@@ -310,6 +310,8 @@ void loadSpeciesPortrait(int32_t type, int32_t x, int32_t y, int32_t rows, int32
  * the next read of DIGI.DAT reuses; NULL when the file has no chart block */
 /* City sector pointer at header byte 0x38; zero in archives without City. */
 uint8_t *readSpeciesChart(int32_t k, int32_t city);
+/* the icon sectors k..k+count-1 of the chart (city 0) or City block in one read into `buffer`; 0 when there is no block */
+int32_t readSpeciesChartSectors(int32_t k, int32_t count, void *buffer, int32_t city);
 
 /* partner species of DIGI.DAT: how many, the n-th id, the first Mega (0: none) */
 int32_t getSpeciesPartnerCount(void);

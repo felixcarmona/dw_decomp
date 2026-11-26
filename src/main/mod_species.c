@@ -941,6 +941,22 @@ uint8_t *readSpeciesChart(int32_t k, int32_t city)
 	return (uint8_t *)SPECIES_SECTOR;
 }
 
+/* MOD (chart page in one read): every CD read pays a seek, about 60 ms, whatever its length */
+int32_t readSpeciesChartSectors(int32_t k, int32_t count, void *buffer, int32_t city)
+{
+	uint32_t sector;
+
+	sector = city ? SPECIES_CITY_SECTOR : SPECIES_CHART_SECTOR;
+	if (SPECIES_INDEX_SECTOR == 0 || sector == 0) {
+		return 0;
+	}
+	while (isFileReadQueueBusy()) {
+		tickFileReadQueue(0);
+	}
+	readFileSectors(SPECIES_FILE_NAME, buffer, sector + k, count);
+	return 1;
+}
+
 /*
  * MOD (cold animations): see COLD_ANIM_FLAG in species.h. Returns where the animation's first word is, or NULL when it cannot
  * be played (not the partner, a model not in DIGI.DAT, a bad entry): the caller then starts nothing, as for a missing slot.
