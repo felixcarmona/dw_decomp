@@ -4947,8 +4947,8 @@ void modBootOptions(void)
 	modNoticeProbe();
 }
 
-/* MOD (enhancement popup): keep the earlier two-column notice, but only
- * show detected enhancements. A plain 2 MB / normal-CPU boot stays clear.
+/* MOD (emulator notice): match v0.0.7, showing both readiness rows
+ * when either recommended setting is missing. With both ready, show nothing.
  * Drawing and scratch stay in the title overlay; boot probes stay resident.
  */
 #define MOD_NOTICE_NO_RAM	1
@@ -4968,18 +4968,18 @@ int32_t MOD_CPU_SPINS;
 static int32_t MOD_NOTICE;
 /* Keep the object above the eight-byte small-data cutoff for overlay storage. */
 static struct {
-	int32_t spins, mode;
+	int32_t spins;
 	uint8_t widths[MOD_NOTICE_STRS];
 } MOD_NOTICE_CACHE;
 /* Keep localized bytes in MENU, which remains loaded alongside the title UI.
  * One aggregate avoids gp-relative small-data accesses for the short labels.
  * sizeof includes the shared language padding supplied by gen_text. */
 static struct {
-	char head[sizeof(MOD_NOTICE_STR_HEAD1)], fps[sizeof(MOD_NOTICE_STR_FPS)];
+	char head[sizeof(MOD_NOTICE_STR_HEAD1)], advice[sizeof(MOD_NOTICE_STR_HEAD2)];
 	char ram[sizeof(MOD_NOTICE_STR_RAM)], cpu[sizeof(MOD_NOTICE_STR_CPU)];
 	char missing[sizeof(MOD_NOTICE_STR_MISSING)], ready[sizeof(MOD_NOTICE_STR_READY)];
 } MOD_NOTICE_TEXT = {
-	MOD_NOTICE_STR_HEAD1, MOD_NOTICE_STR_FPS, MOD_NOTICE_STR_RAM,
+	MOD_NOTICE_STR_HEAD1, MOD_NOTICE_STR_HEAD2, MOD_NOTICE_STR_RAM,
 	MOD_NOTICE_STR_CPU, MOD_NOTICE_STR_MISSING, MOD_NOTICE_STR_READY,
 };
 
@@ -5013,21 +5013,14 @@ void modNoticeDraw(void)
 {
 	RECT rect;
 	int32_t i, mode;
-	char fps[32];
 	char *text[MOD_NOTICE_STRS];
 
-	if (MOD_NOTICE == (MOD_NOTICE_NO_RAM | MOD_NOTICE_SLOW_CPU)) {
+	if (MOD_NOTICE == 0) {
 		return;
 	}
 	MOD_NOTICE_CACHE.spins = MOD_CPU_SPINS;
-#if FPS != 20
-	MOD_NOTICE_CACHE.mode = modFrameRateLevel();
-#else
-	MOD_NOTICE_CACHE.mode = 0;
-#endif
-	sprintf(fps, MOD_NOTICE_TEXT.fps, MOD_NOTICE_CACHE.mode == 2 ? 60 : MOD_NOTICE_CACHE.mode == 1 ? 30 : 20);
 	text[0] = MOD_NOTICE_TEXT.head;
-	text[1] = fps;
+	text[1] = MOD_NOTICE_TEXT.advice;
 	text[2] = MOD_NOTICE_TEXT.ram;
 	text[3] = MOD_NOTICE_TEXT.cpu;
 	text[4] = MOD_NOTICE_TEXT.missing;
@@ -5055,14 +5048,10 @@ void modNoticeRender(void)
 {
 	int32_t i, missing;
 
-	if (MOD_NOTICE == (MOD_NOTICE_NO_RAM | MOD_NOTICE_SLOW_CPU)) {
+	if (MOD_NOTICE == 0) {
 		return;
 	}
-	if (MOD_NOTICE_CACHE.spins != MOD_CPU_SPINS
-#if FPS != 20
-	    || MOD_NOTICE_CACHE.mode != modFrameRateLevel()
-#endif
-	) {
+	if (MOD_NOTICE_CACHE.spins != MOD_CPU_SPINS) {
 		modNoticeDraw();
 	}
 	modPlateRect(MOD_NOTICE_LEFT, MOD_NOTICE_TOP - 0x78, MOD_NOTICE_WIDTH, MOD_NOTICE_HEIGHT, 0x46, 0xBE, 0xEB, 2);
