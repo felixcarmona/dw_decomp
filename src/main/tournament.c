@@ -1,3 +1,4 @@
+#include <dw/cards.h>
 #include <dw/clock.h>
 #include <dw/entity.h>
 #include <dw/partner.h>
@@ -27,7 +28,7 @@ void unlockMedal(uint16_t medalId);
 void showMapHeadTextbox(int32_t, int32_t, int32_t, int32_t);
 int32_t isTriggerSet(uint16_t trigger);
 int32_t hasMedal(uint16_t medal);
-int32_t getCardAmount(uint8_t cardId);
+
 void unsetTrigger(uint16_t trigger);
 uint8_t readPStat(int32_t id);
 void callScriptSection(int32_t, int32_t, int32_t);

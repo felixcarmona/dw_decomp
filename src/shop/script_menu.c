@@ -742,6 +742,7 @@ void rollCardPack(void)
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
+		modLoadCardTable();
 		SHOP_ITEM_PRICE = econAmt(isTriggerSet(TRIGGER_CARD_MACHINE) ? MOD_ECON_MACHINE_PRICE : MOD_ECON_PACK_PRICE);
 		n = SHOP_ITEM_PRICE > 0 ? MONEY / SHOP_ITEM_PRICE : 99;
 		if (n == 0) {
@@ -761,21 +762,8 @@ void rollCardPack(void)
 		MONEY -= SHOP_AMOUNT * SHOP_ITEM_PRICE;
 		UPDATE_SHOP_BIT_BOX = 1;
 		playShopSoundOnlyInSavannah();
-		if (SHOP_AMOUNT > 1) {
-			openPackResults();
-			SCRIPT_STATE_2 = 1;
-			break;
-		}
-		SCRIPT_STATE_2 = isTriggerSet(TRIGGER_CARD_MACHINE) ? 7 : 5; /* the machine's one card: one box */
-		/* fallthrough */
-	case 5:
-	case 6:
-	case 7:
-		writePStat(PSTAT_249, rollCard());
-		showCardTextbox();
-		SCRIPT_NEXT_STATE_2 = SCRIPT_STATE_2 + 1;
+		openPackResults();
 		SCRIPT_STATE_2 = 1;
-		SCRIPT_TEXTBOX_MODE = 1;
 		break;
 	case 10:
 		destroyItemMenuBox(&ITEM_MENU_LEFT);
@@ -795,7 +783,8 @@ void openBuyCardMenu(void)
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
-		allocateItemMenuBox(&ITEM_MENU_LEFT, 0xc, 6, 0xb2, 0x18, 6,
+		modLoadCardTable();
+		allocateItemMenuBox(&ITEM_MENU_LEFT, 18, 6, 0xb2, 0x18, 6,
 		                    0x5a);
 		hasItems = hasAnyCardToBuy();
 		if (hasItems != 0) {
@@ -837,7 +826,8 @@ void openSellCardMenu(void)
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
-		allocateItemMenuBox(&ITEM_MENU_LEFT, 0x84, 6, 0xd2, 0x18,
+		modLoadCardTable();
+		allocateItemMenuBox(&ITEM_MENU_LEFT, (NUM_CARDS + 1) * 3, 6, 0xd2, 0x18,
 		                    6, 0x5a);
 		hasItems = shopFillSellCardList();
 		SCRIPT_STATE_2 = 3;
@@ -876,7 +866,8 @@ void openMeritShop(void)
 
 	switch (SCRIPT_STATE_2) {
 	case 0:
-		allocateItemMenuBox(&ITEM_MENU_LEFT, 0x84, 6, 0x9a, 0x18,
+		modLoadCardTable();
+		allocateItemMenuBox(&ITEM_MENU_LEFT, (NUM_CARDS + 1) * 3, 6, 0x9a, 0x18,
 		                    6, 0x5a);
 		allocateItemMenuBox(&ITEM_MENU_RIGHT, 0x100, 6, 0xb2, 0x18,
 		                    6, 0x5a);
@@ -1432,7 +1423,7 @@ int32_t hasAnyCardToBuy(void)
 {
 	uint8_t *buf;
 	uint8_t i;
-	uint8_t id;
+	uint16_t id;
 	int32_t any;
 	uint8_t spriteId;
 
@@ -1441,9 +1432,10 @@ int32_t hasAnyCardToBuy(void)
 	ITEM_MENU_LEFT->itemCount = 0;
 	for (i = 0; i < 6; i++) {
 		ITEM_MENU_LEFT->itemCount++;
-		id = SCRIPT_STATE_PTR->smth[i];
+		id = MOD_CARD_STOCK[i];
 		*buf++ = id;
-		if (id != 0xff) {
+		*buf++ = id >> 8;
+		if (id != CARD_NONE) {
 			spriteId = CARD_DATA[id].spriteId;
 			if ((CARD_PRICES[spriteId] <= MONEY) && ((uint32_t)getCardAmount(id) < (uint32_t)econAmt(MOD_ECON_CARD_MAX))) {
 				*buf++ = 1;
@@ -1494,20 +1486,22 @@ void showCardTextbox(void)
 int32_t shopFillSellCardList(void)
 {
 	uint8_t *buf = ITEM_MENU_LEFT->buf;
-	uint8_t id;
+	uint16_t id;
 	uint8_t amount;
 
 	/* Only owned cards occupy rows; the buffer still stores the original card IDs. */
 	ITEM_MENU_LEFT->itemCount = 0;
-	for (id = 1; id < 0x41; id++) {
+	for (id = 1; id < NUM_CARDS; id++) {
 		amount = getCardAmount(id);
 		if (amount != 0) {
 			*buf++ = id;
+			*buf++ = id >> 8;
 			*buf++ = amount;
 			ITEM_MENU_LEFT->itemCount++;
 		}
 	}
 	/* An empty list must never offer the previous trade again. */
+	*buf++ = 0xff;
 	*buf++ = 0xff;
 	*buf = 0;
 	return ITEM_MENU_LEFT->itemCount != 0;
@@ -1542,12 +1536,11 @@ int32_t fillRecycleShopItemList(void)
 	return 0;
 }
 
-uint8_t rollCard(void)
+uint16_t rollCard(void)
 {
-	uint8_t *cards;
-	uint8_t *p;
-	uint8_t count;
-	uint8_t i;
+	int32_t count;
+	int32_t i;
+	int32_t pick;
 	uint8_t rarity;
 
 	int32_t *cut;
@@ -1568,23 +1561,17 @@ uint8_t rollCard(void)
 		rarity = 4;
 	}
 
-	cards = (uint8_t *)allocateArray(NUM_CARDS);
-	p = cards;
 	count = 0;
 	for (i = 0; i < NUM_CARDS; i++) {
-		if (rarity == CARD_DATA[i].spriteId) {
-			*p++ = i;
-			count++;
-		}
+		if (modCardIsReal(i) && rarity == CARD_DATA[i].spriteId) count++;
 	}
-
-	rarity = randomLimit(count);
-	i = cards[rarity];
-	freeArray((uint32_t *)cards);
-
-	return i;
+	if (!count) return CARD_NONE; /* Authored rarities are validated at build time. */
+	pick = randomLimit(count);
+	for (i = 0; i < NUM_CARDS; i++) {
+		if (modCardIsReal(i) && rarity == CARD_DATA[i].spriteId && pick-- == 0) return i;
+	}
+	return CARD_NONE;
 }
-
 void createCardMenu(void)
 {
 	RECT rect;
@@ -2055,14 +2042,14 @@ int32_t createMeritCardTradeDialogue(void)
 	int32_t most;
 
 	box = getItemMenuFromType();
-	off = (box->topRow + box->cursor) * 2;
-	SHOP_ITEM_TYPE = box->buf[off];
+	off = (box->topRow + box->cursor) * 3;
+	SHOP_ITEM_TYPE = modCardRowId(box, box->topRow + box->cursor);
 
-	if (SHOP_ITEM_TYPE != 0xff && box->buf[off + 1] != 0) {
+	if (SHOP_ITEM_TYPE != CARD_NONE && box->buf[off + 2] != 0) {
 		SHOP_ITEM_PRICE = CARD_DATA[SHOP_ITEM_TYPE].meritValue;
 		most = (econCap(MOD_ECON_MERIT_CAP, 32767) - MERIT + SHOP_ITEM_PRICE - 1) / SHOP_ITEM_PRICE;
-		if (most > box->buf[off + 1]) {
-			most = box->buf[off + 1];
+		if (most > box->buf[off + 2]) {
+			most = box->buf[off + 2];
 		}
 		if (most > 0) {
 			MAX_SHOP_AMOUNT = most;
@@ -3684,7 +3671,7 @@ void openAmountBox(int32_t kind)
 uint8_t MOD_PACK_RESULTS;
 static uint8_t PACK_SHOWN;
 static uint8_t PACK_TICK;
-static uint8_t PACK_ART;  /* the card whose picture is shown (0xff none) */
+static uint16_t PACK_ART;  /* the card whose picture is shown (0xffff none) */
 static uint8_t PACK_FLIP; /* 0..4: the picture turns over as it comes */
 static uint8_t PACK_HEAD_W; /* the head's width in pixels */
 extern char MAIN_D_80123E78[]; /* "\\CARD\\CARD.ALL" */
@@ -3705,16 +3692,16 @@ static void tickPackResults(void)
 			PACK_SHOWN = 0xff;
 		} else if (++PACK_TICK >= 4) {
 			PACK_TICK = 0;
-			playSound(0, (box->buf[PACK_SHOWN * 2 + 1] & 0x80) ? 3 : 2);
+			playSound(0, (box->buf[PACK_SHOWN * 3 + 2] & 0x80) ? 3 : 2);
 			PACK_SHOWN++;
 		}
 		return;
 	}
 	PACK_SHOWN = 0xff;
-	if (box->buf[(box->topRow + box->cursor) * 2] != PACK_ART) {
-		PACK_ART = box->buf[(box->topRow + box->cursor) * 2];
+	if (modCardRowId(box, box->topRow + box->cursor) != PACK_ART) {
+		PACK_ART = modCardRowId(box, box->topRow + box->cursor);
 		if (ARRAY_SECTION_OFFSET <= TEXTURE_BUFFER_SIZE - 0xe * 0x800) {
-			loadStackedTIMEntry(MAIN_D_80123E78, TEXTURE_BUFFER + TEXTURE_BUFFER_SIZE - 0xe * 0x800, PACK_ART * 0xe, 0xe);
+			modLoadCardImage(PACK_ART, TEXTURE_BUFFER + TEXTURE_BUFFER_SIZE - 0xe * 0x800);
 		}
 		PACK_FLIP = 0;
 	} else if (PACK_FLIP < 4) {
@@ -3741,7 +3728,7 @@ static void renderPackResults(void)
 	int16_t v;
 	int16_t bx;
 	int16_t by;
-	uint8_t count;
+	uint16_t count;
 
 	box = ITEM_MENU_LEFT;
 	text = &TEXTBOX_DATA.box[1];
@@ -3761,7 +3748,7 @@ static void renderPackResults(void)
 	renderItemMenuItemList(box, bx + 0x1a, by + 0x1b, bx + 8, by + 0x1a, 1);
 	box->itemCount = count;
 
-	if (PACK_ART != 0xff && UI_BOX_DATA[1].state == 1) {
+	if (PACK_ART != CARD_NONE && UI_BOX_DATA[1].state == 1) {
 		POLY_FT4 *prim;
 
 		w = (75 * PACK_FLIP + 2) / 4;
@@ -3790,7 +3777,8 @@ static void openPackResults(void)
 	int32_t per;
 
 	/* the list first: the arrays are a stack (allocateArray), got is freed above it */
-	allocateItemMenuBox(&ITEM_MENU_LEFT, NUM_CARDS * 2, 5, 0xd2, 0x1c, 6, 0x56);
+	/* At most 99 three-card packs: keep the list below the image staging area. */
+	allocateItemMenuBox(&ITEM_MENU_LEFT, 99 * 3 * 3, 5, 0xd2, 0x1c, 6, 0x56);
 	got = (uint8_t *)allocateArray(NUM_CARDS * 2);   /* how many came, the copies before */
 	for (i = 0; i < NUM_CARDS; i++) {
 		got[i] = 0;
@@ -3799,6 +3787,7 @@ static void openPackResults(void)
 	per = isTriggerSet(TRIGGER_CARD_MACHINE) ? 1 : 3; /* cards a unit: the machine's one, a pack's three */
 	for (i = SHOP_AMOUNT * per; i > 0; i--) {
 		r = rollCard();
+		if (r == CARD_NONE) continue;
 		if (got[r] < 99) {
 			got[r]++;
 		}
@@ -3816,12 +3805,13 @@ static void openPackResults(void)
 				n = got[NUM_CARDS + i] == 0;
 				fresh += n;
 				*out++ = i;
+				*out++ = i >> 8;
 				*out++ = got[i] | (n << 7);
 			}
 		}
 	}
 	freeArray((uint32_t *)got);
-	ITEM_MENU_LEFT->itemCount = (out - ITEM_MENU_LEFT->buf) / 2;
+	ITEM_MENU_LEFT->itemCount = (out - ITEM_MENU_LEFT->buf) / 3;
 
 	/* the head: row 9 of both pages, the box's first, before the rows of cards (drawn from it on, a row ends at 0xd) */
 	for (r = 9; r < 9 + 2 * 6; r += 6) {
@@ -3841,7 +3831,7 @@ static void openPackResults(void)
 	ITEM_MENU_TYPE = 4;
 	PACK_SHOWN = 0;
 	PACK_TICK = 0;
-	PACK_ART = 0xff;
+	PACK_ART = CARD_NONE;
 	triggerBoxCloseFlag(0);
 	setInputRepeatMask(0x5000);
 	setupBoxOrigin(readPStat(PSTAT_254), &origin);

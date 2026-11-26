@@ -33,6 +33,8 @@
 #define SAVE_TAG_VANILLA_SWAP		0x000A /* i16 species, i16 vanilla species: NEW DIGIMON off turned the partner from the first into the second (main_menu.c modVanillaSwap) */
 #define SAVE_TAG_GROUND_PICKED		0x000B /* {i16 screen, u8 tileX, u8 tileY}[64]: the ground spots picked up today (retired; a zero-length record writes an empty legacy history) */
 #define SAVE_TAG_GROUND_PICKUP_BITS	0x000C /* bit array: stable ground pickup IDs collected today; registry content/ground-items.json */
+#define SAVE_TAG_CARD_COUNTS		0x000D /* nibbles for card ids 66..511, low nibble first */
+#define SAVE_TAG_CARD_STOCK		0x000E /* u16[6] daily shop cards, 0xffff sold */
 #define SAVE_TAG_REQUIRED		0x8000
 #define SAVE_TAG_TECHNIQUE_LAYOUT	0x8003 /* u8: 1 = option A animation slots; required to prevent silent downgrade substitution */
 /* engine tier 2 */

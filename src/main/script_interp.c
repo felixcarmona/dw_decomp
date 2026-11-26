@@ -2528,14 +2528,12 @@ void scriptLearnMove(moveId)
 	learnMove((int16_t)(int32_t)moveId);
 }
 
-// clang-format off
-uint8_t getCardAmount(cardId)
-	int16_t cardId;
-// clang-format on
+uint8_t getCardAmount(int32_t cardId)
 {
 	uint8_t *cardPtr;
 
-	cardPtr = &SCRIPT_STATE_PTR->cards[cardId / 2];
+	if (!modCardIsReal(cardId)) return 0;
+	cardPtr = cardId < 66 ? &SCRIPT_STATE_PTR->cards[cardId / 2] : &MOD_CARD_EXTRA[(cardId - 66) / 2];
 	if ((cardId & 1) == 0) {
 		return *cardPtr & 0xf;
 	} else {
@@ -2543,20 +2541,20 @@ uint8_t getCardAmount(cardId)
 	}
 }
 
-// clang-format off
-int32_t setCardAmount(cardId, value)
-	int16_t cardId;
-	int32_t value;
-// clang-format on
+int32_t setCardAmount(int32_t cardId, int32_t value)
 {
 	uint8_t *cardPtr;
 
-	cardPtr = &SCRIPT_STATE_PTR->cards[cardId / 2];
+	if (!modCardIsReal(cardId)) return 0;
+	cardPtr = cardId < 66 ? &SCRIPT_STATE_PTR->cards[cardId / 2] : &MOD_CARD_EXTRA[(cardId - 66) / 2];
+	if (value < 0) value = 0;
+	if (value > 9) value = 9;
 	if ((cardId & 1) == 0) {
 		*cardPtr = (*cardPtr & 0xf0) | value;
 	} else {
 		*cardPtr = (*cardPtr & 0xf) | (value << 4);
 	}
+	return 0;
 }
 
 // clang-format off

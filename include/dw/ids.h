@@ -169,7 +169,7 @@ typedef uint16_t CardId;
 #define NUM_LEARNABLE_MOVES	58	/* MOVE_LEARN_CHANCES, the technique grid */
 
 /* Cards */
-#define NUM_CARDS		66	/* CARD_DATA, CARD_SPRITE_CLUT, CARD.ALL */
+#define NUM_CARDS		512	/* CARD_DATA, CARD_SPRITE_CLUT, CARD.ALL */
 
 /* Trigger ranges used as per-id bitsets (scripts.md, "Free triggers") */
 /* SET/UNSET_TRIGGER and IF operands for species 112..1023; saved recruit bits. */

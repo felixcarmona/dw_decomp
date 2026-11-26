@@ -244,7 +244,7 @@ typedef struct {
 SAVE_LAYOUT_CHECK(extHead, sizeof(SaveExtHead) == 12);
 /* Bound every record, including the optional swap and daily pickup bitmap. */
 #define SAVE_RECORDS_MAX (sizeof(SaveExtHead) + 12 * 4 + 4 + 60 + 4 + 32 + 80 + 200 + \
-                         2 * (NUM_DIGIMON / 8) + MOD_OPT_BYTES + 4 + sizeof(MOD_GROUND_PICKED) + 4 + 4)
+                         2 * (NUM_DIGIMON / 8) + MOD_OPT_BYTES + 4 + sizeof(MOD_GROUND_PICKED) + 4 + 4 + 8 + CARD_EXTRA_BYTES + 12)
 SAVE_LAYOUT_CHECK(recordsFit, SAVE_RECORDS_MAX <= SAVE_INLINE_BYTES);
 SAVE_LAYOUT_CHECK(inlinePadding, sizeof(((RegisteredDigimon *)0)->unk24) == 28 &&
                   __builtin_offsetof(RegisteredDigimon, unk24) == 0x24 && sizeof(RegisteredDigimon) == 0x40);
@@ -4493,6 +4493,10 @@ void loadSavegame(SavegamePayload *savegame)
 	TOURNAMENT_WINS = savegame->tournamentWins;
 	TOURNAMENTS_LOST = savegame->tournamentsLost;
 	memcpy(SCRIPT_STATE_PTR, savegame->scriptState, 0x17C);
+	memset(MOD_CARD_EXTRA, 0, sizeof(MOD_CARD_EXTRA));
+	for (i = 0; i < 6; i++) {
+		MOD_CARD_STOCK[i] = SCRIPT_STATE_PTR->smth[i] == 255 ? CARD_NONE : SCRIPT_STATE_PTR->smth[i];
+	}
 	MAIN_STATE = savegame->mainState;
 	memcpy(SAVED_STATE.tamerWaypointX, savegame->tamerWaypointX, 0x1E);
 	memcpy(SAVED_STATE.tamerWaypointY, savegame->tamerWaypointY, 0x1E);
@@ -5141,6 +5145,8 @@ static void prepareSaveFile(int32_t fromRam)
 		/* Retain the old tag's meaning (an empty location list) for older readers. */
 		p = putRecord(p, SAVE_TAG_GROUND_PICKED, 0, 0);
 		p = putRecord(p, SAVE_TAG_GROUND_PICKUP_BITS, MOD_GROUND_PICKED, sizeof(MOD_GROUND_PICKED));
+		p = putRecord(p, SAVE_TAG_CARD_COUNTS, MOD_CARD_EXTRA, sizeof(MOD_CARD_EXTRA));
+		p = putRecord(p, SAVE_TAG_CARD_STOCK, MOD_CARD_STOCK, sizeof(MOD_CARD_STOCK));
 	}
 	{ uint8_t layout = 1; p = putRecord(p, SAVE_TAG_TECHNIQUE_LAYOUT, &layout, 1); }
 	/* MOD (tier 2): the story state's records go here */
@@ -5421,6 +5427,8 @@ static int32_t isRecordKnown(int32_t tag)
 	case SAVE_TAG_OPTIONS:
 	case SAVE_TAG_VANILLA_SWAP:
 	case SAVE_TAG_GROUND_PICKED:
+	case SAVE_TAG_CARD_COUNTS:
+	case SAVE_TAG_CARD_STOCK:
 	case SAVE_TAG_GROUND_PICKUP_BITS:
 	case SAVE_TAG_TECHNIQUE_LAYOUT:
 		return 1;
@@ -5502,6 +5510,15 @@ static void applyRecords(uint8_t *e)
 			if (len >= 4) {
 				MOD_SWAP_FROM = readRecord16(d);
 				MOD_SWAP_TO = readRecord16(d + 2);
+			}
+			break;
+		case SAVE_TAG_CARD_COUNTS:
+			for (i = 0; i < len && i < CARD_EXTRA_BYTES; i++) MOD_CARD_EXTRA[i] = d[i];
+			break;
+		case SAVE_TAG_CARD_STOCK:
+			for (i = 0; i < len / 2 && i < 6; i++) {
+				n = readRecord16(d + i * 2);
+				MOD_CARD_STOCK[i] = modCardIsReal(n) ? n : CARD_NONE;
 			}
 			break;
 		case SAVE_TAG_GROUND_PICKUP_BITS:
