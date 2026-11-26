@@ -36,6 +36,7 @@ typedef struct {
 
 extern GsOT *ACTIVE_ORDERING_TABLE;
 extern uint8_t ACTIVE_BGM_TRACK;
+extern int8_t MOD_TFS_SAME_MAP; /* tfs_stream.c */
 extern uint8_t NAMING_CURRENT_LETTER;
 extern uint8_t MAIN_D_80134F8F;
 extern uint8_t MAIN_D_80134F90;
@@ -1024,7 +1025,10 @@ void openJukebox(void)
 	case 2:
 		destroyItemMenuBox(&ITEM_MENU_LEFT);
 		playBGM(ACTIVE_BGM_FONT);
+		/* MOD (post-battle stall): the same map's palettes are resident; the header is not read again (a seek) */
+		MOD_TFS_SAME_MAP = 1;
 		readMapTFS(CURRENT_SCREEN_ID);
+		MOD_TFS_SAME_MAP = 0;
 		ACTIVE_INSTRUCTION = 0;
 		break;
 	case 3:

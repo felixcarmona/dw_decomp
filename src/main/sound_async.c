@@ -3,6 +3,7 @@
 
 #include <dw/file_queue.h>
 #include <dw/main.h>
+#include <dw/mod_options.h> /* MOD (post-battle stall) */
 #include <dw/sound.h>
 #include <dw/sound_async.h>
 #include <dw/species.h>
@@ -332,6 +333,8 @@ void seqClose(void);
 static int16_t modMusicFont;
 static int16_t modMusicTrack;
 static uint8_t modMusicLoading;
+static int8_t modFieldMusic;	/* MOD (post-battle stall): the font being read is the field's, after a battle */
+static uint32_t modMusicEnd;	/* where the staging at GENERAL_BUFFER of the font being read ends */
 
 static int32_t modMusicComplete(void *param)
 {
@@ -359,11 +362,30 @@ static int32_t modMusicFinish(void *param)
 	return 0;
 }
 
+/*
+ * MOD (post-battle stall): the field's font after a battle is read through the queue while the world runs. Nothing may
+ * play music, stage anything over it or read it from the disc in between: playMusic, the next modPlayMusicAsync and the
+ * synchronous readers into its staging (tfsStreamCheckTarget) wait for it to be in and playing first, in the original's order.
+ */
+int32_t modFieldMusicPending(void)
+{
+	return (modMusicLoading && modFieldMusic) ? (int32_t)modMusicEnd : 0;
+}
+
+void modFieldMusicWait(void)
+{
+	while (modMusicLoading && modFieldMusic) {
+		tickFileReadQueue(0);
+	}
+	modFieldMusic = 0;
+}
+
 void modPlayMusicAsync(int32_t font, int32_t track)
 {
 	int32_t sector;
 	int32_t sectors;
 
+	modFieldMusicWait();
 	if ((font == CURRENT_SEQ_FONT) && (track == CURRENT_SEQ_TRACK)) {
 		return;
 	}
@@ -381,7 +403,37 @@ void modPlayMusicAsync(int32_t font, int32_t track)
 	}
 	modMusicFont = font;
 	modMusicTrack = track;
+	modMusicEnd = (uint32_t)GENERAL_BUFFER + (sectors << 11);
 	SOUND_BUFFERS[2].buffer = GENERAL_BUFFER;
 	addFileReadRequestSection("FAALL.VHB", GENERAL_BUFFER, sector, sectors, &modMusicLoading,
 				  modMusicFinish, (void *)2);
+}
+
+extern uint8_t ACTIVE_BGM_FONT;
+extern uint8_t ACTIVE_BGM_TRACK;
+void handleMusicOverride(uint8_t *outFont, uint8_t *outVariant);
+void playBGM(int32_t bgmId);
+void stopBGM(void);
+
+/* MOD (post-battle stall): playBGM(ACTIVE_BGM_FONT) for the way back from a battle, without the wait for the font when
+ * QUICK BATTLES is on (the original reads it before the world runs again, a seek and 27 sectors) */
+void modResumeFieldMusic(void)
+{
+	uint8_t font;
+	uint8_t variant;
+
+	font = ACTIVE_BGM_FONT;
+	if (font != 0xff) {
+		handleMusicOverride(&font, &variant);
+	}
+	/* the same font needs no read: playBGM keeps (or restarts) it as the original did */
+	if (!MOD_OPT_QUICK_BATTLE || ACTIVE_BGM_FONT == 0xff || font == CURRENT_SEQ_FONT) {
+		playBGM(ACTIVE_BGM_FONT);
+		return;
+	}
+	ACTIVE_BGM_FONT = font;
+	ACTIVE_BGM_TRACK = variant;
+	stopBGM();
+	modPlayMusicAsync(font, variant);
+	modFieldMusic = modMusicLoading;
 }

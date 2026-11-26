@@ -53,6 +53,7 @@
 #include <dw/file.h>
 #include <dw/map.h>
 #include <dw/memmap.h>
+#include <dw/mod_options.h>
 #include <dw/tfs_stream.h>
 #include <dw/types.h>
 
@@ -80,6 +81,14 @@ static char TFS_PATH[32];
 static int32_t TFS_ACTIVE;
 static int32_t TFS_FIRST_SECTOR;
 static int32_t TFS_DATA_OFFSET;	/* 8 + 512 * nCLUT */
+static int32_t TFS_HEADER_OK;	/* TFS_PATH's palettes are in MOD_TFS_CLUTS and TFS_DATA_OFFSET is its own */
+int8_t MOD_TFS_SAME_MAP;	/* the caller reopens the screen it is on (battle exit): the header need not be read again */
+int32_t modFieldMusicPending(void);	/* sound_async.c: where the field's font being read after a battle ends, or 0 */
+void modFieldMusicWait(void);
+extern int8_t MOD_BTL_PRELOAD;	/* btl.c */
+extern int8_t MOD_BTL_PRELOAD_BLOCKED;
+static int8_t TFS_HOLD;	/* after a won battle: no prefetch before the BTL_REL read ahead (tfsStreamHoldPrefetch) */
+static int32_t TFS_HOLD_START;
 static int32_t TFS_NUM_SLOTS;
 static int32_t TFS_INFLIGHT = -1;
 static int32_t TFS_INFLIGHT_START;
@@ -191,6 +200,10 @@ void tfsStreamCheckTarget(void *buffer, int32_t bytes)
 	 * ENDI_REL at 0x80060000 kept BTL_REL's code above 0x80060800, and the
 	 * ending jumped through it: farewell at 237, 2026-10-24).
 	 */
+	/* MOD (post-battle stall): never read over (or before) the field's font being read after a battle */
+	if ((a < (uint32_t)modFieldMusicPending()) && (a + bytes > TFS_HEADER_ADDR)) {
+		modFieldMusicWait();
+	}
 	waitQueueRead();
 	tfsStreamWaitIdle();
 	if ((a < TFS_RING_END) && (a + bytes > TFS_HEADER_ADDR)) {
@@ -230,9 +243,19 @@ void tfsStreamOpen(char *path)
 	FileLookup lookup;
 	int32_t size;
 	int32_t i;
+	int32_t reuse;
 
 	tfsStreamInvalidate();
 	tfsForgetCells();	/* VRAM may hold another map's (or file's) tiles */
+	/*
+	 * MOD (post-battle stall): the header is read from the disc only for a map whose palettes are not resident. The ring
+	 * reopening itself (path is TFS_PATH) and the battle exit (MOD_TFS_SAME_MAP, the same screen) keep what the last read
+	 * took from it; a 2-sector read at the start of the file cost a seek, and the picture stood still for it.
+	 */
+	reuse = TFS_HEADER_OK && (path == TFS_PATH || (MOD_TFS_SAME_MAP && strcmp(path, TFS_PATH) == 0));
+	if (!reuse) {
+		TFS_HEADER_OK = 0;
+	}
 	if (path != TFS_PATH) {
 		for (i = 0; (TFS_PATH[i] = path[i]) != 0 && i < 31; i++);
 		TFS_PATH[31] = 0;
@@ -241,9 +264,12 @@ void tfsStreamOpen(char *path)
 		return;
 	}
 	TFS_FIRST_SECTOR = CdPosToInt(&lookup.pos);
-	readFileSectors(TFS_PATH, (void *)TFS_HEADER_ADDR, 0, TFS_HEADER_SIZE >> 11);
-	TFS_DATA_OFFSET = 8 + 512 * ((uint32_t *)TFS_HEADER_ADDR)[1];
-	memcpy(MOD_TFS_CLUTS, (uint8_t *)TFS_HEADER_ADDR + 8, sizeof(MOD_TFS_CLUTS));
+	if (!reuse) {
+		readFileSectors(TFS_PATH, (void *)TFS_HEADER_ADDR, 0, TFS_HEADER_SIZE >> 11);
+		TFS_DATA_OFFSET = 8 + 512 * ((uint32_t *)TFS_HEADER_ADDR)[1];
+		memcpy(MOD_TFS_CLUTS, (uint8_t *)TFS_HEADER_ADDR + 8, sizeof(MOD_TFS_CLUTS));
+		TFS_HEADER_OK = 1;
+	}
 
 	/*
 	 * Never use more of the load area than this screen's whole TFS took in
@@ -309,15 +335,17 @@ static int32_t victimSlot(int8_t *protect, int32_t count, int32_t avoid)
 	int32_t best = -1;
 	int32_t bestCls = 3;
 	int32_t tile;
+	/* MOD (post-battle stall): the slots under the field's font still being read after a battle are not used yet */
+	uint32_t reserved = (uint32_t)modFieldMusicPending();
 
 	for (i = 0; i < TFS_NUM_SLOTS; i++) {
-		if (TFS_SLOTS[i].state == SLOT_FREE) {
+		if ((TFS_SLOTS[i].state == SLOT_FREE) && ((uint32_t)slotAddr(i) >= reserved)) {
 			return i;
 		}
 	}
 	for (i = 0; i < TFS_NUM_SLOTS; i++) {
 		tile = TFS_SLOTS[i].tile;
-		if ((TFS_SLOTS[i].state != SLOT_READY) || (tile == avoid)) {
+		if ((TFS_SLOTS[i].state != SLOT_READY) || (tile == avoid) || ((uint32_t)slotAddr(i) < reserved)) {
 			continue;
 		}
 		if (inVram(tile)) {
@@ -391,6 +419,7 @@ void tfsStageRow(int32_t firstTile, int32_t count)
 	if (first < 0) {
 		return;
 	}
+	modFieldMusicWait();	/* MOD (post-battle stall): the row lands over the field's font being read */
 	if (!TFS_ACTIVE) {
 		if (!ringMayReopen()) {
 			return;	/* no span: tfsTilePixels gives NULL for the row's tiles and nothing is uploaded */
@@ -481,6 +510,10 @@ u_long *tfsTilePixels(int32_t tile)
 		tfsStreamWaitIdle();
 		waitQueueRead();
 		slot = victimSlot(NULL, 0, -1);
+		if (slot < 0) {
+			modFieldMusicWait();	/* MOD (post-battle stall): a small ring lies under the font being read */
+			slot = victimSlot(NULL, 0, -1);
+		}
 		if (slot < 0) {
 			slot = 0;	/* cannot happen with 1 slot or more free of the window */
 		}
@@ -612,6 +645,18 @@ static int32_t wantTiles(int8_t *tiles, int16_t *dist)
 }
 
 /*
+ * MOD (post-battle stall): after a won battle the disc has the field's music font, the BTL_REL read ahead and the empty
+ * ring to read. Prefetching first made the read ahead wait for a tile that seeks across the disc, then the window's next
+ * strip for the read ahead: measured, the camera's first band after the fight found the ring emptier (a longer stand
+ * still). The prefetch waits for the read ahead to be queued, at most 90 vsyncs; a tile needed meanwhile is read at once.
+ */
+void tfsStreamHoldPrefetch(void)
+{
+	TFS_HOLD = 1;
+	TFS_HOLD_START = VSync(-1);
+}
+
+/*
  * Once per tick: finish the read in flight, then start reading the nearest
  * tile the window may need that is not in the ring. A ring tile is only
  * given up for one at least TFS_EVICT_MARGIN px nearer (so a camera standing
@@ -644,6 +689,13 @@ void tfsStreamTick(void)
 	trackMotion();
 	if (!isFileReadQueueIdle()) {
 		return;
+	}
+	if (TFS_HOLD) {
+		if (MOD_OPT_QUICK_BATTLE && (MOD_BTL_PRELOAD == 0) && !MOD_BTL_PRELOAD_BLOCKED &&
+		    ((uint32_t)(VSync(-1) - TFS_HOLD_START) < 90)) {
+			return;
+		}
+		TFS_HOLD = 0;
 	}
 	/*
 	 * Starting a read waits for the drive to acknowledge each command; right
